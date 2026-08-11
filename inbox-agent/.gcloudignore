@@ -1,0 +1,13 @@
+.git/
+.gitignore
+.venv/
+venv/
+__pycache__/
+*.pyc
+tests/
+setup/
+README.md
+.env
+.env.example
+token_*.json
+client_secret*.json

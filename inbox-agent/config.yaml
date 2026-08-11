@@ -1,0 +1,219 @@
+# Inbox agent policy.
+#
+# Everything the agent is allowed to do is described here. The Gemini model
+# never reads this file and never decides on an action -- it only labels mail.
+# The rules below are applied afterwards, in plain Python, to decide what
+# actually happens. See agent/policy.py.
+
+scan:
+  # How far back the digest looks for things needing attention.
+  attention_window_days: 3
+  # The sweep only considers mail newer than this, so it stays cheap.
+  sweep_window_hours: 6
+  # Hard cap on messages pulled per account per run.
+  max_messages_per_run: 250
+  # Characters of body text handed to the model per message.
+  body_chars: 1800
+
+report:
+  # Sections are rendered in this order; empty sections are dropped.
+  sections:
+    - needs_reply
+    - deadlines
+    - academic
+    - placement_internship
+    - finance
+    - security
+    - fyi
+  max_items_per_section: 12
+  # Include the "what I cleaned up" table in the digest.
+  show_cleanup_summary: true
+
+urgent:
+  # A message must clear BOTH the model's judgement and one of these
+  # deterministic gates to trigger an out-of-band alert. This keeps a
+  # spammer from getting your phone to buzz by writing "URGENT" in a subject.
+  enabled: true
+  # Never alert more than once per this many minutes; extras batch into the next.
+  min_minutes_between_alerts: 30
+  # Bulk mail can never be urgent, no matter what the model says.
+  require_non_bulk: true
+  # Sender domains that are allowed to raise an urgent alert. Empty = any
+  # non-bulk sender. Add domains to tighten this.
+  allowed_domains: []
+  # Any message from these senders is always treated as urgent.
+  always_urgent_senders: []
+  # Subject/body phrases that, on a non-bulk message, force urgent.
+  always_urgent_phrases:
+    - "action required"
+    - "final reminder"
+    - "last date"
+    - "expires today"
+    - "interview scheduled"
+    - "offer letter"
+
+star:
+  # Starring is reversible and non-destructive, so the bar here is lower than
+  # for cleanup -- it is fine to over-star a little. Still rule-gated, not
+  # left to the model's discretion.
+  enabled: true
+  max_stars_per_run: 50
+
+  # Never star bulk mail, whatever the model thinks of it.
+  never_star_bulk: true
+
+  # A message is starred if it matches ANY rule below.
+
+  # 1. Model assigned one of these categories.
+  categories:
+    - placement_internship
+    - academic
+    - security
+
+  # 2. Sender is a human at one of these domains (covers professors,
+  #    departments, the placement cell).
+  faculty_domains:
+    - iitkgp.ac.in
+    - kgpian.iitkgp.ac.in
+
+  # 3. Explicit addresses that always get starred. Add your professors here
+  #    as the semester's courses change -- this is the highest-precision rule.
+  faculty_senders: []
+
+  # 4. Your current subjects. Course codes or names appearing in the subject
+  #    line. Update each semester.
+  subjects: []
+
+  # 5. Phrases that mark something worth remembering.
+  keywords:
+    - deadline
+    - last date
+    - submission
+    - viva
+    - quiz
+    - midsem
+    - endsem
+    - assignment
+    - project review
+    - shortlist
+    - shortlisted
+    - interview
+    - offer letter
+    - ppo
+    - intern
+    - placement
+    - resume deadline
+    - test scheduled
+
+  # Apply this label alongside the star so starred-by-agent is distinguishable
+  # from starred-by-you. Created automatically. Set to null to skip.
+  also_label: "Agent/Flagged"
+
+career:
+  # Structured feed of every internship/placement item the agent sees.
+  # Consumed by the career site; see agent/career.py for the schema.
+  enabled: true
+  categories:
+    - placement_internship
+  # Object path inside the state bucket.
+  feed_object: "career/opportunities.json"
+  # Drop feed entries older than this.
+  keep_days: 365
+  # Label applied in Gmail so you can find the source mail from the site.
+  label: "Agent/Career"
+
+cleanup:
+  enabled: true
+
+  # Master safety switch. While true, the agent reports what it WOULD trash
+  # and touches nothing. Flip to false only after you have read a few reports
+  # and agree with its choices.
+  dry_run: true
+
+  # Nothing younger than this is ever eligible.
+  min_age_days: 30
+
+  # Ceiling per run. A bug or a bad rule can only ever cost you this much.
+  max_trash_per_run: 100
+
+  # Gmail search fragments defining the candidate pool. A message must match
+  # at least one of these to even be considered.
+  include_queries:
+    - "category:promotions"
+    - "category:social"
+    - "category:forums"
+    - "category:updates is:read"
+
+  # Applied as negative terms on the search AND re-checked per message in
+  # Python before anything is trashed. Belt and braces on purpose.
+  exclude_queries:
+    - "is:starred"
+    - "is:important"
+    - "has:attachment"
+    - "in:sent"
+    - "in:draft"
+    - "is:chat"
+
+  # Categories the model may assign that are eligible for cleanup.
+  # Anything the model labels outside this list is kept, full stop.
+  trashable_categories:
+    - promotional
+    - social
+    - newsletter
+
+  # Hard protections, checked per message in Python. Any hit = keep.
+  protect:
+    # Keep if you have ever sent a message in the thread.
+    threads_you_replied_to: true
+    # Keep if the sender looks like a person rather than a bulk sender
+    # (no List-Id / List-Unsubscribe header and not a noreply address).
+    human_senders: true
+    # Keep if the message carries any of these Gmail labels.
+    labels:
+      - IMPORTANT
+      - STARRED
+    # Keep if any of these appear in the subject or sender. Case-insensitive.
+    keywords:
+      - invoice
+      - receipt
+      - payment
+      - refund
+      - tax
+      - gst
+      - bank
+      - statement
+      - insurance
+      - policy
+      - admission
+      - admit card
+      - result
+      - grade
+      - transcript
+      - scholarship
+      - fee
+      - hostel
+      - exam
+      - placement
+      - internship
+      - offer letter
+      - interview
+      - visa
+      - passport
+      - ticket
+      - booking
+      - itinerary
+      - warranty
+      - contract
+      - legal
+      - password
+      - security alert
+      - verification
+    # Keep anything from these senders or domains, always.
+    senders:
+      - "@kgpian.iitkgp.ac.in"
+      - "@iitkgp.ac.in"
+      - "no-reply@accounts.google.com"
+
+  # Instead of trashing, you can route matches to a label for manual review.
+  # Set to a label name (created automatically) or leave null to trash.
+  quarantine_label: null

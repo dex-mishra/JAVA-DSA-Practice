@@ -1,0 +1,159 @@
+#!/usr/bin/env bash
+#
+# Stands up everything on GCP. Safe to re-run -- every step either creates a
+# resource or reports that it already exists.
+#
+#   ./setup/bootstrap.sh your-project-id
+#
+set -euo pipefail
+
+PROJECT="${1:-}"
+REGION="${REGION:-asia-south1}"
+JOB="${JOB:-inbox-agent}"
+SA="${SA:-inbox-agent}"
+BUCKET="${BUCKET:-${PROJECT}-inbox-agent-state}"
+TZ_NAME="${TZ_NAME:-Asia/Kolkata}"
+
+if [[ -z "$PROJECT" ]]; then
+  echo "usage: $0 <gcp-project-id>" >&2
+  exit 1
+fi
+
+# These are read by the deployed job. Edit before running.
+PRIMARY_EMAIL="${PRIMARY_EMAIL:-you@example.com}"
+COLLEGE_EMAIL="${COLLEGE_EMAIL:-}"
+REPORT_TO="${REPORT_TO:-$PRIMARY_EMAIL}"
+GEMINI_MODEL="${GEMINI_MODEL:-gemini-2.5-flash}"
+
+if [[ -z "$COLLEGE_EMAIL" ]]; then
+  echo "Set COLLEGE_EMAIL first, e.g.:" >&2
+  echo "  COLLEGE_EMAIL=you@kgpian.iitkgp.ac.in $0 $PROJECT" >&2
+  exit 1
+fi
+
+SA_EMAIL="${SA}@${PROJECT}.iam.gserviceaccount.com"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+say() { printf "\n\033[1m==> %s\033[0m\n" "$1"; }
+
+gcloud config set project "$PROJECT" >/dev/null
+
+say "Enabling APIs (a few minutes the first time)"
+gcloud services enable \
+  run.googleapis.com \
+  cloudbuild.googleapis.com \
+  cloudscheduler.googleapis.com \
+  secretmanager.googleapis.com \
+  aiplatform.googleapis.com \
+  storage.googleapis.com \
+  gmail.googleapis.com \
+  artifactregistry.googleapis.com
+
+say "State bucket: gs://${BUCKET}"
+if ! gcloud storage buckets describe "gs://${BUCKET}" >/dev/null 2>&1; then
+  gcloud storage buckets create "gs://${BUCKET}" \
+    --location="$REGION" --uniform-bucket-level-access
+else
+  echo "already exists"
+fi
+
+say "Service account: ${SA_EMAIL}"
+if ! gcloud iam service-accounts describe "$SA_EMAIL" >/dev/null 2>&1; then
+  gcloud iam service-accounts create "$SA" --display-name="Inbox agent"
+else
+  echo "already exists"
+fi
+
+say "Granting roles"
+# Bucket-scoped rather than project-wide: the agent can only touch its own state.
+gcloud storage buckets add-iam-policy-binding "gs://${BUCKET}" \
+  --member="serviceAccount:${SA_EMAIL}" \
+  --role="roles/storage.objectAdmin" >/dev/null
+
+gcloud projects add-iam-policy-binding "$PROJECT" \
+  --member="serviceAccount:${SA_EMAIL}" \
+  --role="roles/aiplatform.user" \
+  --condition=None >/dev/null
+
+for secret in inbox-agent-primary-token inbox-agent-college-token; do
+  if gcloud secrets describe "$secret" >/dev/null 2>&1; then
+    gcloud secrets add-iam-policy-binding "$secret" \
+      --member="serviceAccount:${SA_EMAIL}" \
+      --role="roles/secretmanager.secretAccessor" >/dev/null
+    echo "  granted access to $secret"
+  else
+    echo "  !! $secret does not exist yet -- run setup/authorize.py, then re-run this script"
+  fi
+done
+
+say "Deploying the Cloud Run job"
+gcloud run jobs deploy "$JOB" \
+  --source "$ROOT" \
+  --region "$REGION" \
+  --service-account "$SA_EMAIL" \
+  --tasks 1 \
+  --max-retries 1 \
+  --task-timeout 15m \
+  --memory 1Gi \
+  --cpu 1 \
+  --set-env-vars "GCP_PROJECT=${PROJECT},GCP_REGION=${REGION},STATE_BUCKET=${BUCKET},VERTEX_LOCATION=${REGION},GEMINI_MODEL=${GEMINI_MODEL},PRIMARY_EMAIL=${PRIMARY_EMAIL},COLLEGE_EMAIL=${COLLEGE_EMAIL},REPORT_TO=${REPORT_TO},TIMEZONE=${TZ_NAME},DRY_RUN=true"
+
+say "Scheduler service account"
+PROJECT_NUMBER="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')"
+SCHED_SA="scheduler-invoker@${PROJECT}.iam.gserviceaccount.com"
+if ! gcloud iam service-accounts describe "$SCHED_SA" >/dev/null 2>&1; then
+  gcloud iam service-accounts create scheduler-invoker --display-name="Cloud Scheduler invoker"
+fi
+gcloud projects add-iam-policy-binding "$PROJECT" \
+  --member="serviceAccount:${SCHED_SA}" \
+  --role="roles/run.invoker" \
+  --condition=None >/dev/null
+
+JOB_URI="https://${REGION}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${PROJECT}/jobs/${JOB}:run"
+
+create_schedule() {
+  local name="$1" cron="$2" mode="$3"
+  local body="{\"overrides\":{\"containerOverrides\":[{\"args\":[\"--mode=${mode}\"]}]}}"
+
+  if gcloud scheduler jobs describe "$name" --location="$REGION" >/dev/null 2>&1; then
+    gcloud scheduler jobs update http "$name" \
+      --location="$REGION" --schedule="$cron" --time-zone="$TZ_NAME" \
+      --uri="$JOB_URI" --http-method=POST \
+      --message-body="$body" \
+      --headers="Content-Type=application/json" \
+      --oauth-service-account-email="$SCHED_SA" >/dev/null
+    echo "  updated $name ($cron)"
+  else
+    gcloud scheduler jobs create http "$name" \
+      --location="$REGION" --schedule="$cron" --time-zone="$TZ_NAME" \
+      --uri="$JOB_URI" --http-method=POST \
+      --message-body="$body" \
+      --headers="Content-Type=application/json" \
+      --oauth-service-account-email="$SCHED_SA" >/dev/null
+    echo "  created $name ($cron)"
+  fi
+}
+
+say "Schedules"
+# One entry covers all four digests; a second drives the urgent sweep.
+create_schedule "${JOB}-digest" "0 7,12,17,21 * * *" "digest"
+create_schedule "${JOB}-sweep"  "*/15 * * * *"       "sweep"
+
+cat <<EOF
+
+Done.
+
+The agent is deployed in DRY_RUN mode: it will read, classify and report, but
+will not star, trash, or send anything until you turn that off.
+
+  Run it once now:
+    gcloud run jobs execute ${JOB} --region ${REGION} --args="--mode=check" --wait
+
+  See what cleanup would do, without doing it:
+    gcloud run jobs execute ${JOB} --region ${REGION} --args="--mode=cleanup" --wait
+    gcloud run jobs executions logs read --region ${REGION} --job ${JOB}
+
+  Go live once the reports look right:
+    gcloud run jobs update ${JOB} --region ${REGION} --update-env-vars DRY_RUN=false
+
+EOF

@@ -1,0 +1,683 @@
+{
+ "version": 1,
+ "phases": [
+  {
+   "n": "PHASE 01",
+   "t": "Range prep",
+   "when": "Aug – Sep 2026",
+   "note": "Nothing here is an application. This is the machinery that makes every later application possible in a week rather than a month. Do it now while your semester is light.",
+   "items": [
+    {
+     "id": "p1a",
+     "task": "Check passport validity and exact name spelling",
+     "note": "Must be valid past Dec 2029 and the name on your GMAT booking must match the passport character for character. Proctors turn people away for \"Aryan\" vs a fuller legal name.",
+     "date": "2026-08-20",
+     "tags": [
+      "action"
+     ]
+    },
+    {
+     "id": "p1b",
+     "task": "Book a GMAT Focus slot for late Oct or Nov 2026",
+     "note": "₹27,100 at a test centre in India. Slots at Kolkata and Kharagpur-adjacent centres fill 6–8 weeks out. Book before you feel ready; the date creates the prep.",
+     "date": "2026-08-25",
+     "tags": [
+      "action"
+     ]
+    },
+    {
+     "id": "p1c",
+     "task": "Sit one full GMAT diagnostic mock, untimed prep after that",
+     "note": "Your Quant is already far past the bar. The score lives in Verbal (Critical Reasoning and Reading Comprehension) and Data Insights. Debating helps you on CR more than you expect.",
+     "date": "2026-08-30",
+     "tags": [
+      "action"
+     ]
+    },
+    {
+     "id": "p1d",
+     "task": "Request IIT KGP transcript and an English-medium-of-instruction letter",
+     "note": "The second one is what waives TOEFL/IELTS. HBS and Kellogg both require English tests from non-English-medium universities; the registrar letter kills that requirement. Get it once, use it ten times.",
+     "date": "2026-09-10",
+     "tags": [
+      "action"
+     ]
+    },
+    {
+     "id": "p1e",
+     "task": "Write the master narrative document",
+     "note": "One file, four sections: why an MBA at all, why abroad specifically, what you will build, and three stories you can tell in any format. CVBuddy, LifeTreeOS and the freelance book each need a version at 100, 300 and 800 words. Every essay after this is an edit, not a draft.",
+     "date": "2026-09-15",
+     "tags": [
+      "action"
+     ]
+    },
+    {
+     "id": "p1f",
+     "task": "Approach three recommenders and get verbal agreement",
+     "note": "Best mix for a founder profile: one IIT KGP professor who has seen your technical work, one client or mentor who paid you money, one from Placement Committee or the debating circuit who can speak to leadership. Ask early, brief them later.",
+     "date": "2026-09-20",
+     "tags": [
+      "action"
+     ]
+    },
+    {
+     "id": "p1g",
+     "task": "Build a separate one-page MBA resume",
+     "note": "This is not your placement CV. Strip the tech stack. Lead with users, revenue, people managed and decisions owned. INSTRU rules still apply on bullet construction, but the reader is an admissions officer, not an SDE interviewer.",
+     "date": "2026-09-25",
+     "tags": [
+      "action"
+     ]
+    },
+    {
+     "id": "p1h",
+     "task": "Stanford GSB deferred — Round 1",
+     "note": "Round 1 of the 2026–27 cycle. Realistically too tight to write a strong \"What matters most to you, and why?\" in four weeks. The correct move is a deliberate skip in favour of Round 2, but make it a decision rather than a drift.",
+     "date": "2026-09-09",
+     "school": "Stanford GSB",
+     "tags": [
+      "confirmed",
+      "oneshot"
+     ]
+    },
+    {
+     "id": "p1j",
+     "task": "Cornell Johnson MBA Future Leaders — Round 1",
+     "note": "Ivy League. Cornell runs no separate deferred application: you apply to the Two-Year MBA and flag interest in the Future Leaders Program. Note the unusual requirement — Cornell demands a minimum of three and a maximum of five years of work experience before you enrol, which is a longer runway than Harvard or Wharton allow.",
+     "date": "2026-09-17",
+     "school": "Cornell Johnson",
+     "tags": [
+      "confirmed"
+     ]
+    },
+    {
+     "id": "p1i",
+     "task": "Yale Silver Scholars — Round 1",
+     "note": "Same reasoning: skip in favour of Round 2 on 6 Jan 2027. Yale explicitly allows you to apply in any of the three rounds regardless of when you graduate.",
+     "date": "2026-09-15",
+     "school": "Yale SOM",
+     "tags": [
+      "confirmed"
+     ]
+    },
+    {
+     "id": "p1L",
+     "task": "Resolve the Tuck question directly with admissions",
+     "note": "Sources conflict. Tuck’s own 2026–27 admissions page lists no deferred pathway, but several third-party guides describe a Tuck deferred option. Email admissions and get a one-line answer in writing. If a deferred route does exist, the rounds are 24 Sep 2026, 5 Jan 2027 and 24 Mar 2027, and Round 1 applicants who submit by 1 September are guaranteed an interview.",
+     "date": "2026-08-28",
+     "school": "Dartmouth Tuck",
+     "tags": [
+      "verify"
+     ]
+    }
+   ]
+  },
+  {
+   "n": "PHASE 02",
+   "t": "Test window",
+   "when": "Sep – Nov 2026",
+   "note": "One test, five years of validity. This single score covers every deferred application now and any regular MBA application through 2031. It is the highest-leverage thing in the entire plan.",
+   "items": [
+    {
+     "id": "p2a",
+     "task": "GMAT Focus prep block — 6 to 10 weeks",
+     "note": "Target 685+, stretch 705+. The Focus scale runs 205–805; a 645 is roughly the old 700. Booth, Haas and Wharton deferred cohorts sit around 700–730.",
+     "date": "2026-10-31",
+     "tags": [
+      "action"
+     ]
+    },
+    {
+     "id": "p2b",
+     "task": "Sit the GMAT Focus",
+     "note": "Three sections of 45 minutes: Quant, Verbal, Data Insights. You may review and change up to three answers per section, which changes pacing strategy. Unofficial score appears immediately.",
+     "date": "2026-11-15",
+     "tags": [
+      "action"
+     ]
+    },
+    {
+     "id": "p2c",
+     "task": "Send the five free score reports within 48 hours",
+     "note": "Free only in the 48-hour window after your official score. After that each report costs money. Send to Stanford, Harvard, Wharton, MIT, Yale even if you are unsure — it costs nothing and commits you to nothing.",
+     "date": "2026-11-18",
+     "tags": [
+      "action"
+     ]
+    },
+    {
+     "id": "p2d",
+     "task": "Retake decision point",
+     "note": "If you land under 665, rebook immediately. Minimum gap between attempts is 16 days, and you can sit it up to five times in a rolling year. A December retake still clears every April deadline.",
+     "date": "2026-11-25",
+     "tags": [
+      "action"
+     ]
+    },
+    {
+     "id": "p2e",
+     "task": "Start the Stanford essay",
+     "note": "\"What matters most to you, and why?\" is the hardest essay in graduate admissions and takes most people eight to ten weeks of drafts. Starting it in December for a January deadline is how people write a mediocre one.",
+     "date": "2026-11-10",
+     "tags": [
+      "action"
+     ]
+    }
+   ]
+  },
+  {
+   "n": "PHASE 03",
+   "t": "First strike",
+   "when": "Dec 2026 – Jan 2027",
+   "note": "Placements and the first real deadlines collide in the same four weeks. Take the placement offer. A 35+ LPA offer alongside a deferred admit is a far stronger position than either alone, and the deferral years need a job anyway.",
+   "items": [
+    {
+     "id": "p3z",
+     "task": "VERIFICATION CHECKPOINT — open every school page and confirm dates",
+     "note": "Sit down for ninety minutes. Open all twelve admissions pages, write down the exact deadline and time zone, and correct this tracker. Most April 2027 dates are not published until December or January.",
+     "date": "2026-12-01",
+     "tags": [
+      "verify"
+     ]
+    },
+    {
+     "id": "p3a",
+     "task": "IIT KGP campus placements",
+     "note": "Priority over everything else this month. The offer funds the deferral years, satisfies the \"quality work experience\" requirement every deferred programme imposes, and gives you a fallback if no admit lands.",
+     "date": "2026-12-05",
+     "tags": [
+      "action"
+     ]
+    },
+    {
+     "id": "p3b",
+     "task": "Wharton Moelis application opens",
+     "note": "Wharton confirms the Moelis Advance Access application becomes available in November for the 2027 cycle. Create the account, read the essay prompts, and start early — the deadline itself is in April.",
+     "date": "2026-11-30",
+     "school": "Wharton",
+     "tags": [
+      "confirmed"
+     ]
+    },
+    {
+     "id": "p3c",
+     "task": "IESE Young Talent Path window opens",
+     "note": "IESE accepts YTP applications from December through March. Uniquely in Europe, and uniquely among deferred programmes, it stays open to you even after graduating with up to two years of work experience. Admits get a €25,000 scholarship.",
+     "date": "2026-12-10",
+     "school": "IESE",
+     "tags": [
+      "projected"
+     ]
+    },
+    {
+     "id": "p3d",
+     "task": "Stanford GSB deferred — Round 2",
+     "note": "The round to actually target. Stanford has no separate deferred application; you apply through the regular MBA application and indicate deferred enrollment. Eligibility: degree conferred between 1 Oct 2026 and 30 Sep 2027, which is you.",
+     "date": "2027-01-06",
+     "school": "Stanford GSB",
+     "tags": [
+      "confirmed",
+      "oneshot"
+     ]
+    },
+    {
+     "id": "p3e",
+     "task": "Yale Silver Scholars — Round 2",
+     "note": "The one programme on this list that takes you straight from B.Tech with no work experience: year one core, year two paid full-time internship, year three electives. If you want to be abroad in 2027 rather than 2030, this is the door.",
+     "date": "2027-01-06",
+     "school": "Yale SOM",
+     "tags": [
+      "confirmed"
+     ]
+    },
+    {
+     "id": "p3g",
+     "task": "Cornell Johnson MBA Future Leaders — Round 2",
+     "note": "Ivy League. Strongest Cornell round for international applicants. Decisions release between 3 and 26 March 2027. Submit by 11:59 PM Eastern.",
+     "date": "2027-01-05",
+     "school": "Cornell Johnson",
+     "tags": [
+      "confirmed"
+     ]
+    },
+    {
+     "id": "p3f",
+     "task": "JN Tata Endowment — register online",
+     "note": "Registration opens in early January at jntataendowment.org, deadline mid-March. Interest-free loan scholarship of ₹5–10 lakh. Final-year students may apply provisionally and submit the admit later. Only worth doing in the year you actually matriculate.",
+     "date": "2027-01-10",
+     "tags": [
+      "projected"
+     ]
+    }
+   ]
+  },
+  {
+   "n": "PHASE 04",
+   "t": "Main wave",
+   "when": "Feb – Apr 2027",
+   "note": "Nine of the twelve programmes close within a three-week band in April. This is where applications get missed. Write the essays in February, not April.",
+   "items": [
+    {
+     "id": "p4z",
+     "task": "VERIFICATION CHECKPOINT — second pass on all April dates",
+     "note": "By February every 2027 deadline is published. Re-open all pages, confirm the exact date and closing time, and set a calendar alarm for seven days before each one. This is the single task that makes the rest of the page trustworthy.",
+     "date": "2027-02-01",
+     "tags": [
+      "verify"
+     ]
+    },
+    {
+     "id": "p4a",
+     "task": "Essay production block — six schools in parallel",
+     "note": "The Stanford essay is the parent document; Harvard, MIT and Wharton essays are derivatives of it. Budget roughly twelve to fifteen hours per school including recommender briefing.",
+     "date": "2027-02-28",
+     "tags": [
+      "action"
+     ]
+    },
+    {
+     "id": "p5a",
+     "task": "Interview window — Stanford and Yale Round 2 admits",
+     "note": "Stanford interviews are conducted by alumni and are almost entirely behavioural. Yale uses a behavioural assessment inside the portal plus an invite-only interview. Invitations for the 6 January round land through February and March.",
+     "date": "2027-03-01",
+     "tags": [
+      "action"
+     ]
+    },
+    {
+     "id": "p4b",
+     "task": "IESE Young Talent Path — final deadline",
+     "note": "Applications close around March; selected candidates are invited to the Assessment Boot Camp in Barcelona and notified by May. The boot camp is the evaluation, so treat the written application as a gate, not the decision.",
+     "date": "2027-03-15",
+     "school": "IESE",
+     "tags": [
+      "projected"
+     ]
+    },
+    {
+     "id": "p4c",
+     "task": "Chicago Booth Scholars",
+     "note": "Polsky Center and the New Venture Challenge are genuine founder infrastructure. Booth Scholars can later choose full-time, evening or weekend MBA, which is unusual flexibility.",
+     "date": "2027-04-02",
+     "school": "Chicago Booth",
+     "tags": [
+      "projected",
+      "oneshot"
+     ]
+    },
+    {
+     "id": "p4d",
+     "task": "Stanford GSB deferred — Round 3",
+     "note": "Final chance at Stanford in your eligibility year. Round 3 is materially harder than Rounds 1 and 2 because most of the class is already committed. Use only as a backstop.",
+     "date": "2027-04-07",
+     "school": "Stanford GSB",
+     "tags": [
+      "confirmed",
+      "oneshot"
+     ]
+    },
+    {
+     "id": "p4e",
+     "task": "Yale Silver Scholars — Round 3",
+     "note": "Final Silver Scholars round for your graduation year.",
+     "date": "2027-04-07",
+     "school": "Yale SOM",
+     "tags": [
+      "confirmed"
+     ]
+    },
+    {
+     "id": "p4f",
+     "task": "Columbia Business School deferred enrollment",
+     "note": "New York, strong for anyone whose venture touches finance, media or consumer. No application fee for eligible graduate students.",
+     "date": "2027-04-15",
+     "school": "Columbia",
+     "tags": [
+      "projected",
+      "oneshot"
+     ]
+    },
+    {
+     "id": "p4g",
+     "task": "Berkeley Haas Accelerated Access",
+     "note": "SkyDeck accelerator, Bay Area recruiting, and Haas offers scholarships specifically to deferred admits. Open to undergraduates from any accredited institution worldwide.",
+     "date": "2027-04-16",
+     "school": "Berkeley Haas",
+     "tags": [
+      "projected",
+      "oneshot"
+     ]
+    },
+    {
+     "id": "p4h",
+     "task": "MIT Sloan Early Admission",
+     "note": "Martin Trust Center, delta v accelerator, MIT $100K competition. The strongest fit on this list for a technical founder building software rather than a consumer brand.",
+     "date": "2027-04-17",
+     "school": "MIT Sloan",
+     "tags": [
+      "projected",
+      "oneshot"
+     ]
+    },
+    {
+     "id": "p4i",
+     "task": "Harvard Business School 2+2",
+     "note": "Roughly 8–9% admit rate, more selective than the regular HBS MBA. HBS explicitly favours applicants on paths that would not normally lead to business school — operating companies, tech, manufacturing. Application fee is $100 for current students rather than $250.",
+     "date": "2027-04-22",
+     "school": "Harvard",
+     "tags": [
+      "projected",
+      "oneshot"
+     ]
+    },
+    {
+     "id": "p4j",
+     "task": "Wharton Moelis Advance Access",
+     "note": "Evaluated against other Moelis applicants, not the full Wharton pool, which is a meaningful structural advantage. Defer two to four years, then join the full-time MBA.",
+     "date": "2027-04-22",
+     "school": "Wharton",
+     "tags": [
+      "projected",
+      "oneshot"
+     ]
+    },
+    {
+     "id": "p4k",
+     "task": "Kellogg Future Leaders",
+     "note": "Insurance application. Strong general management brand, weaker founder density than the six above. TOEFL required unless your English-medium letter clears it.",
+     "date": "2027-04-22",
+     "school": "Kellogg",
+     "tags": [
+      "projected",
+      "oneshot"
+     ]
+    },
+    {
+     "id": "p4l",
+     "task": "UVA Darden Future Year Scholars — Round 1",
+     "note": "Darden runs a second round in July, which makes it the only meaningful safety net after the April wall. Offers deferred-specific scholarships.",
+     "date": "2027-04-22",
+     "school": "Darden",
+     "tags": [
+      "projected"
+     ]
+    },
+    {
+     "id": "p4n",
+     "task": "Cornell Johnson MBA Future Leaders — Round 3",
+     "note": "Ivy League. Final Cornell round. Decisions release between 7 and 21 May 2027.",
+     "date": "2027-04-06",
+     "school": "Cornell Johnson",
+     "tags": [
+      "confirmed"
+     ]
+    },
+    {
+     "id": "p4m",
+     "task": "Non-Ivy, non-M7 sweep — decide yes or no in one sitting",
+     "note": "CMU Tepper Future Business Leaders, Emory Goizueta Early Admission, Georgetown McDonough, Rice Jones, UCLA Anderson. All run deferred tracks. By your own stated bar these fall below the line, so the default answer is no — but write the decision down rather than letting the dates pass unnoticed.",
+     "date": "2027-04-20",
+     "tags": [
+      "action"
+     ]
+    }
+   ]
+  },
+  {
+   "n": "PHASE 05",
+   "t": "Decisions",
+   "when": "May – Aug 2027",
+   "note": "Interviews, offers, and the last safety net. Also the month you graduate.",
+   "items": [
+    {
+     "id": "p5b",
+     "task": "IESE Assessment Boot Camp in Barcelona",
+     "note": "Invitations go out by May. This is a live evaluation where you work on real business projects alongside current IESE MBAs. Budget for the flight.",
+     "date": "2027-05-15",
+     "school": "IESE",
+     "tags": [
+      "projected"
+     ]
+    },
+    {
+     "id": "p5c",
+     "task": "Graduate from IIT KGP",
+     "note": "Confirm the exact conferral date in writing. Stanford requires it between 1 Oct 2026 and 30 Sep 2027; Yale requires 1 Aug 2026 to 31 Jul 2027. A delayed convocation letter has cost people offers.",
+     "date": "2027-05-15",
+     "tags": [
+      "action"
+     ]
+    },
+    {
+     "id": "p5d",
+     "task": "HBS 2+2 decision released",
+     "note": "Notification typically comes in late June.",
+     "date": "2027-06-25",
+     "school": "Harvard",
+     "tags": [
+      "projected"
+     ]
+    },
+    {
+     "id": "p5e",
+     "task": "UVA Darden Future Year Scholars — Round 2",
+     "note": "The last deferred deadline of your eligibility year, anywhere. If April went badly, this is the final door and it closes for good.",
+     "date": "2027-07-15",
+     "school": "Darden",
+     "tags": [
+      "projected",
+      "oneshot"
+     ]
+    },
+    {
+     "id": "p5f",
+     "task": "Accept, pay deposit, confirm deferral length in writing",
+     "note": "Get the permitted deferral range in an email: most schools allow two to four years, Stanford and Booth are more flexible. This determines whether you can run IsoCodeLabs for two years or five.",
+     "date": "2027-07-31",
+     "tags": [
+      "action"
+     ]
+    }
+   ]
+  },
+  {
+   "n": "PHASE 06",
+   "t": "Deferral years",
+   "when": "2027 – 2030",
+   "note": "The part everyone underestimates. Schools admit you on potential and then watch what you do with three years of freedom. This is also when the money actually gets raised.",
+   "items": [
+    {
+     "id": "p6a",
+     "task": "Annual check-in with the admissions office",
+     "note": "Every deferred programme requires a yearly confirmation that you still intend to matriculate. Missing one can void the offer. Put a recurring calendar entry in now.",
+     "date": "2028-06-01",
+     "tags": [
+      "action"
+     ]
+    },
+    {
+     "id": "p6b",
+     "task": "Use the deferral the way they expect",
+     "note": "Schools explicitly want risk-taking in this window: founding, joining something early, doing something hard. Running IsoCodeLabs full-time is a stronger deferral story than two years at a consultancy, and it is the story you already told them.",
+     "date": null,
+     "tags": [
+      "action"
+     ]
+    },
+    {
+     "id": "p6c",
+     "task": "External scholarship wave — the January before you matriculate",
+     "note": "These all require an admit in hand or in process, so they belong to your matriculation year, not 2027. JN Tata Endowment (deadline mid-March, ₹5–10 lakh interest-free). Narotam Sekhsaria Foundation (opens February, up to ₹20 lakh interest-free). Inlaks Shivdasani (opens January, deadline around 25 April, up to $100,000, must be under 30 and resident in India). KC Mahindra (April). Aga Khan Foundation (March, 50% grant and 50% loan).",
+     "date": null,
+     "tags": [
+      "action"
+     ]
+    },
+    {
+     "id": "p6d",
+     "task": "Education loan sanction — six months before matriculation",
+     "note": "Compare SBI, Bank of Baroda, Prodigy Finance and MPOWER on total interest cost over full repayment, not headline rate. Section 80E makes education loan interest fully tax deductible for eight years with no upper limit.",
+     "date": null,
+     "tags": [
+      "action"
+     ]
+    },
+    {
+     "id": "p6e",
+     "task": "Fallback route if no deferred admit lands",
+     "note": "Your GMAT stays valid five years. Apply through the regular cycle with three to four years of founder experience, which is a genuinely stronger application than the one you are submitting at 21. Round 1 deadlines fall in early September; INSEAD and IESE run rolling rounds year-round.",
+     "date": null,
+     "tags": [
+      "action"
+     ]
+    }
+   ]
+  }
+ ],
+ "schools": [
+  {
+   "n": "Stanford GSB",
+   "p": "Deferred Enrollment",
+   "fit": "a",
+   "m7": 1,
+   "txt": "Around 16% of the class goes straight into entrepreneurship, the highest of any elite programme. Startup Garage, Center for Entrepreneurial Studies, and physical proximity to Sand Hill Road. Not Ivy League, and the best school in the world for what you say you want. Do not cut it."
+  },
+  {
+   "n": "Harvard 2+2",
+   "p": "2+2 Deferred",
+   "fit": "a",
+   "ivy": 1,
+   "m7": 1,
+   "txt": "HBS states a preference for applicants on paths that would not normally lead to business school. A student-run software company in a manufacturing branch is exactly that profile. Rock Center, i-Lab, New Venture Competition. Roughly 8–9% admit rate."
+  },
+  {
+   "n": "MIT Sloan",
+   "p": "Early Admission",
+   "fit": "a",
+   "m7": 1,
+   "txt": "The best fit here for a technical founder. Martin Trust Center, delta v accelerator, the MIT $100K. Action-learning labs replace case discussion with real client work. Not Ivy, and ranked third in the US for entrepreneurship."
+  },
+  {
+   "n": "Wharton",
+   "p": "Moelis Advance Access",
+   "fit": "a",
+   "ivy": 1,
+   "m7": 1,
+   "txt": "Evaluated only against other Moelis applicants, which is a structural edge. Venture Lab plus the San Francisco campus gives a two-market strategy. Best if your future involves raising serious capital rather than bootstrapping."
+  },
+  {
+   "n": "Yale SOM",
+   "p": "Silver Scholars",
+   "fit": "a",
+   "ivy": 1,
+   "txt": "The only programme here that admits you straight from undergraduate with zero work experience. Three years: core, a paid full-time internship year, then electives. Choose this if you want to be abroad in 2027 rather than 2030."
+  },
+  {
+   "n": "Berkeley Haas",
+   "p": "Accelerated Access",
+   "fit": "a",
+   "txt": "Smallest class in the top ten, strongest West Coast network outside Stanford, and SkyDeck is a real accelerator rather than a branded room. Offers scholarships specifically to deferred admits. Not Ivy; ranked fourth in the US for entrepreneurship."
+  },
+  {
+   "n": "Columbia",
+   "p": "Deferred Enrollment",
+   "fit": "a",
+   "ivy": 1,
+   "m7": 1,
+   "txt": "New York access, strong for consumer, media and finance-adjacent ventures. The most founder-relevant of the East Coast Ivies after Harvard. Weaker startup density than the Bay Area schools."
+  },
+  {
+   "n": "Chicago Booth",
+   "p": "Booth Scholars",
+   "fit": "a",
+   "m7": 1,
+   "txt": "Polsky Center and the New Venture Challenge, one of the oldest and best-funded student venture competitions anywhere. Scholars can later choose full-time, evening or weekend format. Not Ivy, but M7."
+  },
+  {
+   "n": "Kellogg",
+   "p": "Future Leaders",
+   "fit": "b",
+   "m7": 1,
+   "txt": "Completes the M7. Excellent general management brand and marketing depth. Insurance application rather than a target — founder outcomes trail the schools above."
+  },
+  {
+   "n": "Cornell Johnson",
+   "p": "MBA Future Leaders",
+   "fit": "b",
+   "ivy": 1,
+   "txt": "Ivy League. Small, tight cohort in Ithaca, with a one-year option at Cornell Tech in New York City which is the genuinely interesting part for a technical founder. Note the constraint: Cornell requires three to five years of work experience before you enrol, longer than any other programme here."
+  },
+  {
+   "n": "Dartmouth Tuck",
+   "p": "Deferred route unconfirmed",
+   "fit": "b",
+   "ivy": 1,
+   "txt": "Ivy League, and the one genuine unknown on this list: Tuck’s own 2026–27 page lists no deferred pathway, while several guides claim one exists. Settle it by email before you assume either way. Regular rounds only, which for you means the 2029–30 cycle. Strong on general management and private equity, thin on venture creation."
+  },
+  {
+   "n": "Brown",
+   "p": "No full-time MBA",
+   "fit": "b",
+   "ivy": 1,
+   "txt": "Ivy League with no business school. The only MBA it issues is the 15-month IE Brown Executive MBA run jointly with IE Madrid, aimed at senior managers with more than ten years of experience. Structurally unavailable to you for at least a decade."
+  },
+  {
+   "n": "Princeton",
+   "p": "No MBA at all",
+   "fit": "b",
+   "ivy": 1,
+   "txt": "The only Ivy League university that issues no MBA of any kind. It runs a Master in Finance through the Bendheim Center, which is a different degree for a different career. Nothing to apply to."
+  },
+  {
+   "n": "IESE",
+   "p": "Young Talent Path",
+   "fit": "b",
+   "txt": "The only verified deferred programme in Europe. Roughly half the cost of a US MBA, a €25,000 scholarship on admission, and an Assessment Boot Camp in Barcelona instead of a pure paper evaluation. Also the only one still open to you after graduating."
+  },
+  {
+   "n": "UVA Darden",
+   "p": "Future Year Scholars",
+   "fit": "b",
+   "txt": "Matters mainly for its July round, the only deferred deadline that falls after the April wall. Offers deferred-specific scholarships. Below your stated bar; keep only as a last safety net."
+  }
+ ],
+ "excluded": [
+  {
+   "id": "x1",
+   "task": "CAT 2026 and all IIMs",
+   "note": "Registration closes 15 September 2026, exam 29 November 2026. You have ruled this out. Worth knowing what you are declining: as a General Engineering Male you would need a 99+ percentile, and it collides directly with December placement prep. The cost of keeping the option open is ₹2,700 and one Sunday.",
+   "date": "2026-09-15"
+  },
+  {
+   "id": "x2",
+   "task": "ISB PGP Young Leaders",
+   "note": "Round 1 closes 20 December 2026, Round 2 closes 21 February 2027 for the Class of 2029. A 20-month residential programme for candidates with 0–24 months of experience. Genuinely the closest Indian analogue to a deferred MBA and it explicitly rewards entrepreneurial ventures — but it is in India, which is the thing you are trying to leave. Logged, not forgotten.",
+   "date": "2027-02-21"
+  },
+  {
+   "id": "x4",
+   "task": "Dartmouth Tuck — deferred route unresolved",
+   "note": "Ivy League, and checked directly against Tuck’s own 2026–27 admissions page: there is no deferred or early-admission pathway listed, though several third-party guides claim otherwise, so treat this as unresolved until admissions confirms. Regular rounds are 24 Sep 2026, 5 Jan 2027 and 24 Mar 2027, all requiring current work experience, so your realistic Tuck cycle is 2029–30. One useful detail for later: Tuck waives the English test outright if your bachelor’s came from an institution where English is the sole language of instruction, which covers IIT KGP.",
+   "date": null
+  },
+  {
+   "id": "x5",
+   "task": "Brown — no full-time MBA to apply to",
+   "note": "Brown has no business school. Its only MBA is the 15-month IE Brown Executive MBA with IE Madrid, built for senior managers with more than ten years of experience. Not a gap in your plan; a gap in Brown’s.",
+   "date": null
+  },
+  {
+   "id": "x6",
+   "task": "Princeton — issues no MBA",
+   "note": "The only Ivy League university that awards no MBA of any kind. Its Bendheim Center Master in Finance is a different degree aimed at quantitative finance careers. Nothing here to miss.",
+   "date": null
+  },
+  {
+   "id": "x3",
+   "task": "Masters in Management (MiM) programmes",
+   "note": "Designed for freshers with no work experience. For an IIT engineer already running a company, it buys a weaker brand at a similar price with none of the founder network. Correctly skipped.",
+   "date": null
+  }
+ ]
+}

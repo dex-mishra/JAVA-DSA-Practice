@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Launch Console — Placement &amp; MBA</title>
+<meta name="description" content="Unified tracker: placement mastery rating and MBA application windows.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>/*__STYLES__*/</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Placement Day 1 · 1 Dec 2026 &nbsp;·&nbsp; Deferred MBA wall · Apr 2027</div>
+    <div class="identity">
+      <div class="handle" id="handle">unrated</div>
+      <div class="spacer"></div>
+      <div class="who">Aryan · IIT Kharagpur · Manufacturing · CG 7.15 · Class of 2027</div>
+    </div>
+
+    <!-- Two instruments, one rule between them. They are measured separately
+         and never averaged: mastery is earned and climbs, windows are held
+         and can only be lost. -->
+    <div class="instruments">
+      <div>
+        <div class="instr-hd">Mastery rating &middot; 1,328 topics</div>
+        <div class="instr-main">
+          <span class="instr-val rank" id="ratingVal">800</span>
+          <span class="instr-tag rank" id="rankTag">Newbie</span>
+        </div>
+        <div class="ladder">
+          <div class="ladder-wrap">
+            <div class="ladder-track" id="ladderTrack"></div>
+            <div class="ladder-marker" id="ladderMarker"></div>
+          </div>
+        </div>
+        <div class="instr-note" id="rankNote"></div>
+      </div>
+
+      <div class="instr-div"></div>
+
+      <div>
+        <div class="instr-hd">Window integrity &middot; 56 commitments</div>
+        <div class="instr-main">
+          <span class="instr-val win" id="winVal">100%</span>
+          <span class="instr-tag win" id="winTag">intact</span>
+        </div>
+        <div class="winbar" id="winBar"></div>
+        <div class="instr-note" id="winNote"></div>
+      </div>
+    </div>
+
+    <!-- The only place the two systems meet, and it meets only on time. -->
+    <div class="spine" id="spine"></div>
+
+    <div class="strip">
+      <div class="stat"><div class="k">Days to Day 1</div><div class="v urgent" id="days">—</div><div class="s">1 Dec 2026</div></div>
+      <div class="stat"><div class="k">Topics cleared</div><div class="v live" id="cleared">0</div><div class="s" id="clearedSub">of 0</div></div>
+      <div class="stat"><div class="k">Day streak</div><div class="v" id="streak">0</div><div class="s">check one topic to start</div></div>
+      <div class="stat"><div class="k">Badges</div><div class="v" id="badgeCount">0</div><div class="s" id="badgeSub">of 0 unlocked</div></div>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs" role="tablist"></nav>
+  <div id="loading" class="loading">Loading…</div>
+  <main id="panel" class="hide"></main>
+
+  <div class="foot">
+    Mastery rating is computed only from rated topics. Calendar and application
+    items never move it &mdash; finishing a week is not the same as mastering a topic.<br>
+    Window integrity starts at 100% and falls as dated commitments pass unchecked. It does not recover.<br>
+    Progress is stored in this browser. Built <span id="builtAt">—</span>.
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>window.__DATA__=/*__DATA__*/{};</script>
+<script>/*__APP__*/</script>
+</body>
+</html>

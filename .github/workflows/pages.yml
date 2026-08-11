@@ -1,0 +1,50 @@
+name: Build and deploy site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # The build refuses to emit an empty curriculum, so a bad data edit
+      # fails here rather than silently shipping a blank tracker.
+      - name: Build index.html from data/
+        run: node tools/build.mjs
+
+      - name: Check the build is not stale
+        run: |
+          if ! git diff --quiet -- index.html; then
+            echo "::warning::index.html in the repo differed from a fresh build; deploying the fresh one."
+          fi
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

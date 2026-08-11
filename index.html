@@ -1,0 +1,1296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Launch Console — Placement &amp; MBA</title>
+<meta name="description" content="Unified tracker: placement mastery rating and MBA application windows.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>/* ============================================================
+   LAUNCH CONSOLE — unified shell for the placement and MBA systems.
+
+   Type: one display face and one mono face, not two of each. Both source
+   briefs independently arrived at the same rationale ("every number on the
+   page is instrumentation, so numbers get a monospaced face and prose does
+   not"), so that is the shared DNA. Archivo was dropped rather than run a
+   third family; Space Grotesk carries the compressed uppercase headings.
+
+   Colour: the placement base survives as the shell because it is the surface
+   you stare at across 1,328 topics. Accent is domain-coded and that coding
+   is meaningful, not decorative:
+     - placement accent = your current rank colour. It is earned, so it moves.
+     - MBA accent = fixed amber. Windows have no tiers; a door is open or shut.
+   ============================================================ */
+
+:root {
+  --bg: #12151f;
+  --surface: #191d2b;
+  --raise: #212739;
+  --line: #2c3348;
+  --line-soft: #232a3c;
+  --ink: #e9ecf5;
+  --ink-2: #a8b0c6;
+  --ink-3: #6d7691;
+
+  /* Overwritten at runtime from the current rank. */
+  --accent: #9aa4b8;
+  --accent-soft: rgba(154, 164, 184, 0.14);
+
+  /* MBA domain. Amber is constant by design. */
+  --amber: #e2a72e;
+  --amber-soft: rgba(226, 167, 46, 0.13);
+
+  --ok: #4caf7d;
+  --warn: #f0932b;
+  --crit: #ee5a5a;
+
+  --display: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --r: 10px;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--display);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: 64px;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(1100px 520px at 50% -12%, var(--accent-soft), transparent 70%);
+  transition: background .6s ease;
+}
+body.domain-mba::before {
+  background: radial-gradient(1100px 520px at 50% -12%, var(--amber-soft), transparent 70%);
+}
+
+.wrap { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; padding: 0 18px; }
+
+.mono { font-family: var(--mono); }
+.hide { display: none !important; }
+
+/* ---------------------------------------------------------- header */
+
+header { padding: 32px 0 18px; }
+
+.eyebrow {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .22em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 14px;
+}
+
+.identity { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px; }
+.handle {
+  font-size: clamp(28px, 5vw, 42px); font-weight: 700; letter-spacing: -.02em;
+  line-height: 1; color: var(--accent); transition: color .5s ease;
+}
+.who { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); letter-spacing: .04em; }
+.spacer { flex: 1; }
+
+/* --- the two instruments. Deliberately separated by a rule, because they
+   are independent measurements and must not read as one blended score. --- */
+
+.instruments {
+  display: grid; grid-template-columns: 1fr 1px 1fr; gap: 22px;
+  align-items: stretch; margin-top: 24px;
+  border: 1px solid var(--line-soft); border-radius: var(--r);
+  background: var(--surface); padding: 18px;
+}
+.instr-div { background: var(--line-soft); }
+.instr-hd {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .2em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 9px;
+}
+.instr-main { display: flex; align-items: baseline; gap: 11px; }
+.instr-val { font-family: var(--mono); font-size: 32px; font-weight: 700; line-height: 1; }
+.instr-val.rank { color: var(--accent); transition: color .5s; }
+.instr-val.win { color: var(--amber); }
+.instr-tag {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase;
+  padding: 4px 9px; border-radius: 100px; border: 1px solid currentColor;
+}
+.instr-tag.rank { color: var(--accent); }
+.instr-tag.win { color: var(--amber); }
+.instr-note { font-family: var(--mono); font-size: 11px; color: var(--ink-3); margin-top: 9px; }
+.instr-note b { color: var(--ink-2); font-weight: 500; }
+
+/* ladder */
+.ladder { margin-top: 12px; }
+.ladder-wrap { position: relative; padding: 5px 0; }
+.ladder-track { height: 8px; border-radius: 100px; overflow: hidden; display: flex; background: var(--raise); }
+.ladder-track i { flex: 1; display: block; opacity: .3; transition: opacity .4s; }
+.ladder-track i.lit { opacity: 1; }
+.ladder-marker {
+  position: absolute; top: 0; width: 3px; height: 18px; background: var(--ink);
+  border-radius: 2px; transform: translateX(-50%);
+  transition: left .7s cubic-bezier(.2, .9, .25, 1); box-shadow: 0 0 0 3px var(--surface);
+}
+
+/* window integrity bar */
+.winbar { height: 8px; border-radius: 100px; background: var(--raise); overflow: hidden; margin-top: 14px; display: flex; }
+.winbar i { display: block; height: 100%; }
+.winbar i.done { background: var(--amber); }
+/* Open windows must stay visible against the track, otherwise a full slate of
+   open commitments renders as an empty bar and reads as "nothing pending". */
+.winbar i.open { background: var(--line); }
+.winbar i.missed { background: var(--crit); }
+
+/* --- shared countdown spine: the one place both domains meet --- */
+
+.spine {
+  display: flex; gap: 1px; margin-top: 14px; background: var(--line-soft);
+  border: 1px solid var(--line-soft); border-radius: var(--r); overflow: hidden;
+}
+.tick { flex: 1; background: var(--surface); padding: 11px 13px; min-width: 0; }
+.tick .t {
+  font-family: var(--mono); font-size: 9px; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.tick .d { font-family: var(--mono); font-size: 19px; font-weight: 700; margin-top: 3px; line-height: 1; }
+.tick .n {
+  font-size: 11.5px; color: var(--ink-3); margin-top: 4px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tick.crit .d { color: var(--crit); }
+.tick.warn .d { color: var(--warn); }
+.tick.cool .d { color: var(--ink-2); }
+.tick.past .d { color: var(--ink-3); }
+
+/* stat strip */
+.strip {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 1px;
+  background: var(--line-soft); border: 1px solid var(--line-soft);
+  border-radius: var(--r); overflow: hidden; margin-top: 14px;
+}
+.stat { background: var(--surface); padding: 14px 15px; }
+.stat .k {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.stat .v { font-family: var(--mono); font-size: 22px; font-weight: 700; margin-top: 5px; line-height: 1.1; }
+.stat .s { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
+.v.urgent { color: var(--warn); }
+.v.live { color: var(--accent); transition: color .5s; }
+
+/* ---------------------------------------------------------- tabs */
+
+nav.tabs {
+  display: flex; gap: 2px; margin: 28px 0 0; border-bottom: 1px solid var(--line);
+  overflow-x: auto; scrollbar-width: none;
+}
+nav.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  appearance: none; background: none; border: 0; border-bottom: 2px solid transparent;
+  color: var(--ink-3); font-family: var(--mono); font-size: 11.5px; letter-spacing: .13em;
+  text-transform: uppercase; padding: 12px 15px; cursor: pointer; white-space: nowrap;
+  transition: color .2s, border-color .2s;
+}
+.tab:hover { color: var(--ink-2); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tab[aria-selected="true"][data-domain="mba"] { border-bottom-color: var(--amber); }
+.tab .pc { color: var(--ink-3); margin-left: 7px; font-size: 10.5px; }
+
+/* ---------------------------------------------------------- toolbar */
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 20px 0 6px; }
+.search {
+  flex: 1; min-width: 210px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 10px 13px; color: var(--ink);
+  font-family: var(--mono); font-size: 13px;
+}
+.search::placeholder { color: var(--ink-3); }
+.search:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.btn {
+  appearance: none; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); color: var(--ink-2); font-family: var(--mono); font-size: 11px;
+  letter-spacing: .1em; text-transform: uppercase; padding: 10px 13px; cursor: pointer;
+  transition: .18s;
+}
+.btn:hover { color: var(--ink); border-color: var(--accent); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.btn[aria-pressed="true"] { color: var(--ink); border-color: var(--accent); }
+
+/* ---------------------------------------------------------- sections */
+
+.section {
+  border: 1px solid var(--line-soft); border-radius: var(--r);
+  background: var(--surface); margin-top: 12px; overflow: hidden;
+}
+.sec-head {
+  display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+  background: none; border: 0; padding: 15px 17px; cursor: pointer; color: inherit;
+  font-family: inherit;
+}
+.sec-head:hover { background: var(--raise); }
+.sec-head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.chev { color: var(--ink-3); font-family: var(--mono); font-size: 11px; transition: transform .22s; flex: none; }
+.section.open .chev { transform: rotate(90deg); }
+.sec-name { font-weight: 600; font-size: 15px; flex: 1; letter-spacing: -.01em; }
+.sec-count { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); flex: none; }
+.meter { width: 72px; height: 5px; border-radius: 100px; background: var(--line); overflow: hidden; flex: none; }
+.meter i { display: block; height: 100%; background: var(--accent); border-radius: 100px; transition: width .45s ease, background .5s; }
+.section.done .sec-name { color: var(--ok); }
+.sec-body { display: none; padding: 2px 17px 17px; border-top: 1px solid var(--line-soft); }
+.section.open .sec-body { display: block; }
+
+.grp-name {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--ink-3); margin: 18px 0 9px;
+}
+.items { display: grid; grid-template-columns: repeat(auto-fill, minmax(238px, 1fr)); gap: 4px; }
+.item {
+  display: flex; gap: 10px; align-items: flex-start; padding: 7px 9px; border-radius: 7px;
+  cursor: pointer; font-size: 13.4px; color: var(--ink-2); line-height: 1.42;
+  border: 1px solid transparent; transition: background .15s, color .15s;
+}
+.item:hover { background: var(--raise); color: var(--ink); }
+.item input { position: absolute; opacity: 0; width: 0; height: 0; }
+.item input:focus-visible + .box { outline: 2px solid var(--accent); outline-offset: 2px; }
+.box {
+  flex: none; width: 15px; height: 15px; margin-top: 2px; border: 1.5px solid var(--line);
+  border-radius: 4px; display: grid; place-items: center; transition: .18s;
+}
+.box::after {
+  content: ""; width: 7px; height: 7px; border-radius: 2px; background: var(--accent);
+  transform: scale(0); transition: transform .18s;
+}
+.item.on { color: var(--ink-3); }
+.item.on .txt { text-decoration: line-through; text-decoration-color: var(--ink-3); opacity: .72; }
+.item.on .box { border-color: var(--accent); }
+.item.on .box::after { transform: scale(1); }
+
+/* ---------------------------------------------------------- cards */
+
+.cols { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; margin-top: 20px; }
+.card { border: 1px solid var(--line-soft); background: var(--surface); border-radius: var(--r); padding: 18px; }
+.card + .card { margin-top: 16px; }
+.card h3 {
+  margin: 0 0 15px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .2em;
+  text-transform: uppercase; color: var(--ink-3); font-weight: 500;
+}
+.bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 11px; }
+.bar-row .nm { flex: 1; font-size: 13.3px; color: var(--ink-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar { flex: none; width: 108px; height: 5px; background: var(--line); border-radius: 100px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); transition: width .45s, background .5s; }
+.bar-row .pc { font-family: var(--mono); font-size: 11px; color: var(--ink-3); width: 34px; text-align: right; flex: none; }
+
+.quests { list-style: none; margin: 0; padding: 0; }
+.quests li { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; cursor: pointer; border-bottom: 1px solid var(--line-soft); }
+.quests li:last-child { border-bottom: 0; }
+.quests li.on .qtxt { text-decoration: line-through; color: var(--ink-3); }
+.quests .box { margin-top: 3px; }
+.qtxt { display: block; font-size: 13.4px; color: var(--ink-2); }
+.qtag { display: block; font-family: var(--mono); font-size: 10px; color: var(--ink-3); margin-top: 2px; letter-spacing: .08em; }
+
+.heat { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; }
+.heat i { display: block; aspect-ratio: 1; border-radius: 3px; background: var(--raise); }
+.heat i.on { background: var(--accent); }
+
+.badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px; }
+.badge {
+  border: 1px solid var(--line-soft); border-radius: 8px; padding: 10px 8px; text-align: center;
+  font-size: 10.5px; color: var(--ink-3); line-height: 1.3;
+}
+.badge.on { border-color: var(--accent); color: var(--ink-2); }
+.badge .g { font-size: 17px; display: block; margin-bottom: 4px; filter: grayscale(1); opacity: .4; }
+.badge.on .g { filter: none; opacity: 1; }
+
+/* ---------------------------------------------------------- MBA domain */
+
+.domain-mba .meter i, .domain-mba .bar i { background: var(--amber); }
+.domain-mba .box::after { background: var(--amber); }
+.domain-mba .item.on .box { border-color: var(--amber); }
+
+.phase { border: 1px solid var(--line-soft); border-radius: var(--r); background: var(--surface); margin-top: 14px; overflow: hidden; }
+.phase-hd { display: flex; align-items: baseline; gap: 14px; padding: 15px 17px; border-bottom: 1px solid var(--line-soft); flex-wrap: wrap; }
+.phase-n {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .2em; color: var(--amber);
+  border: 1px solid var(--amber); border-radius: 100px; padding: 3px 9px;
+}
+.phase-hd h2 { margin: 0; font-size: 16px; font-weight: 600; flex: 1; letter-spacing: -.01em; }
+.phase-when { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+
+.row {
+  display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px;
+  border-bottom: 1px solid var(--line-soft); border-left: 3px solid var(--line);
+  cursor: pointer; transition: background .15s;
+}
+.row:last-child { border-bottom: 0; }
+.row:hover { background: var(--raise); }
+.row.crit { border-left-color: var(--crit); }
+.row.warn { border-left-color: var(--warn); }
+.row.cool { border-left-color: var(--ink-3); }
+.row.past { border-left-color: var(--line); }
+.row.on { opacity: .55; }
+.row.on .rtask { text-decoration: line-through; }
+.rbody { flex: 1; min-width: 0; }
+.rtask { font-size: 14px; font-weight: 600; color: var(--ink); letter-spacing: -.01em; }
+.rnote { font-size: 12.8px; color: var(--ink-3); margin-top: 4px; line-height: 1.5; }
+.rmeta { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; margin-top: 7px; }
+.rdate { font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
+.rt { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .1em; }
+.rt.crit { color: var(--crit); }
+.rt.warn { color: var(--warn); }
+.rt.cool { color: var(--ink-3); }
+.rt.past { color: var(--ink-3); }
+.tag {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 100px; border: 1px solid var(--line); color: var(--ink-3);
+}
+.tag.confirmed { border-color: var(--ok); color: var(--ok); }
+.tag.projected { border-color: var(--warn); color: var(--warn); }
+.tag.oneshot { border-color: var(--crit); color: var(--crit); }
+.tag.verify { border-color: var(--amber); color: var(--amber); }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; margin-top: 14px; }
+.sch { border: 1px solid var(--line-soft); background: var(--surface); border-radius: var(--r); padding: 15px; }
+.sch h3 { margin: 0 0 3px; font-size: 15px; font-weight: 600; }
+.sch .prog { font-family: var(--mono); font-size: 11px; color: var(--amber); margin-bottom: 8px; }
+.sch p { margin: 0; font-size: 12.8px; color: var(--ink-3); line-height: 1.5; }
+.sch .chips { margin-top: 9px; display: flex; gap: 5px; flex-wrap: wrap; }
+
+.callout { border-left: 3px solid var(--amber); background: var(--surface); border-radius: 0 var(--r) var(--r) 0; padding: 15px 17px; margin-top: 16px; }
+.callout h3 { margin: 0 0 7px; font-size: 14.5px; font-weight: 600; color: var(--ink); }
+.callout p { margin: 0; font-size: 13px; color: var(--ink-2); line-height: 1.55; }
+.callout ul { margin: 7px 0 0; padding-left: 18px; font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+
+table.cost { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; }
+table.cost th, table.cost td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line-soft); }
+table.cost th { font-family: var(--mono); font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+table.cost td { color: var(--ink-2); }
+table.cost td.n { font-family: var(--mono); color: var(--ink); }
+.tablewrap { overflow-x: auto; }
+
+/* ---------------------------------------------------------- career */
+
+.opp { border: 1px solid var(--line-soft); background: var(--surface); border-radius: var(--r); padding: 15px 16px; margin-top: 10px; }
+.opp-hd { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.opp-co { font-size: 15px; font-weight: 600; }
+.opp-role { font-size: 13px; color: var(--ink-2); flex: 1; }
+.opp-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
+.opp select {
+  background: var(--raise); border: 1px solid var(--line); border-radius: 6px; color: var(--ink-2);
+  font-family: var(--mono); font-size: 11px; padding: 5px 8px;
+}
+.empty { padding: 40px 20px; text-align: center; color: var(--ink-3); font-size: 13.5px; line-height: 1.6; }
+
+/* ---------------------------------------------------------- misc */
+
+.loading { padding: 40px 0; color: var(--ink-3); font-family: var(--mono); font-size: 13px; }
+.toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px);
+  background: var(--raise); border: 1px solid var(--line); color: var(--ink);
+  font-family: var(--mono); font-size: 12px; padding: 10px 16px; border-radius: 100px;
+  opacity: 0; pointer-events: none; transition: .25s; z-index: 50;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.foot { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line-soft); font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); line-height: 1.8; }
+
+@media (max-width: 860px) {
+  .cols { grid-template-columns: 1fr; }
+  .instruments { grid-template-columns: 1fr; gap: 16px; }
+  .instr-div { height: 1px; width: 100%; }
+  .spine { flex-wrap: wrap; }
+  .tick { min-width: 45%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+@media print {
+  body { background: #fff; color: #000; }
+  .tabs, .toolbar, .toast, .btn { display: none !important; }
+  .section .sec-body { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Placement Day 1 · 1 Dec 2026 &nbsp;·&nbsp; Deferred MBA wall · Apr 2027</div>
+    <div class="identity">
+      <div class="handle" id="handle">unrated</div>
+      <div class="spacer"></div>
+      <div class="who">Aryan · IIT Kharagpur · Manufacturing · CG 7.15 · Class of 2027</div>
+    </div>
+
+    <!-- Two instruments, one rule between them. They are measured separately
+         and never averaged: mastery is earned and climbs, windows are held
+         and can only be lost. -->
+    <div class="instruments">
+      <div>
+        <div class="instr-hd">Mastery rating &middot; 1,328 topics</div>
+        <div class="instr-main">
+          <span class="instr-val rank" id="ratingVal">800</span>
+          <span class="instr-tag rank" id="rankTag">Newbie</span>
+        </div>
+        <div class="ladder">
+          <div class="ladder-wrap">
+            <div class="ladder-track" id="ladderTrack"></div>
+            <div class="ladder-marker" id="ladderMarker"></div>
+          </div>
+        </div>
+        <div class="instr-note" id="rankNote"></div>
+      </div>
+
+      <div class="instr-div"></div>
+
+      <div>
+        <div class="instr-hd">Window integrity &middot; 56 commitments</div>
+        <div class="instr-main">
+          <span class="instr-val win" id="winVal">100%</span>
+          <span class="instr-tag win" id="winTag">intact</span>
+        </div>
+        <div class="winbar" id="winBar"></div>
+        <div class="instr-note" id="winNote"></div>
+      </div>
+    </div>
+
+    <!-- The only place the two systems meet, and it meets only on time. -->
+    <div class="spine" id="spine"></div>
+
+    <div class="strip">
+      <div class="stat"><div class="k">Days to Day 1</div><div class="v urgent" id="days">—</div><div class="s">1 Dec 2026</div></div>
+      <div class="stat"><div class="k">Topics cleared</div><div class="v live" id="cleared">0</div><div class="s" id="clearedSub">of 0</div></div>
+      <div class="stat"><div class="k">Day streak</div><div class="v" id="streak">0</div><div class="s">check one topic to start</div></div>
+      <div class="stat"><div class="k">Badges</div><div class="v" id="badgeCount">0</div><div class="s" id="badgeSub">of 0 unlocked</div></div>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs" role="tablist"></nav>
+  <div id="loading" class="loading">Loading…</div>
+  <main id="panel" class="hide"></main>
+
+  <div class="foot">
+    Mastery rating is computed only from rated topics. Calendar and application
+    items never move it &mdash; finishing a week is not the same as mastering a topic.<br>
+    Window integrity starts at 100% and falls as dated commitments pass unchecked. It does not recover.<br>
+    Progress is stored in this browser. Built <span id="builtAt">—</span>.
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>window.__DATA__={"placement":{"version":1,"ranks":[{"n":"Newbie","min":800,"c":"#9aa4b8"},{"n":"Pupil","min":1200,"c":"#4caf7d"},{"n":"Specialist","min":1400,"c":"#3bbfc4"},{"n":"Expert","min":1600,"c":"#5b8def"},{"n":"Cand. Master","min":1900,"c":"#a96be8"},{"n":"Master","min":2100,"c":"#f0932b"},{"n":"Intl. Master","min":2300,"c":"#ffb648"},{"n":"Grandmaster","min":2400,"c":"#ee5a5a"},{"n":"Intl. GM","min":2600,"c":"#e03b3b"},{"n":"Legendary GM","min":3000,"c":"#c92020"}],"tracks":[{"id":"sde","label":"SDE","rated":true,"sections":[{"n":"Language — C++","g":[{"n":"Core language","i":["Types, sizes, overflow, long long, __int128","Integer promotion & unsigned arithmetic","References vs pointers, dangling & null","const correctness, constexpr, static, inline","Stack vs heap, new/delete, leaks, RAII","Smart pointers: unique / shared / weak, ref cycles","Lvalues, rvalues, std::move, perfect forwarding","Copy elision & RVO","Rule of 0 / 3 / 5","Templates, specialisation, variadic templates","Lambdas, capture modes, std::function","Exceptions, noexcept, stack unwinding","Compilation & linking model, ODR, header guards","Undefined behaviour: overflow, OOB, iterator invalidation"]},{"n":"STL fluency","i":["vector, deque, list, array, string","set / map / multiset / multimap","unordered_* and custom hash (anti-hash defence)","stack, queue, priority_queue with comparators","bitset, pair, tuple, optional","Iterator categories & invalidation rules","sort, stable_sort, nth_element, partial_sort","lower_bound, upper_bound, equal_range","next_permutation, accumulate, partial_sum","unique, rotate, reverse, iota, transform","set_union / intersection / difference","Complexity of every container operation","Policy-based ordered_set (__gnu_pbds)"]},{"n":"Secondary languages","i":["Python for fast interview coding","Java basics if a target company mandates it"]}]},{"n":"DSA — Core patterns","g":[{"n":"Arrays & fundamentals","i":["Rotation: reversal & juggling","Kadane, circular max subarray, max product subarray","Dutch national flag / sort colors","Boyer-Moore majority (n/2 and n/3)","Prefix sums, suffix sums, 2D prefix sums","Difference arrays, 2D difference arrays","Two pointers (same & opposite direction)","Fast-slow pointers","Sliding window: fixed size","Sliding window: variable size + hashmap","At-most-K to exactly-K trick","Monotonic deque window","Merge intervals, insert interval","Subarray sum = K, subarray with given XOR","Matrix: spiral, rotate, transpose, sorted search"]},{"n":"Binary search","i":["Hand-written lower_bound / upper_bound","Rotated array (with & without duplicates)","Binary search on answer (predicate form)","Binary search on floating point + epsilon","Ternary search on unimodal functions","Median of two sorted arrays (partition)","Aggressive cows / book allocation / ship capacity","Parallel binary search"]},{"n":"Sorting","i":["Merge, quick (Lomuto & Hoare), heap sort","Counting, radix, bucket sort","Stability & comparison lower bound","Count inversions (merge sort / BIT)","Custom comparators, multi-key sorting","External sorting concept"]},{"n":"Strings","i":["Longest palindromic substring & subsequence","Polynomial rolling hash, double modulus","KMP prefix function & applications","Z-algorithm","Rabin-Karp","Manacher","Suffix array + LCP (Kasai)","Aho-Corasick multi-pattern","Suffix automaton (awareness)","String compression, atoi edge cases","Word break, longest common prefix"]},{"n":"Recursion & backtracking","i":["Recurrence relations & Master theorem","Subsets & permutations (with duplicates)","Combination sum family","N-Queens, Sudoku, rat in maze, word search","Balanced parentheses generation","Palindrome partitioning","Pruning strategies","Recursion → memoisation → tabulation"]},{"n":"Linked lists","i":["Reverse: iterative, recursive, k-groups","Floyd cycle detection + cycle start","Merge two / merge k sorted","Sort a linked list","Intersection of two lists","Palindrome check, reorder list","Copy list with random pointer","LRU cache implementation","LFU cache implementation"]},{"n":"Stacks & queues","i":["Min stack in O(1) auxiliary","Next greater / previous smaller","Largest rectangle in histogram","Maximal rectangle in binary matrix","Trapping rain water","Sum of subarray minimums","Sliding window maximum (monotonic deque)","Infix / prefix / postfix conversion","Longest valid parentheses","Stack via queues and vice versa"]},{"n":"Greedy","i":["Exchange argument correctness proof","Activity selection & interval scheduling","Minimum meeting rooms / platforms","Fractional knapsack","Huffman coding","Job sequencing with deadlines","Gas station circular tour","Jump game II","Candy distribution","Non-overlapping intervals / minimum arrows","Knowing when greedy fails and DP is needed"]}]},{"n":"DSA — Data structures","g":[{"n":"Trees","i":["Traversals: recursive, iterative, Morris","Level order, zigzag, vertical, boundary","Left / right / top / bottom views","Height, diameter, balanced check","LCA: naive, binary lifting, Euler + sparse table","Max path sum, path sum variants","Serialize / deserialize","Construct from traversal pairs","BST: insert, delete, validate, kth smallest","BST: floor, ceil, successor, predecessor","AVL rotations, Red-Black properties","B-tree / B+ tree structure","Tree DP (subtree sums, independent set)","Rerooting technique","Euler tour + segment tree for subtree queries","Heavy-Light Decomposition","Centroid decomposition","Small-to-large merging (DSU on tree)"]},{"n":"Heaps","i":["Heapify, build heap in O(n)","Kth largest, kth largest in a stream","Merge k sorted lists","Median in a data stream (two heaps)","Top-K frequent elements","Task scheduler, reorganise string","Indexed priority queue / decrease-key"]},{"n":"Tries","i":["Prefix trie, autocomplete, prefix counts","XOR trie: maximum XOR pair","XOR trie: max XOR with element, range counts","Persistent trie","Compressed trie / radix tree","Dictionary with wildcard search"]},{"n":"Range query structures","i":["Sparse table (idempotent ops, O(1) query)","Fenwick: point update range query","Fenwick: range update range query","2D Fenwick, inversions via BIT","Segment tree: build, query, update","Segment tree with lazy propagation","Merge sort tree","Persistent segment tree","Dynamic / implicit segment tree","Iterative segment tree","Segment tree beats (awareness)","Sqrt decomposition","Mo’s algorithm (basic)","Mo’s with updates / on trees","Coordinate compression & offline queries","Treap / balanced BST for order statistics"]}]},{"n":"DSA — Graphs","g":[{"n":"Traversal & basics","i":["Representations & implicit graphs","BFS, DFS (recursive + iterative)","Multi-source BFS","0-1 BFS with deque","Bidirectional BFS","Connected components, flood fill","Cycle detection: undirected & directed","Topological sort: Kahn & DFS","Lexicographically smallest topo order","DAG longest path / shortest path","Bipartite check / 2-colouring","Grid as graph, state-space BFS"]},{"n":"DSU & advanced structure","i":["DSU: union by rank/size + path compression","DSU with rollback","Weighted DSU","SCC: Kosaraju","SCC: Tarjan + condensation graph","Bridges & articulation points","Biconnected components","2-SAT via implication graph","Eulerian path / circuit (Hierholzer)","Functional graphs & permutation cycles","Tree isomorphism (awareness)"]},{"n":"Shortest paths & MST","i":["Dijkstra (heap and set variants)","Bellman-Ford + negative cycle detection","Floyd-Warshall","Johnson’s algorithm","SPFA and its worst case","A* search","K-shortest paths","MST: Kruskal","MST: Prim","MST: Boruvka, second-best MST"]},{"n":"Flows & matching","i":["Ford-Fulkerson & Edmonds-Karp","Dinic’s algorithm","Max-flow min-cut theorem","Flow modelling (project selection)","Bipartite matching: Kuhn’s","Hopcroft-Karp","Hungarian algorithm (assignment)","Min-cost max-flow"]}]},{"n":"DSA — Dynamic programming","g":[{"n":"Core patterns","i":["Linear DP: house robber, decode ways, jump game","LIS in O(n log n) + variants","0/1 knapsack","Unbounded & bounded knapsack (binary splitting)","Subset sum, equal partition, target sum","Coin change (min coins & count ways)","Grid DP + obstacles, maximal square","Cherry pickup (multi-agent grid)","LCS, longest common substring","Edit distance","Distinct subsequences","Wildcard & regex matching","Shortest common supersequence, interleaving","Palindrome partitioning (min cuts)","Matrix chain multiplication","Burst balloons, boolean parenthesisation","Egg drop","Stone game family","Tree DP + rerooting","Bitmask DP: TSP & assignment","Bitmask DP: set cover, broken profile","Digit DP","Probability & expectation DP","SOS DP (sum over subsets)","Game DP / minimax"]},{"n":"Optimisations","i":["Space optimisation (rolling arrays)","Convex hull trick + Li Chao tree","Divide and conquer optimisation","Knuth-Yao optimisation","Monotonic deque optimisation","Matrix exponentiation for recurrences","Aliens trick / Lagrangian relaxation","DP with segment tree or BIT","Meet in the middle"]}]},{"n":"DSA — Math & misc","g":[{"n":"Number theory","i":["GCD, LCM, extended Euclid","Modular arithmetic & modular inverse","Binary / modular exponentiation","Sieve: basic, linear, segmented, SPF","Prime factorisation, divisor count & sum","Euler totient and properties","Chinese Remainder Theorem","Mobius function & inversion","Miller-Rabin primality","Pollard’s rho factorisation","Matrix exponentiation","FFT / NTT polynomial multiplication"]},{"n":"Combinatorics & probability","i":["nCr mod p via factorials + inverse factorials","Lucas theorem","Stars and bars","Inclusion-exclusion","Derangements","Catalan numbers","Stirling numbers","Burnside / Polya counting","Expected value & linearity of expectation","Indicator random variables","Pigeonhole, invariants, monovariants"]},{"n":"Game theory","i":["Win / lose state DP","Nim and its variants","Sprague-Grundy theorem & mex","Misère games","Impartial vs partisan games"]},{"n":"Bit manipulation","i":["Set / clear / toggle / check bit","x & -x and x & (x-1) tricks","popcount, clz, ctz builtins","Power of two, next power of two","XOR: single number, two singles, missing number","Subset enumeration via bitmask","Submask enumeration in O(3^n)","XOR / linear basis over GF(2)","Gray code","bitset for O(n/64) speedups"]},{"n":"Geometry","i":["Dot & cross product, orientation test","Line and segment intersection","Point-to-line and point-to-segment distance","Polygon area (shoelace), point in polygon","Convex hull: Graham & monotone chain","Closest pair of points","Rotating calipers","Line sweep / union of rectangles","Floating point precision & epsilon"]},{"n":"Misc techniques","i":["Meet in the middle","Randomised algorithms & reservoir sampling","Amortised analysis & potential method","P / NP / NP-complete / NP-hard concepts","Offline vs online algorithms"]}]},{"n":"CS Core — Operating Systems","g":[{"n":"Processes & scheduling","i":["Process vs thread vs program, PCB","Process states & transitions","Context switching and its cost","FCFS, SJF, SRTF, priority with ageing","Round Robin, MLQ, MLFQ, CFS","Turnaround / waiting / response time numericals","Threading models & thread pools","User vs kernel threads, coroutines"]},{"n":"Concurrency","i":["Race conditions & critical section problem","Peterson’s solution","Test-and-set, compare-and-swap","Mutex vs binary vs counting semaphore","Monitors & condition variables","Spinlocks, barriers, read-write locks","Producer-consumer (bounded buffer)","Readers-writers problem","Dining philosophers","Sleeping barber"]},{"n":"Deadlock","i":["Four Coffman conditions","Prevention strategies","Avoidance: Banker’s algorithm numericals","Detection & recovery","Livelock, starvation","Priority inversion & inheritance"]},{"n":"Memory","i":["Contiguous allocation, first/best/worst fit","Internal vs external fragmentation","Paging & page tables","Multi-level and inverted page tables","TLB and effective access time","Segmentation & segmented paging","Demand paging & page fault handling","FIFO, LRU, LFU, Optimal, Clock replacement","Belady’s anomaly","Thrashing & working set model","Copy-on-write, memory-mapped files"]},{"n":"Storage & system","i":["File allocation: contiguous, linked, indexed","Inodes, hard vs soft links","Journaling file systems","Disk scheduling: FCFS, SSTF, SCAN, C-SCAN, LOOK","RAID 0 / 1 / 5 / 6 / 10","IPC: pipes, shared memory, message queues, signals","System calls, user vs kernel mode","Interrupts vs traps vs exceptions","fork, exec, wait, zombie & orphan processes","Kernel types & boot sequence"]}]},{"n":"CS Core — DBMS","g":[{"n":"Modelling & normalisation","i":["ER model, weak entities, generalisation","ER to relational mapping","Keys: super, candidate, primary, foreign, surrogate","Relational algebra & calculus","Functional dependencies & attribute closure","Canonical / minimal cover","1NF, 2NF, 3NF, BCNF","4NF & multivalued dependencies","Lossless join & dependency preservation","Denormalisation and when it is right"]},{"n":"SQL depth","i":["All join types incl. self and anti-join","Subqueries & correlated subqueries","EXISTS vs IN vs JOIN","CTEs and recursive CTEs","ROW_NUMBER, RANK, DENSE_RANK, NTILE","LAG, LEAD, FIRST_VALUE, frame clauses","GROUPING SETS, ROLLUP, CUBE","NULL semantics & three-valued logic","Views & materialised views","Stored procedures, triggers, cursors"]},{"n":"Indexing & optimisation","i":["B-tree vs B+ tree and why B+ for DBs","Hash index, bitmap index","Clustered vs non-clustered","Covering index & composite left-prefix rule","Selectivity, cardinality, when indexes hurt","Query plans and EXPLAIN","Join algorithms: nested loop, sort-merge, hash"]},{"n":"Transactions & concurrency","i":["ACID properties & transaction states","Conflict vs view serialisability","Precedence graph","Recoverable & cascadeless schedules","Lock types & compatibility matrix","2PL, strict 2PL, rigorous 2PL","Timestamp ordering & Thomas write rule","Optimistic concurrency control","MVCC","Wait-die, wound-wait, wait-for graph","Isolation levels & the three anomalies","WAL, checkpoints, ARIES recovery"]},{"n":"Scale & NoSQL","i":["Key-value, document, wide-column, graph DBs","CAP theorem & its misinterpretation","PACELC, BASE, eventual consistency","Sharding & partitioning strategies","Replication models","OLTP vs OLAP","Star & snowflake schema, SCDs"]}]},{"n":"CS Core — Networks","g":[{"n":"Models & link layer","i":["OSI vs TCP/IP, encapsulation, PDUs","Multiplexing, Nyquist & Shannon limits","Framing & error detection (parity, checksum, CRC)","Hamming code error correction","Stop-and-wait, Go-Back-N, Selective Repeat","Sliding window efficiency calculations","ALOHA, CSMA/CD, CSMA/CA","Ethernet frames, switches vs hubs vs bridges","ARP / RARP, VLANs, spanning tree"]},{"n":"Network layer","i":["IPv4 header & IPv6","Classful vs classless addressing","Subnetting & CIDR calculations","NAT / PAT, DHCP, ICMP","Fragmentation, MTU, TTL","Distance vector & count-to-infinity fixes","Link state / OSPF, BGP path vector","RIP, hierarchical routing, multicast"]},{"n":"Transport layer","i":["TCP vs UDP tradeoffs, TCP header","Three-way handshake & four-way teardown","TCP state machine, TIME_WAIT rationale","Sequence & acknowledgement numbers","Flow control, zero window, silly window","Nagle’s algorithm","Slow start & congestion avoidance","Fast retransmit & fast recovery","Tahoe, Reno, New Reno, CUBIC, BBR","Socket programming primitives"]},{"n":"Application & security","i":["HTTP/1.1 vs 2 vs 3 (QUIC)","Methods, status codes, headers, caching","Cookies & sessions","HTTPS, TLS handshake, certificates, PKI","DNS hierarchy & resolution, record types","SMTP / IMAP / POP3, FTP, SSH","WebSockets vs long polling vs SSE","REST vs gRPC vs GraphQL","Symmetric vs asymmetric crypto, RSA","Diffie-Hellman, hashing, digital signatures, HMAC","DDoS, MITM, ARP & DNS spoofing","SQL injection, XSS, CSRF, session hijacking","What happens when you type google.com","ping, traceroute, dig, netstat, curl"]}]},{"n":"CS Core — OOP & architecture","g":[{"n":"OOP","i":["Encapsulation, abstraction, inheritance, polymorphism","Inheritance types & access rules","Compile-time vs runtime polymorphism","Constructors: default, copy, move, delegating","Construction & destruction order","Virtual destructors and why they matter","Abstract classes vs interfaces","vtable and vptr mechanics","Static members, friend functions","Operator overloading rules & pitfalls","Diamond problem & virtual inheritance","Shallow vs deep copy, object slicing","this pointer, const member functions","Composition vs inheritance","Coupling, cohesion, DRY, KISS, Law of Demeter","SOLID — with a violation & fix for each"]},{"n":"Computer architecture","i":["Von Neumann vs Harvard, RISC vs CISC","Instruction cycle & pipelining stages","Structural, data and control hazards","Forwarding, stalls, branch prediction","Cache mapping: direct, associative, set-associative","Replacement policies, write-through vs write-back","Cache coherence (MESI)","False sharing & cache-friendly code","Spatial & temporal locality","Endianness, alignment, struct padding","Amdahl’s law, Little’s law"]}]},{"n":"Low-Level Design","g":[{"n":"Foundations","i":["Requirement clarification: functional vs non-functional","Identifying entities & responsibilities","Class, sequence and state diagrams","Interface-first design","Designing for the follow-up requirement","Thread safety & immutability in design","Lock granularity & lock ordering","Designing a thread-safe cache / connection pool"]},{"n":"Creational patterns","i":["Singleton (thread-safe, and why it is often bad)","Factory Method","Abstract Factory","Builder & fluent interfaces","Prototype","Object Pool"]},{"n":"Structural patterns","i":["Adapter","Bridge","Composite","Decorator","Facade","Flyweight","Proxy"]},{"n":"Behavioural patterns","i":["Chain of Responsibility","Command","Iterator","Mediator","Memento","Observer","State","Strategy","Template Method","Visitor","Interpreter & Null Object"]},{"n":"Concurrency & architectural","i":["Producer-Consumer","Thread Pool","Read-Write Lock","Monitor Object / Active Object","Future / Promise","MVC, MVP, MVVM","Repository, DAO, DTO","Dependency Injection & IoC","Event Sourcing & CQRS"]},{"n":"Problems to implement","i":["Parking lot","Elevator system (multi-lift scheduling)","ATM","Vending machine","Library management","Hotel booking","Movie ticket booking (seat locking)","Splitwise","Snake & Ladder","Chess / Tic-tac-toe","Deck of cards","LRU & LFU cache","Rate limiter","Logging framework","Notification service","Food delivery system","Ride sharing (matching & pricing)","E-commerce cart & orders","Inventory management","In-memory file system","Task board (Trello / Jira)","Meeting scheduler with conflict detection","URL shortener (class level)","Auction system","Online judge","Chat application","Traffic signal controller","Car rental / airline reservation","Text editor with undo-redo","Spreadsheet with formula dependencies"]}]},{"n":"High-Level Design","g":[{"n":"Building blocks","i":["Vertical vs horizontal scaling, stateless services","L4 vs L7 load balancing","LB algorithms & consistent hashing with vnodes","Health checks & sticky sessions","Cache layers: browser, CDN, proxy, app, DB","Cache-aside, read-through, write-through, write-back","Eviction policies & TTL strategy","Cache stampede / thundering herd mitigation","Hot key problem","Redis vs Memcached, Redis persistence","CDN push vs pull, edge caching","SQL vs NoSQL decision framework","Sharding: range, hash, geo, directory","Resharding & hotspots","Replication: single-leader, multi-leader, leaderless","Replication lag & read-your-writes","Connection pooling"]},{"n":"Consistency & distribution","i":["Strong, eventual, causal consistency","Monotonic reads & writes","CAP theorem & PACELC","Quorum reads/writes (R + W > N)","Vector clocks & conflict resolution","CRDTs and last-write-wins","Linearisability vs serialisability","Consensus: Raft & Paxos concepts","Leader election","Distributed locks & Redlock criticisms","2PC and 3PC","Saga pattern: orchestration vs choreography","Circuit breaker & bulkhead","Retries with exponential backoff + jitter","Timeouts, deadlines, graceful degradation"]},{"n":"Messaging & APIs","i":["Message queues vs pub-sub","Kafka: topics, partitions, offsets, consumer groups","Kafka ordering & retention guarantees","At-most / at-least / exactly-once semantics","Idempotency & idempotency keys","Dead letter queues & backpressure","Event-driven architecture","REST, GraphQL, gRPC, WebSockets, SSE","API versioning & pagination (offset vs cursor)","Rate limiting: token bucket & leaky bucket","Rate limiting: fixed, sliding window log & counter","Auth: sessions, JWT, OAuth 2.0, OIDC","Authorisation: RBAC vs ABAC"]},{"n":"Storage, ops & estimation","i":["Object vs block vs file storage","Time-series databases","Inverted index & Elasticsearch relevance (BM25)","Microservices vs monolith tradeoffs","API gateway, BFF, service mesh","Docker & Kubernetes at concept level","Logging, metrics (RED/USE), distributed tracing","SLI / SLO / SLA & error budgets","Back-of-envelope: QPS, storage, bandwidth, servers","Latency numbers every programmer should know","Encryption at rest & in transit, secrets management","DDoS mitigation & WAF"]},{"n":"Problems to design","i":["URL shortener","Pastebin","Twitter / X news feed (fanout tradeoffs)","Instagram","WhatsApp / real-time messenger","Uber (geospatial indexing, quadtree, geohash)","YouTube / Netflix streaming pipeline","Dropbox / Google Drive sync","Web crawler","Search autocomplete / typeahead","Distributed rate limiter","Notification system","Ticket booking with seat concurrency","Payment system & double-entry ledger","Distributed cache","Distributed unique ID generator","Leaderboard / ranking system","Ad click aggregator","Log collection & analytics pipeline","Proximity service (Yelp)","Stock exchange order matching","Google Docs (OT vs CRDT)","Recommendation system","Distributed job scheduler","Key-value store (Dynamo-style)"]}]},{"n":"Engineering practice","g":[{"n":"Tooling","i":["Git: rebase vs merge, cherry-pick, bisect, reflog","Git internals: objects, refs, HEAD","PR workflow & conflict resolution","Linux: permissions, processes, pipes, redirection","grep, sed, awk, find, xargs, cron","Shell scripting basics","Docker: images, layers, volumes, networking","Multi-stage builds & docker-compose","CI/CD pipeline concepts (GitHub Actions)"]},{"n":"Code quality","i":["Unit vs integration vs e2e testing","Mocking & test doubles, TDD","Writing testable code","Debugging with gdb & sanitizers","Profiling & performance measurement","One backend framework in real depth","One frontend framework (if claiming full-stack)","Rendering models: CSR, SSR, SSG, ISR","One cloud: compute, storage, DB, functions, IAM"]}]},{"n":"Competitive programming","g":[{"n":"Volume & cadence","i":["Build and memorise a contest template","2–3 rated contests per week, consistently","Upsolve every unsolved problem within 48h","Maintain a wrong-answer log","Practise at current rating +200 to +300","CSES: complete Introductory & Sorting/Searching","CSES: complete Dynamic Programming","CSES: complete Graph Algorithms","CSES: complete Range Queries","CSES: complete Tree Algorithms","CSES: complete Mathematics & Strings","AtCoder DP contest, all tasks","Codeforces EDU sections"]},{"n":"Rating milestones","i":["Reach Codeforces Specialist (1400)","Reach Codeforces Expert (1600) — the credibility floor","Reach Codeforces Candidate Master (1900)","CodeChef 5-star (2000+)","LeetCode Knight (1850+)","Register & clear ICPC Preliminaries","Qualify for ICPC Regionals"]}]},{"n":"Interview craft","g":[{"n":"Assessment formats","i":["Pure DSA OA (2–4 problems, timed)","DSA + CS fundamentals MCQ hybrid","Output prediction & pointer trick questions","Aptitude: quant, logical, verbal, DI","Debugging / code completion rounds","Take-home project assessments"]},{"n":"Round-by-round","i":["DSA screen: 1–2 mediums under 45 min","DSA + fundamentals combined round","LLD round: live class design & extension","HLD round with estimation","Project deep dive — 15 min of hostile questioning","Hiring manager behavioural round","HR round: expectations & location"]},{"n":"Habits to drill","i":["Clarify constraints before writing code","Think out loud continuously","State brute force, then optimise, and say why","Write interview-clean code, not CP-terse code","Dry run on an example before declaring done","State time & space complexity unprompted","Verbalise your reasoning when stuck","Prepare the \"why not core branch\" answer","STAR stories: failure, conflict, ownership, ambiguity","2-minute and 15-minute version of every CV line"]}]}]},{"id":"ds","label":"Data Science","rated":true,"sections":[{"n":"Mathematics","g":[{"n":"Linear algebra","i":["Vector spaces, span, basis, rank, nullity","Matrix operations, inverse, pseudo-inverse, trace","Gaussian elimination & linear systems","Orthogonality, Gram-Schmidt, projections","Least squares as a projection","Norms: L1, L2, L-inf, Frobenius","Why L1 induces sparsity","Eigenvalues, eigenvectors, diagonalisation","Spectral theorem","SVD: definition, geometry, low-rank approximation","SVD ↔ PCA relationship","Positive definite matrices & quadratic forms","LU, QR, Cholesky decompositions","Matrix calculus & derivative identities"]},{"n":"Calculus & optimisation","i":["Partial derivatives, chain rule, gradients","Jacobian and Hessian","Taylor expansion, first & second order","Convex sets and convex functions","First & second order optimality conditions","Lagrange multipliers","KKT conditions","Primal-dual formulation & duality gap","Gradient descent, SGD, mini-batch","Momentum and convergence behaviour","Newton and quasi-Newton (BFGS, L-BFGS)","Coordinate descent"]},{"n":"Probability","i":["Conditional probability & law of total probability","Bayes theorem applications","Independence vs conditional independence","PMF, PDF, CDF, quantile function","Expectation, variance, covariance, correlation","Moments, skewness, kurtosis, MGF","Bernoulli, Binomial, Multinomial","Geometric, Negative Binomial, Hypergeometric","Poisson & the Poisson process","Uniform, Normal, Exponential","Gamma, Beta, Chi-square, t, F, Log-normal","Joint, marginal & conditional distributions","Multivariate normal","Transformations of random variables (Jacobian)","Order statistics","Law of Large Numbers","Central Limit Theorem — statement & conditions","Markov, Chebyshev, Jensen, Hoeffding inequalities","Markov chains & stationary distributions"]},{"n":"Statistics","i":["Sampling methods & sampling bias","Survivorship bias & Simpson’s paradox","Sampling distributions & standard error","Bias, consistency, efficiency, sufficiency","Cramer-Rao bound","MLE derivation for common distributions","MAP & method of moments","Confidence intervals — correct interpretation","Null vs alternative hypothesis","p-value — the precise definition","Type I & Type II errors, power, effect size","z-test and t-test (paired, independent, Welch)","Chi-square goodness of fit & independence","ANOVA (one-way, two-way) and F-test","Mann-Whitney U, Wilcoxon, KS test","Shapiro-Wilk & Levene tests","Bonferroni, Holm, Benjamini-Hochberg FDR","Bootstrap & jackknife","Permutation tests","Bayesian inference & conjugate priors","Credible vs confidence intervals","MCMC: Metropolis-Hastings & Gibbs","OLS assumptions and what breaks when each fails","Heteroskedasticity, multicollinearity (VIF)","Residual analysis, Cook’s distance, Q-Q plots","Gauss-Markov theorem & BLUE"]}]},{"n":"Programming & SQL","g":[{"n":"Python","i":["Data structures & their complexities","Mutability, shallow vs deep copy","Comprehensions, generators, iterators","Decorators, closures, functools","Context managers","Dunder methods, properties, dataclasses","MRO & class vs static methods","collections module fluency","Type hints & pydantic","GIL: multiprocessing vs threading vs asyncio","Memory management & garbage collection","Virtual envs, packaging, project structure"]},{"n":"NumPy & Pandas","i":["ndarray, dtypes, views vs copies","Broadcasting rules","Fancy indexing & boolean masking","Vectorisation over loops","Memory layout & strides","Series, DataFrame, MultiIndex","loc vs iloc vs at vs iat","groupby: aggregate, transform, filter","merge, join, concat with validation","pivot, pivot_table, melt, stack, unstack","apply vs map vs vectorised ops","Missing data handling & interpolation","Datetime, resampling, rolling windows","Categorical dtype & memory optimisation","Method chaining, query, assign","SettingWithCopyWarning & chained indexing"]},{"n":"SQL for analytics","i":["Window functions in real depth","Top-N per group & deduplication","Self-joins and anti-joins","Cohort analysis in pure SQL","Retention curves","Funnel & conversion analysis","Sessionisation (gaps and islands)","Running totals & moving averages","Period-over-period, YoY, MoM","Generating date series","Pivoting without a PIVOT clause","NULL handling in aggregates & joins","Reading execution plans","Practice: StrataScratch / DataLemur sets"]},{"n":"Visualisation","i":["Matplotlib figure/axes model","Seaborn distribution & relational plots","Plotly interactivity","Choosing the right chart type","Avoiding misleading axes & scales","Streamlit or Dash dashboarding"]}]},{"n":"Classical machine learning","g":[{"n":"Framework","i":["Supervised, unsupervised, self-supervised, RL","Parametric vs non-parametric","Discriminative vs generative","Train / validation / test — why three splits","Bias-variance decomposition (derive it)","Learning curves & validation curves","Curse of dimensionality","No Free Lunch theorem"]},{"n":"Regression","i":["OLS via normal equation and gradient descent","Coefficient interpretation, R² & adjusted R²","Polynomial regression","Ridge: closed form & geometric intuition","Lasso: sparsity & coordinate descent","Elastic Net","Quantile & robust regression (Huber, RANSAC)","Generalised linear models & link functions","Poisson regression","Isotonic regression"]},{"n":"Classification","i":["Logistic regression: MLE derivation & log loss","Log-odds & odds-ratio interpretation","Multiclass: one-vs-rest and softmax","Naive Bayes variants & Laplace smoothing","Why the independence assumption still works","KNN & distance metrics (incl. Mahalanobis)","KD-trees and ball trees","SVM: margins, hinge loss, C parameter","Kernel trick & kernel selection, gamma","Dual formulation & support vectors","LDA and QDA","Perceptron"]},{"n":"Trees & ensembles","i":["Gini, entropy, information gain, gain ratio","CART vs ID3 vs C4.5","Pruning & cost-complexity","Why trees overfit","Bagging, bootstrap, out-of-bag error","Random forest & decorrelation","Gini importance vs permutation importance","Extremely randomised trees","AdaBoost & exponential loss","Gradient boosting as functional gradient descent","XGBoost: second-order objective & regularisation","XGBoost: sparsity-aware splits, quantile sketch","LightGBM: leaf-wise growth, GOSS, EFB","CatBoost: ordered boosting & target statistics","Stacking, blending, voting","When boosting beats bagging"]},{"n":"Unsupervised","i":["K-means, Lloyd’s algorithm, k-means++","Choosing k: elbow, silhouette, gap statistic","K-means limitations & k-medoids","Hierarchical clustering & linkage criteria","DBSCAN: eps, minPts, core/border/noise","HDBSCAN and OPTICS","Gaussian Mixture Models","EM algorithm derivation & convergence","Spectral clustering, mean shift","Silhouette, Davies-Bouldin, ARI, NMI","PCA: variance & reconstruction derivations","Explained variance & scaling requirement","Kernel PCA, incremental PCA","t-SNE: perplexity & global distance caveat","UMAP","ICA, factor analysis, MDS","Random projection & Johnson-Lindenstrauss","NMF"]},{"n":"Anomaly & recommenders","i":["Z-score, IQR, Mahalanobis outlier detection","Isolation Forest","One-Class SVM & Local Outlier Factor","Autoencoder reconstruction error","Content-based filtering","User-based & item-based collaborative filtering","Matrix factorisation: SVD, funk SVD, ALS","Implicit feedback (BPR, WARP)","Factorisation machines","Two-tower neural retrieval","Cold start, popularity bias, diversity","precision@k, recall@k, MAP, NDCG, MRR","Candidate generation vs ranking architecture"]}]},{"n":"Time series & causal inference","g":[{"n":"Time series","i":["Trend, seasonality, cyclicality, STL decomposition","Stationarity & why it matters","ADF and KPSS tests, differencing","Reading ACF and PACF for model orders","AR, MA, ARMA, ARIMA","SARIMA and SARIMAX","Exponential smoothing & Holt-Winters","Prophet and its assumptions","VAR, Granger causality, cointegration","GARCH & volatility modelling","Lag features & rolling statistics","Fourier terms for seasonality","LSTM / TCN / Temporal Fusion Transformer","Walk-forward & time-series cross-validation","Why random k-fold is invalid here","MAE, RMSE, MAPE, sMAPE, MASE","Multi-horizon & hierarchical forecasting"]},{"n":"Causal inference","i":["Confounders, colliders, mediators","Potential outcomes, ATE / ATT / CATE","RCTs as the gold standard","Difference-in-differences & parallel trends","Propensity score matching","Inverse probability weighting","Instrumental variables","Regression discontinuity","Synthetic control","Uplift modelling: T / S / X learners","Causal forests","DAGs & the backdoor criterion"]},{"n":"Survival analysis","i":["Censoring types","Survival & hazard functions","Kaplan-Meier & log-rank test","Cox proportional hazards","Applying survival models to churn"]}]},{"n":"Evaluation & model engineering","g":[{"n":"Validation","i":["Hold-out, k-fold, stratified k-fold","Leave-one-out & group k-fold","Time-series split","Nested cross-validation","Target leakage","Train-test contamination (scaling before split)","Temporal & group leakage"]},{"n":"Metrics","i":["Confusion matrix & derived rates","Precision, recall, specificity, F1, F-beta","Balanced accuracy, MCC, Cohen’s kappa","ROC curve & AUC","PR curve & PR-AUC — when to prefer it","Log loss & Brier score","Lift and gain charts","MSE, RMSE, MAE, MAPE, R², adjusted R²","Threshold selection & cost-sensitive thresholds","Calibration curves & expected calibration error","Platt scaling & isotonic regression","Why AUC does not imply calibration"]},{"n":"Imbalance & features","i":["Class weights & threshold moving","Random over / undersampling","SMOTE, Borderline-SMOTE, ADASYN","Tomek links & NearMiss","Focal loss","Balanced ensembles","Scaling: standard, min-max, robust, quantile","One-hot, ordinal, frequency, hashing encoding","Target encoding with out-of-fold to avoid leakage","Binning, interactions, polynomial features","Log, Box-Cox, Yeo-Johnson transforms","Datetime & cyclical (sin/cos) encoding","Aggregation and geospatial features","MCAR / MAR / MNAR","KNN imputation, MICE, missingness indicators","Outlier treatment & winsorising"]},{"n":"Tuning & interpretability","i":["Grid vs random search — why random wins","Bayesian optimisation (Optuna, TPE)","Successive halving & Hyperband","Early stopping strategies","Permutation importance","SHAP: Shapley values, TreeSHAP, KernelSHAP","SHAP summary & dependence plots","LIME","Partial dependence & ICE plots","Accumulated local effects","Counterfactual explanations","Demographic parity, equal opportunity, equalised odds","Disparate impact & fairness impossibility results"]}]},{"n":"Deep learning","g":[{"n":"Fundamentals","i":["Perceptron, MLP, universal approximation","Backpropagation — derive for a 2-layer net","Computational graphs & autodiff modes","Sigmoid, tanh, ReLU, Leaky ReLU, PReLU, ELU","GELU, SiLU/Swish, softmax","Vanishing & exploding gradients, dying ReLU","MSE, MAE, Huber losses","Binary & categorical cross-entropy","KL divergence, hinge, focal, Dice, CTC","Contrastive & triplet losses","SGD, momentum, Nesterov","AdaGrad, RMSProp","Adam & bias correction, AdamW decoupled decay","LR schedules: step, cosine, warmup, one-cycle","Gradient clipping","Xavier / He / orthogonal initialisation","Batch norm: train vs inference behaviour","Layer, group, instance norm, RMSNorm","Dropout & its train/inference scaling","Label smoothing, mixup, cutmix","Weight decay vs L2","Mixed precision & gradient accumulation","Gradient checkpointing","Data, model, pipeline & tensor parallelism","ZeRO / FSDP"]},{"n":"CNNs","i":["Convolution, stride, padding, dilation","Output size formula & receptive field calculation","Parameter counting for a conv layer","Max, average & global average pooling","1x1 convolutions and their purpose","Depthwise separable & grouped convolution","Transposed convolution & upsampling","LeNet, AlexNet, VGG","Inception / GoogLeNet","ResNet & why residuals solve degradation","DenseNet, MobileNet, EfficientNet","ConvNeXt","Transfer learning & discriminative LRs"]},{"n":"Sequence models","i":["Vanilla RNN & BPTT","LSTM gates & cell state","GRU vs LSTM tradeoffs","Bidirectional & stacked RNNs","Seq2seq, teacher forcing, exposure bias","Bahdanau vs Luong attention","Why attention was introduced"]}]},{"n":"Transformers","g":[{"n":"Anatomy","i":["Subword tokenisation: BPE, WordPiece, SentencePiece","Vocabulary size tradeoffs & OOV handling","Token embeddings & weight tying","Sinusoidal vs learned positional encoding","RoPE (rotary) and ALiBi","Q, K, V projections & scaled dot-product","Why divide by sqrt(d_k)","Multi-head attention & output projection","Causal masking and padding masks","Cross-attention","Position-wise FFN & expansion ratio","Residuals + pre-LN vs post-LN stability","Full encoder and decoder block anatomy"]},{"n":"Families & efficiency","i":["Encoder-only: BERT, RoBERTa, DeBERTa","BERT pretraining: MLM & NSP","Decoder-only: GPT, LLaMA, Mistral","Encoder-decoder: T5, BART","KV cache: contents, speedup, memory cost","O(n²) attention complexity","Flash Attention (IO-awareness & tiling)","Sparse, sliding-window & linear attention","MQA and GQA","Mixture of Experts routing & load balancing"]}]},{"n":"Generative models & RL","g":[{"n":"Generative","i":["Autoencoders & denoising autoencoders","VAE: ELBO derivation","Reparameterisation trick & posterior collapse","GAN minimax objective","Mode collapse & training instability","WGAN & gradient penalty","Conditional GAN, StyleGAN, CycleGAN","Diffusion: forward noising & reverse denoising","DDPM vs DDIM","Classifier-free guidance","Latent diffusion & the U-Net backbone","Normalising flows (awareness)"]},{"n":"Reinforcement learning","i":["MDP formulation & Bellman equations","Value iteration & policy iteration","Monte Carlo & TD learning","SARSA vs Q-learning","Exploration vs exploitation, epsilon-greedy, UCB","DQN: experience replay & target network","Double and Dueling DQN","REINFORCE & baselines","Actor-critic, A2C / A3C","PPO clipped objective, TRPO","DDPG and SAC","Multi-armed bandits & Thompson sampling","Contextual bandits","RLHF: reward model + PPO fine-tuning","DPO as a simpler alternative","KL penalty & reward hacking"]}]},{"n":"NLP & Computer Vision","g":[{"n":"NLP","i":["Tokenisation, stemming, lemmatisation","POS tagging, dependency parsing","NER, relation extraction, coreference","Bag of words & TF-IDF derivation","n-gram LMs & smoothing (Kneser-Ney)","Perplexity","Word2Vec: CBOW, skip-gram, negative sampling","GloVe & FastText subwords","Embedding bias & limitations","Sentence-BERT & retrieval embedding models","Text classification & sentiment","Extractive vs abstractive QA and summarisation","Topic modelling: LDA & BERTopic","BLEU, ROUGE, METEOR, BERTScore"]},{"n":"Computer vision","i":["Colour spaces, histograms, filters","Sobel, Canny, Harris, SIFT / ORB, HOG","Augmentation: geometric, colour, cutout, RandAugment","R-CNN → Fast → Faster R-CNN, RPN, anchors","RoI pooling vs RoI align","YOLO family, SSD, RetinaNet & focal loss","Anchor-free detectors (FCOS, CenterNet)","DETR: set prediction & Hungarian matching","IoU, NMS, soft-NMS, mAP computation","Semantic segmentation: FCN, U-Net, DeepLab","Instance & panoptic segmentation, Mask R-CNN","Dice coefficient, IoU loss, combined losses","Vision Transformer & Swin","CLIP contrastive image-text training","SAM & vision-language models","Video: 3D CNNs & two-stream networks"]}]},{"n":"GenAI & LLM systems","g":[{"n":"Foundations","i":["Pretraining objectives & data curation","Scaling laws (Kaplan, Chinchilla)","Compute-optimal training","SFT & instruction tuning","Preference optimisation: RLHF, DPO, KTO, ORPO","Context window & lost-in-the-middle","Token accounting & cost modelling"]},{"n":"Decoding & prompting","i":["Greedy vs beam search vs sampling","Temperature, top-k, top-p/nucleus, min-p","Repetition, frequency & presence penalties","Constrained decoding & grammar constraints","Structured JSON output with schema enforcement","Speculative decoding","Zero-shot, few-shot, in-context learning","Chain-of-thought & self-consistency","Least-to-most, tree of thoughts","ReAct and Reflexion","System prompts, delimiters, format specs","Prompt chaining & decomposition","Prompt versioning as engineering discipline"]},{"n":"RAG","i":["Why RAG: grounding, freshness, auditability","RAG vs fine-tuning decision framework","Ingestion: parsing PDFs, tables, HTML","Fixed-size and sliding-window chunking","Semantic & recursive character chunking","Document-structure-aware chunking","Parent-document / small-to-big retrieval","Chunk size tradeoffs","Embedding model selection & dimensionality","Vector DBs: Pinecone, Weaviate, Qdrant, Chroma","FAISS and pgvector","HNSW: graph structure, ef and M parameters","IVF, IVF-PQ, product quantisation, LSH","Recall vs latency tradeoff","Cosine vs dot vs Euclidean & normalisation","Hybrid search: BM25 + dense, RRF","Reranking with cross-encoders & ColBERT","Query rewriting & expansion","HyDE, multi-query, step-back prompting","Multi-hop RAG & GraphRAG","Self-RAG & corrective RAG","Agentic RAG","Metadata filtering & access control","Context assembly, ordering, citations","Retrieval metrics: recall@k, MRR, NDCG","RAGAS: faithfulness, context precision & recall","LLM-as-judge for generation quality","RAG failure modes & diagnosis"]},{"n":"Fine-tuning & efficiency","i":["Full fine-tuning cost & catastrophic forgetting","LoRA: rank, alpha, target modules","QLoRA: NF4, double quantisation, paged optimisers","Adapters, prefix tuning, P-tuning v2, IA³","Instruction dataset construction & quality","Synthetic data generation","Post-training vs quantisation-aware training","GPTQ, AWQ, GGUF, bitsandbytes","Knowledge distillation","Pruning & sparsity","Continual pretraining for domain adaptation"]},{"n":"Agents","i":["Function/tool calling: schemas & error handling","ReAct loop: reason, act, observe","Planning & task decomposition","Plan-and-execute vs hierarchical planning","Short-term vs long-term memory","Summarisation & entity memory","Multi-agent: supervisor, sequential, hierarchical","LangChain fundamentals","LangGraph: nodes, edges, state, checkpointing","LlamaIndex, CrewAI, AutoGen","MCP (Model Context Protocol)","Human-in-the-loop & approval gates","Failure modes: loops, tool misuse, cost blowups","Step limits, budgets, output validation"]},{"n":"Serving, eval & safety","i":["vLLM & PagedAttention, continuous batching","TGI, TensorRT-LLM, Ollama","TTFT vs TPOT latency budgeting","Prompt caching & semantic caching","Model routing & cascading","Golden datasets & regression suites","LLM-as-judge biases","Benchmarks: MMLU, GSM8K, HumanEval, HELM","Online A/B testing of prompts","Tracing: LangSmith, Langfuse, Phoenix","Hallucination causes & mitigations","Direct vs indirect prompt injection","Jailbreaking & defence layers","PII detection & redaction","Guardrails: NeMo, Llama Guard","OWASP Top 10 for LLM applications"]}]},{"n":"Experimentation & product analytics","g":[{"n":"A/B testing","i":["Hypothesis & randomisation unit selection","Sample ratio mismatch checks & A/A tests","Power analysis & minimum detectable effect","Duration calculation & weekly seasonality","Primary, secondary & guardrail metrics","Overall evaluation criterion","Peeking & the early stopping problem","Multiple comparisons in experiments","Novelty & primacy effects","Network effects & SUTVA violations","Sequential & always-valid inference","CUPED variance reduction","Stratification & regression adjustment","Bandits vs A/B tests","Switchback & geo experiments","Cluster randomisation for marketplaces"]},{"n":"Product analytics","i":["North star, input vs output metrics","Leading vs lagging indicators & counter metrics","Metric sensitivity","DAU / WAU / MAU & stickiness","Retention: n-day, rolling, cohort curves","Churn & resurrection","Funnel and conversion analysis","Activation, LTV, CAC, ARPU","Root cause analysis for a metric drop","Segment-level diagnosis & instrumentation checks","Launch decisions under ambiguity","Guesstimates & market sizing","MECE structuring & hypothesis-driven analysis"]}]},{"n":"MLOps & big data","g":[{"n":"MLOps","i":["Reproducibility, seeding, environment pinning","MLflow / Weights & Biases experiment tracking","Model registry & versioning","Data versioning with DVC","Airflow DAGs & scheduling","Prefect, Dagster, Kubeflow, Metaflow","FastAPI model serving","Batch vs real-time vs streaming inference","TorchServe, Triton, ONNX Runtime","Docker for ML & GPU containers","Kubernetes basics & autoscaling","Data validation (Great Expectations, Pandera)","Model tests & CI/CD for ML","Data drift: KS test, PSI, Wasserstein","Concept drift & delayed-label monitoring","Shadow deployment & canary release","Champion-challenger setups","Feature stores (Feast, Tecton)","Training-serving skew & point-in-time correctness","SageMaker / Vertex AI / Azure ML basics","Cost optimisation & GPU utilisation","Model cards, lineage & audit trails"]},{"n":"Big data","i":["Shared-nothing architecture","HDFS blocks, replication, NameNode","MapReduce paradigm","Spark architecture: driver, executors, cluster manager","RDD vs DataFrame vs Dataset","Lazy evaluation, transformations vs actions","Narrow vs wide dependencies & shuffles","Partitioning & repartitioning","Broadcast joins","Caching & persistence levels","Catalyst optimiser & Tungsten","Data skew handling (salting) & AQE","PySpark API & Spark SQL","Why Python UDFs are slow","Kafka in a data pipeline","Structured Streaming, watermarks, windowing","Snowflake / BigQuery / Redshift","dbt and ELT vs ETL","Delta Lake, Iceberg, Hudi","Parquet vs ORC vs Avro, predicate pushdown","Star schema, fact & dimension tables","Slowly changing dimensions"]}]},{"n":"Coding & interview formats","g":[{"n":"DSA for DS roles","i":["Arrays, strings, hashing, two pointers","Sliding window","Sorting & binary search on answer","Stacks, queues, heaps","Trees & graph traversal, shortest path","Standard DP patterns","Recursion & backtracking","Complexity analysis"]},{"n":"From-scratch implementations","i":["Linear regression with gradient descent","Logistic regression from scratch","K-means from scratch","KNN from scratch","PCA from scratch","K-fold cross-validation loop","Gradient descent variants","Attention mechanism in NumPy","Small MLP with manual backprop","Probability simulation problems"]},{"n":"Interview archetypes","i":["Product DS: SQL + stats + product sense","ML Engineer: DSA + ML depth + ML system design","Applied Scientist: derivations + paper discussion","Quant/HFT: probability puzzles + mental maths speed","GenAI Engineer: RAG & agent system design","Analytics consulting: cases + guesstimates","ML system design: end-to-end pipeline questions"]}]}]},{"id":"cv","label":"CV","rated":true,"sections":[{"n":"Format & education","g":[{"n":"Format discipline","i":["Strictly one page in the CDC template","Second polished version for off-campus & referrals","Reverse chronological within each section","Every bullet has an action verb, method and number","No photo, no objective statement, no references line","Consistent tense and date format throughout","Zero spelling and grammar errors","Two versions maintained: SDE and Data Science"]},{"n":"Education section","i":["Degree, branch, institute, CGPA, year","Micro-specialisation or minor in CS / AI-ML","Class 12 and 10 percentages (if above ~92%)","JEE Advanced AIR (if within ~top 2000)","Relevant coursework line listed explicitly"]}]},{"n":"Internships & experience","g":[{"n":"SDE track targets","i":["Summer SDE internship at a top-tier product company","PPO or PPI secured from that internship","GSoC / LFX / MLH Fellowship with merged PRs","Series B+ startup internship with a shipped feature","Visible progression across two internships"]},{"n":"DS track targets","i":["Research internship abroad (MITACS, DAAD, Charpak, Khorana)","Research under an IIT KGP AI faculty","Paper or preprint from the research work","DS/ML internship with a model in production","First-author or co-author publication at a real venue"]},{"n":"Bullet quality","i":["Problem and its scale stated (users, data, latency, cost)","What you specifically built, not what the team built","A measurable delta on every bullet","Technology named once, not listed","Every claim survives 20 minutes of questioning"]}]},{"n":"Projects","g":[{"n":"SDE project mix","i":["One systems-depth project (distributed store, mini DB, compiler)","One deployed product with real, honest user numbers","One optimisation project with before/after benchmarks","Public GitHub with architecture diagram in the README","Tests and CI configured","Commit history spread over weeks, not one dump"]},{"n":"DS project mix","i":["One end-to-end ML system in production, not a notebook","Pipeline + deployed API + monitoring + retraining trigger","One GenAI system with a documented eval harness","Chunking, embedding and retrieval choices you can defend","One paper reproduction with an honest results table","One Kaggle competition finish in the top 10%","Dataset provenance and baseline comparison stated","Metrics that actually match the problem"]},{"n":"Discipline","i":["Two to four projects total — depth over breadth","Every project has a 2-minute and a 15-minute version","A prepared answer for \"what would you do differently\"","A prepared answer for \"what broke and how did you find it\""]}]},{"n":"Achievements & positions","g":[{"n":"SDE signals","i":["Codeforces Expert (1600+) — minimum to list","Codeforces Candidate Master (1900+) — the real target","CodeChef 5-star / LeetCode Knight","ICPC Regionals qualification","Inter-IIT Tech Meet medal","Smart India Hackathon result","Corporate hackathon win (Flipkart GRiD, Amazon, Adobe)"]},{"n":"DS signals","i":["Kaggle Competitions Expert (medal)","Kaggle Competitions Master","Publication with a named venue","Amazon ML Challenge / Analytics Vidhya top rank","Inter-IIT ML problem statement medal"]},{"n":"Positions & skills","i":["Tech-society POR (KDAG for DS, KOSS for SDE)","Gymkhana head/governor-level role","Every POR bullet quantified","Skills tiered and capped at ~15 items","Nothing listed you cannot defend for 15 minutes","Scholarships & olympiads (KVPY, NTSE, INSPIRE, IOQM)"]}]},{"n":"Leverage actions","g":[{"n":"Highest return first","i":["Codeforces rating climb (SDE) — CGPA-blind signal","Kaggle medal (DS) — achievable in 6–10 focused weeks","Deep CS fundamentals mastery — converts interviews","One flagship project with users and honest metrics","Register for a CS / AI-ML micro-specialisation","Merged open-source contributions on a known repo","Inter-IIT Tech Meet participation","Rehearsed \"why not core branch\" answer","Pull historical CGPA cutoffs for every target company","Talk to seniors who converted your target companies"]}]},{"n":"Red flags eliminated","g":[{"n":"Confirm each is clean","i":["No more than four projects listed","No tutorial follow-along projects","Every number reproducible with a stated method","No Kaggle notebook labelled as an \"ML system\"","No MOOC certificates under achievements","GitHub link present with real commit history","No \"worked on\" / \"responsible for\" / \"assisted with\" bullets","No buzzword stacking without a system behind it","No single generic CV sent to both SDE and DS roles"]}]}]},{"id":"plan","label":"Schedule","rated":false,"sections":[{"n":"Phase 1 · Weeks 1–4 · August · Foundations","g":[{"n":"Daily rhythm","i":["3 hours DSA on identified weak areas","1.5 hours CS fundamentals, one subject at a time","1 hour SQL practice plus one ML topic","2–3 rated contests per week","Upsolve within 48 hours, every time"]},{"n":"Milestones","i":["CSES: 150+ problems solved","Operating Systems completed with notes","DBMS completed with notes","SQL: window functions and cohort queries fluent","Measurable Codeforces rating movement"]}]},{"n":"Phase 2 · Weeks 5–8 · September · Depth & CV freeze","g":[{"n":"Focus","i":["Maintain DSA and contest cadence","Complete Computer Networks","Complete OOP and design principles","Start LLD: patterns plus 2 coded problems weekly","Finish and polish the flagship project","Commit to one Kaggle competition through Week 10","Register for ICPC Preliminaries"]},{"n":"Milestones","i":["All four CS core subjects done with revision notes","10+ LLD problems implemented in code","CV frozen and reviewed by converted seniors","Both CV versions final (SDE and DS)","CSES: 250+ problems solved"]}]},{"n":"Phase 3 · Weeks 9–12 · October · OA season","g":[{"n":"Focus","i":["Treat every OA as a timed contest","Timed sets: 3 problems in 90 minutes","Start HLD: 2 written designs per week with estimation","Continue LLD at 2 problems per week","Two mock interviews per week, minimum","Prepare project deep-dive answers for every CV line","STAR stories drilled and timed"]},{"n":"Milestones","i":["20+ HLD and LLD problems covered","15+ mock interviews completed","Every CV claim stress-tested by someone else"]}]},{"n":"Phase 4 · Weeks 13–16 · November · Peak","g":[{"n":"Focus","i":["No new topics — revision only","2 problems daily from the wrong-answer log","1 hour CS fundamentals revision daily","1 design problem daily","Company-specific prep from placement archives","Sleep schedule shifted to interview hours","Stop chasing rating in the final two weeks"]},{"n":"Ongoing","i":["Single revision document maintained throughout","Application and cutoff tracker kept current","Regular conversations with seniors in target companies"]}]}]}],"badges":[{"id":"first","ic":"▶","n":"First Blood","d":"Clear your first topic"},{"id":"fifty","ic":"◈","n":"Fifty Down","d":"50 topics cleared"},{"id":"twofifty","ic":"◆","n":"Deep Water","d":"250 topics cleared"},{"id":"blue","ic":"●","n":"Blue Handle","d":"Reach Expert (1600)"},{"id":"purple","ic":"★","n":"Purple Handle","d":"Reach Candidate Master (1900)"},{"id":"orange","ic":"✦","n":"Orange Handle","d":"Reach Master (2100)"},{"id":"core4","ic":"▤","n":"Core Four","d":"OS, DBMS, Networks and OOP complete"},{"id":"graph","ic":"⬡","n":"Graph Theorist","d":"Finish the graphs section"},{"id":"dp","ic":"⬢","n":"Optimal Substructure","d":"Finish dynamic programming"},{"id":"lld","ic":"▧","n":"Pattern Matcher","d":"Finish Low-Level Design"},{"id":"hld","ic":"▦","n":"Systems Thinker","d":"Finish High-Level Design"},{"id":"tf","ic":"⟐","n":"Attention Is All","d":"Finish the transformers section"},{"id":"genai","ic":"◐","n":"Grounded","d":"Finish GenAI & LLM systems"},{"id":"stats","ic":"∑","n":"Significant","d":"Finish mathematics"},{"id":"cvdone","ic":"▣","n":"Paper Ready","d":"Complete the whole CV track"},{"id":"dual","ic":"⇄","n":"Dual Track","d":"25% in both SDE and Data Science"},{"id":"st7","ic":"▪","n":"Week Streak","d":"7 days in a row"},{"id":"st30","ic":"▪▪","n":"Month Streak","d":"30 days in a row"},{"id":"half","ic":"◑","n":"Halfway","d":"50% of everything cleared"},{"id":"full","ic":"✷","n":"Full Clear","d":"100% of everything cleared"}]},"mba":{"version":1,"phases":[{"n":"PHASE 01","t":"Range prep","when":"Aug – Sep 2026","note":"Nothing here is an application. This is the machinery that makes every later application possible in a week rather than a month. Do it now while your semester is light.","items":[{"id":"p1a","task":"Check passport validity and exact name spelling","note":"Must be valid past Dec 2029 and the name on your GMAT booking must match the passport character for character. Proctors turn people away for \"Aryan\" vs a fuller legal name.","date":"2026-08-20","tags":["action"]},{"id":"p1b","task":"Book a GMAT Focus slot for late Oct or Nov 2026","note":"₹27,100 at a test centre in India. Slots at Kolkata and Kharagpur-adjacent centres fill 6–8 weeks out. Book before you feel ready; the date creates the prep.","date":"2026-08-25","tags":["action"]},{"id":"p1c","task":"Sit one full GMAT diagnostic mock, untimed prep after that","note":"Your Quant is already far past the bar. The score lives in Verbal (Critical Reasoning and Reading Comprehension) and Data Insights. Debating helps you on CR more than you expect.","date":"2026-08-30","tags":["action"]},{"id":"p1d","task":"Request IIT KGP transcript and an English-medium-of-instruction letter","note":"The second one is what waives TOEFL/IELTS. HBS and Kellogg both require English tests from non-English-medium universities; the registrar letter kills that requirement. Get it once, use it ten times.","date":"2026-09-10","tags":["action"]},{"id":"p1e","task":"Write the master narrative document","note":"One file, four sections: why an MBA at all, why abroad specifically, what you will build, and three stories you can tell in any format. CVBuddy, LifeTreeOS and the freelance book each need a version at 100, 300 and 800 words. Every essay after this is an edit, not a draft.","date":"2026-09-15","tags":["action"]},{"id":"p1f","task":"Approach three recommenders and get verbal agreement","note":"Best mix for a founder profile: one IIT KGP professor who has seen your technical work, one client or mentor who paid you money, one from Placement Committee or the debating circuit who can speak to leadership. Ask early, brief them later.","date":"2026-09-20","tags":["action"]},{"id":"p1g","task":"Build a separate one-page MBA resume","note":"This is not your placement CV. Strip the tech stack. Lead with users, revenue, people managed and decisions owned. INSTRU rules still apply on bullet construction, but the reader is an admissions officer, not an SDE interviewer.","date":"2026-09-25","tags":["action"]},{"id":"p1h","task":"Stanford GSB deferred — Round 1","note":"Round 1 of the 2026–27 cycle. Realistically too tight to write a strong \"What matters most to you, and why?\" in four weeks. The correct move is a deliberate skip in favour of Round 2, but make it a decision rather than a drift.","date":"2026-09-09","school":"Stanford GSB","tags":["confirmed","oneshot"]},{"id":"p1j","task":"Cornell Johnson MBA Future Leaders — Round 1","note":"Ivy League. Cornell runs no separate deferred application: you apply to the Two-Year MBA and flag interest in the Future Leaders Program. Note the unusual requirement — Cornell demands a minimum of three and a maximum of five years of work experience before you enrol, which is a longer runway than Harvard or Wharton allow.","date":"2026-09-17","school":"Cornell Johnson","tags":["confirmed"]},{"id":"p1i","task":"Yale Silver Scholars — Round 1","note":"Same reasoning: skip in favour of Round 2 on 6 Jan 2027. Yale explicitly allows you to apply in any of the three rounds regardless of when you graduate.","date":"2026-09-15","school":"Yale SOM","tags":["confirmed"]},{"id":"p1L","task":"Resolve the Tuck question directly with admissions","note":"Sources conflict. Tuck’s own 2026–27 admissions page lists no deferred pathway, but several third-party guides describe a Tuck deferred option. Email admissions and get a one-line answer in writing. If a deferred route does exist, the rounds are 24 Sep 2026, 5 Jan 2027 and 24 Mar 2027, and Round 1 applicants who submit by 1 September are guaranteed an interview.","date":"2026-08-28","school":"Dartmouth Tuck","tags":["verify"]}]},{"n":"PHASE 02","t":"Test window","when":"Sep – Nov 2026","note":"One test, five years of validity. This single score covers every deferred application now and any regular MBA application through 2031. It is the highest-leverage thing in the entire plan.","items":[{"id":"p2a","task":"GMAT Focus prep block — 6 to 10 weeks","note":"Target 685+, stretch 705+. The Focus scale runs 205–805; a 645 is roughly the old 700. Booth, Haas and Wharton deferred cohorts sit around 700–730.","date":"2026-10-31","tags":["action"]},{"id":"p2b","task":"Sit the GMAT Focus","note":"Three sections of 45 minutes: Quant, Verbal, Data Insights. You may review and change up to three answers per section, which changes pacing strategy. Unofficial score appears immediately.","date":"2026-11-15","tags":["action"]},{"id":"p2c","task":"Send the five free score reports within 48 hours","note":"Free only in the 48-hour window after your official score. After that each report costs money. Send to Stanford, Harvard, Wharton, MIT, Yale even if you are unsure — it costs nothing and commits you to nothing.","date":"2026-11-18","tags":["action"]},{"id":"p2d","task":"Retake decision point","note":"If you land under 665, rebook immediately. Minimum gap between attempts is 16 days, and you can sit it up to five times in a rolling year. A December retake still clears every April deadline.","date":"2026-11-25","tags":["action"]},{"id":"p2e","task":"Start the Stanford essay","note":"\"What matters most to you, and why?\" is the hardest essay in graduate admissions and takes most people eight to ten weeks of drafts. Starting it in December for a January deadline is how people write a mediocre one.","date":"2026-11-10","tags":["action"]}]},{"n":"PHASE 03","t":"First strike","when":"Dec 2026 – Jan 2027","note":"Placements and the first real deadlines collide in the same four weeks. Take the placement offer. A 35+ LPA offer alongside a deferred admit is a far stronger position than either alone, and the deferral years need a job anyway.","items":[{"id":"p3z","task":"VERIFICATION CHECKPOINT — open every school page and confirm dates","note":"Sit down for ninety minutes. Open all twelve admissions pages, write down the exact deadline and time zone, and correct this tracker. Most April 2027 dates are not published until December or January.","date":"2026-12-01","tags":["verify"]},{"id":"p3a","task":"IIT KGP campus placements","note":"Priority over everything else this month. The offer funds the deferral years, satisfies the \"quality work experience\" requirement every deferred programme imposes, and gives you a fallback if no admit lands.","date":"2026-12-05","tags":["action"]},{"id":"p3b","task":"Wharton Moelis application opens","note":"Wharton confirms the Moelis Advance Access application becomes available in November for the 2027 cycle. Create the account, read the essay prompts, and start early — the deadline itself is in April.","date":"2026-11-30","school":"Wharton","tags":["confirmed"]},{"id":"p3c","task":"IESE Young Talent Path window opens","note":"IESE accepts YTP applications from December through March. Uniquely in Europe, and uniquely among deferred programmes, it stays open to you even after graduating with up to two years of work experience. Admits get a €25,000 scholarship.","date":"2026-12-10","school":"IESE","tags":["projected"]},{"id":"p3d","task":"Stanford GSB deferred — Round 2","note":"The round to actually target. Stanford has no separate deferred application; you apply through the regular MBA application and indicate deferred enrollment. Eligibility: degree conferred between 1 Oct 2026 and 30 Sep 2027, which is you.","date":"2027-01-06","school":"Stanford GSB","tags":["confirmed","oneshot"]},{"id":"p3e","task":"Yale Silver Scholars — Round 2","note":"The one programme on this list that takes you straight from B.Tech with no work experience: year one core, year two paid full-time internship, year three electives. If you want to be abroad in 2027 rather than 2030, this is the door.","date":"2027-01-06","school":"Yale SOM","tags":["confirmed"]},{"id":"p3g","task":"Cornell Johnson MBA Future Leaders — Round 2","note":"Ivy League. Strongest Cornell round for international applicants. Decisions release between 3 and 26 March 2027. Submit by 11:59 PM Eastern.","date":"2027-01-05","school":"Cornell Johnson","tags":["confirmed"]},{"id":"p3f","task":"JN Tata Endowment — register online","note":"Registration opens in early January at jntataendowment.org, deadline mid-March. Interest-free loan scholarship of ₹5–10 lakh. Final-year students may apply provisionally and submit the admit later. Only worth doing in the year you actually matriculate.","date":"2027-01-10","tags":["projected"]}]},{"n":"PHASE 04","t":"Main wave","when":"Feb – Apr 2027","note":"Nine of the twelve programmes close within a three-week band in April. This is where applications get missed. Write the essays in February, not April.","items":[{"id":"p4z","task":"VERIFICATION CHECKPOINT — second pass on all April dates","note":"By February every 2027 deadline is published. Re-open all pages, confirm the exact date and closing time, and set a calendar alarm for seven days before each one. This is the single task that makes the rest of the page trustworthy.","date":"2027-02-01","tags":["verify"]},{"id":"p4a","task":"Essay production block — six schools in parallel","note":"The Stanford essay is the parent document; Harvard, MIT and Wharton essays are derivatives of it. Budget roughly twelve to fifteen hours per school including recommender briefing.","date":"2027-02-28","tags":["action"]},{"id":"p5a","task":"Interview window — Stanford and Yale Round 2 admits","note":"Stanford interviews are conducted by alumni and are almost entirely behavioural. Yale uses a behavioural assessment inside the portal plus an invite-only interview. Invitations for the 6 January round land through February and March.","date":"2027-03-01","tags":["action"]},{"id":"p4b","task":"IESE Young Talent Path — final deadline","note":"Applications close around March; selected candidates are invited to the Assessment Boot Camp in Barcelona and notified by May. The boot camp is the evaluation, so treat the written application as a gate, not the decision.","date":"2027-03-15","school":"IESE","tags":["projected"]},{"id":"p4c","task":"Chicago Booth Scholars","note":"Polsky Center and the New Venture Challenge are genuine founder infrastructure. Booth Scholars can later choose full-time, evening or weekend MBA, which is unusual flexibility.","date":"2027-04-02","school":"Chicago Booth","tags":["projected","oneshot"]},{"id":"p4d","task":"Stanford GSB deferred — Round 3","note":"Final chance at Stanford in your eligibility year. Round 3 is materially harder than Rounds 1 and 2 because most of the class is already committed. Use only as a backstop.","date":"2027-04-07","school":"Stanford GSB","tags":["confirmed","oneshot"]},{"id":"p4e","task":"Yale Silver Scholars — Round 3","note":"Final Silver Scholars round for your graduation year.","date":"2027-04-07","school":"Yale SOM","tags":["confirmed"]},{"id":"p4f","task":"Columbia Business School deferred enrollment","note":"New York, strong for anyone whose venture touches finance, media or consumer. No application fee for eligible graduate students.","date":"2027-04-15","school":"Columbia","tags":["projected","oneshot"]},{"id":"p4g","task":"Berkeley Haas Accelerated Access","note":"SkyDeck accelerator, Bay Area recruiting, and Haas offers scholarships specifically to deferred admits. Open to undergraduates from any accredited institution worldwide.","date":"2027-04-16","school":"Berkeley Haas","tags":["projected","oneshot"]},{"id":"p4h","task":"MIT Sloan Early Admission","note":"Martin Trust Center, delta v accelerator, MIT $100K competition. The strongest fit on this list for a technical founder building software rather than a consumer brand.","date":"2027-04-17","school":"MIT Sloan","tags":["projected","oneshot"]},{"id":"p4i","task":"Harvard Business School 2+2","note":"Roughly 8–9% admit rate, more selective than the regular HBS MBA. HBS explicitly favours applicants on paths that would not normally lead to business school — operating companies, tech, manufacturing. Application fee is $100 for current students rather than $250.","date":"2027-04-22","school":"Harvard","tags":["projected","oneshot"]},{"id":"p4j","task":"Wharton Moelis Advance Access","note":"Evaluated against other Moelis applicants, not the full Wharton pool, which is a meaningful structural advantage. Defer two to four years, then join the full-time MBA.","date":"2027-04-22","school":"Wharton","tags":["projected","oneshot"]},{"id":"p4k","task":"Kellogg Future Leaders","note":"Insurance application. Strong general management brand, weaker founder density than the six above. TOEFL required unless your English-medium letter clears it.","date":"2027-04-22","school":"Kellogg","tags":["projected","oneshot"]},{"id":"p4l","task":"UVA Darden Future Year Scholars — Round 1","note":"Darden runs a second round in July, which makes it the only meaningful safety net after the April wall. Offers deferred-specific scholarships.","date":"2027-04-22","school":"Darden","tags":["projected"]},{"id":"p4n","task":"Cornell Johnson MBA Future Leaders — Round 3","note":"Ivy League. Final Cornell round. Decisions release between 7 and 21 May 2027.","date":"2027-04-06","school":"Cornell Johnson","tags":["confirmed"]},{"id":"p4m","task":"Non-Ivy, non-M7 sweep — decide yes or no in one sitting","note":"CMU Tepper Future Business Leaders, Emory Goizueta Early Admission, Georgetown McDonough, Rice Jones, UCLA Anderson. All run deferred tracks. By your own stated bar these fall below the line, so the default answer is no — but write the decision down rather than letting the dates pass unnoticed.","date":"2027-04-20","tags":["action"]}]},{"n":"PHASE 05","t":"Decisions","when":"May – Aug 2027","note":"Interviews, offers, and the last safety net. Also the month you graduate.","items":[{"id":"p5b","task":"IESE Assessment Boot Camp in Barcelona","note":"Invitations go out by May. This is a live evaluation where you work on real business projects alongside current IESE MBAs. Budget for the flight.","date":"2027-05-15","school":"IESE","tags":["projected"]},{"id":"p5c","task":"Graduate from IIT KGP","note":"Confirm the exact conferral date in writing. Stanford requires it between 1 Oct 2026 and 30 Sep 2027; Yale requires 1 Aug 2026 to 31 Jul 2027. A delayed convocation letter has cost people offers.","date":"2027-05-15","tags":["action"]},{"id":"p5d","task":"HBS 2+2 decision released","note":"Notification typically comes in late June.","date":"2027-06-25","school":"Harvard","tags":["projected"]},{"id":"p5e","task":"UVA Darden Future Year Scholars — Round 2","note":"The last deferred deadline of your eligibility year, anywhere. If April went badly, this is the final door and it closes for good.","date":"2027-07-15","school":"Darden","tags":["projected","oneshot"]},{"id":"p5f","task":"Accept, pay deposit, confirm deferral length in writing","note":"Get the permitted deferral range in an email: most schools allow two to four years, Stanford and Booth are more flexible. This determines whether you can run IsoCodeLabs for two years or five.","date":"2027-07-31","tags":["action"]}]},{"n":"PHASE 06","t":"Deferral years","when":"2027 – 2030","note":"The part everyone underestimates. Schools admit you on potential and then watch what you do with three years of freedom. This is also when the money actually gets raised.","items":[{"id":"p6a","task":"Annual check-in with the admissions office","note":"Every deferred programme requires a yearly confirmation that you still intend to matriculate. Missing one can void the offer. Put a recurring calendar entry in now.","date":"2028-06-01","tags":["action"]},{"id":"p6b","task":"Use the deferral the way they expect","note":"Schools explicitly want risk-taking in this window: founding, joining something early, doing something hard. Running IsoCodeLabs full-time is a stronger deferral story than two years at a consultancy, and it is the story you already told them.","date":null,"tags":["action"]},{"id":"p6c","task":"External scholarship wave — the January before you matriculate","note":"These all require an admit in hand or in process, so they belong to your matriculation year, not 2027. JN Tata Endowment (deadline mid-March, ₹5–10 lakh interest-free). Narotam Sekhsaria Foundation (opens February, up to ₹20 lakh interest-free). Inlaks Shivdasani (opens January, deadline around 25 April, up to $100,000, must be under 30 and resident in India). KC Mahindra (April). Aga Khan Foundation (March, 50% grant and 50% loan).","date":null,"tags":["action"]},{"id":"p6d","task":"Education loan sanction — six months before matriculation","note":"Compare SBI, Bank of Baroda, Prodigy Finance and MPOWER on total interest cost over full repayment, not headline rate. Section 80E makes education loan interest fully tax deductible for eight years with no upper limit.","date":null,"tags":["action"]},{"id":"p6e","task":"Fallback route if no deferred admit lands","note":"Your GMAT stays valid five years. Apply through the regular cycle with three to four years of founder experience, which is a genuinely stronger application than the one you are submitting at 21. Round 1 deadlines fall in early September; INSEAD and IESE run rolling rounds year-round.","date":null,"tags":["action"]}]}],"schools":[{"n":"Stanford GSB","p":"Deferred Enrollment","fit":"a","m7":1,"txt":"Around 16% of the class goes straight into entrepreneurship, the highest of any elite programme. Startup Garage, Center for Entrepreneurial Studies, and physical proximity to Sand Hill Road. Not Ivy League, and the best school in the world for what you say you want. Do not cut it."},{"n":"Harvard 2+2","p":"2+2 Deferred","fit":"a","ivy":1,"m7":1,"txt":"HBS states a preference for applicants on paths that would not normally lead to business school. A student-run software company in a manufacturing branch is exactly that profile. Rock Center, i-Lab, New Venture Competition. Roughly 8–9% admit rate."},{"n":"MIT Sloan","p":"Early Admission","fit":"a","m7":1,"txt":"The best fit here for a technical founder. Martin Trust Center, delta v accelerator, the MIT $100K. Action-learning labs replace case discussion with real client work. Not Ivy, and ranked third in the US for entrepreneurship."},{"n":"Wharton","p":"Moelis Advance Access","fit":"a","ivy":1,"m7":1,"txt":"Evaluated only against other Moelis applicants, which is a structural edge. Venture Lab plus the San Francisco campus gives a two-market strategy. Best if your future involves raising serious capital rather than bootstrapping."},{"n":"Yale SOM","p":"Silver Scholars","fit":"a","ivy":1,"txt":"The only programme here that admits you straight from undergraduate with zero work experience. Three years: core, a paid full-time internship year, then electives. Choose this if you want to be abroad in 2027 rather than 2030."},{"n":"Berkeley Haas","p":"Accelerated Access","fit":"a","txt":"Smallest class in the top ten, strongest West Coast network outside Stanford, and SkyDeck is a real accelerator rather than a branded room. Offers scholarships specifically to deferred admits. Not Ivy; ranked fourth in the US for entrepreneurship."},{"n":"Columbia","p":"Deferred Enrollment","fit":"a","ivy":1,"m7":1,"txt":"New York access, strong for consumer, media and finance-adjacent ventures. The most founder-relevant of the East Coast Ivies after Harvard. Weaker startup density than the Bay Area schools."},{"n":"Chicago Booth","p":"Booth Scholars","fit":"a","m7":1,"txt":"Polsky Center and the New Venture Challenge, one of the oldest and best-funded student venture competitions anywhere. Scholars can later choose full-time, evening or weekend format. Not Ivy, but M7."},{"n":"Kellogg","p":"Future Leaders","fit":"b","m7":1,"txt":"Completes the M7. Excellent general management brand and marketing depth. Insurance application rather than a target — founder outcomes trail the schools above."},{"n":"Cornell Johnson","p":"MBA Future Leaders","fit":"b","ivy":1,"txt":"Ivy League. Small, tight cohort in Ithaca, with a one-year option at Cornell Tech in New York City which is the genuinely interesting part for a technical founder. Note the constraint: Cornell requires three to five years of work experience before you enrol, longer than any other programme here."},{"n":"Dartmouth Tuck","p":"Deferred route unconfirmed","fit":"b","ivy":1,"txt":"Ivy League, and the one genuine unknown on this list: Tuck’s own 2026–27 page lists no deferred pathway, while several guides claim one exists. Settle it by email before you assume either way. Regular rounds only, which for you means the 2029–30 cycle. Strong on general management and private equity, thin on venture creation."},{"n":"Brown","p":"No full-time MBA","fit":"b","ivy":1,"txt":"Ivy League with no business school. The only MBA it issues is the 15-month IE Brown Executive MBA run jointly with IE Madrid, aimed at senior managers with more than ten years of experience. Structurally unavailable to you for at least a decade."},{"n":"Princeton","p":"No MBA at all","fit":"b","ivy":1,"txt":"The only Ivy League university that issues no MBA of any kind. It runs a Master in Finance through the Bendheim Center, which is a different degree for a different career. Nothing to apply to."},{"n":"IESE","p":"Young Talent Path","fit":"b","txt":"The only verified deferred programme in Europe. Roughly half the cost of a US MBA, a €25,000 scholarship on admission, and an Assessment Boot Camp in Barcelona instead of a pure paper evaluation. Also the only one still open to you after graduating."},{"n":"UVA Darden","p":"Future Year Scholars","fit":"b","txt":"Matters mainly for its July round, the only deferred deadline that falls after the April wall. Offers deferred-specific scholarships. Below your stated bar; keep only as a last safety net."}],"excluded":[{"id":"x1","task":"CAT 2026 and all IIMs","note":"Registration closes 15 September 2026, exam 29 November 2026. You have ruled this out. Worth knowing what you are declining: as a General Engineering Male you would need a 99+ percentile, and it collides directly with December placement prep. The cost of keeping the option open is ₹2,700 and one Sunday.","date":"2026-09-15"},{"id":"x2","task":"ISB PGP Young Leaders","note":"Round 1 closes 20 December 2026, Round 2 closes 21 February 2027 for the Class of 2029. A 20-month residential programme for candidates with 0–24 months of experience. Genuinely the closest Indian analogue to a deferred MBA and it explicitly rewards entrepreneurial ventures — but it is in India, which is the thing you are trying to leave. Logged, not forgotten.","date":"2027-02-21"},{"id":"x4","task":"Dartmouth Tuck — deferred route unresolved","note":"Ivy League, and checked directly against Tuck’s own 2026–27 admissions page: there is no deferred or early-admission pathway listed, though several third-party guides claim otherwise, so treat this as unresolved until admissions confirms. Regular rounds are 24 Sep 2026, 5 Jan 2027 and 24 Mar 2027, all requiring current work experience, so your realistic Tuck cycle is 2029–30. One useful detail for later: Tuck waives the English test outright if your bachelor’s came from an institution where English is the sole language of instruction, which covers IIT KGP.","date":null},{"id":"x5","task":"Brown — no full-time MBA to apply to","note":"Brown has no business school. Its only MBA is the 15-month IE Brown Executive MBA with IE Madrid, built for senior managers with more than ten years of experience. Not a gap in your plan; a gap in Brown’s.","date":null},{"id":"x6","task":"Princeton — issues no MBA","note":"The only Ivy League university that awards no MBA of any kind. Its Bendheim Center Master in Finance is a different degree aimed at quantitative finance careers. Nothing here to miss.","date":null},{"id":"x3","task":"Masters in Management (MiM) programmes","note":"Designed for freshers with no work experience. For an IIT engineer already running a company, it buys a weaker brand at a similar price with none of the founder network. Correctly skipped.","date":null}]},"opportunities":{"opportunities":[]}};</script>
+<script>/* ============================================================
+   LAUNCH CONSOLE
+
+   Two measurement systems under one shell. They share a countdown spine and
+   an identity; they share no arithmetic. That separation is deliberate and
+   load-bearing:
+
+     Mastery rating  800-3200, Codeforces ladder, computed ONLY from the
+                     1,328 rated topics. Nothing on a calendar can move it.
+     Window integrity  starts at 100% and only ever falls, as one-shot dates
+                     pass unchecked. Doors do not reopen, so this does not
+                     recover either.
+
+   Folding the 56 MBA items into the rating was the obvious merge and the
+   wrong one -- ticking "booked a GMAT slot" would raise a number that is
+   supposed to mean you can answer a segment-tree question.
+   ============================================================ */
+
+(function () {
+  "use strict";
+
+  var DATA = window.__DATA__ || {};
+  var PL = DATA.placement || { ranks: [], tracks: [], badges: [] };
+  var MBA = DATA.mba || { phases: [], schools: [], excluded: [] };
+  var OPPS = (DATA.opportunities && DATA.opportunities.opportunities) || [];
+
+  var DAY1 = new Date("2026-12-01T00:00:00");
+  var TODAY = new Date();
+  TODAY.setHours(0, 0, 0, 0);
+
+  /* ---------------------------------------------------------- storage
+
+     The originals persisted through window.storage, the Claude Artifacts
+     API. That was right there and wrong anywhere else: served from GitHub
+     Pages, window.storage is undefined, save() returns early, and every
+     checkbox is discarded on reload with no error. Since the rating is
+     derived entirely from checked state, the page would have read 800 /
+     Newbie forever.
+
+     localStorage now, with a one-time migration from both legacy keys so
+     nothing already ticked inside an Artifact is lost.                    */
+
+  var KEY = "launch-console-v1";
+  var LEGACY_PLACEMENT = "placement-ladder-v1";
+  var LEGACY_MBA = "mba-launch-windows-v1";
+
+  var S = { checked: {}, mba: {}, days: [], badges: [], open: {}, opps: {} };
+  var memOnly = false;
+  var saveTimer = null;
+
+  function readLegacy(key) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) {
+        var p = JSON.parse(raw);
+        S = {
+          checked: p.checked || {},
+          mba: p.mba || {},
+          days: p.days || [],
+          badges: p.badges || [],
+          open: p.open || {},
+          opps: p.opps || {}
+        };
+        return;
+      }
+      var oldP = readLegacy(LEGACY_PLACEMENT);
+      var oldM = readLegacy(LEGACY_MBA);
+      if (oldP) {
+        S.checked = oldP.checked || {};
+        S.days = oldP.days || [];
+        S.badges = oldP.badges || [];
+        S.open = oldP.open || {};
+      }
+      if (oldM) S.mba = oldM;
+      if (oldP || oldM) save();
+    } catch (e) {
+      memOnly = true;
+    }
+  }
+
+  function save() {
+    if (memOnly) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function () {
+      try {
+        localStorage.setItem(KEY, JSON.stringify(S));
+      } catch (e) {
+        memOnly = true;
+        toast("Could not save progress. Storage may be full or blocked.");
+      }
+    }, 300);
+  }
+
+  /* ---------------------------------------------------------- helpers */
+
+  function hash(str) {
+    var h = 5381;
+    for (var i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) >>> 0;
+    return h.toString(36);
+  }
+
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
+  function dateStr(d) {
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" +
+      String(d.getDate()).padStart(2, "0");
+  }
+  function today() { return dateStr(new Date()); }
+
+  var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function daysUntil(iso) {
+    var d = new Date(iso + "T00:00:00");
+    return Math.round((d - TODAY) / 86400000);
+  }
+  function fmtDate(iso) {
+    var d = new Date(iso + "T00:00:00");
+    return d.getDate() + " " + MON[d.getMonth()] + " " + d.getFullYear();
+  }
+  function level(dd) {
+    if (dd === null) return "cool";
+    if (dd < 0) return "past";
+    if (dd <= 30) return "crit";
+    if (dd <= 90) return "warn";
+    return "cool";
+  }
+  function tminus(dd) {
+    if (dd < 0) return "CLOSED";
+    if (dd === 0) return "TODAY";
+    return "T−" + dd + "d";
+  }
+
+  /* ---------------------------------------------------------- index */
+
+  var INDEX = [];
+  PL.tracks.forEach(function (t) {
+    t.sections.forEach(function (sec) {
+      sec.g.forEach(function (g) {
+        g.i.forEach(function (label) {
+          INDEX.push({
+            id: hash(t.id + "|" + sec.n + "|" + label),
+            track: t.id, rated: !!t.rated, sec: sec.n, grp: g.n, label: label
+          });
+        });
+      });
+    });
+  });
+  var RATED = INDEX.filter(function (x) { return x.rated; });
+
+  /* MBA items flattened, excluded ones included -- the brief was explicit
+     that declined options stay visible with live dates, so that "I did not
+     apply" never quietly becomes "I forgot to apply". */
+  var MBA_ITEMS = [];
+  MBA.phases.forEach(function (p) {
+    (p.items || []).forEach(function (it) {
+      MBA_ITEMS.push({ item: it, phase: p.n, phaseTitle: p.t, excluded: false });
+    });
+  });
+  (MBA.excluded || []).forEach(function (it) {
+    MBA_ITEMS.push({ item: it, phase: "EXCLUDED", phaseTitle: "Decided against", excluded: true });
+  });
+
+  /* ---------------------------------------------------------- instrument 1
+     Mastery rating. Identical maths to the original tracker: 800 at zero,
+     3200 at full clear, linear across the 1,328 rated topics. */
+
+  function streakCount() {
+    var n = 0;
+    var d = new Date();
+    for (;;) {
+      if (S.days.indexOf(dateStr(d)) === -1) break;
+      n++;
+      d.setDate(d.getDate() - 1);
+    }
+    return n;
+  }
+
+  function stats() {
+    var done = RATED.filter(function (x) { return S.checked[x.id]; }).length;
+    var total = RATED.length;
+    var pct = total ? (done / total) * 100 : 0;
+    var st = {
+      done: done, total: total, pct: pct,
+      rating: Math.round(800 + (pct / 100) * 2400),
+      streak: streakCount(),
+      secDone: function (track, secName) {
+        var items = INDEX.filter(function (x) { return x.track === track && x.sec === secName; });
+        return items.length > 0 && items.every(function (x) { return S.checked[x.id]; });
+      },
+      trackPct: function (track) {
+        var items = INDEX.filter(function (x) { return x.track === track; });
+        if (!items.length) return 0;
+        var d = items.filter(function (x) { return S.checked[x.id]; }).length;
+        return (d / items.length) * 100;
+      }
+    };
+    return st;
+  }
+
+  function rankFor(rating) {
+    var r = PL.ranks[0];
+    for (var i = 0; i < PL.ranks.length; i++) if (rating >= PL.ranks[i].min) r = PL.ranks[i];
+    return r;
+  }
+
+  /* Badge unlock rules. Predicates live here rather than in data/ because
+     they are logic; the content updater must never be able to rewrite what
+     counts as an achievement. Keyed by the badge ids in placement.json. */
+  var BADGE_RULES = {
+    first: function (s) { return s.done >= 1; },
+    fifty: function (s) { return s.done >= 50; },
+    twofifty: function (s) { return s.done >= 250; },
+    blue: function (s) { return s.rating >= 1600; },
+    purple: function (s) { return s.rating >= 1900; },
+    orange: function (s) { return s.rating >= 2100; },
+    core4: function (s) {
+      return s.secDone("sde", "CS Core — Operating Systems") &&
+        s.secDone("sde", "CS Core — DBMS") &&
+        s.secDone("sde", "CS Core — Networks") &&
+        s.secDone("sde", "CS Core — OOP & architecture");
+    },
+    graph: function (s) { return s.secDone("sde", "DSA — Graphs"); },
+    dp: function (s) { return s.secDone("sde", "DSA — Dynamic programming"); },
+    lld: function (s) { return s.secDone("sde", "Low-Level Design"); },
+    hld: function (s) { return s.secDone("sde", "High-Level Design"); },
+    tf: function (s) { return s.secDone("ds", "Transformers"); },
+    genai: function (s) { return s.secDone("ds", "GenAI & LLM systems"); },
+    stats: function (s) { return s.secDone("ds", "Mathematics"); },
+    cvdone: function (s) { return s.trackPct("cv") >= 100; },
+    dual: function (s) { return s.trackPct("sde") >= 25 && s.trackPct("ds") >= 25; },
+    st7: function (s) { return s.streak >= 7; },
+    st30: function (s) { return s.streak >= 30; },
+    half: function (s) { return s.pct >= 50; },
+    full: function (s) { return s.pct >= 100; }
+  };
+
+  function refreshBadges(st) {
+    var gained = [];
+    PL.badges.forEach(function (b) {
+      var rule = BADGE_RULES[b.id];
+      if (!rule) return;
+      var has = S.badges.indexOf(b.id) !== -1;
+      if (!has && rule(st)) { S.badges.push(b.id); gained.push(b); }
+    });
+    return gained;
+  }
+
+  /* ---------------------------------------------------------- instrument 2
+     Window integrity. Not a score you build; a score you can only lose.
+     A dated item whose date has passed while unchecked is counted missed,
+     permanently. This mirrors the actual physics the MBA brief was built
+     around: one-shot programmes with no reapplication. */
+
+  function windowStats() {
+    var dated = MBA_ITEMS.filter(function (m) { return m.item.date; });
+    var missed = 0, cleared = 0, open = 0;
+    dated.forEach(function (m) {
+      var checked = !!S.mba[m.item.id];
+      if (checked) cleared++;
+      else if (daysUntil(m.item.date) < 0) missed++;
+      else open++;
+    });
+    var total = dated.length;
+    var oneshotMissed = dated.filter(function (m) {
+      return !S.mba[m.item.id] && daysUntil(m.item.date) < 0 &&
+        (m.item.tags || []).indexOf("oneshot") !== -1;
+    }).length;
+
+    var allTracked = MBA_ITEMS.length;
+    var allDone = MBA_ITEMS.filter(function (m) { return S.mba[m.item.id]; }).length;
+
+    return {
+      total: total, cleared: cleared, missed: missed, open: open,
+      oneshotMissed: oneshotMissed,
+      integrity: total ? ((total - missed) / total) * 100 : 100,
+      allTracked: allTracked, allDone: allDone,
+      pct: allTracked ? (allDone / allTracked) * 100 : 0
+    };
+  }
+
+  /* Nearest unchecked dated commitments across BOTH domains. This is the
+     only place the two systems touch, and it touches only time. */
+  function spine(limit) {
+    var out = [];
+    MBA_ITEMS.forEach(function (m) {
+      if (!m.item.date || S.mba[m.item.id]) return;
+      out.push({ date: m.item.date, label: m.item.task, domain: "mba" });
+    });
+    var d1 = daysUntil("2026-12-01");
+    if (d1 >= 0) out.push({ date: "2026-12-01", label: "IIT KGP placements, Day 1", domain: "placement" });
+    out.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+    var future = out.filter(function (x) { return daysUntil(x.date) >= 0; });
+    return (future.length ? future : out).slice(0, limit || 4);
+  }
+
+  /* ---------------------------------------------------------- toast */
+
+  var toastTimer = null;
+  function toast(msg) {
+    var el = document.getElementById("toast");
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove("show"); }, 2600);
+  }
+
+  /* ---------------------------------------------------------- header */
+
+  function renderHeader() {
+    var st = stats();
+    var ws = windowStats();
+    var rank = rankFor(st.rating);
+
+    document.documentElement.style.setProperty("--accent", rank.c);
+    document.documentElement.style.setProperty("--accent-soft", hexSoft(rank.c));
+
+    document.getElementById("handle").textContent = rank.n;
+    document.getElementById("ratingVal").textContent = st.rating;
+    document.getElementById("rankTag").textContent = rank.n;
+
+    // ladder
+    var idx = PL.ranks.indexOf(rank);
+    var trackEl = document.getElementById("ladderTrack");
+    trackEl.innerHTML = PL.ranks.map(function (r, i) {
+      return '<i class="' + (i <= idx ? "lit" : "") + '" style="background:' + r.c + '"></i>';
+    }).join("");
+
+    var lo = rank.min;
+    var next = PL.ranks[idx + 1];
+    var hi = next ? next.min : 3200;
+    var within = Math.max(0, Math.min(1, (st.rating - lo) / (hi - lo)));
+    var seg = 100 / PL.ranks.length;
+    document.getElementById("ladderMarker").style.left = (idx * seg + within * seg) + "%";
+
+    var noteEl = document.getElementById("rankNote");
+    if (next) {
+      var perTopic = 2400 / RATED.length;
+      var need = Math.ceil((next.min - st.rating) / perTopic);
+      noteEl.innerHTML = need + " more topics to <b>" + esc(next.n) + "</b>";
+    } else {
+      noteEl.textContent = "Top of the ladder.";
+    }
+
+    // window integrity
+    document.getElementById("winVal").textContent = Math.round(ws.integrity) + "%";
+    document.getElementById("winTag").textContent = ws.missed ? ws.missed + " missed" : "intact";
+    var winNote = document.getElementById("winNote");
+    if (ws.oneshotMissed) {
+      winNote.innerHTML = "<b>" + ws.oneshotMissed + " one-shot window" +
+        (ws.oneshotMissed > 1 ? "s" : "") + " closed permanently</b>";
+    } else if (ws.missed) {
+      winNote.innerHTML = ws.missed + " date" + (ws.missed > 1 ? "s" : "") +
+        " passed unchecked &middot; <b>" + ws.open + " still open</b>";
+    } else {
+      winNote.innerHTML = "<b>" + ws.open + "</b> open &middot; " + ws.cleared + " cleared";
+    }
+
+    var barEl = document.getElementById("winBar");
+    barEl.innerHTML =
+      '<i class="done" style="flex:' + ws.cleared + '"></i>' +
+      '<i class="open" style="flex:' + ws.open + '"></i>' +
+      '<i class="missed" style="flex:' + ws.missed + '"></i>';
+
+    // shared spine
+    document.getElementById("spine").innerHTML = spine(4).map(function (s) {
+      var dd = daysUntil(s.date);
+      var lv = level(dd);
+      return '<div class="tick ' + lv + '">' +
+        '<div class="t">' + (s.domain === "mba" ? "MBA" : "PLACEMENT") + "</div>" +
+        '<div class="d">' + tminus(dd) + "</div>" +
+        '<div class="n" title="' + esc(s.label) + '">' + esc(s.label) + "</div>" +
+        "</div>";
+    }).join("") || '<div class="tick"><div class="t">CLEAR</div><div class="d">&mdash;</div>' +
+      '<div class="n">no open dated commitments</div></div>';
+
+    // strip
+    var dd1 = daysUntil("2026-12-01");
+    document.getElementById("days").textContent = dd1 >= 0 ? dd1 : "—";
+    document.getElementById("cleared").textContent = st.done;
+    document.getElementById("clearedSub").textContent = "of " + st.total;
+    document.getElementById("streak").textContent = st.streak;
+    document.getElementById("badgeCount").textContent = S.badges.length;
+    document.getElementById("badgeSub").textContent = "of " + PL.badges.length + " unlocked";
+  }
+
+  function hexSoft(hex) {
+    var h = hex.replace("#", "");
+    var r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+    return "rgba(" + r + "," + g + "," + b + ",.14)";
+  }
+
+  /* ---------------------------------------------------------- tabs */
+
+  var TABS = [{ id: "overview", label: "Overview", domain: "placement" }];
+  PL.tracks.forEach(function (t) {
+    TABS.push({ id: t.id, label: t.label, domain: "placement", track: t });
+  });
+  TABS.push({ id: "mba", label: "MBA Windows", domain: "mba" });
+  TABS.push({ id: "career", label: "Opportunities", domain: "placement" });
+
+  var ACTIVE = "overview";
+  var QUERY = "";
+
+  function renderTabs() {
+    var st = stats();
+    document.getElementById("tabs").innerHTML = TABS.map(function (t) {
+      var pc = "";
+      if (t.track) {
+        pc = ' <span class="pc">' + Math.round(st.trackPct(t.track.id)) + "%</span>";
+      } else if (t.id === "mba") {
+        var ws = windowStats();
+        pc = ' <span class="pc">' + Math.round(ws.pct) + "%</span>";
+      } else if (t.id === "career") {
+        pc = OPPS.length ? ' <span class="pc">' + OPPS.length + "</span>" : "";
+      }
+      return '<button class="tab" role="tab" data-tab="' + t.id + '" data-domain="' + t.domain +
+        '" aria-selected="' + (ACTIVE === t.id) + '">' + esc(t.label) + pc + "</button>";
+    }).join("");
+
+    document.querySelectorAll(".tab").forEach(function (b) {
+      b.onclick = function () {
+        ACTIVE = b.dataset.tab;
+        QUERY = "";
+        render();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      };
+    });
+  }
+
+  /* ---------------------------------------------------------- panels */
+
+  function itemRow(x) {
+    var on = S.checked[x.id];
+    return '<label class="item' + (on ? " on" : "") + '">' +
+      '<input type="checkbox" data-id="' + x.id + '"' + (on ? " checked" : "") + ">" +
+      '<span class="box"></span><span class="txt">' + esc(x.label) + "</span></label>";
+  }
+
+  function renderTrack(track) {
+    var q = QUERY.toLowerCase();
+    var html = '<div class="toolbar">' +
+      '<input class="search" id="search" placeholder="Filter topics in ' + esc(track.label) +
+      '…" value="' + esc(QUERY) + '">' +
+      '<button class="btn" data-all="1">Expand all</button>' +
+      '<button class="btn" data-all="0">Collapse all</button></div>';
+
+    track.sections.forEach(function (sec) {
+      var groups = sec.g.map(function (g) {
+        var items = g.i.map(function (label) {
+          return INDEX.find(function (x) {
+            return x.track === track.id && x.sec === sec.n && x.label === label;
+          });
+        }).filter(function (x) {
+          return x && (!q || x.label.toLowerCase().indexOf(q) !== -1);
+        });
+        if (!items.length) return "";
+        return '<div class="grp-name">' + esc(g.n) + "</div>" +
+          '<div class="items">' + items.map(itemRow).join("") + "</div>";
+      }).join("");
+
+      if (q && !groups) return;
+
+      var all = INDEX.filter(function (x) { return x.track === track.id && x.sec === sec.n; });
+      var done = all.filter(function (x) { return S.checked[x.id]; }).length;
+      var pct = all.length ? (done / all.length) * 100 : 0;
+      var key = track.id + "|" + sec.n;
+      var open = q ? true : !!S.open[key];
+
+      html += '<section class="section' + (open ? " open" : "") + (pct >= 100 ? " done" : "") +
+        '" data-key="' + esc(key) + '">' +
+        '<button class="sec-head"><span class="chev">▸</span>' +
+        '<span class="sec-name">' + esc(sec.n) + "</span>" +
+        '<span class="meter"><i style="width:' + pct + '%"></i></span>' +
+        '<span class="sec-count">' + done + "/" + all.length + "</span></button>" +
+        '<div class="sec-body">' + groups + "</div></section>";
+    });
+
+    return html;
+  }
+
+  function renderOverview() {
+    var st = stats();
+    var ws = windowStats();
+
+    // Daily three: seeded by the date so the set is stable through the day.
+    var pending = RATED.filter(function (x) { return !S.checked[x.id]; });
+    var seed = 0, t = today();
+    for (var i = 0; i < t.length; i++) seed = (seed * 31 + t.charCodeAt(i)) >>> 0;
+    var quests = [];
+    for (var k = 0; k < 3 && pending.length; k++) {
+      seed = (seed * 1103515245 + 12345) >>> 0;
+      quests.push(pending[seed % pending.length]);
+    }
+
+    var heat = [];
+    for (var d = 35; d >= 0; d--) {
+      var day = new Date();
+      day.setDate(day.getDate() - d);
+      heat.push('<i class="' + (S.days.indexOf(dateStr(day)) !== -1 ? "on" : "") + '"></i>');
+    }
+
+    var upcoming = spine(6);
+
+    return '<div class="cols"><div>' +
+      '<div class="card"><h3>Today’s three</h3>' +
+      (quests.length
+        ? '<ul class="quests">' + quests.map(function (x) {
+            return '<li data-id="' + x.id + '" class="' + (S.checked[x.id] ? "on" : "") + '">' +
+              '<span class="box"></span><span><span class="qtxt">' + esc(x.label) + "</span>" +
+              '<span class="qtag">' + esc(x.sec) + "</span></span></li>";
+          }).join("") + "</ul>"
+        : '<div class="empty">Everything cleared.</div>') +
+      "</div>" +
+
+      '<div class="card"><h3>Track progress</h3>' +
+      PL.tracks.map(function (tr) {
+        var pc = st.trackPct(tr.id);
+        return '<div class="bar-row"><span class="nm">' + esc(tr.label) +
+          (tr.rated ? "" : " <span style=\"opacity:.6\">(unrated)</span>") + "</span>" +
+          '<span class="bar"><i style="width:' + pc + '%"></i></span>' +
+          '<span class="pc">' + Math.round(pc) + "%</span></div>";
+      }).join("") + "</div>" +
+
+      "</div><div>" +
+
+      '<div class="card"><h3>Next windows</h3>' +
+      (upcoming.length
+        ? upcoming.map(function (s) {
+            var dd = daysUntil(s.date);
+            return '<div class="bar-row"><span class="nm">' + esc(s.label) + "</span>" +
+              '<span class="pc mono ' + level(dd) + '" style="width:auto">' + tminus(dd) + "</span></div>";
+          }).join("")
+        : '<div class="empty">Nothing dated is open.</div>') +
+      "</div>" +
+
+      '<div class="card"><h3>Last 36 days</h3><div class="heat">' + heat.join("") + "</div>" +
+      '<div class="instr-note" style="margin-top:10px">Streak <b>' + st.streak + "</b> days</div></div>" +
+
+      '<div class="card"><h3>Badges</h3><div class="badges">' +
+      PL.badges.map(function (b) {
+        var got = S.badges.indexOf(b.id) !== -1;
+        return '<div class="badge' + (got ? " on" : "") + '" title="' + esc(b.d) + '">' +
+          '<span class="g">' + esc(b.ic) + "</span>" + esc(b.n) + "</div>";
+      }).join("") + "</div></div>" +
+
+      "</div></div>";
+  }
+
+  function mbaRow(m) {
+    var it = m.item;
+    var dd = it.date ? daysUntil(it.date) : null;
+    var lv = level(dd);
+    var on = !!S.mba[it.id];
+    var tags = (it.tags || []).map(function (tg) {
+      var map = {
+        confirmed: ["confirmed", "Confirmed date"],
+        projected: ["projected", "Projected — verify"],
+        oneshot: ["oneshot", "One shot only"],
+        verify: ["verify", "Verification task"],
+        action: ["", "Action"]
+      };
+      return map[tg] ? '<span class="tag ' + map[tg][0] + '">' + map[tg][1] + "</span>" : "";
+    }).join("");
+
+    return '<div class="row ' + lv + (on ? " on" : "") + '" data-mba="' + esc(it.id) + '">' +
+      '<span class="box"></span><div class="rbody">' +
+      '<div class="rtask">' + esc(it.task) + "</div>" +
+      (it.note ? '<div class="rnote">' + esc(it.note) + "</div>" : "") +
+      '<div class="rmeta">' +
+      (it.date ? '<span class="rdate">' + fmtDate(it.date) + "</span>" +
+        '<span class="rt ' + lv + '">' + tminus(dd) + "</span>" : '<span class="rt cool">NO DATE</span>') +
+      tags + "</div></div></div>";
+  }
+
+  function renderMba() {
+    var ws = windowStats();
+    var html = "";
+
+    if (ws.oneshotMissed) {
+      html += '<div class="callout" style="border-left-color:var(--crit)">' +
+        "<h3>" + ws.oneshotMissed + " one-shot window closed</h3>" +
+        "<p>These programmes do not accept reapplication in a later cycle. " +
+        "Window integrity does not recover from this, by design.</p></div>";
+    }
+
+    html += '<div class="callout"><h3>The Ivy League is not the elite MBA set</h3>' +
+      "<p>Princeton awards no MBA. Brown has no business school, only a 15 month executive " +
+      "programme run with IE Madrid. Cornell and Tuck sit outside the top ten. Filtering on " +
+      "the Ivy League literally would have cut Stanford GSB, MIT Sloan, Chicago Booth and " +
+      "Berkeley Haas, which are four of the five strongest entrepreneurship schools in the US. " +
+      "The target set is M7 plus Berkeley Haas, plus Yale and IESE for structural reasons.</p></div>";
+
+    MBA.phases.forEach(function (p) {
+      html += '<section class="phase"><div class="phase-hd">' +
+        '<span class="phase-n">' + esc(p.n) + "</span>" +
+        "<h2>" + esc(p.t) + "</h2>" +
+        '<span class="phase-when">' + esc(p.when) + "</span></div>" +
+        (p.items || []).map(function (it) {
+          return mbaRow({ item: it, phase: p.n });
+        }).join("") + "</section>";
+    });
+
+    html += '<section class="phase"><div class="phase-hd">' +
+      '<span class="phase-n">TARGETS</span><h2>The window map</h2>' +
+      '<span class="phase-when">Ranked by founder fit</span></div>' +
+      '<div class="grid" style="padding:14px 16px">' +
+      MBA.schools.map(function (s) {
+        var chips = "";
+        if (s.ivy) chips += '<span class="tag">Ivy</span>';
+        if (s.m7) chips += '<span class="tag confirmed">M7</span>';
+        chips += '<span class="tag' + (s.fit === "a" ? " oneshot" : "") + '">' +
+          (s.fit === "a" ? "Target" : "Insurance") + "</span>";
+        return '<div class="sch"><h3>' + esc(s.n) + "</h3>" +
+          '<div class="prog">' + esc(s.p) + "</div>" +
+          "<p>" + esc(s.txt) + "</p>" +
+          '<div class="chips">' + chips + "</div></div>";
+      }).join("") + "</div></section>";
+
+    html += '<section class="phase"><div class="phase-hd">' +
+      '<span class="phase-n">EXCLUDED</span><h2>Decided against, on purpose</h2>' +
+      '<span class="phase-when">So it is a choice, not an oversight</span></div>' +
+      (MBA.excluded || []).map(function (it) {
+        return mbaRow({ item: it, phase: "EXCLUDED", excluded: true });
+      }).join("") + "</section>";
+
+    return html;
+  }
+
+  var OPP_STATUSES = ["new", "interested", "applied", "shortlisted", "rejected", "offer", "dropped"];
+
+  function renderCareer() {
+    if (!OPPS.length) {
+      return '<div class="empty">No opportunities yet.<br><br>' +
+        "This tab is fed by the inbox agent: every internship and placement mail it sees " +
+        "is extracted into <span class=\"mono\">data/opportunities.json</span> and appears here. " +
+        "Deploy the agent, or drop a feed file in place, and this fills itself.</div>";
+    }
+
+    var sorted = OPPS.slice().sort(function (a, b) {
+      return (a.deadline || "9999") < (b.deadline || "9999") ? -1 : 1;
+    });
+
+    return sorted.map(function (o) {
+      var status = (S.opps[o.id] && S.opps[o.id].status) || (o.user && o.user.status) || "new";
+      var dd = o.deadline ? daysUntil(o.deadline) : null;
+      return '<div class="opp"><div class="opp-hd">' +
+        '<span class="opp-co">' + esc(o.company || "Unknown") + "</span>" +
+        '<span class="opp-role">' + esc(o.role || o.kind || "") + "</span>" +
+        (o.deadline ? '<span class="rt ' + level(dd) + '">' + tminus(dd) + "</span>" : "") +
+        "</div>" +
+        (o.summary ? '<div class="rnote">' + esc(o.summary) + "</div>" : "") +
+        '<div class="opp-meta">' +
+        '<select data-opp="' + esc(o.id) + '">' +
+        OPP_STATUSES.map(function (s) {
+          return '<option value="' + s + '"' + (s === status ? " selected" : "") + ">" + s + "</option>";
+        }).join("") + "</select>" +
+        (o.deadline ? '<span class="rdate">' + fmtDate(o.deadline) + "</span>" : "") +
+        (o.location ? '<span class="tag">' + esc(o.location) + "</span>" : "") +
+        (o.stipend ? '<span class="tag">' + esc(o.stipend) + "</span>" : "") +
+        (o.apply_url ? ' <a class="tag" href="' + esc(o.apply_url) + '" target="_blank" rel="noopener noreferrer">Apply</a>' : "") +
+        (o.source && o.source.gmail_url
+          ? ' <a class="tag" href="' + esc(o.source.gmail_url) + '" target="_blank" rel="noopener noreferrer">Mail</a>'
+          : "") +
+        "</div></div>";
+    }).join("");
+  }
+
+  /* ---------------------------------------------------------- render */
+
+  function render() {
+    var tab = TABS.find(function (t) { return t.id === ACTIVE; }) || TABS[0];
+    document.body.classList.toggle("domain-mba", tab.domain === "mba");
+
+    var panel = document.getElementById("panel");
+    if (tab.id === "overview") panel.innerHTML = renderOverview();
+    else if (tab.id === "mba") panel.innerHTML = renderMba();
+    else if (tab.id === "career") panel.innerHTML = renderCareer();
+    else panel.innerHTML = renderTrack(tab.track);
+
+    renderHeader();
+    renderTabs();
+    bind();
+  }
+
+  function markToday() {
+    var t = today();
+    if (S.days.indexOf(t) === -1) S.days.push(t);
+  }
+
+  function afterChange() {
+    markToday();
+    var gained = refreshBadges(stats());
+    save();
+    render();
+    if (gained.length) toast("Badge unlocked: " + gained[0].n);
+  }
+
+  function bind() {
+    // topic checkboxes
+    document.querySelectorAll('.item input[data-id]').forEach(function (input) {
+      input.onchange = function () {
+        var id = input.dataset.id;
+        if (input.checked) S.checked[id] = 1; else delete S.checked[id];
+        afterChange();
+      };
+    });
+
+    // daily quests
+    document.querySelectorAll(".quests li[data-id]").forEach(function (li) {
+      li.onclick = function () {
+        var id = li.dataset.id;
+        if (S.checked[id]) delete S.checked[id]; else S.checked[id] = 1;
+        afterChange();
+      };
+    });
+
+    // MBA rows
+    document.querySelectorAll(".row[data-mba]").forEach(function (row) {
+      row.onclick = function () {
+        var id = row.dataset.mba;
+        if (S.mba[id]) delete S.mba[id]; else S.mba[id] = 1;
+        markToday();
+        save();
+        render();
+      };
+    });
+
+    // opportunity status
+    document.querySelectorAll("select[data-opp]").forEach(function (sel) {
+      sel.onchange = function () {
+        var id = sel.dataset.opp;
+        S.opps[id] = S.opps[id] || {};
+        S.opps[id].status = sel.value;
+        save();
+        toast("Marked " + sel.value);
+      };
+    });
+
+    // section collapse
+    document.querySelectorAll(".section").forEach(function (sec) {
+      var head = sec.querySelector(".sec-head");
+      if (!head) return;
+      head.onclick = function () {
+        var key = sec.dataset.key;
+        S.open[key] = !S.open[key];
+        sec.classList.toggle("open");
+        save();
+      };
+    });
+
+    document.querySelectorAll(".btn[data-all]").forEach(function (b) {
+      b.onclick = function () {
+        var open = b.dataset.all === "1";
+        document.querySelectorAll(".section").forEach(function (sec) {
+          S.open[sec.dataset.key] = open;
+          sec.classList.toggle("open", open);
+        });
+        save();
+      };
+    });
+
+    var search = document.getElementById("search");
+    if (search) {
+      search.oninput = function () {
+        QUERY = search.value;
+        var tab = TABS.find(function (t) { return t.id === ACTIVE; });
+        document.getElementById("panel").innerHTML = renderTrack(tab.track);
+        bind();
+        var s2 = document.getElementById("search");
+        if (s2) { s2.focus(); s2.setSelectionRange(s2.value.length, s2.value.length); }
+      };
+    }
+  }
+
+  /* ---------------------------------------------------------- boot */
+
+  function boot() {
+    load();
+    refreshBadges(stats());
+    document.getElementById("loading").classList.add("hide");
+    document.getElementById("panel").classList.remove("hide");
+    render();
+    if (memOnly) toast("Progress will not persist in this browser.");
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
+})();
+</script>
+</body>
+</html>
