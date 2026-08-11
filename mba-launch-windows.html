@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Launch Windows — Aryan's MBA Abroad Roadmap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,400..900;1,62..125,400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0A1621;
+  --ink-mid:#16293A;
+  --ink-soft:#22394B;
+  --slate:#5A6B78;
+  --paper:#ECEDE9;
+  --card:#FBFBF9;
+  --line:#CBCEC7;
+  --line-soft:#E0E2DC;
+  --amber:#E2A72E;
+  --go:#2F7D52;
+  --nogo:#B33A2B;
+  --warn:#C4761C;
+  --r:3px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Archivo',system-ui,sans-serif;
+  font-variation-settings:'wdth' 100;
+  font-size:15px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+
+/* ============ INSTRUMENT BAND ============ */
+.band{background:var(--ink);color:var(--paper);padding:34px 0 0;position:relative;overflow:hidden}
+.band::after{
+  content:'';position:absolute;inset:auto 0 0 0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--amber),transparent);opacity:.6;
+}
+.eyebrow{
+  font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--amber);margin-bottom:14px;
+}
+h1{
+  font-variation-settings:'wdth' 118;
+  font-weight:800;font-size:clamp(30px,6vw,54px);line-height:.98;
+  letter-spacing:-.02em;text-transform:uppercase;
+}
+h1 .thin{font-weight:300;font-variation-settings:'wdth' 118;display:block;color:#8FA3B2}
+.sub{margin-top:14px;max-width:60ch;color:#A9BBC7;font-size:14.5px}
+
+/* countdown rail */
+.rail{display:flex;gap:0;margin-top:30px;border-top:1px solid rgba(255,255,255,.12);flex-wrap:wrap}
+.tick{
+  flex:1 1 190px;padding:18px 20px 20px;border-right:1px solid rgba(255,255,255,.12);
+  position:relative;min-width:0;
+}
+.tick:last-child{border-right:none}
+.tick-t{font-family:'IBM Plex Mono',monospace;font-size:32px;font-weight:600;line-height:1;color:var(--amber)}
+.tick-t.soon{color:#F0644B}
+.tick-lbl{font-size:12.5px;color:#B6C6D2;margin-top:7px;line-height:1.35}
+.tick-date{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;color:#6F8595;margin-top:5px;text-transform:uppercase}
+
+/* progress */
+.status{display:flex;align-items:center;gap:16px;padding:16px 0 22px;border-top:1px solid rgba(255,255,255,.12);margin-top:0;flex-wrap:wrap}
+.bar{flex:1;height:5px;background:rgba(255,255,255,.13);border-radius:99px;overflow:hidden;min-width:160px}
+.bar>i{display:block;height:100%;background:var(--amber);width:0;transition:width .45s ease}
+.status .mono{font-size:11.5px;letter-spacing:.12em;color:#B6C6D2;text-transform:uppercase;white-space:nowrap}
+
+/* ============ STICKY NEXT ============ */
+.sticky{
+  position:sticky;top:0;z-index:50;background:var(--ink-mid);color:#fff;
+  padding:9px 0;font-size:12.5px;border-bottom:1px solid rgba(255,255,255,.1);
+}
+.sticky .wrap{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.sticky b{font-family:'IBM Plex Mono',monospace;color:var(--amber);font-weight:600}
+.filters{display:flex;gap:6px}
+.filters button{
+  font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  background:transparent;color:#94A9B8;border:1px solid rgba(255,255,255,.2);
+  padding:4px 9px;border-radius:var(--r);cursor:pointer;transition:.15s;
+}
+.filters button:hover{color:#fff;border-color:rgba(255,255,255,.45)}
+.filters button[aria-pressed="true"]{background:var(--amber);color:var(--ink);border-color:var(--amber);font-weight:600}
+
+/* ============ BODY ============ */
+main{padding:44px 0 70px}
+.phase{margin-bottom:44px;scroll-margin-top:60px}
+.phase-hd{display:flex;align-items:baseline;gap:14px;padding-bottom:9px;border-bottom:2px solid var(--ink);margin-bottom:4px;flex-wrap:wrap}
+.phase-n{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;color:var(--nogo);font-weight:600}
+.phase-hd h2{font-size:21px;font-weight:800;font-variation-settings:'wdth' 108;letter-spacing:-.01em;text-transform:uppercase}
+.phase-when{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:var(--slate);margin-left:auto;text-transform:uppercase}
+.phase-note{font-size:13.5px;color:var(--slate);margin:10px 0 16px;max-width:78ch}
+
+/* item */
+.item{
+  display:grid;grid-template-columns:26px 1fr auto;gap:14px;align-items:start;
+  background:var(--card);border:1px solid var(--line-soft);border-left:3px solid var(--line);
+  padding:13px 15px;margin-bottom:7px;border-radius:var(--r);transition:.15s;
+}
+.item:hover{border-color:var(--line);box-shadow:0 1px 0 rgba(10,22,33,.06)}
+.item.lv-crit{border-left-color:var(--nogo)}
+.item.lv-warn{border-left-color:var(--warn)}
+.item.lv-cool{border-left-color:var(--ink-soft)}
+.item.lv-past{border-left-color:var(--line);opacity:.5}
+.item.done{opacity:.42}
+.item.done .task{text-decoration:line-through;text-decoration-thickness:1px}
+.item.hide{display:none}
+
+.item input[type=checkbox]{
+  appearance:none;width:19px;height:19px;margin-top:1px;flex:none;
+  border:1.5px solid var(--slate);border-radius:var(--r);background:#fff;cursor:pointer;position:relative;transition:.15s;
+}
+.item input[type=checkbox]:hover{border-color:var(--ink)}
+.item input[type=checkbox]:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.item input[type=checkbox]:checked{background:var(--go);border-color:var(--go)}
+.item input[type=checkbox]:checked::after{
+  content:'';position:absolute;left:6px;top:2px;width:5px;height:10px;
+  border:solid #fff;border-width:0 2px 2px 0;transform:rotate(42deg);
+}
+.task{font-size:14.5px;font-weight:500;line-height:1.4}
+.task a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--amber);text-underline-offset:2px}
+.note{font-size:12.5px;color:var(--slate);margin-top:5px;line-height:1.45}
+.tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+.tag{
+  font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  padding:2px 6px;border-radius:2px;border:1px solid var(--line);color:var(--slate);white-space:nowrap;
+}
+.tag.confirmed{border-color:var(--go);color:var(--go)}
+.tag.projected{border-color:var(--warn);color:var(--warn)}
+.tag.oneshot{background:var(--nogo);border-color:var(--nogo);color:#fff;font-weight:600}
+.tag.verify{background:var(--ink);border-color:var(--ink);color:var(--amber);font-weight:600}
+
+.when{text-align:right;flex:none;min-width:96px}
+.when .d{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;letter-spacing:.02em;white-space:nowrap}
+.when .t{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--slate);margin-top:3px;white-space:nowrap}
+.when .t.crit{color:var(--nogo);font-weight:600}
+.when .t.warn{color:var(--warn);font-weight:600}
+
+/* school grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:12px;margin-top:6px}
+.sch{background:var(--card);border:1px solid var(--line-soft);border-radius:var(--r);padding:15px}
+.sch h3{font-size:15px;font-weight:800;font-variation-settings:'wdth' 106;text-transform:uppercase;letter-spacing:-.005em}
+.sch .prog{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--slate);letter-spacing:.06em;margin-top:3px}
+.sch p{font-size:12.8px;color:var(--slate);margin-top:9px;line-height:1.5}
+.sch .fit{
+  display:inline-block;margin-top:11px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;
+  letter-spacing:.12em;text-transform:uppercase;padding:3px 7px;border-radius:2px;
+}
+.fit.a{background:var(--ink);color:var(--amber)}
+.fit.b{background:#DDE2DC;color:var(--ink-mid)}
+.fit.ivy{background:transparent;border:1px solid var(--go);color:var(--go);margin-left:5px}
+.fit.m7{background:transparent;border:1px solid var(--nogo);color:var(--nogo);margin-left:5px}
+
+/* callout */
+.callout{background:var(--ink);color:var(--paper);padding:22px 24px;border-radius:var(--r);margin:8px 0 18px}
+.callout h3{font-size:13px;font-family:'IBM Plex Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);margin-bottom:11px}
+.callout p{font-size:14px;color:#C3D2DC;max-width:76ch}
+.callout p+p{margin-top:9px}
+.callout strong{color:#fff}
+
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px;background:var(--card)}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+th{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);border-bottom:1.5px solid var(--line)}
+td.num{font-family:'IBM Plex Mono',monospace;white-space:nowrap}
+
+footer{border-top:1px solid var(--line);padding:24px 0 60px;font-size:12.5px;color:var(--slate)}
+footer .mono{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}
+.reset{background:none;border:1px solid var(--line);color:var(--slate);font-family:'IBM Plex Mono',monospace;
+  font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:5px 10px;border-radius:var(--r);cursor:pointer;margin-top:12px}
+.reset:hover{border-color:var(--nogo);color:var(--nogo)}
+
+@media (max-width:640px){
+  .item{grid-template-columns:24px 1fr;gap:11px}
+  .when{grid-column:2;text-align:left;margin-top:6px;min-width:0}
+  .when .d,.when .t{display:inline;margin-right:10px}
+  .phase-when{margin-left:0;width:100%}
+  .tick{flex:1 1 100%;border-right:none;border-bottom:1px solid rgba(255,255,255,.12)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto}}
+@media print{
+  .sticky,.filters,.reset{display:none}
+  body{background:#fff}
+  .band{background:#fff;color:#000}
+  .item{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<header class="band">
+  <div class="wrap">
+    <div class="eyebrow">Deferred &amp; direct-entry MBA · abroad only · one-shot programmes</div>
+    <h1>Launch<br>Windows<span class="thin">Aryan · IIT KGP '27</span></h1>
+    <p class="sub">Deferred MBA programmes open once. You are eligible in exactly one application cycle, and most of them do not let you reapply. This page exists so that no window closes without a decision made on purpose.</p>
+    <div class="rail" id="rail"></div>
+    <div class="status">
+      <span class="mono" id="count">0 / 0 cleared</span>
+      <span class="bar"><i id="barfill"></i></span>
+      <span class="mono" id="pct">0%</span>
+    </div>
+  </div>
+</header>
+
+<div class="sticky">
+  <div class="wrap">
+    <span>Next window closes: <b id="nextup">—</b></span>
+    <span class="filters">
+      <button data-f="all" aria-pressed="true">All</button>
+      <button data-f="open" aria-pressed="false">Open</button>
+      <button data-f="done" aria-pressed="false">Cleared</button>
+    </span>
+  </div>
+</div>
+
+<main class="wrap">
+
+<section class="callout">
+  <h3>The Ivy League is not the elite MBA set</h3>
+  <p>The Ivy League is an <strong>athletic conference of eight universities</strong>, and it maps badly onto business schools. Two Ivies have no MBA at all. Two more have MBAs that sit outside the top ten. Meanwhile the four schools most responsible for producing founders — Stanford, MIT Sloan, Chicago Booth, Berkeley Haas — are not Ivy League and never were.</p>
+  <p>The set you actually mean is the <strong>M7</strong>: Harvard, Stanford, Wharton, Chicago Booth, Northwestern Kellogg, MIT Sloan, Columbia. Three of those seven are Ivy. Applying "Ivy League only" as a filter would make you skip Stanford GSB, which sends roughly 16% of its class straight into starting companies — the highest of any elite programme, and the single school that best matches the reason you gave for going abroad.</p>
+  <p>So the filter is <strong>M7 plus Berkeley Haas, plus Yale and IESE for structural reasons</strong>. Everything below that line is correctly excluded, and this page holds that line. The full Ivy roster is audited immediately below so you can see exactly what you are and are not applying to.</p>
+</section>
+
+<section class="phase">
+  <div class="phase-hd"><span class="phase-n">AUDIT</span><h2>All eight Ivies, accounted for</h2><span class="phase-when">No gaps</span></div>
+  <table>
+    <tr><th>University</th><th>Business school</th><th>Deferred route</th><th>Verdict</th></tr>
+    <tr><td>Harvard</td><td>Harvard Business School</td><td class="num">2+2 · Apr 2027</td><td><strong>Target.</strong> M7. Favours applicants on paths that would not normally lead to business school.</td></tr>
+    <tr><td>Penn</td><td>Wharton</td><td class="num">Moelis · Apr 2027</td><td><strong>Target.</strong> M7. Judged only against other Moelis applicants.</td></tr>
+    <tr><td>Columbia</td><td>Columbia Business School</td><td class="num">Deferred · Apr 2027</td><td><strong>Target.</strong> M7. New York access, weaker founder density than the Bay Area schools.</td></tr>
+    <tr><td>Yale</td><td>Yale SOM</td><td class="num">Silver Scholars · 3 rounds</td><td><strong>Target.</strong> Not M7, but the only route that takes you straight from B.Tech with zero work experience.</td></tr>
+    <tr><td>Cornell</td><td>SC Johnson</td><td class="num">Future Leaders · 3 rounds</td><td><strong>Insurance.</strong> Ivy, but outside the top ten. Apply only if the essays are already written.</td></tr>
+    <tr><td>Dartmouth</td><td>Tuck</td><td class="num">Unconfirmed</td><td><strong>Verify, then likely skip.</strong> Tuck’s own page lists no deferred route; third-party guides claim one exists. Small, tight-knit, general management rather than founder-heavy.</td></tr>
+    <tr><td>Princeton</td><td class="num">None</td><td class="num">—</td><td>Princeton has never offered an MBA. Nothing to apply to.</td></tr>
+    <tr><td>Brown</td><td>IE Brown Executive MBA</td><td class="num">—</td><td>Executive MBA only, 15 months, built for working executives. Run jointly with IE Madrid. Not open to you for another decade.</td></tr>
+  </table>
+  <p class="phase-note" style="margin-top:14px">Non-Ivy schools that outrank most of the above and belong on your list regardless: <strong>Stanford GSB, MIT Sloan, Chicago Booth, Northwestern Kellogg, Berkeley Haas</strong>. Excluding them on a naming technicality would cost you the four best founder programmes in the world.</p>
+</section>
+
+<section class="callout" style="border-left:4px solid var(--amber)">
+  <h3>"Ivy League" is a sports conference, not a quality tier</h3>
+  <p>Eight universities. Only six issue an MBA at all: <strong>Harvard, Wharton (Penn), Columbia, Yale SOM, Cornell Johnson, Dartmouth Tuck</strong>. Brown has no business school, only a 15-month executive MBA run jointly with IE Madrid for senior managers with 10+ years of experience. Princeton has no MBA of any kind.</p>
+  <p>Meanwhile <strong>Stanford GSB, MIT Sloan, Chicago Booth and Berkeley Haas are not Ivy League</strong> — and Stanford and MIT sit above four of the six Ivy MBAs on every founder metric that exists. Cutting Stanford from your list because Dartmouth plays in a different football conference would be the single most expensive mistake available to you here.</p>
+  <p>The tier you actually mean is <strong>M7</strong>: Harvard, Stanford, Wharton, Booth, Kellogg, MIT Sloan, Columbia. Only three of those are Ivy. Every Ivy MBA is now tracked below regardless, so the union of "all Ivy" and "all M7" is covered and nothing gets dropped on a technicality.</p>
+</section>
+
+<div id="phases"></div>
+
+<section class="phase">
+  <div class="phase-hd"><span class="phase-n">TARGETS</span><h2>The window map</h2><span class="phase-when">Ranked by founder fit</span></div>
+  <div class="grid" id="schools"></div>
+</section>
+
+<section class="phase">
+  <div class="phase-hd"><span class="phase-n">MONEY</span><h2>What each path actually costs</h2><span class="phase-when">2026 figures, INR at ~₹96/USD</span></div>
+  <p class="phase-note">Deferred admits pay nothing until they matriculate, which is the quiet advantage: you lock the seat at 21 and pay at 25, by which point you have savings, a salary history for loan sanction, and possibly a company worth something.</p>
+  <table>
+    <tr><th>Programme</th><th>Length</th><th>All-in cost</th><th>Aid reality</th></tr>
+    <tr><td>Harvard (2+2)</td><td class="num">2 yr</td><td class="num">~$273K · ₹2.6 Cr</td><td>Over 50% get need-based aid, averaging ~$92K over two years</td></tr>
+    <tr><td>Stanford GSB</td><td class="num">2 yr</td><td class="num">~$280K · ₹2.7 Cr</td><td>Need-based fellowships; Reliance Dhirubhai Fellowship for Indians covers full tuition</td></tr>
+    <tr><td>Wharton / MIT / Booth / Haas</td><td class="num">2 yr</td><td class="num">$240K–$270K</td><td>Merit awards; Haas and Wharton offer deferred-specific scholarships</td></tr>
+    <tr><td>Yale Silver Scholars</td><td class="num">3 yr</td><td class="num">~$300K gross</td><td>Year 2 is a paid full-time internship, which offsets a chunk</td></tr>
+    <tr><td>IESE Young Talent Path</td><td class="num">15–19 mo</td><td class="num">~€137K · ₹1.3 Cr</td><td>YTP admits get a €25,000 scholarship automatically</td></tr>
+    <tr><td>INSEAD (regular, later)</td><td class="num">10 mo</td><td class="num">€137K–€149K</td><td>Lowest opportunity cost of any top-10 programme</td></tr>
+  </table>
+</section>
+
+<section class="phase">
+  <div class="phase-hd"><span class="phase-n">EXCLUDED</span><h2>Decided against, on purpose</h2><span class="phase-when">So it is a choice, not an oversight</span></div>
+  <p class="phase-note">Logged here so that "I did not apply" never becomes "I forgot to apply". If you change your mind on any of these, the dates are live and the door is open until stated.</p>
+  <div id="excluded"></div>
+</section>
+
+<footer class="wrap">
+  <p class="mono">Verification protocol</p>
+  <p style="margin-top:8px;max-width:74ch">Dates marked <strong>CONFIRMED</strong> come from the school's own admissions page for the 2026&ndash;27 cycle. Dates marked <strong>PROJECTED</strong> are last cycle's dates, which historically move by only a few days. Two hard verification checkpoints are built into the timeline below (1 Dec 2026 and 1 Feb 2027). Do not skip them, and never trust this page over the school's site on the week of a deadline.</p>
+  <button class="reset" id="reset">Reset all checkboxes</button>
+</footer>
+
+</main>
+
+<script>
+const TODAY = new Date(); TODAY.setHours(0,0,0,0);
+
+/* ---------- DATA ---------- */
+const PHASES = [
+{ n:'PHASE 01', t:'Range prep', when:'Aug – Sep 2026', note:'Nothing here is an application. This is the machinery that makes every later application possible in a week rather than a month. Do it now while your semester is light.',
+  items:[
+  {id:'p1a', task:'Check passport validity and exact name spelling', note:'Must be valid past Dec 2029 and the name on your GMAT booking must match the passport character for character. Proctors turn people away for "Aryan" vs a fuller legal name.', date:'2026-08-20', tags:['action']},
+  {id:'p1b', task:'Book a GMAT Focus slot for late Oct or Nov 2026', note:'₹27,100 at a test centre in India. Slots at Kolkata and Kharagpur-adjacent centres fill 6–8 weeks out. Book before you feel ready; the date creates the prep.', date:'2026-08-25', tags:['action']},
+  {id:'p1c', task:'Sit one full GMAT diagnostic mock, untimed prep after that', note:'Your Quant is already far past the bar. The score lives in Verbal (Critical Reasoning and Reading Comprehension) and Data Insights. Debating helps you on CR more than you expect.', date:'2026-08-30', tags:['action']},
+  {id:'p1d', task:'Request IIT KGP transcript and an English-medium-of-instruction letter', note:'The second one is what waives TOEFL/IELTS. HBS and Kellogg both require English tests from non-English-medium universities; the registrar letter kills that requirement. Get it once, use it ten times.', date:'2026-09-10', tags:['action']},
+  {id:'p1e', task:'Write the master narrative document', note:'One file, four sections: why an MBA at all, why abroad specifically, what you will build, and three stories you can tell in any format. CVBuddy, LifeTreeOS and the freelance book each need a version at 100, 300 and 800 words. Every essay after this is an edit, not a draft.', date:'2026-09-15', tags:['action']},
+  {id:'p1f', task:'Approach three recommenders and get verbal agreement', note:'Best mix for a founder profile: one IIT KGP professor who has seen your technical work, one client or mentor who paid you money, one from Placement Committee or the debating circuit who can speak to leadership. Ask early, brief them later.', date:'2026-09-20', tags:['action']},
+  {id:'p1g', task:'Build a separate one-page MBA resume', note:'This is not your placement CV. Strip the tech stack. Lead with users, revenue, people managed and decisions owned. INSTRU rules still apply on bullet construction, but the reader is an admissions officer, not an SDE interviewer.', date:'2026-09-25', tags:['action']},
+  {id:'p1h', task:'Stanford GSB deferred — Round 1', note:'Round 1 of the 2026–27 cycle. Realistically too tight to write a strong "What matters most to you, and why?" in four weeks. The correct move is a deliberate skip in favour of Round 2, but make it a decision rather than a drift.', date:'2026-09-09', school:'Stanford GSB', tags:['confirmed','oneshot']},
+  {id:'p1j', task:'Cornell Johnson MBA Future Leaders — Round 1', note:'Ivy League. Cornell runs no separate deferred application: you apply to the Two-Year MBA and flag interest in the Future Leaders Program. Note the unusual requirement — Cornell demands a minimum of three and a maximum of five years of work experience before you enrol, which is a longer runway than Harvard or Wharton allow.', date:'2026-09-17', school:'Cornell Johnson', tags:['confirmed']},
+  {id:'p1i', task:'Yale Silver Scholars — Round 1', note:'Same reasoning: skip in favour of Round 2 on 6 Jan 2027. Yale explicitly allows you to apply in any of the three rounds regardless of when you graduate.', date:'2026-09-15', school:'Yale SOM', tags:['confirmed']},
+  {id:'p1L', task:'Resolve the Tuck question directly with admissions', note:'Sources conflict. Tuck\u2019s own 2026\u201327 admissions page lists no deferred pathway, but several third-party guides describe a Tuck deferred option. Email admissions and get a one-line answer in writing. If a deferred route does exist, the rounds are 24 Sep 2026, 5 Jan 2027 and 24 Mar 2027, and Round 1 applicants who submit by 1 September are guaranteed an interview.', date:'2026-08-28', school:'Dartmouth Tuck', tags:['verify']},
+]},
+
+{ n:'PHASE 02', t:'Test window', when:'Sep – Nov 2026', note:'One test, five years of validity. This single score covers every deferred application now and any regular MBA application through 2031. It is the highest-leverage thing in the entire plan.',
+  items:[
+  {id:'p2a', task:'GMAT Focus prep block — 6 to 10 weeks', note:'Target 685+, stretch 705+. The Focus scale runs 205–805; a 645 is roughly the old 700. Booth, Haas and Wharton deferred cohorts sit around 700–730.', date:'2026-10-31', tags:['action']},
+  {id:'p2b', task:'Sit the GMAT Focus', note:'Three sections of 45 minutes: Quant, Verbal, Data Insights. You may review and change up to three answers per section, which changes pacing strategy. Unofficial score appears immediately.', date:'2026-11-15', tags:['action']},
+  {id:'p2c', task:'Send the five free score reports within 48 hours', note:'Free only in the 48-hour window after your official score. After that each report costs money. Send to Stanford, Harvard, Wharton, MIT, Yale even if you are unsure — it costs nothing and commits you to nothing.', date:'2026-11-18', tags:['action']},
+  {id:'p2d', task:'Retake decision point', note:'If you land under 665, rebook immediately. Minimum gap between attempts is 16 days, and you can sit it up to five times in a rolling year. A December retake still clears every April deadline.', date:'2026-11-25', tags:['action']},
+  {id:'p2e', task:'Start the Stanford essay', note:'"What matters most to you, and why?" is the hardest essay in graduate admissions and takes most people eight to ten weeks of drafts. Starting it in December for a January deadline is how people write a mediocre one.', date:'2026-11-10', tags:['action']},
+]},
+
+{ n:'PHASE 03', t:'First strike', when:'Dec 2026 – Jan 2027', note:'Placements and the first real deadlines collide in the same four weeks. Take the placement offer. A 35+ LPA offer alongside a deferred admit is a far stronger position than either alone, and the deferral years need a job anyway.',
+  items:[
+  {id:'p3z', task:'VERIFICATION CHECKPOINT — open every school page and confirm dates', note:'Sit down for ninety minutes. Open all twelve admissions pages, write down the exact deadline and time zone, and correct this tracker. Most April 2027 dates are not published until December or January.', date:'2026-12-01', tags:['verify']},
+  {id:'p3a', task:'IIT KGP campus placements', note:'Priority over everything else this month. The offer funds the deferral years, satisfies the "quality work experience" requirement every deferred programme imposes, and gives you a fallback if no admit lands.', date:'2026-12-05', tags:['action']},
+  {id:'p3b', task:'Wharton Moelis application opens', note:'Wharton confirms the Moelis Advance Access application becomes available in November for the 2027 cycle. Create the account, read the essay prompts, and start early — the deadline itself is in April.', date:'2026-11-30', school:'Wharton', tags:['confirmed']},
+  {id:'p3c', task:'IESE Young Talent Path window opens', note:'IESE accepts YTP applications from December through March. Uniquely in Europe, and uniquely among deferred programmes, it stays open to you even after graduating with up to two years of work experience. Admits get a €25,000 scholarship.', date:'2026-12-10', school:'IESE', tags:['projected']},
+  {id:'p3d', task:'Stanford GSB deferred — Round 2', note:'The round to actually target. Stanford has no separate deferred application; you apply through the regular MBA application and indicate deferred enrollment. Eligibility: degree conferred between 1 Oct 2026 and 30 Sep 2027, which is you.', date:'2027-01-06', school:'Stanford GSB', tags:['confirmed','oneshot']},
+  {id:'p3e', task:'Yale Silver Scholars — Round 2', note:'The one programme on this list that takes you straight from B.Tech with no work experience: year one core, year two paid full-time internship, year three electives. If you want to be abroad in 2027 rather than 2030, this is the door.', date:'2027-01-06', school:'Yale SOM', tags:['confirmed']},
+  {id:'p3g', task:'Cornell Johnson MBA Future Leaders — Round 2', note:'Ivy League. Strongest Cornell round for international applicants. Decisions release between 3 and 26 March 2027. Submit by 11:59 PM Eastern.', date:'2027-01-05', school:'Cornell Johnson', tags:['confirmed']},
+  {id:'p3f', task:'JN Tata Endowment — register online', note:'Registration opens in early January at jntataendowment.org, deadline mid-March. Interest-free loan scholarship of ₹5–10 lakh. Final-year students may apply provisionally and submit the admit later. Only worth doing in the year you actually matriculate.', date:'2027-01-10', tags:['projected']},
+]},
+
+{ n:'PHASE 04', t:'Main wave', when:'Feb – Apr 2027', note:'Nine of the twelve programmes close within a three-week band in April. This is where applications get missed. Write the essays in February, not April.',
+  items:[
+  {id:'p4z', task:'VERIFICATION CHECKPOINT — second pass on all April dates', note:'By February every 2027 deadline is published. Re-open all pages, confirm the exact date and closing time, and set a calendar alarm for seven days before each one. This is the single task that makes the rest of the page trustworthy.', date:'2027-02-01', tags:['verify']},
+  {id:'p4a', task:'Essay production block — six schools in parallel', note:'The Stanford essay is the parent document; Harvard, MIT and Wharton essays are derivatives of it. Budget roughly twelve to fifteen hours per school including recommender briefing.', date:'2027-02-28', tags:['action']},
+  {id:'p5a', task:'Interview window — Stanford and Yale Round 2 admits', note:'Stanford interviews are conducted by alumni and are almost entirely behavioural. Yale uses a behavioural assessment inside the portal plus an invite-only interview. Invitations for the 6 January round land through February and March.', date:'2027-03-01', tags:['action']},
+  {id:'p4b', task:'IESE Young Talent Path — final deadline', note:'Applications close around March; selected candidates are invited to the Assessment Boot Camp in Barcelona and notified by May. The boot camp is the evaluation, so treat the written application as a gate, not the decision.', date:'2027-03-15', school:'IESE', tags:['projected']},
+  {id:'p4c', task:'Chicago Booth Scholars', note:'Polsky Center and the New Venture Challenge are genuine founder infrastructure. Booth Scholars can later choose full-time, evening or weekend MBA, which is unusual flexibility.', date:'2027-04-02', school:'Chicago Booth', tags:['projected','oneshot']},
+  {id:'p4d', task:'Stanford GSB deferred — Round 3', note:'Final chance at Stanford in your eligibility year. Round 3 is materially harder than Rounds 1 and 2 because most of the class is already committed. Use only as a backstop.', date:'2027-04-07', school:'Stanford GSB', tags:['confirmed','oneshot']},
+  {id:'p4e', task:'Yale Silver Scholars — Round 3', note:'Final Silver Scholars round for your graduation year.', date:'2027-04-07', school:'Yale SOM', tags:['confirmed']},
+  {id:'p4f', task:'Columbia Business School deferred enrollment', note:'New York, strong for anyone whose venture touches finance, media or consumer. No application fee for eligible graduate students.', date:'2027-04-15', school:'Columbia', tags:['projected','oneshot']},
+  {id:'p4g', task:'Berkeley Haas Accelerated Access', note:'SkyDeck accelerator, Bay Area recruiting, and Haas offers scholarships specifically to deferred admits. Open to undergraduates from any accredited institution worldwide.', date:'2027-04-16', school:'Berkeley Haas', tags:['projected','oneshot']},
+  {id:'p4h', task:'MIT Sloan Early Admission', note:'Martin Trust Center, delta v accelerator, MIT $100K competition. The strongest fit on this list for a technical founder building software rather than a consumer brand.', date:'2027-04-17', school:'MIT Sloan', tags:['projected','oneshot']},
+  {id:'p4i', task:'Harvard Business School 2+2', note:'Roughly 8–9% admit rate, more selective than the regular HBS MBA. HBS explicitly favours applicants on paths that would not normally lead to business school — operating companies, tech, manufacturing. Application fee is $100 for current students rather than $250.', date:'2027-04-22', school:'Harvard', tags:['projected','oneshot']},
+  {id:'p4j', task:'Wharton Moelis Advance Access', note:'Evaluated against other Moelis applicants, not the full Wharton pool, which is a meaningful structural advantage. Defer two to four years, then join the full-time MBA.', date:'2027-04-22', school:'Wharton', tags:['projected','oneshot']},
+  {id:'p4k', task:'Kellogg Future Leaders', note:'Insurance application. Strong general management brand, weaker founder density than the six above. TOEFL required unless your English-medium letter clears it.', date:'2027-04-22', school:'Kellogg', tags:['projected','oneshot']},
+  {id:'p4l', task:'UVA Darden Future Year Scholars — Round 1', note:'Darden runs a second round in July, which makes it the only meaningful safety net after the April wall. Offers deferred-specific scholarships.', date:'2027-04-22', school:'Darden', tags:['projected']},
+  {id:'p4n', task:'Cornell Johnson MBA Future Leaders — Round 3', note:'Ivy League. Final Cornell round. Decisions release between 7 and 21 May 2027.', date:'2027-04-06', school:'Cornell Johnson', tags:['confirmed']},
+  {id:'p4m', task:'Non-Ivy, non-M7 sweep — decide yes or no in one sitting', note:'CMU Tepper Future Business Leaders, Emory Goizueta Early Admission, Georgetown McDonough, Rice Jones, UCLA Anderson. All run deferred tracks. By your own stated bar these fall below the line, so the default answer is no — but write the decision down rather than letting the dates pass unnoticed.', date:'2027-04-20', tags:['action']},
+]},
+
+{ n:'PHASE 05', t:'Decisions', when:'May – Aug 2027', note:'Interviews, offers, and the last safety net. Also the month you graduate.',
+  items:[
+  {id:'p5b', task:'IESE Assessment Boot Camp in Barcelona', note:'Invitations go out by May. This is a live evaluation where you work on real business projects alongside current IESE MBAs. Budget for the flight.', date:'2027-05-15', school:'IESE', tags:['projected']},
+  {id:'p5c', task:'Graduate from IIT KGP', note:'Confirm the exact conferral date in writing. Stanford requires it between 1 Oct 2026 and 30 Sep 2027; Yale requires 1 Aug 2026 to 31 Jul 2027. A delayed convocation letter has cost people offers.', date:'2027-05-15', tags:['action']},
+  {id:'p5d', task:'HBS 2+2 decision released', note:'Notification typically comes in late June.', date:'2027-06-25', school:'Harvard', tags:['projected']},
+  {id:'p5e', task:'UVA Darden Future Year Scholars — Round 2', note:'The last deferred deadline of your eligibility year, anywhere. If April went badly, this is the final door and it closes for good.', date:'2027-07-15', school:'Darden', tags:['projected','oneshot']},
+  {id:'p5f', task:'Accept, pay deposit, confirm deferral length in writing', note:'Get the permitted deferral range in an email: most schools allow two to four years, Stanford and Booth are more flexible. This determines whether you can run IsoCodeLabs for two years or five.', date:'2027-07-31', tags:['action']},
+]},
+
+{ n:'PHASE 06', t:'Deferral years', when:'2027 – 2030', note:'The part everyone underestimates. Schools admit you on potential and then watch what you do with three years of freedom. This is also when the money actually gets raised.',
+  items:[
+  {id:'p6a', task:'Annual check-in with the admissions office', note:'Every deferred programme requires a yearly confirmation that you still intend to matriculate. Missing one can void the offer. Put a recurring calendar entry in now.', date:'2028-06-01', tags:['action']},
+  {id:'p6b', task:'Use the deferral the way they expect', note:'Schools explicitly want risk-taking in this window: founding, joining something early, doing something hard. Running IsoCodeLabs full-time is a stronger deferral story than two years at a consultancy, and it is the story you already told them.', date:null, tags:['action']},
+  {id:'p6c', task:'External scholarship wave — the January before you matriculate', note:'These all require an admit in hand or in process, so they belong to your matriculation year, not 2027. JN Tata Endowment (deadline mid-March, ₹5–10 lakh interest-free). Narotam Sekhsaria Foundation (opens February, up to ₹20 lakh interest-free). Inlaks Shivdasani (opens January, deadline around 25 April, up to $100,000, must be under 30 and resident in India). KC Mahindra (April). Aga Khan Foundation (March, 50% grant and 50% loan).', date:null, tags:['action']},
+  {id:'p6d', task:'Education loan sanction — six months before matriculation', note:'Compare SBI, Bank of Baroda, Prodigy Finance and MPOWER on total interest cost over full repayment, not headline rate. Section 80E makes education loan interest fully tax deductible for eight years with no upper limit.', date:null, tags:['action']},
+  {id:'p6e', task:'Fallback route if no deferred admit lands', note:'Your GMAT stays valid five years. Apply through the regular cycle with three to four years of founder experience, which is a genuinely stronger application than the one you are submitting at 21. Round 1 deadlines fall in early September; INSEAD and IESE run rolling rounds year-round.', date:null, tags:['action']},
+]},
+];
+
+const SCHOOLS = [
+ {n:'Stanford GSB', p:'Deferred Enrollment', fit:'a', m7:1, txt:'Around 16% of the class goes straight into entrepreneurship, the highest of any elite programme. Startup Garage, Center for Entrepreneurial Studies, and physical proximity to Sand Hill Road. Not Ivy League, and the best school in the world for what you say you want. Do not cut it.'},
+ {n:'Harvard 2+2', p:'2+2 Deferred', fit:'a', ivy:1, m7:1, txt:'HBS states a preference for applicants on paths that would not normally lead to business school. A student-run software company in a manufacturing branch is exactly that profile. Rock Center, i-Lab, New Venture Competition. Roughly 8–9% admit rate.'},
+ {n:'MIT Sloan', p:'Early Admission', fit:'a', m7:1, txt:'The best fit here for a technical founder. Martin Trust Center, delta v accelerator, the MIT $100K. Action-learning labs replace case discussion with real client work. Not Ivy, and ranked third in the US for entrepreneurship.'},
+ {n:'Wharton', p:'Moelis Advance Access', fit:'a', ivy:1, m7:1, txt:'Evaluated only against other Moelis applicants, which is a structural edge. Venture Lab plus the San Francisco campus gives a two-market strategy. Best if your future involves raising serious capital rather than bootstrapping.'},
+ {n:'Yale SOM', p:'Silver Scholars', fit:'a', ivy:1, txt:'The only programme here that admits you straight from undergraduate with zero work experience. Three years: core, a paid full-time internship year, then electives. Choose this if you want to be abroad in 2027 rather than 2030.'},
+ {n:'Berkeley Haas', p:'Accelerated Access', fit:'a', txt:'Smallest class in the top ten, strongest West Coast network outside Stanford, and SkyDeck is a real accelerator rather than a branded room. Offers scholarships specifically to deferred admits. Not Ivy; ranked fourth in the US for entrepreneurship.'},
+ {n:'Columbia', p:'Deferred Enrollment', fit:'a', ivy:1, m7:1, txt:'New York access, strong for consumer, media and finance-adjacent ventures. The most founder-relevant of the East Coast Ivies after Harvard. Weaker startup density than the Bay Area schools.'},
+ {n:'Chicago Booth', p:'Booth Scholars', fit:'a', m7:1, txt:'Polsky Center and the New Venture Challenge, one of the oldest and best-funded student venture competitions anywhere. Scholars can later choose full-time, evening or weekend format. Not Ivy, but M7.'},
+ {n:'Kellogg', p:'Future Leaders', fit:'b', m7:1, txt:'Completes the M7. Excellent general management brand and marketing depth. Insurance application rather than a target — founder outcomes trail the schools above.'},
+ {n:'Cornell Johnson', p:'MBA Future Leaders', fit:'b', ivy:1, txt:'Ivy League. Small, tight cohort in Ithaca, with a one-year option at Cornell Tech in New York City which is the genuinely interesting part for a technical founder. Note the constraint: Cornell requires three to five years of work experience before you enrol, longer than any other programme here.'},
+ {n:'Dartmouth Tuck', p:'Deferred route unconfirmed', fit:'b', ivy:1, txt:'Ivy League, and the one genuine unknown on this list: Tuck’s own 2026–27 page lists no deferred pathway, while several guides claim one exists. Settle it by email before you assume either way. Regular rounds only, which for you means the 2029–30 cycle. Strong on general management and private equity, thin on venture creation.'},
+ {n:'Brown', p:'No full-time MBA', fit:'b', ivy:1, txt:'Ivy League with no business school. The only MBA it issues is the 15-month IE Brown Executive MBA run jointly with IE Madrid, aimed at senior managers with more than ten years of experience. Structurally unavailable to you for at least a decade.'},
+ {n:'Princeton', p:'No MBA at all', fit:'b', ivy:1, txt:'The only Ivy League university that issues no MBA of any kind. It runs a Master in Finance through the Bendheim Center, which is a different degree for a different career. Nothing to apply to.'},
+ {n:'IESE', p:'Young Talent Path', fit:'b', txt:'The only verified deferred programme in Europe. Roughly half the cost of a US MBA, a €25,000 scholarship on admission, and an Assessment Boot Camp in Barcelona instead of a pure paper evaluation. Also the only one still open to you after graduating.'},
+ {n:'UVA Darden', p:'Future Year Scholars', fit:'b', txt:'Matters mainly for its July round, the only deferred deadline that falls after the April wall. Offers deferred-specific scholarships. Below your stated bar; keep only as a last safety net.'},
+];
+
+const EXCLUDED = [
+ {id:'x1', task:'CAT 2026 and all IIMs', note:'Registration closes 15 September 2026, exam 29 November 2026. You have ruled this out. Worth knowing what you are declining: as a General Engineering Male you would need a 99+ percentile, and it collides directly with December placement prep. The cost of keeping the option open is ₹2,700 and one Sunday.', date:'2026-09-15'},
+ {id:'x2', task:'ISB PGP Young Leaders', note:'Round 1 closes 20 December 2026, Round 2 closes 21 February 2027 for the Class of 2029. A 20-month residential programme for candidates with 0–24 months of experience. Genuinely the closest Indian analogue to a deferred MBA and it explicitly rewards entrepreneurial ventures — but it is in India, which is the thing you are trying to leave. Logged, not forgotten.', date:'2027-02-21'},
+ {id:'x4', task:'Dartmouth Tuck — deferred route unresolved', note:'Ivy League, and checked directly against Tuck\u2019s own 2026\u201327 admissions page: there is no deferred or early-admission pathway listed, though several third-party guides claim otherwise, so treat this as unresolved until admissions confirms. Regular rounds are 24 Sep 2026, 5 Jan 2027 and 24 Mar 2027, all requiring current work experience, so your realistic Tuck cycle is 2029\u201330. One useful detail for later: Tuck waives the English test outright if your bachelor\u2019s came from an institution where English is the sole language of instruction, which covers IIT KGP.', date:null},
+ {id:'x5', task:'Brown — no full-time MBA to apply to', note:'Brown has no business school. Its only MBA is the 15-month IE Brown Executive MBA with IE Madrid, built for senior managers with more than ten years of experience. Not a gap in your plan; a gap in Brown\u2019s.', date:null},
+ {id:'x6', task:'Princeton — issues no MBA', note:'The only Ivy League university that awards no MBA of any kind. Its Bendheim Center Master in Finance is a different degree aimed at quantitative finance careers. Nothing here to miss.', date:null},
+ {id:'x3', task:'Masters in Management (MiM) programmes', note:'Designed for freshers with no work experience. For an IIT engineer already running a company, it buys a weaker brand at a similar price with none of the founder network. Correctly skipped.', date:null},
+];
+
+/* ---------- STATE ---------- */
+const KEY='mba-launch-windows-v1';
+let state={}, memoryOnly=false, filter='all';
+
+async function load(){
+  try{ const r=await window.storage.get(KEY); state = r? JSON.parse(r.value) : {}; }
+  catch(e){ state={}; }
+  if(typeof window.storage==='undefined'){ memoryOnly=true; }
+}
+async function save(){
+  try{ await window.storage.set(KEY, JSON.stringify(state)); }
+  catch(e){ memoryOnly=true; }
+}
+
+/* ---------- HELPERS ---------- */
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function days(iso){ const d=new Date(iso+'T00:00:00'); return Math.round((d-TODAY)/86400000); }
+function fmt(iso){ const d=new Date(iso+'T00:00:00'); return d.getDate()+' '+MON[d.getMonth()]+' '+d.getFullYear(); }
+function level(dd){ if(dd<0) return 'past'; if(dd<=30) return 'crit'; if(dd<=90) return 'warn'; return 'cool'; }
+function tminus(dd){ if(dd<0) return 'CLOSED'; if(dd===0) return 'TODAY'; return 'T\u2212'+dd+'d'; }
+
+function itemHTML(it, prefix){
+  const dd = it.date? days(it.date) : null;
+  const lv = dd===null? 'cool' : level(dd);
+  const done = !!state[it.id];
+  let tags='';
+  (it.tags||[]).forEach(t=>{
+    const map={confirmed:['confirmed','Confirmed date'],projected:['projected','Projected \u2014 verify'],
+               oneshot:['oneshot','One shot only'],verify:['verify','Verification task'],action:['','Action']};
+    if(map[t]) tags+='<span class="tag '+map[t][0]+'">'+map[t][1]+'</span>';
+  });
+  if(it.school) tags = '<span class="tag">'+it.school+'</span>' + tags;
+  const tcls = dd===null? '' : (dd<0?'':(dd<=30?'crit':(dd<=90?'warn':'')));
+  return '<label class="item lv-'+lv+(done?' done':'')+'" data-done="'+done+'">'+
+    '<input type="checkbox" data-id="'+it.id+'"'+(done?' checked':'')+'>'+
+    '<span><span class="task">'+it.task+'</span>'+
+      (it.note?'<span class="note">'+it.note+'</span>':'')+
+      (tags?'<span class="tags">'+tags+'</span>':'')+
+    '</span>'+
+    '<span class="when">'+(it.date?'<span class="d">'+fmt(it.date)+'</span><span class="t '+tcls+'">'+tminus(dd)+'</span>':'<span class="t">Ongoing</span>')+'</span>'+
+  '</label>';
+}
+
+function render(){
+  // phases
+  let h='';
+  PHASES.forEach(p=>{
+    h+='<section class="phase"><div class="phase-hd"><span class="phase-n">'+p.n+'</span><h2>'+p.t+'</h2><span class="phase-when">'+p.when+'</span></div>';
+    h+='<p class="phase-note">'+p.note+'</p>';
+    p.items.forEach(it=> h+=itemHTML(it));
+    h+='</section>';
+  });
+  document.getElementById('phases').innerHTML=h;
+
+  // schools
+  document.getElementById('schools').innerHTML = SCHOOLS.map(s=>
+    '<div class="sch"><h3>'+s.n+'</h3><div class="prog">'+s.p+'</div><p>'+s.txt+'</p>'+
+    '<span class="fit '+s.fit+'">'+(s.fit==='a'?'Target':'Insurance')+'</span>'+
+    (s.ivy?'<span class="fit ivy">Ivy</span>':'')+
+    (s.m7?'<span class="fit m7">M7</span>':'')+
+    '</div>').join('');
+
+  // excluded
+  document.getElementById('excluded').innerHTML = EXCLUDED.map(it=>itemHTML(it)).join('');
+
+  wire(); rail(); progress(); applyFilter();
+}
+
+function wire(){
+  document.querySelectorAll('.item input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change', async ()=>{
+      const id=cb.dataset.id;
+      if(cb.checked) state[id]=true; else delete state[id];
+      const row=cb.closest('.item');
+      row.classList.toggle('done', cb.checked);
+      row.dataset.done = cb.checked;
+      progress(); applyFilter(); await save();
+    });
+  });
+}
+
+function allItems(){
+  const a=[]; PHASES.forEach(p=>p.items.forEach(i=>a.push(i))); EXCLUDED.forEach(i=>a.push(i)); return a;
+}
+
+function progress(){
+  const items=allItems();
+  const done=items.filter(i=>state[i.id]).length;
+  const pc = items.length? Math.round(done/items.length*100) : 0;
+  document.getElementById('count').textContent = done+' / '+items.length+' cleared';
+  document.getElementById('barfill').style.width = pc+'%';
+  document.getElementById('pct').textContent = pc+'%';
+}
+
+function rail(){
+  const up = allItems()
+    .filter(i=>i.date && days(i.date)>=0 && !state[i.id])
+    .sort((a,b)=> a.date<b.date?-1:1).slice(0,4);
+  document.getElementById('rail').innerHTML = up.map(i=>{
+    const dd=days(i.date);
+    return '<div class="tick"><div class="tick-t'+(dd<=30?' soon':'')+'">'+tminus(dd)+'</div>'+
+      '<div class="tick-lbl">'+(i.school? i.school+' \u00b7 ':'')+i.task+'</div>'+
+      '<div class="tick-date">'+fmt(i.date)+'</div></div>';
+  }).join('') || '<div class="tick"><div class="tick-t">\u2014</div><div class="tick-lbl">No open windows ahead</div></div>';
+  document.getElementById('nextup').textContent = up.length? (up[0].task+' \u00b7 '+fmt(up[0].date)+' \u00b7 '+tminus(days(up[0].date))) : '\u2014';
+}
+
+function applyFilter(){
+  document.querySelectorAll('.item').forEach(el=>{
+    const d = el.dataset.done==='true';
+    el.classList.toggle('hide', (filter==='open'&&d) || (filter==='done'&&!d));
+  });
+}
+
+document.querySelectorAll('.filters button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    filter=b.dataset.f;
+    document.querySelectorAll('.filters button').forEach(x=>x.setAttribute('aria-pressed', x===b?'true':'false'));
+    applyFilter();
+  });
+});
+
+document.getElementById('reset').addEventListener('click', async ()=>{
+  state={}; await save(); render();
+});
+
+(async()=>{ await load(); render(); })();
+</script>
+</body>
+</html>

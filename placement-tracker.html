@@ -1,0 +1,805 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Placement Ladder — SDE + Data Science</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#12151f;
+  --surface:#191d2b;
+  --raise:#212739;
+  --line:#2c3348;
+  --line-soft:#232a3c;
+  --ink:#e9ecf5;
+  --ink-2:#a8b0c6;
+  --ink-3:#6d7691;
+  --accent:#9aa4b8;
+  --accent-soft:rgba(154,164,184,.14);
+  --ok:#4caf7d;
+  --warn:#f0932b;
+  --display:'Space Grotesk',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
+  --r:10px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--display);
+  font-size:15px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  padding-bottom:64px;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(1100px 520px at 50% -12%,var(--accent-soft),transparent 70%);
+  transition:background .6s ease;
+}
+.wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:0 18px}
+
+/* ---------- header ---------- */
+header{padding:34px 0 20px}
+.eyebrow{
+  font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--ink-3);margin-bottom:14px;
+}
+.identity{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 20px}
+.handle{
+  font-size:clamp(30px,5.4vw,46px);font-weight:700;letter-spacing:-.02em;line-height:1;
+  color:var(--accent);transition:color .5s ease;
+}
+.rank-title{
+  font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--accent);padding:5px 11px;border:1px solid var(--accent);border-radius:100px;
+  transition:color .5s ease,border-color .5s ease;
+}
+.rating-num{font-family:var(--mono);font-size:34px;font-weight:700;color:var(--ink);line-height:1}
+.rating-lbl{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--ink-3);text-transform:uppercase}
+.spacer{flex:1}
+
+/* ---------- ladder (signature) ---------- */
+.ladder{margin-top:26px}
+.ladder-wrap{position:relative;padding:5px 0}
+.ladder-track{height:9px;border-radius:100px;overflow:hidden;display:flex;background:var(--surface)}
+.ladder-track i{flex:1;display:block;opacity:.3;transition:opacity .4s}
+.ladder-track i.lit{opacity:1}
+.ladder-marker{
+  position:absolute;top:0;width:3px;height:19px;background:var(--ink);border-radius:2px;
+  transform:translateX(-50%);transition:left .7s cubic-bezier(.2,.9,.25,1);
+  box-shadow:0 0 0 3px var(--bg);
+}
+.ladder-labels{display:flex;margin-top:9px}
+.ladder-labels span{
+  flex:1;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);text-align:center;
+}
+.ladder-labels span.on{color:var(--ink-2)}
+.next-note{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-top:12px}
+.next-note b{color:var(--accent);font-weight:500}
+
+/* ---------- stat strip ---------- */
+.strip{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+  background:var(--line-soft);border:1px solid var(--line-soft);border-radius:var(--r);
+  overflow:hidden;margin-top:26px;
+}
+.stat{background:var(--surface);padding:15px 16px}
+.stat .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+.stat .v{font-family:var(--mono);font-size:23px;font-weight:700;margin-top:5px;line-height:1.1}
+.stat .s{font-size:11.5px;color:var(--ink-3);margin-top:2px}
+.v.urgent{color:var(--warn)}
+.v.live{color:var(--accent);transition:color .5s}
+
+/* ---------- tabs ---------- */
+nav.tabs{
+  display:flex;gap:2px;margin:30px 0 0;border-bottom:1px solid var(--line);
+  overflow-x:auto;scrollbar-width:none;
+}
+nav.tabs::-webkit-scrollbar{display:none}
+.tab{
+  appearance:none;background:none;border:0;border-bottom:2px solid transparent;
+  color:var(--ink-3);font-family:var(--mono);font-size:11.5px;letter-spacing:.13em;
+  text-transform:uppercase;padding:12px 15px;cursor:pointer;white-space:nowrap;
+  transition:color .2s,border-color .2s;
+}
+.tab:hover{color:var(--ink-2)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab .pc{color:var(--ink-3);margin-left:7px;font-size:10.5px}
+
+/* ---------- toolbar ---------- */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:22px 0 6px}
+.search{
+  flex:1;min-width:220px;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);padding:10px 13px;color:var(--ink);font-family:var(--mono);font-size:13px;
+}
+.search::placeholder{color:var(--ink-3)}
+.search:focus{outline:2px solid var(--accent);outline-offset:1px}
+.btn{
+  appearance:none;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  color:var(--ink-2);font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  padding:10px 13px;cursor:pointer;transition:.18s;
+}
+.btn:hover{color:var(--ink);border-color:var(--accent)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+/* ---------- sections ---------- */
+.section{border:1px solid var(--line-soft);border-radius:var(--r);background:var(--surface);margin-top:12px;overflow:hidden}
+.sec-head{
+  display:flex;align-items:center;gap:14px;width:100%;text-align:left;
+  background:none;border:0;padding:15px 17px;cursor:pointer;color:inherit;font-family:inherit;
+}
+.sec-head:hover{background:var(--raise)}
+.sec-head:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.chev{color:var(--ink-3);font-family:var(--mono);font-size:11px;transition:transform .22s;flex:none}
+.section.open .chev{transform:rotate(90deg)}
+.sec-name{font-weight:600;font-size:15px;flex:1;letter-spacing:-.01em}
+.sec-count{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);flex:none}
+.meter{width:74px;height:5px;border-radius:100px;background:var(--line);overflow:hidden;flex:none}
+.meter i{display:block;height:100%;background:var(--accent);border-radius:100px;transition:width .45s ease,background .5s}
+.section.done .sec-name{color:var(--ok)}
+.sec-body{display:none;padding:2px 17px 17px;border-top:1px solid var(--line-soft)}
+.section.open .sec-body{display:block}
+.grp-name{
+  font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--ink-3);margin:18px 0 9px;
+}
+.items{display:grid;grid-template-columns:repeat(auto-fill,minmax(238px,1fr));gap:4px}
+.item{
+  display:flex;gap:10px;align-items:flex-start;padding:7px 9px;border-radius:7px;
+  cursor:pointer;font-size:13.4px;color:var(--ink-2);line-height:1.42;
+  border:1px solid transparent;transition:background .15s,color .15s;
+}
+.item:hover{background:var(--raise);color:var(--ink)}
+.item input{position:absolute;opacity:0;width:0;height:0}
+.item input:focus-visible + .box{outline:2px solid var(--accent);outline-offset:2px}
+.box{
+  flex:none;width:15px;height:15px;margin-top:2px;border:1.5px solid var(--line);border-radius:4px;
+  display:grid;place-items:center;transition:.18s;
+}
+.box::after{content:"";width:7px;height:7px;border-radius:2px;background:var(--accent);transform:scale(0);transition:transform .18s}
+.item.on{color:var(--ink-3)}
+.item.on .txt{text-decoration:line-through;text-decoration-color:var(--ink-3);opacity:.72}
+.item.on .box{border-color:var(--accent)}
+.item.on .box::after{transform:scale(1)}
+
+/* ---------- overview ---------- */
+.cols{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;margin-top:22px}
+.card{border:1px solid var(--line-soft);background:var(--surface);border-radius:var(--r);padding:18px}
+.card h3{
+  margin:0 0 15px;font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--ink-3);font-weight:500;
+}
+.bar-row{display:flex;align-items:center;gap:12px;margin-bottom:11px}
+.bar-row .nm{flex:1;font-size:13.3px;color:var(--ink-2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar{flex:none;width:110px;height:5px;background:var(--line);border-radius:100px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .45s,background .5s}
+.bar-row .pc{font-family:var(--mono);font-size:11px;color:var(--ink-3);width:34px;text-align:right;flex:none}
+
+.quests{list-style:none;margin:0;padding:0}
+.quests li{
+  display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line-soft);
+  font-size:13.4px;color:var(--ink-2);cursor:pointer;
+}
+.quests li:last-child{border-bottom:0}
+.quests li:hover{color:var(--ink)}
+.quests li.on{color:var(--ink-3)}
+.quests li.on .qtxt{text-decoration:line-through;opacity:.72}
+.quests li.on .box{border-color:var(--accent)}
+.quests li.on .box::after{transform:scale(1)}
+.qtag{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase;display:block;margin-top:3px}
+
+.heat{display:grid;grid-template-columns:repeat(18,1fr);gap:4px}
+.heat i{aspect-ratio:1;border-radius:3px;background:var(--line-soft);display:block}
+.heat i.on{background:var(--accent)}
+.heat i.today{box-shadow:0 0 0 1.5px var(--ink)}
+
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(122px,1fr));gap:9px}
+.badge{
+  border:1px solid var(--line-soft);border-radius:9px;padding:12px 11px;background:var(--bg);
+  opacity:.4;transition:.35s;
+}
+.badge.got{opacity:1;border-color:var(--accent);background:var(--raise)}
+.badge .ic{font-size:17px;line-height:1;margin-bottom:7px;filter:grayscale(1)}
+.badge.got .ic{filter:none}
+.badge .bn{font-size:12.2px;font-weight:600;line-height:1.28}
+.badge .bd{font-size:10.8px;color:var(--ink-3);margin-top:3px;line-height:1.35}
+
+.phase{border-left:2px solid var(--line);padding:0 0 22px 17px;position:relative}
+.phase:last-child{padding-bottom:0}
+.phase::before{content:"";position:absolute;left:-5px;top:5px;width:8px;height:8px;border-radius:50%;background:var(--line)}
+.phase.now{border-left-color:var(--accent)}
+.phase.now::before{background:var(--accent)}
+.phase h4{margin:0 0 3px;font-size:14.5px}
+.phase .wk{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.phase.now .wk{color:var(--accent)}
+.phase ul{list-style:none;margin:11px 0 0;padding:0}
+
+.empty{padding:34px 4px;color:var(--ink-3);font-family:var(--mono);font-size:13px}
+.hide{display:none!important}
+.loading{padding:60px 0;text-align:center;color:var(--ink-3);font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase}
+
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translate(-50%,26px);z-index:50;
+  background:var(--raise);border:1px solid var(--accent);border-radius:100px;
+  padding:11px 20px;font-size:13.2px;opacity:0;pointer-events:none;transition:.4s cubic-bezier(.2,.9,.25,1);
+  box-shadow:0 10px 34px rgba(0,0,0,.5);max-width:90vw;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+footer{margin-top:34px;padding-top:18px;border-top:1px solid var(--line-soft);color:var(--ink-3);font-size:12.2px}
+
+@media (max-width:860px){ .cols{grid-template-columns:1fr} .heat{grid-template-columns:repeat(12,1fr)} }
+@media (prefers-reduced-motion:reduce){ *{transition:none!important;animation:none!important} }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">IIT Kharagpur · Manufacturing · Target 35+ LPA</div>
+    <div class="identity">
+      <div class="handle" id="handle">unrated</div>
+      <div class="rank-title" id="rankTitle">Newbie</div>
+      <div class="spacer"></div>
+      <div style="text-align:right">
+        <div class="rating-lbl">Mastery rating</div>
+        <div class="rating-num" id="rating">800</div>
+      </div>
+    </div>
+
+    <div class="ladder">
+      <div class="ladder-wrap">
+        <div class="ladder-track" id="ladderTrack"></div>
+        <div class="ladder-marker" id="ladderMarker"></div>
+      </div>
+      <div class="ladder-labels" id="ladderLabels"></div>
+      <div class="next-note" id="nextNote"></div>
+    </div>
+
+    <div class="strip">
+      <div class="stat"><div class="k">Days to Day 1</div><div class="v urgent" id="days">—</div><div class="s" id="phaseNow">—</div></div>
+      <div class="stat"><div class="k">Topics cleared</div><div class="v live" id="cleared">0</div><div class="s" id="clearedSub">of 0</div></div>
+      <div class="stat"><div class="k">Day streak</div><div class="v" id="streak">0</div><div class="s" id="streakSub">check one topic to start</div></div>
+      <div class="stat"><div class="k">Badges</div><div class="v" id="badgeCount">0</div><div class="s" id="badgeSub">of 0 unlocked</div></div>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs" role="tablist"></nav>
+  <div id="loading" class="loading">Loading your progress…</div>
+  <main id="panel" class="hide"></main>
+
+  <footer>
+    Progress saves automatically. Rating is derived from topics cleared across the SDE, Data Science and CV tracks — the schedule tab is tracked separately.
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================ RANKS ============================ */
+const RANKS=[
+  {n:'Newbie',        min:800,  c:'#9aa4b8'},
+  {n:'Pupil',         min:1200, c:'#4caf7d'},
+  {n:'Specialist',    min:1400, c:'#3bbfc4'},
+  {n:'Expert',        min:1600, c:'#5b8def'},
+  {n:'Cand. Master',  min:1900, c:'#a96be8'},
+  {n:'Master',        min:2100, c:'#f0932b'},
+  {n:'Intl. Master',  min:2300, c:'#ffb648'},
+  {n:'Grandmaster',   min:2400, c:'#ee5a5a'},
+  {n:'Intl. GM',      min:2600, c:'#e03b3b'},
+  {n:'Legendary GM',  min:3000, c:'#c92020'}
+];
+const DAY1=new Date('2026-12-01T00:00:00');
+
+/* ============================ DATA ============================ */
+const TRACKS=[
+{id:'sde',label:'SDE',rated:true,sections:[
+ {n:'Language — C++',g:[
+  {n:'Core language',i:['Types, sizes, overflow, long long, __int128','Integer promotion & unsigned arithmetic','References vs pointers, dangling & null','const correctness, constexpr, static, inline','Stack vs heap, new/delete, leaks, RAII','Smart pointers: unique / shared / weak, ref cycles','Lvalues, rvalues, std::move, perfect forwarding','Copy elision & RVO','Rule of 0 / 3 / 5','Templates, specialisation, variadic templates','Lambdas, capture modes, std::function','Exceptions, noexcept, stack unwinding','Compilation & linking model, ODR, header guards','Undefined behaviour: overflow, OOB, iterator invalidation']},
+  {n:'STL fluency',i:['vector, deque, list, array, string','set / map / multiset / multimap','unordered_* and custom hash (anti-hash defence)','stack, queue, priority_queue with comparators','bitset, pair, tuple, optional','Iterator categories & invalidation rules','sort, stable_sort, nth_element, partial_sort','lower_bound, upper_bound, equal_range','next_permutation, accumulate, partial_sum','unique, rotate, reverse, iota, transform','set_union / intersection / difference','Complexity of every container operation','Policy-based ordered_set (__gnu_pbds)']},
+  {n:'Secondary languages',i:['Python for fast interview coding','Java basics if a target company mandates it']}
+ ]},
+ {n:'DSA — Core patterns',g:[
+  {n:'Arrays & fundamentals',i:['Rotation: reversal & juggling','Kadane, circular max subarray, max product subarray','Dutch national flag / sort colors','Boyer-Moore majority (n/2 and n/3)','Prefix sums, suffix sums, 2D prefix sums','Difference arrays, 2D difference arrays','Two pointers (same & opposite direction)','Fast-slow pointers','Sliding window: fixed size','Sliding window: variable size + hashmap','At-most-K to exactly-K trick','Monotonic deque window','Merge intervals, insert interval','Subarray sum = K, subarray with given XOR','Matrix: spiral, rotate, transpose, sorted search']},
+  {n:'Binary search',i:['Hand-written lower_bound / upper_bound','Rotated array (with & without duplicates)','Binary search on answer (predicate form)','Binary search on floating point + epsilon','Ternary search on unimodal functions','Median of two sorted arrays (partition)','Aggressive cows / book allocation / ship capacity','Parallel binary search']},
+  {n:'Sorting',i:['Merge, quick (Lomuto & Hoare), heap sort','Counting, radix, bucket sort','Stability & comparison lower bound','Count inversions (merge sort / BIT)','Custom comparators, multi-key sorting','External sorting concept']},
+  {n:'Strings',i:['Longest palindromic substring & subsequence','Polynomial rolling hash, double modulus','KMP prefix function & applications','Z-algorithm','Rabin-Karp','Manacher','Suffix array + LCP (Kasai)','Aho-Corasick multi-pattern','Suffix automaton (awareness)','String compression, atoi edge cases','Word break, longest common prefix']},
+  {n:'Recursion & backtracking',i:['Recurrence relations & Master theorem','Subsets & permutations (with duplicates)','Combination sum family','N-Queens, Sudoku, rat in maze, word search','Balanced parentheses generation','Palindrome partitioning','Pruning strategies','Recursion → memoisation → tabulation']},
+  {n:'Linked lists',i:['Reverse: iterative, recursive, k-groups','Floyd cycle detection + cycle start','Merge two / merge k sorted','Sort a linked list','Intersection of two lists','Palindrome check, reorder list','Copy list with random pointer','LRU cache implementation','LFU cache implementation']},
+  {n:'Stacks & queues',i:['Min stack in O(1) auxiliary','Next greater / previous smaller','Largest rectangle in histogram','Maximal rectangle in binary matrix','Trapping rain water','Sum of subarray minimums','Sliding window maximum (monotonic deque)','Infix / prefix / postfix conversion','Longest valid parentheses','Stack via queues and vice versa']},
+  {n:'Greedy',i:['Exchange argument correctness proof','Activity selection & interval scheduling','Minimum meeting rooms / platforms','Fractional knapsack','Huffman coding','Job sequencing with deadlines','Gas station circular tour','Jump game II','Candy distribution','Non-overlapping intervals / minimum arrows','Knowing when greedy fails and DP is needed']}
+ ]},
+ {n:'DSA — Data structures',g:[
+  {n:'Trees',i:['Traversals: recursive, iterative, Morris','Level order, zigzag, vertical, boundary','Left / right / top / bottom views','Height, diameter, balanced check','LCA: naive, binary lifting, Euler + sparse table','Max path sum, path sum variants','Serialize / deserialize','Construct from traversal pairs','BST: insert, delete, validate, kth smallest','BST: floor, ceil, successor, predecessor','AVL rotations, Red-Black properties','B-tree / B+ tree structure','Tree DP (subtree sums, independent set)','Rerooting technique','Euler tour + segment tree for subtree queries','Heavy-Light Decomposition','Centroid decomposition','Small-to-large merging (DSU on tree)']},
+  {n:'Heaps',i:['Heapify, build heap in O(n)','Kth largest, kth largest in a stream','Merge k sorted lists','Median in a data stream (two heaps)','Top-K frequent elements','Task scheduler, reorganise string','Indexed priority queue / decrease-key']},
+  {n:'Tries',i:['Prefix trie, autocomplete, prefix counts','XOR trie: maximum XOR pair','XOR trie: max XOR with element, range counts','Persistent trie','Compressed trie / radix tree','Dictionary with wildcard search']},
+  {n:'Range query structures',i:['Sparse table (idempotent ops, O(1) query)','Fenwick: point update range query','Fenwick: range update range query','2D Fenwick, inversions via BIT','Segment tree: build, query, update','Segment tree with lazy propagation','Merge sort tree','Persistent segment tree','Dynamic / implicit segment tree','Iterative segment tree','Segment tree beats (awareness)','Sqrt decomposition','Mo\u2019s algorithm (basic)','Mo\u2019s with updates / on trees','Coordinate compression & offline queries','Treap / balanced BST for order statistics']}
+ ]},
+ {n:'DSA — Graphs',g:[
+  {n:'Traversal & basics',i:['Representations & implicit graphs','BFS, DFS (recursive + iterative)','Multi-source BFS','0-1 BFS with deque','Bidirectional BFS','Connected components, flood fill','Cycle detection: undirected & directed','Topological sort: Kahn & DFS','Lexicographically smallest topo order','DAG longest path / shortest path','Bipartite check / 2-colouring','Grid as graph, state-space BFS']},
+  {n:'DSU & advanced structure',i:['DSU: union by rank/size + path compression','DSU with rollback','Weighted DSU','SCC: Kosaraju','SCC: Tarjan + condensation graph','Bridges & articulation points','Biconnected components','2-SAT via implication graph','Eulerian path / circuit (Hierholzer)','Functional graphs & permutation cycles','Tree isomorphism (awareness)']},
+  {n:'Shortest paths & MST',i:['Dijkstra (heap and set variants)','Bellman-Ford + negative cycle detection','Floyd-Warshall','Johnson\u2019s algorithm','SPFA and its worst case','A* search','K-shortest paths','MST: Kruskal','MST: Prim','MST: Boruvka, second-best MST']},
+  {n:'Flows & matching',i:['Ford-Fulkerson & Edmonds-Karp','Dinic\u2019s algorithm','Max-flow min-cut theorem','Flow modelling (project selection)','Bipartite matching: Kuhn\u2019s','Hopcroft-Karp','Hungarian algorithm (assignment)','Min-cost max-flow']}
+ ]},
+ {n:'DSA — Dynamic programming',g:[
+  {n:'Core patterns',i:['Linear DP: house robber, decode ways, jump game','LIS in O(n log n) + variants','0/1 knapsack','Unbounded & bounded knapsack (binary splitting)','Subset sum, equal partition, target sum','Coin change (min coins & count ways)','Grid DP + obstacles, maximal square','Cherry pickup (multi-agent grid)','LCS, longest common substring','Edit distance','Distinct subsequences','Wildcard & regex matching','Shortest common supersequence, interleaving','Palindrome partitioning (min cuts)','Matrix chain multiplication','Burst balloons, boolean parenthesisation','Egg drop','Stone game family','Tree DP + rerooting','Bitmask DP: TSP & assignment','Bitmask DP: set cover, broken profile','Digit DP','Probability & expectation DP','SOS DP (sum over subsets)','Game DP / minimax']},
+  {n:'Optimisations',i:['Space optimisation (rolling arrays)','Convex hull trick + Li Chao tree','Divide and conquer optimisation','Knuth-Yao optimisation','Monotonic deque optimisation','Matrix exponentiation for recurrences','Aliens trick / Lagrangian relaxation','DP with segment tree or BIT','Meet in the middle']}
+ ]},
+ {n:'DSA — Math & misc',g:[
+  {n:'Number theory',i:['GCD, LCM, extended Euclid','Modular arithmetic & modular inverse','Binary / modular exponentiation','Sieve: basic, linear, segmented, SPF','Prime factorisation, divisor count & sum','Euler totient and properties','Chinese Remainder Theorem','Mobius function & inversion','Miller-Rabin primality','Pollard\u2019s rho factorisation','Matrix exponentiation','FFT / NTT polynomial multiplication']},
+  {n:'Combinatorics & probability',i:['nCr mod p via factorials + inverse factorials','Lucas theorem','Stars and bars','Inclusion-exclusion','Derangements','Catalan numbers','Stirling numbers','Burnside / Polya counting','Expected value & linearity of expectation','Indicator random variables','Pigeonhole, invariants, monovariants']},
+  {n:'Game theory',i:['Win / lose state DP','Nim and its variants','Sprague-Grundy theorem & mex','Misère games','Impartial vs partisan games']},
+  {n:'Bit manipulation',i:['Set / clear / toggle / check bit','x & -x and x & (x-1) tricks','popcount, clz, ctz builtins','Power of two, next power of two','XOR: single number, two singles, missing number','Subset enumeration via bitmask','Submask enumeration in O(3^n)','XOR / linear basis over GF(2)','Gray code','bitset for O(n/64) speedups']},
+  {n:'Geometry',i:['Dot & cross product, orientation test','Line and segment intersection','Point-to-line and point-to-segment distance','Polygon area (shoelace), point in polygon','Convex hull: Graham & monotone chain','Closest pair of points','Rotating calipers','Line sweep / union of rectangles','Floating point precision & epsilon']},
+  {n:'Misc techniques',i:['Meet in the middle','Randomised algorithms & reservoir sampling','Amortised analysis & potential method','P / NP / NP-complete / NP-hard concepts','Offline vs online algorithms']}
+ ]},
+ {n:'CS Core — Operating Systems',g:[
+  {n:'Processes & scheduling',i:['Process vs thread vs program, PCB','Process states & transitions','Context switching and its cost','FCFS, SJF, SRTF, priority with ageing','Round Robin, MLQ, MLFQ, CFS','Turnaround / waiting / response time numericals','Threading models & thread pools','User vs kernel threads, coroutines']},
+  {n:'Concurrency',i:['Race conditions & critical section problem','Peterson\u2019s solution','Test-and-set, compare-and-swap','Mutex vs binary vs counting semaphore','Monitors & condition variables','Spinlocks, barriers, read-write locks','Producer-consumer (bounded buffer)','Readers-writers problem','Dining philosophers','Sleeping barber']},
+  {n:'Deadlock',i:['Four Coffman conditions','Prevention strategies','Avoidance: Banker\u2019s algorithm numericals','Detection & recovery','Livelock, starvation','Priority inversion & inheritance']},
+  {n:'Memory',i:['Contiguous allocation, first/best/worst fit','Internal vs external fragmentation','Paging & page tables','Multi-level and inverted page tables','TLB and effective access time','Segmentation & segmented paging','Demand paging & page fault handling','FIFO, LRU, LFU, Optimal, Clock replacement','Belady\u2019s anomaly','Thrashing & working set model','Copy-on-write, memory-mapped files']},
+  {n:'Storage & system',i:['File allocation: contiguous, linked, indexed','Inodes, hard vs soft links','Journaling file systems','Disk scheduling: FCFS, SSTF, SCAN, C-SCAN, LOOK','RAID 0 / 1 / 5 / 6 / 10','IPC: pipes, shared memory, message queues, signals','System calls, user vs kernel mode','Interrupts vs traps vs exceptions','fork, exec, wait, zombie & orphan processes','Kernel types & boot sequence']}
+ ]},
+ {n:'CS Core — DBMS',g:[
+  {n:'Modelling & normalisation',i:['ER model, weak entities, generalisation','ER to relational mapping','Keys: super, candidate, primary, foreign, surrogate','Relational algebra & calculus','Functional dependencies & attribute closure','Canonical / minimal cover','1NF, 2NF, 3NF, BCNF','4NF & multivalued dependencies','Lossless join & dependency preservation','Denormalisation and when it is right']},
+  {n:'SQL depth',i:['All join types incl. self and anti-join','Subqueries & correlated subqueries','EXISTS vs IN vs JOIN','CTEs and recursive CTEs','ROW_NUMBER, RANK, DENSE_RANK, NTILE','LAG, LEAD, FIRST_VALUE, frame clauses','GROUPING SETS, ROLLUP, CUBE','NULL semantics & three-valued logic','Views & materialised views','Stored procedures, triggers, cursors']},
+  {n:'Indexing & optimisation',i:['B-tree vs B+ tree and why B+ for DBs','Hash index, bitmap index','Clustered vs non-clustered','Covering index & composite left-prefix rule','Selectivity, cardinality, when indexes hurt','Query plans and EXPLAIN','Join algorithms: nested loop, sort-merge, hash']},
+  {n:'Transactions & concurrency',i:['ACID properties & transaction states','Conflict vs view serialisability','Precedence graph','Recoverable & cascadeless schedules','Lock types & compatibility matrix','2PL, strict 2PL, rigorous 2PL','Timestamp ordering & Thomas write rule','Optimistic concurrency control','MVCC','Wait-die, wound-wait, wait-for graph','Isolation levels & the three anomalies','WAL, checkpoints, ARIES recovery']},
+  {n:'Scale & NoSQL',i:['Key-value, document, wide-column, graph DBs','CAP theorem & its misinterpretation','PACELC, BASE, eventual consistency','Sharding & partitioning strategies','Replication models','OLTP vs OLAP','Star & snowflake schema, SCDs']}
+ ]},
+ {n:'CS Core — Networks',g:[
+  {n:'Models & link layer',i:['OSI vs TCP/IP, encapsulation, PDUs','Multiplexing, Nyquist & Shannon limits','Framing & error detection (parity, checksum, CRC)','Hamming code error correction','Stop-and-wait, Go-Back-N, Selective Repeat','Sliding window efficiency calculations','ALOHA, CSMA/CD, CSMA/CA','Ethernet frames, switches vs hubs vs bridges','ARP / RARP, VLANs, spanning tree']},
+  {n:'Network layer',i:['IPv4 header & IPv6','Classful vs classless addressing','Subnetting & CIDR calculations','NAT / PAT, DHCP, ICMP','Fragmentation, MTU, TTL','Distance vector & count-to-infinity fixes','Link state / OSPF, BGP path vector','RIP, hierarchical routing, multicast']},
+  {n:'Transport layer',i:['TCP vs UDP tradeoffs, TCP header','Three-way handshake & four-way teardown','TCP state machine, TIME_WAIT rationale','Sequence & acknowledgement numbers','Flow control, zero window, silly window','Nagle\u2019s algorithm','Slow start & congestion avoidance','Fast retransmit & fast recovery','Tahoe, Reno, New Reno, CUBIC, BBR','Socket programming primitives']},
+  {n:'Application & security',i:['HTTP/1.1 vs 2 vs 3 (QUIC)','Methods, status codes, headers, caching','Cookies & sessions','HTTPS, TLS handshake, certificates, PKI','DNS hierarchy & resolution, record types','SMTP / IMAP / POP3, FTP, SSH','WebSockets vs long polling vs SSE','REST vs gRPC vs GraphQL','Symmetric vs asymmetric crypto, RSA','Diffie-Hellman, hashing, digital signatures, HMAC','DDoS, MITM, ARP & DNS spoofing','SQL injection, XSS, CSRF, session hijacking','What happens when you type google.com','ping, traceroute, dig, netstat, curl']}
+ ]},
+ {n:'CS Core — OOP & architecture',g:[
+  {n:'OOP',i:['Encapsulation, abstraction, inheritance, polymorphism','Inheritance types & access rules','Compile-time vs runtime polymorphism','Constructors: default, copy, move, delegating','Construction & destruction order','Virtual destructors and why they matter','Abstract classes vs interfaces','vtable and vptr mechanics','Static members, friend functions','Operator overloading rules & pitfalls','Diamond problem & virtual inheritance','Shallow vs deep copy, object slicing','this pointer, const member functions','Composition vs inheritance','Coupling, cohesion, DRY, KISS, Law of Demeter','SOLID — with a violation & fix for each']},
+  {n:'Computer architecture',i:['Von Neumann vs Harvard, RISC vs CISC','Instruction cycle & pipelining stages','Structural, data and control hazards','Forwarding, stalls, branch prediction','Cache mapping: direct, associative, set-associative','Replacement policies, write-through vs write-back','Cache coherence (MESI)','False sharing & cache-friendly code','Spatial & temporal locality','Endianness, alignment, struct padding','Amdahl\u2019s law, Little\u2019s law']}
+ ]},
+ {n:'Low-Level Design',g:[
+  {n:'Foundations',i:['Requirement clarification: functional vs non-functional','Identifying entities & responsibilities','Class, sequence and state diagrams','Interface-first design','Designing for the follow-up requirement','Thread safety & immutability in design','Lock granularity & lock ordering','Designing a thread-safe cache / connection pool']},
+  {n:'Creational patterns',i:['Singleton (thread-safe, and why it is often bad)','Factory Method','Abstract Factory','Builder & fluent interfaces','Prototype','Object Pool']},
+  {n:'Structural patterns',i:['Adapter','Bridge','Composite','Decorator','Facade','Flyweight','Proxy']},
+  {n:'Behavioural patterns',i:['Chain of Responsibility','Command','Iterator','Mediator','Memento','Observer','State','Strategy','Template Method','Visitor','Interpreter & Null Object']},
+  {n:'Concurrency & architectural',i:['Producer-Consumer','Thread Pool','Read-Write Lock','Monitor Object / Active Object','Future / Promise','MVC, MVP, MVVM','Repository, DAO, DTO','Dependency Injection & IoC','Event Sourcing & CQRS']},
+  {n:'Problems to implement',i:['Parking lot','Elevator system (multi-lift scheduling)','ATM','Vending machine','Library management','Hotel booking','Movie ticket booking (seat locking)','Splitwise','Snake & Ladder','Chess / Tic-tac-toe','Deck of cards','LRU & LFU cache','Rate limiter','Logging framework','Notification service','Food delivery system','Ride sharing (matching & pricing)','E-commerce cart & orders','Inventory management','In-memory file system','Task board (Trello / Jira)','Meeting scheduler with conflict detection','URL shortener (class level)','Auction system','Online judge','Chat application','Traffic signal controller','Car rental / airline reservation','Text editor with undo-redo','Spreadsheet with formula dependencies']}
+ ]},
+ {n:'High-Level Design',g:[
+  {n:'Building blocks',i:['Vertical vs horizontal scaling, stateless services','L4 vs L7 load balancing','LB algorithms & consistent hashing with vnodes','Health checks & sticky sessions','Cache layers: browser, CDN, proxy, app, DB','Cache-aside, read-through, write-through, write-back','Eviction policies & TTL strategy','Cache stampede / thundering herd mitigation','Hot key problem','Redis vs Memcached, Redis persistence','CDN push vs pull, edge caching','SQL vs NoSQL decision framework','Sharding: range, hash, geo, directory','Resharding & hotspots','Replication: single-leader, multi-leader, leaderless','Replication lag & read-your-writes','Connection pooling']},
+  {n:'Consistency & distribution',i:['Strong, eventual, causal consistency','Monotonic reads & writes','CAP theorem & PACELC','Quorum reads/writes (R + W > N)','Vector clocks & conflict resolution','CRDTs and last-write-wins','Linearisability vs serialisability','Consensus: Raft & Paxos concepts','Leader election','Distributed locks & Redlock criticisms','2PC and 3PC','Saga pattern: orchestration vs choreography','Circuit breaker & bulkhead','Retries with exponential backoff + jitter','Timeouts, deadlines, graceful degradation']},
+  {n:'Messaging & APIs',i:['Message queues vs pub-sub','Kafka: topics, partitions, offsets, consumer groups','Kafka ordering & retention guarantees','At-most / at-least / exactly-once semantics','Idempotency & idempotency keys','Dead letter queues & backpressure','Event-driven architecture','REST, GraphQL, gRPC, WebSockets, SSE','API versioning & pagination (offset vs cursor)','Rate limiting: token bucket & leaky bucket','Rate limiting: fixed, sliding window log & counter','Auth: sessions, JWT, OAuth 2.0, OIDC','Authorisation: RBAC vs ABAC']},
+  {n:'Storage, ops & estimation',i:['Object vs block vs file storage','Time-series databases','Inverted index & Elasticsearch relevance (BM25)','Microservices vs monolith tradeoffs','API gateway, BFF, service mesh','Docker & Kubernetes at concept level','Logging, metrics (RED/USE), distributed tracing','SLI / SLO / SLA & error budgets','Back-of-envelope: QPS, storage, bandwidth, servers','Latency numbers every programmer should know','Encryption at rest & in transit, secrets management','DDoS mitigation & WAF']},
+  {n:'Problems to design',i:['URL shortener','Pastebin','Twitter / X news feed (fanout tradeoffs)','Instagram','WhatsApp / real-time messenger','Uber (geospatial indexing, quadtree, geohash)','YouTube / Netflix streaming pipeline','Dropbox / Google Drive sync','Web crawler','Search autocomplete / typeahead','Distributed rate limiter','Notification system','Ticket booking with seat concurrency','Payment system & double-entry ledger','Distributed cache','Distributed unique ID generator','Leaderboard / ranking system','Ad click aggregator','Log collection & analytics pipeline','Proximity service (Yelp)','Stock exchange order matching','Google Docs (OT vs CRDT)','Recommendation system','Distributed job scheduler','Key-value store (Dynamo-style)']}
+ ]},
+ {n:'Engineering practice',g:[
+  {n:'Tooling',i:['Git: rebase vs merge, cherry-pick, bisect, reflog','Git internals: objects, refs, HEAD','PR workflow & conflict resolution','Linux: permissions, processes, pipes, redirection','grep, sed, awk, find, xargs, cron','Shell scripting basics','Docker: images, layers, volumes, networking','Multi-stage builds & docker-compose','CI/CD pipeline concepts (GitHub Actions)']},
+  {n:'Code quality',i:['Unit vs integration vs e2e testing','Mocking & test doubles, TDD','Writing testable code','Debugging with gdb & sanitizers','Profiling & performance measurement','One backend framework in real depth','One frontend framework (if claiming full-stack)','Rendering models: CSR, SSR, SSG, ISR','One cloud: compute, storage, DB, functions, IAM']}
+ ]},
+ {n:'Competitive programming',g:[
+  {n:'Volume & cadence',i:['Build and memorise a contest template','2–3 rated contests per week, consistently','Upsolve every unsolved problem within 48h','Maintain a wrong-answer log','Practise at current rating +200 to +300','CSES: complete Introductory & Sorting/Searching','CSES: complete Dynamic Programming','CSES: complete Graph Algorithms','CSES: complete Range Queries','CSES: complete Tree Algorithms','CSES: complete Mathematics & Strings','AtCoder DP contest, all tasks','Codeforces EDU sections']},
+  {n:'Rating milestones',i:['Reach Codeforces Specialist (1400)','Reach Codeforces Expert (1600) — the credibility floor','Reach Codeforces Candidate Master (1900)','CodeChef 5-star (2000+)','LeetCode Knight (1850+)','Register & clear ICPC Preliminaries','Qualify for ICPC Regionals']}
+ ]},
+ {n:'Interview craft',g:[
+  {n:'Assessment formats',i:['Pure DSA OA (2–4 problems, timed)','DSA + CS fundamentals MCQ hybrid','Output prediction & pointer trick questions','Aptitude: quant, logical, verbal, DI','Debugging / code completion rounds','Take-home project assessments']},
+  {n:'Round-by-round',i:['DSA screen: 1–2 mediums under 45 min','DSA + fundamentals combined round','LLD round: live class design & extension','HLD round with estimation','Project deep dive — 15 min of hostile questioning','Hiring manager behavioural round','HR round: expectations & location']},
+  {n:'Habits to drill',i:['Clarify constraints before writing code','Think out loud continuously','State brute force, then optimise, and say why','Write interview-clean code, not CP-terse code','Dry run on an example before declaring done','State time & space complexity unprompted','Verbalise your reasoning when stuck','Prepare the "why not core branch" answer','STAR stories: failure, conflict, ownership, ambiguity','2-minute and 15-minute version of every CV line']}
+ ]}
+]},
+
+{id:'ds',label:'Data Science',rated:true,sections:[
+ {n:'Mathematics',g:[
+  {n:'Linear algebra',i:['Vector spaces, span, basis, rank, nullity','Matrix operations, inverse, pseudo-inverse, trace','Gaussian elimination & linear systems','Orthogonality, Gram-Schmidt, projections','Least squares as a projection','Norms: L1, L2, L-inf, Frobenius','Why L1 induces sparsity','Eigenvalues, eigenvectors, diagonalisation','Spectral theorem','SVD: definition, geometry, low-rank approximation','SVD ↔ PCA relationship','Positive definite matrices & quadratic forms','LU, QR, Cholesky decompositions','Matrix calculus & derivative identities']},
+  {n:'Calculus & optimisation',i:['Partial derivatives, chain rule, gradients','Jacobian and Hessian','Taylor expansion, first & second order','Convex sets and convex functions','First & second order optimality conditions','Lagrange multipliers','KKT conditions','Primal-dual formulation & duality gap','Gradient descent, SGD, mini-batch','Momentum and convergence behaviour','Newton and quasi-Newton (BFGS, L-BFGS)','Coordinate descent']},
+  {n:'Probability',i:['Conditional probability & law of total probability','Bayes theorem applications','Independence vs conditional independence','PMF, PDF, CDF, quantile function','Expectation, variance, covariance, correlation','Moments, skewness, kurtosis, MGF','Bernoulli, Binomial, Multinomial','Geometric, Negative Binomial, Hypergeometric','Poisson & the Poisson process','Uniform, Normal, Exponential','Gamma, Beta, Chi-square, t, F, Log-normal','Joint, marginal & conditional distributions','Multivariate normal','Transformations of random variables (Jacobian)','Order statistics','Law of Large Numbers','Central Limit Theorem — statement & conditions','Markov, Chebyshev, Jensen, Hoeffding inequalities','Markov chains & stationary distributions']},
+  {n:'Statistics',i:['Sampling methods & sampling bias','Survivorship bias & Simpson\u2019s paradox','Sampling distributions & standard error','Bias, consistency, efficiency, sufficiency','Cramer-Rao bound','MLE derivation for common distributions','MAP & method of moments','Confidence intervals — correct interpretation','Null vs alternative hypothesis','p-value — the precise definition','Type I & Type II errors, power, effect size','z-test and t-test (paired, independent, Welch)','Chi-square goodness of fit & independence','ANOVA (one-way, two-way) and F-test','Mann-Whitney U, Wilcoxon, KS test','Shapiro-Wilk & Levene tests','Bonferroni, Holm, Benjamini-Hochberg FDR','Bootstrap & jackknife','Permutation tests','Bayesian inference & conjugate priors','Credible vs confidence intervals','MCMC: Metropolis-Hastings & Gibbs','OLS assumptions and what breaks when each fails','Heteroskedasticity, multicollinearity (VIF)','Residual analysis, Cook\u2019s distance, Q-Q plots','Gauss-Markov theorem & BLUE']}
+ ]},
+ {n:'Programming & SQL',g:[
+  {n:'Python',i:['Data structures & their complexities','Mutability, shallow vs deep copy','Comprehensions, generators, iterators','Decorators, closures, functools','Context managers','Dunder methods, properties, dataclasses','MRO & class vs static methods','collections module fluency','Type hints & pydantic','GIL: multiprocessing vs threading vs asyncio','Memory management & garbage collection','Virtual envs, packaging, project structure']},
+  {n:'NumPy & Pandas',i:['ndarray, dtypes, views vs copies','Broadcasting rules','Fancy indexing & boolean masking','Vectorisation over loops','Memory layout & strides','Series, DataFrame, MultiIndex','loc vs iloc vs at vs iat','groupby: aggregate, transform, filter','merge, join, concat with validation','pivot, pivot_table, melt, stack, unstack','apply vs map vs vectorised ops','Missing data handling & interpolation','Datetime, resampling, rolling windows','Categorical dtype & memory optimisation','Method chaining, query, assign','SettingWithCopyWarning & chained indexing']},
+  {n:'SQL for analytics',i:['Window functions in real depth','Top-N per group & deduplication','Self-joins and anti-joins','Cohort analysis in pure SQL','Retention curves','Funnel & conversion analysis','Sessionisation (gaps and islands)','Running totals & moving averages','Period-over-period, YoY, MoM','Generating date series','Pivoting without a PIVOT clause','NULL handling in aggregates & joins','Reading execution plans','Practice: StrataScratch / DataLemur sets']},
+  {n:'Visualisation',i:['Matplotlib figure/axes model','Seaborn distribution & relational plots','Plotly interactivity','Choosing the right chart type','Avoiding misleading axes & scales','Streamlit or Dash dashboarding']}
+ ]},
+ {n:'Classical machine learning',g:[
+  {n:'Framework',i:['Supervised, unsupervised, self-supervised, RL','Parametric vs non-parametric','Discriminative vs generative','Train / validation / test — why three splits','Bias-variance decomposition (derive it)','Learning curves & validation curves','Curse of dimensionality','No Free Lunch theorem']},
+  {n:'Regression',i:['OLS via normal equation and gradient descent','Coefficient interpretation, R² & adjusted R²','Polynomial regression','Ridge: closed form & geometric intuition','Lasso: sparsity & coordinate descent','Elastic Net','Quantile & robust regression (Huber, RANSAC)','Generalised linear models & link functions','Poisson regression','Isotonic regression']},
+  {n:'Classification',i:['Logistic regression: MLE derivation & log loss','Log-odds & odds-ratio interpretation','Multiclass: one-vs-rest and softmax','Naive Bayes variants & Laplace smoothing','Why the independence assumption still works','KNN & distance metrics (incl. Mahalanobis)','KD-trees and ball trees','SVM: margins, hinge loss, C parameter','Kernel trick & kernel selection, gamma','Dual formulation & support vectors','LDA and QDA','Perceptron']},
+  {n:'Trees & ensembles',i:['Gini, entropy, information gain, gain ratio','CART vs ID3 vs C4.5','Pruning & cost-complexity','Why trees overfit','Bagging, bootstrap, out-of-bag error','Random forest & decorrelation','Gini importance vs permutation importance','Extremely randomised trees','AdaBoost & exponential loss','Gradient boosting as functional gradient descent','XGBoost: second-order objective & regularisation','XGBoost: sparsity-aware splits, quantile sketch','LightGBM: leaf-wise growth, GOSS, EFB','CatBoost: ordered boosting & target statistics','Stacking, blending, voting','When boosting beats bagging']},
+  {n:'Unsupervised',i:['K-means, Lloyd\u2019s algorithm, k-means++','Choosing k: elbow, silhouette, gap statistic','K-means limitations & k-medoids','Hierarchical clustering & linkage criteria','DBSCAN: eps, minPts, core/border/noise','HDBSCAN and OPTICS','Gaussian Mixture Models','EM algorithm derivation & convergence','Spectral clustering, mean shift','Silhouette, Davies-Bouldin, ARI, NMI','PCA: variance & reconstruction derivations','Explained variance & scaling requirement','Kernel PCA, incremental PCA','t-SNE: perplexity & global distance caveat','UMAP','ICA, factor analysis, MDS','Random projection & Johnson-Lindenstrauss','NMF']},
+  {n:'Anomaly & recommenders',i:['Z-score, IQR, Mahalanobis outlier detection','Isolation Forest','One-Class SVM & Local Outlier Factor','Autoencoder reconstruction error','Content-based filtering','User-based & item-based collaborative filtering','Matrix factorisation: SVD, funk SVD, ALS','Implicit feedback (BPR, WARP)','Factorisation machines','Two-tower neural retrieval','Cold start, popularity bias, diversity','precision@k, recall@k, MAP, NDCG, MRR','Candidate generation vs ranking architecture']}
+ ]},
+ {n:'Time series & causal inference',g:[
+  {n:'Time series',i:['Trend, seasonality, cyclicality, STL decomposition','Stationarity & why it matters','ADF and KPSS tests, differencing','Reading ACF and PACF for model orders','AR, MA, ARMA, ARIMA','SARIMA and SARIMAX','Exponential smoothing & Holt-Winters','Prophet and its assumptions','VAR, Granger causality, cointegration','GARCH & volatility modelling','Lag features & rolling statistics','Fourier terms for seasonality','LSTM / TCN / Temporal Fusion Transformer','Walk-forward & time-series cross-validation','Why random k-fold is invalid here','MAE, RMSE, MAPE, sMAPE, MASE','Multi-horizon & hierarchical forecasting']},
+  {n:'Causal inference',i:['Confounders, colliders, mediators','Potential outcomes, ATE / ATT / CATE','RCTs as the gold standard','Difference-in-differences & parallel trends','Propensity score matching','Inverse probability weighting','Instrumental variables','Regression discontinuity','Synthetic control','Uplift modelling: T / S / X learners','Causal forests','DAGs & the backdoor criterion']},
+  {n:'Survival analysis',i:['Censoring types','Survival & hazard functions','Kaplan-Meier & log-rank test','Cox proportional hazards','Applying survival models to churn']}
+ ]},
+ {n:'Evaluation & model engineering',g:[
+  {n:'Validation',i:['Hold-out, k-fold, stratified k-fold','Leave-one-out & group k-fold','Time-series split','Nested cross-validation','Target leakage','Train-test contamination (scaling before split)','Temporal & group leakage']},
+  {n:'Metrics',i:['Confusion matrix & derived rates','Precision, recall, specificity, F1, F-beta','Balanced accuracy, MCC, Cohen\u2019s kappa','ROC curve & AUC','PR curve & PR-AUC — when to prefer it','Log loss & Brier score','Lift and gain charts','MSE, RMSE, MAE, MAPE, R², adjusted R²','Threshold selection & cost-sensitive thresholds','Calibration curves & expected calibration error','Platt scaling & isotonic regression','Why AUC does not imply calibration']},
+  {n:'Imbalance & features',i:['Class weights & threshold moving','Random over / undersampling','SMOTE, Borderline-SMOTE, ADASYN','Tomek links & NearMiss','Focal loss','Balanced ensembles','Scaling: standard, min-max, robust, quantile','One-hot, ordinal, frequency, hashing encoding','Target encoding with out-of-fold to avoid leakage','Binning, interactions, polynomial features','Log, Box-Cox, Yeo-Johnson transforms','Datetime & cyclical (sin/cos) encoding','Aggregation and geospatial features','MCAR / MAR / MNAR','KNN imputation, MICE, missingness indicators','Outlier treatment & winsorising']},
+  {n:'Tuning & interpretability',i:['Grid vs random search — why random wins','Bayesian optimisation (Optuna, TPE)','Successive halving & Hyperband','Early stopping strategies','Permutation importance','SHAP: Shapley values, TreeSHAP, KernelSHAP','SHAP summary & dependence plots','LIME','Partial dependence & ICE plots','Accumulated local effects','Counterfactual explanations','Demographic parity, equal opportunity, equalised odds','Disparate impact & fairness impossibility results']}
+ ]},
+ {n:'Deep learning',g:[
+  {n:'Fundamentals',i:['Perceptron, MLP, universal approximation','Backpropagation — derive for a 2-layer net','Computational graphs & autodiff modes','Sigmoid, tanh, ReLU, Leaky ReLU, PReLU, ELU','GELU, SiLU/Swish, softmax','Vanishing & exploding gradients, dying ReLU','MSE, MAE, Huber losses','Binary & categorical cross-entropy','KL divergence, hinge, focal, Dice, CTC','Contrastive & triplet losses','SGD, momentum, Nesterov','AdaGrad, RMSProp','Adam & bias correction, AdamW decoupled decay','LR schedules: step, cosine, warmup, one-cycle','Gradient clipping','Xavier / He / orthogonal initialisation','Batch norm: train vs inference behaviour','Layer, group, instance norm, RMSNorm','Dropout & its train/inference scaling','Label smoothing, mixup, cutmix','Weight decay vs L2','Mixed precision & gradient accumulation','Gradient checkpointing','Data, model, pipeline & tensor parallelism','ZeRO / FSDP']},
+  {n:'CNNs',i:['Convolution, stride, padding, dilation','Output size formula & receptive field calculation','Parameter counting for a conv layer','Max, average & global average pooling','1x1 convolutions and their purpose','Depthwise separable & grouped convolution','Transposed convolution & upsampling','LeNet, AlexNet, VGG','Inception / GoogLeNet','ResNet & why residuals solve degradation','DenseNet, MobileNet, EfficientNet','ConvNeXt','Transfer learning & discriminative LRs']},
+  {n:'Sequence models',i:['Vanilla RNN & BPTT','LSTM gates & cell state','GRU vs LSTM tradeoffs','Bidirectional & stacked RNNs','Seq2seq, teacher forcing, exposure bias','Bahdanau vs Luong attention','Why attention was introduced']}
+ ]},
+ {n:'Transformers',g:[
+  {n:'Anatomy',i:['Subword tokenisation: BPE, WordPiece, SentencePiece','Vocabulary size tradeoffs & OOV handling','Token embeddings & weight tying','Sinusoidal vs learned positional encoding','RoPE (rotary) and ALiBi','Q, K, V projections & scaled dot-product','Why divide by sqrt(d_k)','Multi-head attention & output projection','Causal masking and padding masks','Cross-attention','Position-wise FFN & expansion ratio','Residuals + pre-LN vs post-LN stability','Full encoder and decoder block anatomy']},
+  {n:'Families & efficiency',i:['Encoder-only: BERT, RoBERTa, DeBERTa','BERT pretraining: MLM & NSP','Decoder-only: GPT, LLaMA, Mistral','Encoder-decoder: T5, BART','KV cache: contents, speedup, memory cost','O(n²) attention complexity','Flash Attention (IO-awareness & tiling)','Sparse, sliding-window & linear attention','MQA and GQA','Mixture of Experts routing & load balancing']}
+ ]},
+ {n:'Generative models & RL',g:[
+  {n:'Generative',i:['Autoencoders & denoising autoencoders','VAE: ELBO derivation','Reparameterisation trick & posterior collapse','GAN minimax objective','Mode collapse & training instability','WGAN & gradient penalty','Conditional GAN, StyleGAN, CycleGAN','Diffusion: forward noising & reverse denoising','DDPM vs DDIM','Classifier-free guidance','Latent diffusion & the U-Net backbone','Normalising flows (awareness)']},
+  {n:'Reinforcement learning',i:['MDP formulation & Bellman equations','Value iteration & policy iteration','Monte Carlo & TD learning','SARSA vs Q-learning','Exploration vs exploitation, epsilon-greedy, UCB','DQN: experience replay & target network','Double and Dueling DQN','REINFORCE & baselines','Actor-critic, A2C / A3C','PPO clipped objective, TRPO','DDPG and SAC','Multi-armed bandits & Thompson sampling','Contextual bandits','RLHF: reward model + PPO fine-tuning','DPO as a simpler alternative','KL penalty & reward hacking']}
+ ]},
+ {n:'NLP & Computer Vision',g:[
+  {n:'NLP',i:['Tokenisation, stemming, lemmatisation','POS tagging, dependency parsing','NER, relation extraction, coreference','Bag of words & TF-IDF derivation','n-gram LMs & smoothing (Kneser-Ney)','Perplexity','Word2Vec: CBOW, skip-gram, negative sampling','GloVe & FastText subwords','Embedding bias & limitations','Sentence-BERT & retrieval embedding models','Text classification & sentiment','Extractive vs abstractive QA and summarisation','Topic modelling: LDA & BERTopic','BLEU, ROUGE, METEOR, BERTScore']},
+  {n:'Computer vision',i:['Colour spaces, histograms, filters','Sobel, Canny, Harris, SIFT / ORB, HOG','Augmentation: geometric, colour, cutout, RandAugment','R-CNN → Fast → Faster R-CNN, RPN, anchors','RoI pooling vs RoI align','YOLO family, SSD, RetinaNet & focal loss','Anchor-free detectors (FCOS, CenterNet)','DETR: set prediction & Hungarian matching','IoU, NMS, soft-NMS, mAP computation','Semantic segmentation: FCN, U-Net, DeepLab','Instance & panoptic segmentation, Mask R-CNN','Dice coefficient, IoU loss, combined losses','Vision Transformer & Swin','CLIP contrastive image-text training','SAM & vision-language models','Video: 3D CNNs & two-stream networks']}
+ ]},
+ {n:'GenAI & LLM systems',g:[
+  {n:'Foundations',i:['Pretraining objectives & data curation','Scaling laws (Kaplan, Chinchilla)','Compute-optimal training','SFT & instruction tuning','Preference optimisation: RLHF, DPO, KTO, ORPO','Context window & lost-in-the-middle','Token accounting & cost modelling']},
+  {n:'Decoding & prompting',i:['Greedy vs beam search vs sampling','Temperature, top-k, top-p/nucleus, min-p','Repetition, frequency & presence penalties','Constrained decoding & grammar constraints','Structured JSON output with schema enforcement','Speculative decoding','Zero-shot, few-shot, in-context learning','Chain-of-thought & self-consistency','Least-to-most, tree of thoughts','ReAct and Reflexion','System prompts, delimiters, format specs','Prompt chaining & decomposition','Prompt versioning as engineering discipline']},
+  {n:'RAG',i:['Why RAG: grounding, freshness, auditability','RAG vs fine-tuning decision framework','Ingestion: parsing PDFs, tables, HTML','Fixed-size and sliding-window chunking','Semantic & recursive character chunking','Document-structure-aware chunking','Parent-document / small-to-big retrieval','Chunk size tradeoffs','Embedding model selection & dimensionality','Vector DBs: Pinecone, Weaviate, Qdrant, Chroma','FAISS and pgvector','HNSW: graph structure, ef and M parameters','IVF, IVF-PQ, product quantisation, LSH','Recall vs latency tradeoff','Cosine vs dot vs Euclidean & normalisation','Hybrid search: BM25 + dense, RRF','Reranking with cross-encoders & ColBERT','Query rewriting & expansion','HyDE, multi-query, step-back prompting','Multi-hop RAG & GraphRAG','Self-RAG & corrective RAG','Agentic RAG','Metadata filtering & access control','Context assembly, ordering, citations','Retrieval metrics: recall@k, MRR, NDCG','RAGAS: faithfulness, context precision & recall','LLM-as-judge for generation quality','RAG failure modes & diagnosis']},
+  {n:'Fine-tuning & efficiency',i:['Full fine-tuning cost & catastrophic forgetting','LoRA: rank, alpha, target modules','QLoRA: NF4, double quantisation, paged optimisers','Adapters, prefix tuning, P-tuning v2, IA³','Instruction dataset construction & quality','Synthetic data generation','Post-training vs quantisation-aware training','GPTQ, AWQ, GGUF, bitsandbytes','Knowledge distillation','Pruning & sparsity','Continual pretraining for domain adaptation']},
+  {n:'Agents',i:['Function/tool calling: schemas & error handling','ReAct loop: reason, act, observe','Planning & task decomposition','Plan-and-execute vs hierarchical planning','Short-term vs long-term memory','Summarisation & entity memory','Multi-agent: supervisor, sequential, hierarchical','LangChain fundamentals','LangGraph: nodes, edges, state, checkpointing','LlamaIndex, CrewAI, AutoGen','MCP (Model Context Protocol)','Human-in-the-loop & approval gates','Failure modes: loops, tool misuse, cost blowups','Step limits, budgets, output validation']},
+  {n:'Serving, eval & safety',i:['vLLM & PagedAttention, continuous batching','TGI, TensorRT-LLM, Ollama','TTFT vs TPOT latency budgeting','Prompt caching & semantic caching','Model routing & cascading','Golden datasets & regression suites','LLM-as-judge biases','Benchmarks: MMLU, GSM8K, HumanEval, HELM','Online A/B testing of prompts','Tracing: LangSmith, Langfuse, Phoenix','Hallucination causes & mitigations','Direct vs indirect prompt injection','Jailbreaking & defence layers','PII detection & redaction','Guardrails: NeMo, Llama Guard','OWASP Top 10 for LLM applications']}
+ ]},
+ {n:'Experimentation & product analytics',g:[
+  {n:'A/B testing',i:['Hypothesis & randomisation unit selection','Sample ratio mismatch checks & A/A tests','Power analysis & minimum detectable effect','Duration calculation & weekly seasonality','Primary, secondary & guardrail metrics','Overall evaluation criterion','Peeking & the early stopping problem','Multiple comparisons in experiments','Novelty & primacy effects','Network effects & SUTVA violations','Sequential & always-valid inference','CUPED variance reduction','Stratification & regression adjustment','Bandits vs A/B tests','Switchback & geo experiments','Cluster randomisation for marketplaces']},
+  {n:'Product analytics',i:['North star, input vs output metrics','Leading vs lagging indicators & counter metrics','Metric sensitivity','DAU / WAU / MAU & stickiness','Retention: n-day, rolling, cohort curves','Churn & resurrection','Funnel and conversion analysis','Activation, LTV, CAC, ARPU','Root cause analysis for a metric drop','Segment-level diagnosis & instrumentation checks','Launch decisions under ambiguity','Guesstimates & market sizing','MECE structuring & hypothesis-driven analysis']}
+ ]},
+ {n:'MLOps & big data',g:[
+  {n:'MLOps',i:['Reproducibility, seeding, environment pinning','MLflow / Weights & Biases experiment tracking','Model registry & versioning','Data versioning with DVC','Airflow DAGs & scheduling','Prefect, Dagster, Kubeflow, Metaflow','FastAPI model serving','Batch vs real-time vs streaming inference','TorchServe, Triton, ONNX Runtime','Docker for ML & GPU containers','Kubernetes basics & autoscaling','Data validation (Great Expectations, Pandera)','Model tests & CI/CD for ML','Data drift: KS test, PSI, Wasserstein','Concept drift & delayed-label monitoring','Shadow deployment & canary release','Champion-challenger setups','Feature stores (Feast, Tecton)','Training-serving skew & point-in-time correctness','SageMaker / Vertex AI / Azure ML basics','Cost optimisation & GPU utilisation','Model cards, lineage & audit trails']},
+  {n:'Big data',i:['Shared-nothing architecture','HDFS blocks, replication, NameNode','MapReduce paradigm','Spark architecture: driver, executors, cluster manager','RDD vs DataFrame vs Dataset','Lazy evaluation, transformations vs actions','Narrow vs wide dependencies & shuffles','Partitioning & repartitioning','Broadcast joins','Caching & persistence levels','Catalyst optimiser & Tungsten','Data skew handling (salting) & AQE','PySpark API & Spark SQL','Why Python UDFs are slow','Kafka in a data pipeline','Structured Streaming, watermarks, windowing','Snowflake / BigQuery / Redshift','dbt and ELT vs ETL','Delta Lake, Iceberg, Hudi','Parquet vs ORC vs Avro, predicate pushdown','Star schema, fact & dimension tables','Slowly changing dimensions']}
+ ]},
+ {n:'Coding & interview formats',g:[
+  {n:'DSA for DS roles',i:['Arrays, strings, hashing, two pointers','Sliding window','Sorting & binary search on answer','Stacks, queues, heaps','Trees & graph traversal, shortest path','Standard DP patterns','Recursion & backtracking','Complexity analysis']},
+  {n:'From-scratch implementations',i:['Linear regression with gradient descent','Logistic regression from scratch','K-means from scratch','KNN from scratch','PCA from scratch','K-fold cross-validation loop','Gradient descent variants','Attention mechanism in NumPy','Small MLP with manual backprop','Probability simulation problems']},
+  {n:'Interview archetypes',i:['Product DS: SQL + stats + product sense','ML Engineer: DSA + ML depth + ML system design','Applied Scientist: derivations + paper discussion','Quant/HFT: probability puzzles + mental maths speed','GenAI Engineer: RAG & agent system design','Analytics consulting: cases + guesstimates','ML system design: end-to-end pipeline questions']}
+ ]}
+]},
+
+{id:'cv',label:'CV',rated:true,sections:[
+ {n:'Format & education',g:[
+  {n:'Format discipline',i:['Strictly one page in the CDC template','Second polished version for off-campus & referrals','Reverse chronological within each section','Every bullet has an action verb, method and number','No photo, no objective statement, no references line','Consistent tense and date format throughout','Zero spelling and grammar errors','Two versions maintained: SDE and Data Science']},
+  {n:'Education section',i:['Degree, branch, institute, CGPA, year','Micro-specialisation or minor in CS / AI-ML','Class 12 and 10 percentages (if above ~92%)','JEE Advanced AIR (if within ~top 2000)','Relevant coursework line listed explicitly']}
+ ]},
+ {n:'Internships & experience',g:[
+  {n:'SDE track targets',i:['Summer SDE internship at a top-tier product company','PPO or PPI secured from that internship','GSoC / LFX / MLH Fellowship with merged PRs','Series B+ startup internship with a shipped feature','Visible progression across two internships']},
+  {n:'DS track targets',i:['Research internship abroad (MITACS, DAAD, Charpak, Khorana)','Research under an IIT KGP AI faculty','Paper or preprint from the research work','DS/ML internship with a model in production','First-author or co-author publication at a real venue']},
+  {n:'Bullet quality',i:['Problem and its scale stated (users, data, latency, cost)','What you specifically built, not what the team built','A measurable delta on every bullet','Technology named once, not listed','Every claim survives 20 minutes of questioning']}
+ ]},
+ {n:'Projects',g:[
+  {n:'SDE project mix',i:['One systems-depth project (distributed store, mini DB, compiler)','One deployed product with real, honest user numbers','One optimisation project with before/after benchmarks','Public GitHub with architecture diagram in the README','Tests and CI configured','Commit history spread over weeks, not one dump']},
+  {n:'DS project mix',i:['One end-to-end ML system in production, not a notebook','Pipeline + deployed API + monitoring + retraining trigger','One GenAI system with a documented eval harness','Chunking, embedding and retrieval choices you can defend','One paper reproduction with an honest results table','One Kaggle competition finish in the top 10%','Dataset provenance and baseline comparison stated','Metrics that actually match the problem']},
+  {n:'Discipline',i:['Two to four projects total — depth over breadth','Every project has a 2-minute and a 15-minute version','A prepared answer for "what would you do differently"','A prepared answer for "what broke and how did you find it"']}
+ ]},
+ {n:'Achievements & positions',g:[
+  {n:'SDE signals',i:['Codeforces Expert (1600+) — minimum to list','Codeforces Candidate Master (1900+) — the real target','CodeChef 5-star / LeetCode Knight','ICPC Regionals qualification','Inter-IIT Tech Meet medal','Smart India Hackathon result','Corporate hackathon win (Flipkart GRiD, Amazon, Adobe)']},
+  {n:'DS signals',i:['Kaggle Competitions Expert (medal)','Kaggle Competitions Master','Publication with a named venue','Amazon ML Challenge / Analytics Vidhya top rank','Inter-IIT ML problem statement medal']},
+  {n:'Positions & skills',i:['Tech-society POR (KDAG for DS, KOSS for SDE)','Gymkhana head/governor-level role','Every POR bullet quantified','Skills tiered and capped at ~15 items','Nothing listed you cannot defend for 15 minutes','Scholarships & olympiads (KVPY, NTSE, INSPIRE, IOQM)']}
+ ]},
+ {n:'Leverage actions',g:[
+  {n:'Highest return first',i:['Codeforces rating climb (SDE) — CGPA-blind signal','Kaggle medal (DS) — achievable in 6–10 focused weeks','Deep CS fundamentals mastery — converts interviews','One flagship project with users and honest metrics','Register for a CS / AI-ML micro-specialisation','Merged open-source contributions on a known repo','Inter-IIT Tech Meet participation','Rehearsed "why not core branch" answer','Pull historical CGPA cutoffs for every target company','Talk to seniors who converted your target companies']}
+ ]},
+ {n:'Red flags eliminated',g:[
+  {n:'Confirm each is clean',i:['No more than four projects listed','No tutorial follow-along projects','Every number reproducible with a stated method','No Kaggle notebook labelled as an "ML system"','No MOOC certificates under achievements','GitHub link present with real commit history','No "worked on" / "responsible for" / "assisted with" bullets','No buzzword stacking without a system behind it','No single generic CV sent to both SDE and DS roles']}
+ ]}
+]},
+
+{id:'plan',label:'Schedule',rated:false,sections:[
+ {n:'Phase 1 · Weeks 1–4 · August · Foundations',g:[
+  {n:'Daily rhythm',i:['3 hours DSA on identified weak areas','1.5 hours CS fundamentals, one subject at a time','1 hour SQL practice plus one ML topic','2–3 rated contests per week','Upsolve within 48 hours, every time']},
+  {n:'Milestones',i:['CSES: 150+ problems solved','Operating Systems completed with notes','DBMS completed with notes','SQL: window functions and cohort queries fluent','Measurable Codeforces rating movement']}
+ ]},
+ {n:'Phase 2 · Weeks 5–8 · September · Depth & CV freeze',g:[
+  {n:'Focus',i:['Maintain DSA and contest cadence','Complete Computer Networks','Complete OOP and design principles','Start LLD: patterns plus 2 coded problems weekly','Finish and polish the flagship project','Commit to one Kaggle competition through Week 10','Register for ICPC Preliminaries']},
+  {n:'Milestones',i:['All four CS core subjects done with revision notes','10+ LLD problems implemented in code','CV frozen and reviewed by converted seniors','Both CV versions final (SDE and DS)','CSES: 250+ problems solved']}
+ ]},
+ {n:'Phase 3 · Weeks 9–12 · October · OA season',g:[
+  {n:'Focus',i:['Treat every OA as a timed contest','Timed sets: 3 problems in 90 minutes','Start HLD: 2 written designs per week with estimation','Continue LLD at 2 problems per week','Two mock interviews per week, minimum','Prepare project deep-dive answers for every CV line','STAR stories drilled and timed']},
+  {n:'Milestones',i:['20+ HLD and LLD problems covered','15+ mock interviews completed','Every CV claim stress-tested by someone else']}
+ ]},
+ {n:'Phase 4 · Weeks 13–16 · November · Peak',g:[
+  {n:'Focus',i:['No new topics — revision only','2 problems daily from the wrong-answer log','1 hour CS fundamentals revision daily','1 design problem daily','Company-specific prep from placement archives','Sleep schedule shifted to interview hours','Stop chasing rating in the final two weeks']},
+  {n:'Ongoing',i:['Single revision document maintained throughout','Application and cutoff tracker kept current','Regular conversations with seniors in target companies']}
+ ]}
+]}
+];
+
+/* ============================ BADGES ============================ */
+const BADGES=[
+ {id:'first',ic:'▶',n:'First Blood',d:'Clear your first topic',t:s=>s.done>=1},
+ {id:'fifty',ic:'◈',n:'Fifty Down',d:'50 topics cleared',t:s=>s.done>=50},
+ {id:'twofifty',ic:'◆',n:'Deep Water',d:'250 topics cleared',t:s=>s.done>=250},
+ {id:'blue',ic:'●',n:'Blue Handle',d:'Reach Expert (1600)',t:s=>s.rating>=1600},
+ {id:'purple',ic:'★',n:'Purple Handle',d:'Reach Candidate Master (1900)',t:s=>s.rating>=1900},
+ {id:'orange',ic:'✦',n:'Orange Handle',d:'Reach Master (2100)',t:s=>s.rating>=2100},
+ {id:'core4',ic:'▤',n:'Core Four',d:'OS, DBMS, Networks and OOP complete',t:s=>s.secDone('sde','CS Core — Operating Systems')&&s.secDone('sde','CS Core — DBMS')&&s.secDone('sde','CS Core — Networks')&&s.secDone('sde','CS Core — OOP & architecture')},
+ {id:'graph',ic:'⬡',n:'Graph Theorist',d:'Finish the graphs section',t:s=>s.secDone('sde','DSA — Graphs')},
+ {id:'dp',ic:'⬢',n:'Optimal Substructure',d:'Finish dynamic programming',t:s=>s.secDone('sde','DSA — Dynamic programming')},
+ {id:'lld',ic:'▧',n:'Pattern Matcher',d:'Finish Low-Level Design',t:s=>s.secDone('sde','Low-Level Design')},
+ {id:'hld',ic:'▦',n:'Systems Thinker',d:'Finish High-Level Design',t:s=>s.secDone('sde','High-Level Design')},
+ {id:'tf',ic:'⟐',n:'Attention Is All',d:'Finish the transformers section',t:s=>s.secDone('ds','Transformers')},
+ {id:'genai',ic:'◐',n:'Grounded',d:'Finish GenAI & LLM systems',t:s=>s.secDone('ds','GenAI & LLM systems')},
+ {id:'stats',ic:'∑',n:'Significant',d:'Finish mathematics',t:s=>s.secDone('ds','Mathematics')},
+ {id:'cvdone',ic:'▣',n:'Paper Ready',d:'Complete the whole CV track',t:s=>s.trackPct('cv')>=100},
+ {id:'dual',ic:'⇄',n:'Dual Track',d:'25% in both SDE and Data Science',t:s=>s.trackPct('sde')>=25&&s.trackPct('ds')>=25},
+ {id:'st7',ic:'▪',n:'Week Streak',d:'7 days in a row',t:s=>s.streak>=7},
+ {id:'st30',ic:'▪▪',n:'Month Streak',d:'30 days in a row',t:s=>s.streak>=30},
+ {id:'half',ic:'◑',n:'Halfway',d:'50% of everything cleared',t:s=>s.pct>=50},
+ {id:'full',ic:'✷',n:'Full Clear',d:'100% of everything cleared',t:s=>s.pct>=100}
+];
+
+/* ============================ STATE ============================ */
+const KEY='placement-ladder-v1';
+let S={checked:{},days:[],badges:[],open:{}};
+let ACTIVE='overview', QUERY='';
+let saveTimer=null, memOnly=false;
+
+function hash(str){let h=5381;for(let i=0;i<str.length;i++)h=((h<<5)+h+str.charCodeAt(i))>>>0;return h.toString(36)}
+function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function dateStr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+
+/* build a flat index */
+const INDEX=[];
+TRACKS.forEach(t=>t.sections.forEach(sec=>sec.g.forEach(g=>g.i.forEach(label=>{
+  INDEX.push({id:hash(t.id+'|'+sec.n+'|'+label),track:t.id,rated:t.rated,sec:sec.n,grp:g.n,label});
+}))));
+const RATED=INDEX.filter(x=>x.rated);
+
+async function load(){
+  try{
+    if(!window.storage){memOnly=true;return}
+    const r=await window.storage.get(KEY);
+    if(r&&r.value){const p=JSON.parse(r.value);S={checked:p.checked||{},days:p.days||[],badges:p.badges||[],open:p.open||{}}}
+  }catch(e){ /* first run or storage unavailable — start clean */ }
+}
+function save(){
+  if(memOnly||!window.storage)return;
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(async()=>{
+    try{await window.storage.set(KEY,JSON.stringify(S))}
+    catch(e){toast('Could not save progress just now')}
+  },400);
+}
+
+/* ============================ DERIVED ============================ */
+function stats(){
+  const done=RATED.filter(x=>S.checked[x.id]).length;
+  const total=RATED.length;
+  const pct=total?done/total*100:0;
+  const rating=Math.round(800+pct/100*2400);
+  const st={done,total,pct,rating,streak:streakCount(),
+    trackPct:tid=>{const a=INDEX.filter(x=>x.track===tid);return a.length?a.filter(x=>S.checked[x.id]).length/a.length*100:0},
+    secDone:(tid,sn)=>{const a=INDEX.filter(x=>x.track===tid&&x.sec===sn);return a.length>0&&a.every(x=>S.checked[x.id])}
+  };
+  return st;
+}
+function rankOf(r){let k=RANKS[0];for(const x of RANKS)if(r>=x.min)k=x;return k}
+function streakCount(){
+  if(!S.days.length)return 0;
+  const set=new Set(S.days);let n=0;const d=new Date();
+  if(!set.has(dateStr(d)))d.setDate(d.getDate()-1);
+  while(set.has(dateStr(d))){n++;d.setDate(d.getDate()-1)}
+  return n;
+}
+function daysLeft(){return Math.max(0,Math.ceil((DAY1-new Date())/864e5))}
+function phaseNow(){
+  const d=daysLeft();
+  if(d>84)return'Phase 1 · Foundations';
+  if(d>56)return'Phase 2 · Depth & CV freeze';
+  if(d>28)return'Phase 3 · OA season';
+  if(d>0)return'Phase 4 · Peak & revision';
+  return'Placement season is live';
+}
+
+/* ============================ TOGGLE ============================ */
+function toggle(id){
+  const was=!!S.checked[id];
+  if(was)delete S.checked[id]; else S.checked[id]=1;
+  if(!was){
+    const t=today();
+    if(!S.days.includes(t)){S.days.push(t);S.days=S.days.slice(-400)}
+  }
+  const st=stats(), before=rankOf(st.rating);
+  checkBadges(st);
+  save();render();
+  // rank-up announcement
+  const after=rankOf(stats().rating);
+  if(!was&&after.n!==lastRank){ if(lastRank!==null) toast('Rank up — you are now '+after.n); lastRank=after.n }
+}
+let lastRank=null;
+function checkBadges(st){
+  BADGES.forEach(b=>{
+    if(!S.badges.includes(b.id)&&b.t(st)){S.badges.push(b.id);toast('Badge unlocked — '+b.n)}
+  });
+}
+let toastTimer=null;
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+/* ============================ DAILY QUEST ============================ */
+function quests(){
+  const pool=RATED.filter(x=>!S.checked[x.id]);
+  if(!pool.length)return[];
+  let seed=parseInt(hash(today()),36)%1e9;
+  const rnd=()=>{seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff};
+  const picks=[],used=new Set();
+  for(let k=0;k<3&&used.size<pool.length;k++){
+    let i;do{i=Math.floor(rnd()*pool.length)}while(used.has(i));
+    used.add(i);picks.push(pool[i]);
+  }
+  return picks;
+}
+
+/* ============================ RENDER ============================ */
+function setAccent(c){
+  document.documentElement.style.setProperty('--accent',c);
+  document.documentElement.style.setProperty('--accent-soft',c+'24');
+}
+function renderHeader(){
+  const st=stats(),rk=rankOf(st.rating);
+  setAccent(rk.c);
+  document.getElementById('handle').textContent = st.done===0?'unrated':'aryan_kgp';
+  document.getElementById('rankTitle').textContent=rk.n;
+  document.getElementById('rating').textContent=st.rating;
+  document.getElementById('days').textContent=daysLeft();
+  document.getElementById('phaseNow').textContent=phaseNow();
+  document.getElementById('cleared').textContent=st.done;
+  document.getElementById('clearedSub').textContent='of '+st.total+' · '+st.pct.toFixed(1)+'%';
+  document.getElementById('streak').textContent=st.streak;
+  document.getElementById('streakSub').textContent=st.streak?'keep it alive today':'check one topic to start';
+  document.getElementById('badgeCount').textContent=S.badges.length;
+  document.getElementById('badgeSub').textContent='of '+BADGES.length+' unlocked';
+
+  const track=document.getElementById('ladderTrack'),labels=document.getElementById('ladderLabels');
+  if(!track.children.length){
+    RANKS.forEach(r=>{const i=document.createElement('i');i.style.background=r.c;track.appendChild(i)});
+    const SHORT={'Newbie':'NEW','Pupil':'PUP','Specialist':'SPE','Expert':'EXP','Cand. Master':'CM','Master':'MST','Intl. Master':'IM','Grandmaster':'GM','Intl. GM':'IGM','Legendary GM':'LGM'};
+    RANKS.forEach(r=>{const s=document.createElement('span');s.textContent=SHORT[r.n]||r.n;labels.appendChild(s)});
+  }
+  const idx=RANKS.indexOf(rk);
+  [...track.querySelectorAll('i')].forEach((el,k)=>el.classList.toggle('lit',k<=idx));
+  [...labels.children].forEach((el,k)=>el.classList.toggle('on',k<=idx));
+  const nx=RANKS[idx+1];
+  const within=nx?Math.min(1,(st.rating-rk.min)/(nx.min-rk.min)):1;
+  document.getElementById('ladderMarker').style.left=((idx+within)/RANKS.length*100)+'%';
+
+  const nxt=RANKS[idx+1];
+  const note=document.getElementById('nextNote');
+  if(nxt){
+    const need=Math.ceil((nxt.min-800)/2400*st.total)-st.done;
+    note.innerHTML='<b>'+Math.max(0,need)+' topics</b> to reach '+nxt.n+' ('+nxt.min+')';
+  }else{note.innerHTML='<b>Ladder complete.</b> Every topic cleared.'}
+}
+
+function renderTabs(){
+  const el=document.getElementById('tabs');
+  const st=stats();
+  const list=[{id:'overview',label:'Overview'}].concat(TRACKS.map(t=>({id:t.id,label:t.label})));
+  el.innerHTML=list.map(t=>{
+    let pc='';
+    if(t.id!=='overview'){const p=st.trackPct(t.id);pc='<span class="pc">'+Math.round(p)+'%</span>'}
+    return '<button class="tab" role="tab" data-tab="'+t.id+'" aria-selected="'+(ACTIVE===t.id)+'">'+t.label+pc+'</button>';
+  }).join('');
+  el.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{ACTIVE=b.dataset.tab;QUERY='';render();window.scrollTo({top:0,behavior:'smooth'})});
+}
+
+function sectionHTML(track,sec){
+  const items=INDEX.filter(x=>x.track===track.id&&x.sec===sec.n);
+  const q=QUERY.toLowerCase();
+  const match=q?items.filter(x=>x.label.toLowerCase().includes(q)||x.grp.toLowerCase().includes(q)||sec.n.toLowerCase().includes(q)):items;
+  if(q&&!match.length)return'';
+  const done=items.filter(x=>S.checked[x.id]).length;
+  const pct=items.length?done/items.length*100:0;
+  const key=track.id+'|'+sec.n;
+  const open=q?true:!!S.open[key];
+  let body='';
+  sec.g.forEach(g=>{
+    const gi=items.filter(x=>x.grp===g.n).filter(x=>!q||match.includes(x));
+    if(!gi.length)return;
+    body+='<div class="grp-name">'+g.n+'</div><div class="items">'+gi.map(x=>
+      '<label class="item'+(S.checked[x.id]?' on':'')+'"><input type="checkbox" data-id="'+x.id+'"'+(S.checked[x.id]?' checked':'')+'><span class="box"></span><span class="txt">'+x.label+'</span></label>'
+    ).join('')+'</div>';
+  });
+  return '<section class="section'+(open?' open':'')+(pct>=100?' done':'')+'" data-key="'+key+'">'+
+    '<button class="sec-head" aria-expanded="'+open+'"><span class="chev">›</span>'+
+    '<span class="sec-name">'+sec.n+'</span>'+
+    '<span class="meter"><i style="width:'+pct+'%"></i></span>'+
+    '<span class="sec-count">'+done+'/'+items.length+'</span></button>'+
+    '<div class="sec-body">'+body+'</div></section>';
+}
+
+function renderOverview(){
+  const st=stats();
+  const secBars=TRACKS.filter(t=>t.rated).map(t=>{
+    return t.sections.map(sec=>{
+      const it=INDEX.filter(x=>x.track===t.id&&x.sec===sec.n);
+      const d=it.filter(x=>S.checked[x.id]).length;
+      const p=it.length?d/it.length*100:0;
+      return {n:sec.n,p,d,total:it.length};
+    });
+  }).flat().sort((a,b)=>b.p-a.p);
+
+  const heat=[];const d=new Date();
+  for(let k=35;k>=0;k--){const dd=new Date(d);dd.setDate(dd.getDate()-k);const s=dateStr(dd);
+    heat.push('<i class="'+(S.days.includes(s)?'on':'')+(k===0?' today':'')+'" title="'+s+'"></i>')}
+
+  const qs=quests();
+  const planItems=INDEX.filter(x=>x.track==='plan');
+  const planDone=planItems.filter(x=>S.checked[x.id]).length;
+
+  return '<div class="cols">'+
+   '<div>'+
+    '<div class="card"><h3>Today\u2019s three</h3>'+
+      (qs.length?'<ul class="quests">'+qs.map(x=>'<li data-id="'+x.id+'" class="'+(S.checked[x.id]?'on':'')+'"><span class="box"></span><span><span class="qtxt">'+x.label+'</span><span class="qtag">'+x.sec+'</span></span></li>').join('')+'</ul>'
+       :'<div class="empty">Everything is cleared. Go run a contest.</div>')+
+    '</div>'+
+    '<div class="card" style="margin-top:16px"><h3>Section progress</h3>'+
+      secBars.map(s=>'<div class="bar-row"><span class="nm">'+s.n+'</span><span class="bar"><i style="width:'+s.p+'%"></i></span><span class="pc">'+Math.round(s.p)+'%</span></div>').join('')+
+    '</div>'+
+   '</div>'+
+   '<div>'+
+    '<div class="card"><h3>Last 36 days</h3><div class="heat">'+heat.join('')+'</div>'+
+      '<div class="next-note" style="margin-top:13px">'+(st.streak?st.streak+' day streak · longest run stays alive if you clear one topic today':'No streak yet — one topic starts it')+'</div>'+
+    '</div>'+
+    '<div class="card" style="margin-top:16px"><h3>Schedule</h3>'+
+      '<div class="bar-row"><span class="nm">16-week plan</span><span class="bar"><i style="width:'+(planItems.length?planDone/planItems.length*100:0)+'%"></i></span><span class="pc">'+Math.round(planItems.length?planDone/planItems.length*100:0)+'%</span></div>'+
+      '<div class="next-note" style="margin-top:6px">'+phaseNow()+' · '+daysLeft()+' days remain</div>'+
+    '</div>'+
+    '<div class="card" style="margin-top:16px"><h3>Badges</h3><div class="badges">'+
+      BADGES.map(b=>'<div class="badge'+(S.badges.includes(b.id)?' got':'')+'"><div class="ic">'+b.ic+'</div><div class="bn">'+b.n+'</div><div class="bd">'+b.d+'</div></div>').join('')+
+    '</div></div>'+
+   '</div>'+
+  '</div>';
+}
+
+function render(){
+  renderHeader();renderTabs();
+  const p=document.getElementById('panel');
+  if(ACTIVE==='overview'){p.innerHTML=renderOverview();bindOverview();return}
+  const t=TRACKS.find(x=>x.id===ACTIVE);
+  const secs=t.sections.map(s=>sectionHTML(t,s)).join('');
+  p.innerHTML=
+   '<div class="toolbar">'+
+     '<input class="search" id="search" placeholder="Filter topics in '+t.label+'…" value="'+QUERY.replace(/"/g,'&quot;')+'">'+
+     '<button class="btn" data-all="1">Expand all</button>'+
+     '<button class="btn" data-all="0">Collapse all</button>'+
+   '</div>'+
+   (secs||'<div class="empty">No topics match that filter.</div>');
+  bindTrack(t);
+}
+
+function bindOverview(){
+  document.querySelectorAll('.quests li').forEach(li=>li.onclick=()=>toggle(li.dataset.id));
+}
+function bindTrack(t){
+  const s=document.getElementById('search');
+  if(s){s.oninput=()=>{QUERY=s.value;const pos=s.selectionStart;render();const n=document.getElementById('search');if(n){n.focus();n.setSelectionRange(pos,pos)}}}
+  document.querySelectorAll('.btn[data-all]').forEach(b=>b.onclick=()=>{
+    const v=b.dataset.all==='1';
+    t.sections.forEach(sec=>{S.open[t.id+'|'+sec.n]=v});
+    save();render();
+  });
+  document.querySelectorAll('.sec-head').forEach(h=>h.onclick=()=>{
+    const k=h.parentElement.dataset.key;S.open[k]=!S.open[k];save();render();
+  });
+  document.querySelectorAll('.item input').forEach(inp=>inp.onchange=()=>toggle(inp.dataset.id));
+}
+
+/* ============================ BOOT ============================ */
+(async function(){
+  await load();
+  lastRank=rankOf(stats().rating).n;
+  checkBadges(stats());
+  document.getElementById('loading').classList.add('hide');
+  document.getElementById('panel').classList.remove('hide');
+  render();
+})();
+</script>
