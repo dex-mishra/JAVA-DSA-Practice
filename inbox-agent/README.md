@@ -113,6 +113,11 @@ printf '%s' 'ghp_yourtoken' | gcloud secrets create inbox-agent-github-token --d
 
 ## Setup
 
+**Deploying from the Google Cloud Console with no local `gcloud`/Docker?**
+Follow [DEPLOY.md](DEPLOY.md) instead — it's a click-by-click walkthrough
+using Cloud Shell. The steps below are the terse CLI version, for a machine
+that already has `gcloud` installed.
+
 You need the `gcloud` CLI (`brew install --cask google-cloud-sdk`) and a GCP
 project with billing enabled — your free-trial credits cover this comfortably.
 
