@@ -17,11 +17,14 @@ import argparse
 import logging
 import sys
 from datetime import datetime
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from . import career as career_mod
 from . import policy as policy_mod
+from . import proposals as proposals_mod
 from . import report as report_mod
+from .calendar import CalendarClient
 from .classify import Classifier, Label
 from .config import Account, Settings, load_settings
 from .gmail import GmailClient, Message
@@ -152,6 +155,98 @@ def _update_career(
     return added, feed.upcoming()
 
 
+def _resolve_calendar_replies(
+    clients: dict[str, GmailClient], settings: Settings, state: State
+) -> tuple[int, list[str]]:
+    """Act on replies to earlier calendar proposals.
+
+    The whole write path lives here, and every step of it is deterministic:
+    fetch the reply you typed, parse it with a fixed grammar, create exactly
+    the events you numbered. No model is consulted at any point.
+    """
+    cal_cfg = settings.section("calendar")
+    if not cal_cfg.get("enabled", False):
+        return 0, []
+
+    expiry = float(cal_cfg.get("proposal_expiry_hours", 72))
+    batches = state.open_batches(expiry)
+    if not batches:
+        return 0, []
+
+    primary = clients.get(settings.primary.key)
+    if not primary:
+        return 0, ["calendar: primary mailbox unavailable"]
+
+    errors: list[str] = []
+    created_total = 0
+
+    calendar: CalendarClient | None = None
+    for raw_batch in batches:
+        batch = proposals_mod.ProposalBatch(**raw_batch)
+        body = proposals_mod.find_reply(primary, batch)
+        if body is None:
+            continue  # still waiting
+
+        items = batch.proposals()
+        valid = {p.n for p in items}
+        decision = proposals_mod.parse_reply(body, valid)
+
+        if not decision.understood:
+            log.info("Reply to batch %s could not be parsed; leaving it open.", batch.token)
+            errors.append(
+                "Could not read your calendar reply. Use e.g. 'track 1 3', "
+                "'track all' or 'none'."
+            )
+            state.resolve_batch(batch.token)
+            continue
+
+        chosen = [p for p in items if p.n in decision.track]
+        skipped = len(items) - len(chosen)
+
+        created: list[tuple[Any, str]] = []
+        if chosen:
+            if calendar is None:
+                try:
+                    calendar = CalendarClient(
+                        settings.project, settings.primary.secret_name, settings.timezone
+                    )
+                except Exception as exc:
+                    errors.append(f"calendar unavailable: {exc}")
+                    state.resolve_batch(batch.token)
+                    continue
+                if not calendar.has_scope():
+                    errors.append(
+                        "The primary token has no calendar permission. Re-run "
+                        "setup/authorize.py for the primary account."
+                    )
+                    state.resolve_batch(batch.token)
+                    continue
+
+            for proposal in chosen:
+                if settings.dry_run:
+                    log.info("[dry-run] would create event %r on %s", proposal.title, proposal.start)
+                    created.append((proposal, ""))
+                    continue
+                link = calendar.create_event(proposal.to_event())
+                if link is not None:
+                    created.append((proposal, link))
+                else:
+                    errors.append(f"could not create event: {proposal.title[:60]}")
+
+        state.resolve_batch(batch.token)
+        created_total += len(created)
+        state.count_events(len(created))
+
+        subject, html = report_mod.render_confirmation(created, skipped, _now(settings))
+        if settings.dry_run:
+            log.info("[dry-run] would confirm: %s", subject)
+        else:
+            primary.send_html(settings.report_to, subject, html)
+
+    state.prune_batches(expiry)
+    return created_total, errors
+
+
 def _run_cleanup(
     clients: dict[str, GmailClient], settings: Settings, classifier: Classifier
 ) -> tuple[list[tuple[Message, str]], list[tuple[Message, str]], list[str]]:
@@ -217,6 +312,12 @@ def run_sweep(settings: Settings) -> int:
         log.error("No mailboxes reachable; nothing to do.")
         return 1
 
+    # Replies are checked here too, not only on the digest, so confirming a
+    # calendar item takes minutes rather than waiting for the next digest.
+    events_made, _ = _resolve_calendar_replies(clients, settings, state)
+    if events_made:
+        log.info("Created %d calendar events from your reply.", events_made)
+
     hours = int(settings.section("scan").get("sweep_window_hours", 6))
     messages, errors = _collect(clients, f"in:inbox newer_than:{hours}h -in:chats", settings)
 
@@ -281,6 +382,14 @@ def run_digest(settings: Settings, *, force_cleanup: bool = False) -> int:
     starred = _apply_stars(messages, labels, clients, settings)
     career_new, career_upcoming = _update_career(messages, labels, clients, settings)
 
+    # Act on any reply to a previous digest before proposing a new batch, so
+    # the numbering never overlaps between two open batches.
+    events_made, cal_errors = _resolve_calendar_replies(clients, settings, state)
+    errors.extend(cal_errors)
+
+    proposals = proposals_mod.build_proposals(messages, labels, settings.policy)
+    batch = proposals_mod.ProposalBatch.new(proposals) if proposals else None
+
     # Cleanup runs once a day, on whichever digest fires first after the gap.
     trashed: list[tuple[Message, str]] = []
     would: list[tuple[Message, str]] = []
@@ -307,6 +416,8 @@ def run_digest(settings: Settings, *, force_cleanup: bool = False) -> int:
         would_trash=would,
         career_new=career_new,
         career_upcoming=career_upcoming,
+        proposals=proposals,
+        proposal_token=batch.token if batch else "",
         dry_run=settings.cleanup_dry_run,
         errors=errors,
         scanned=len(messages),
@@ -320,10 +431,22 @@ def run_digest(settings: Settings, *, force_cleanup: bool = False) -> int:
 
     if settings.dry_run:
         log.info("[dry-run] would send %r to %s", subject, settings.report_to)
-    elif primary.send_html(settings.report_to, subject, body):
-        state.mark_digest_sent()
-        state.mark_reported([m.id for m in messages])
+        if proposals:
+            log.info("[dry-run] %d calendar proposals withheld", len(proposals))
+    else:
+        sent = primary.send_html(settings.report_to, subject, body)
+        if sent:
+            state.mark_digest_sent()
+            state.mark_reported([m.id for m in messages])
+            # Only record the batch once the mail carrying it actually went
+            # out, otherwise we would wait forever for a reply to nothing.
+            if batch:
+                batch.sent_message_id = sent["id"]
+                batch.thread_id = sent["threadId"]
+                state.put_batch(vars(batch))
+                log.info("Awaiting a reply on %d calendar proposals.", len(proposals))
 
+    log.info("Digest done. %d events created this run.", events_made)
     state.save()
     return 0
 
@@ -380,7 +503,9 @@ def run_check(settings: Settings) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Inbox agent")
     parser.add_argument(
-        "--mode", default="sweep", choices=["sweep", "digest", "cleanup", "check"]
+        "--mode",
+        default="sweep",
+        choices=["sweep", "digest", "cleanup", "check", "site-update"],
     )
     args = parser.parse_args(argv)
 
@@ -390,6 +515,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.mode == "check":
         return run_check(settings)
+    if args.mode == "site-update":
+        from . import site_update
+        return site_update.run(settings)
     if args.mode == "sweep":
         return run_sweep(settings)
     if args.mode == "digest":

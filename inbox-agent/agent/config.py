@@ -47,6 +47,8 @@ class Settings:
     report_to: str
     timezone: str
     dry_run: bool
+    github_repo: str = ""
+    github_secret: str = "inbox-agent-github-token"
     accounts: list[Account] = field(default_factory=list)
     policy: dict[str, Any] = field(default_factory=dict)
 
@@ -106,6 +108,8 @@ def load_settings(policy_path: Path | None = None) -> Settings:
         report_to=_env("REPORT_TO", primary_email),
         timezone=_env("TIMEZONE", "Asia/Kolkata"),
         dry_run=_env_bool("DRY_RUN", True),
+        github_repo=_env("GITHUB_REPO", ""),
+        github_secret=_env("GITHUB_SECRET", "inbox-agent-github-token"),
         accounts=accounts,
         policy=policy,
     )

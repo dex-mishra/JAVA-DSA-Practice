@@ -122,6 +122,31 @@ career:
   # Label applied in Gmail so you can find the source mail from the site.
   label: "Agent/Career"
 
+calendar:
+  # The confirmation loop: the digest lists time-bound things it found, you
+  # reply saying which to keep, and the agent adds only those. It never adds
+  # anything you did not name.
+  enabled: true
+
+  # Events land on a separate "Inbox Agent" calendar. The OAuth scope
+  # (calendar.app.created) cannot touch any other calendar, so the agent
+  # is structurally unable to edit or delete your real events.
+  max_proposals_per_digest: 8
+
+  # Only propose from these categories.
+  categories:
+    - academic
+    - placement_internship
+    - personal
+    - work_project
+
+  # Marketing mail is full of "events". Placement mail is exempt because it
+  # legitimately arrives via the CDC mailing list.
+  skip_bulk_senders: true
+
+  # Stop waiting for a reply after this long and drop the batch.
+  proposal_expiry_hours: 72
+
 cleanup:
   enabled: true
 

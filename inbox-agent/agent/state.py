@@ -28,6 +28,8 @@ _EMPTY: dict[str, Any] = {
     "last_cleanup_ts": 0.0,
     "last_alert_ts": 0.0,
     "trashed_total": 0,
+    "proposals": {},         # token -> ProposalBatch dict, awaiting your reply
+    "events_created": 0,
 }
 
 
@@ -111,3 +113,41 @@ class State:
 
     def mark_digest_sent(self) -> None:
         self.data["last_digest_ts"] = time.time()
+
+    # -- calendar proposals ------------------------------------------------
+
+    def open_batches(self, expiry_hours: float) -> list[dict[str, Any]]:
+        """Unresolved proposal batches still inside their reply window."""
+        cutoff = time.time() - expiry_hours * 3600
+        out = []
+        for batch in self.data.get("proposals", {}).values():
+            if batch.get("resolved"):
+                continue
+            if float(batch.get("sent_ts") or 0) < cutoff:
+                continue
+            out.append(batch)
+        return out
+
+    def put_batch(self, batch: dict[str, Any]) -> None:
+        self.data.setdefault("proposals", {})[batch["token"]] = batch
+
+    def resolve_batch(self, token: str) -> None:
+        batch = self.data.get("proposals", {}).get(token)
+        if batch:
+            batch["resolved"] = True
+
+    def prune_batches(self, expiry_hours: float) -> int:
+        """Drop resolved or long-expired batches. Returns how many went."""
+        cutoff = time.time() - max(expiry_hours * 3600, RETENTION_SECONDS / 21)
+        batches = self.data.get("proposals", {})
+        keep = {
+            token: b
+            for token, b in batches.items()
+            if not b.get("resolved") and float(b.get("sent_ts") or 0) >= cutoff
+        }
+        dropped = len(batches) - len(keep)
+        self.data["proposals"] = keep
+        return dropped
+
+    def count_events(self, n: int) -> None:
+        self.data["events_created"] = int(self.data.get("events_created", 0)) + n

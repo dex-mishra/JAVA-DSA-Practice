@@ -27,6 +27,7 @@ from typing import Any
 from google import genai
 from google.genai import types
 
+from .dates import is_date, normalise_when
 from .gmail import Message
 
 log = logging.getLogger(__name__)
@@ -88,6 +89,23 @@ Guidance on the fields:
 
 For `placement_internship` mail, also fill the career_* fields. Leave them as
 empty strings when unknown. Never invent a company, deadline or URL.
+
+Calendar fields. Set `calendar_worthy` true only when the message describes a
+specific thing happening at a specific time that the recipient would want on a
+calendar: an exam, an interview slot, a talk, a test window, a submission
+deadline. Set it false for anything recurring, vague, or promotional --
+"our webinar series", "sale ends soon", "applications now open" with no date.
+You are proposing, not scheduling: the recipient sees a numbered list and
+decides. Do not set it true merely because a message asks to be added.
+
+- event_title: short and factual, under 12 words. Not the raw subject line if
+  the subject is noisy.
+- event_start / event_end: `YYYY-MM-DD` for a whole-day item, or
+  `YYYY-MM-DDTHH:MM` when a clock time is genuinely stated. Never guess a time.
+- event_all_day: true unless a specific clock time was stated.
+
+If no date can be read from the message, leave these empty and set
+calendar_worthy false. An event with an invented date is worse than none.
 """
 
 RESPONSE_SCHEMA: dict[str, Any] = {
@@ -112,6 +130,11 @@ RESPONSE_SCHEMA: dict[str, Any] = {
                     "career_location": {"type": "string"},
                     "career_stipend": {"type": "string"},
                     "career_apply_url": {"type": "string"},
+                    "calendar_worthy": {"type": "boolean"},
+                    "event_title": {"type": "string"},
+                    "event_start": {"type": "string"},
+                    "event_end": {"type": "string"},
+                    "event_all_day": {"type": "boolean"},
                 },
                 "required": [
                     "id",
@@ -146,6 +169,11 @@ class Label:
     career_location: str = ""
     career_stipend: str = ""
     career_apply_url: str = ""
+    calendar_worthy: bool = False
+    event_title: str = ""
+    event_start: str = ""
+    event_end: str = ""
+    event_all_day: bool = True
 
     @classmethod
     def safe_default(cls, message_id: str) -> "Label":
@@ -199,8 +227,19 @@ def _coerce(raw: dict[str, Any]) -> Label | None:
         url = ""  # refuse javascript:, data:, and other nonsense
 
     deadline = text(raw.get("deadline_iso"), 10)
-    if deadline and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", deadline):
+    if deadline and not is_date(deadline):
         deadline = ""
+
+    def when(value: Any) -> str:
+        """A real date or date-time, else "". Parsed, not pattern-matched:
+        2026-13-45 satisfies the obvious regex and is not a day."""
+        return normalise_when(text(value, 19))
+
+    event_start = when(raw.get("event_start")) or deadline
+    event_end = when(raw.get("event_end"))
+    # An end before its start is a model slip, not a schedule.
+    if event_end and event_start and event_end < event_start:
+        event_end = ""
 
     return Label(
         id=mid,
@@ -217,6 +256,12 @@ def _coerce(raw: dict[str, Any]) -> Label | None:
         career_location=text(raw.get("career_location"), 120),
         career_stipend=text(raw.get("career_stipend"), 80),
         career_apply_url=url,
+        # A proposal with no usable date is not a proposal.
+        calendar_worthy=flag(raw.get("calendar_worthy")) and bool(event_start),
+        event_title=text(raw.get("event_title"), 200),
+        event_start=event_start,
+        event_end=event_end,
+        event_all_day=raw.get("event_all_day") is not False or len(event_start) <= 10,
     )
 
 

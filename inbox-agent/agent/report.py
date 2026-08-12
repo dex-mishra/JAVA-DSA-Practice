@@ -51,6 +51,8 @@ class Item:
 
 @dataclass
 class DigestData:
+    proposals: list[Any] = field(default_factory=list)
+    proposal_token: str = ""
     items: list[Item] = field(default_factory=list)
     starred: list[Item] = field(default_factory=list)
     trashed: list[tuple[Message, str]] = field(default_factory=list)
@@ -215,6 +217,88 @@ def _career_block(data: DigestData) -> str:
     </div>"""
 
 
+def _proposals_block(data: DigestData) -> str:
+    """The calendar confirmation list.
+
+    Numbered, because the reply grammar is numeric. Nothing here is on your
+    calendar yet and the wording has to make that unambiguous -- a list of
+    dates that looks like confirmed events is worse than no list.
+    """
+    if not data.proposals:
+        return ""
+
+    rows = "".join(
+        f"""
+      <div style="padding:9px 0;border-bottom:1px solid {RULE}">
+        <div style="font-size:14px;color:{INK}">
+          <span style="font-weight:700;color:{ACCENT};font-variant-numeric:tabular-nums">
+            {p.n}.</span>
+          <span style="font-weight:600">{esc(p.title)}</span>
+        </div>
+        <div style="font-size:12px;color:{WARN};margin-top:2px">
+          {esc(p.start)}{" &ndash; " + esc(p.end) if p.end else ""}
+          {"" if p.all_day else " (timed)"}
+        </div>
+        {f'<div style="font-size:12px;color:{MUTED};margin-top:2px">{esc(p.context)}</div>' if p.context else ""}
+      </div>"""
+        for p in data.proposals
+    )
+
+    return f"""
+    <div style="margin:30px 0 0;padding:15px;border:1px solid {ACCENT};border-radius:8px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+                  color:{ACCENT}">Add to calendar? ({len(data.proposals)})</div>
+      <div style="font-size:12.5px;color:{MUTED};margin:5px 0 10px;line-height:1.5">
+        <strong style="color:{INK}">Nothing below is on your calendar.</strong>
+        Reply to this email with which ones to keep &mdash; for example
+        <code style="color:{INK}">track 1 3</code>,
+        <code style="color:{INK}">track all</code>, or
+        <code style="color:{INK}">none</code>.
+        Anything you do not name is dropped.
+      </div>
+      {rows}
+      <div style="font-size:11px;color:{MUTED};margin-top:10px">
+        Events go on a separate &ldquo;Inbox Agent&rdquo; calendar. The agent holds no
+        permission to change or delete anything on your own calendars.
+      </div>
+    </div>"""
+
+
+def render_confirmation(created: list[tuple[Any, str]], skipped: int, timestamp: datetime) -> tuple[str, str]:
+    """Sent after a reply is acted on, so there is always a receipt."""
+    subject = f"Added {len(created)} to your calendar" if created else "Nothing added to your calendar"
+    rows = "".join(
+        f"""<div style="padding:8px 0;border-bottom:1px solid {RULE}">
+             <div style="font-size:14px;font-weight:600;color:{INK}">{esc(p.title)}</div>
+             <div style="font-size:12px;color:{MUTED};margin-top:2px">{esc(p.start)}
+             {f' &middot; <a href="{esc(link)}" style="color:{ACCENT}">open</a>' if link else ""}</div>
+           </div>"""
+        for p, link in created
+    )
+    body = rows or f'<div style="font-size:13px;color:{MUTED}">Nothing was added.</div>'
+    note = (
+        f'<div style="font-size:12px;color:{MUTED};margin-top:10px">{skipped} proposal'
+        f'{"s" if skipped != 1 else ""} dropped as instructed.</div>'
+        if skipped
+        else ""
+    )
+    html_doc = f"""<!doctype html>
+<html><body style="margin:0;padding:0;background:#ffffff">
+  <div style="max-width:600px;margin:0 auto;padding:22px 20px;font-family:{FONT};color:{INK}">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+                color:{ACCENT};border-bottom:2px solid {ACCENT};padding-bottom:7px">
+      Calendar updated
+    </div>
+    <div style="margin-top:12px">{body}</div>
+    {note}
+    <div style="margin-top:18px;font-size:11px;color:{MUTED}">
+      {timestamp.strftime("%d %b, %I:%M %p")}
+    </div>
+  </div>
+</body></html>"""
+    return subject, html_doc
+
+
 def render_digest(data: DigestData, policy: dict[str, Any], timestamp: datetime) -> tuple[str, str]:
     """Returns (subject, html)."""
     report_cfg = policy.get("report", {}) or {}
@@ -256,6 +340,9 @@ def render_digest(data: DigestData, policy: dict[str, Any], timestamp: datetime)
     if action_count:
         subject_bits.append(f"{action_count} to action")
     subject = "Inbox: " + (", ".join(subject_bits) if subject_bits else "all clear")
+    # The token lets replies be matched back to this batch of proposals.
+    if data.proposal_token:
+        subject += f" [IA-{data.proposal_token}]"
 
     errors_html = ""
     if data.errors:
@@ -277,6 +364,7 @@ def render_digest(data: DigestData, policy: dict[str, Any], timestamp: datetime)
       <div style="font-size:13px;color:{ACCENT};margin-top:5px;font-weight:600">{headline}</div>
     </div>
     {body}
+    {_proposals_block(data)}
     {_career_block(data)}
     {_cleanup_block(data)}
     {errors_html}

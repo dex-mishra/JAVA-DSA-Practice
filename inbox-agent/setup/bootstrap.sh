@@ -24,6 +24,8 @@ PRIMARY_EMAIL="${PRIMARY_EMAIL:-you@example.com}"
 COLLEGE_EMAIL="${COLLEGE_EMAIL:-}"
 REPORT_TO="${REPORT_TO:-$PRIMARY_EMAIL}"
 GEMINI_MODEL="${GEMINI_MODEL:-gemini-2.5-flash}"
+# owner/repo for the weekly site-update PRs. Leave empty to skip that job.
+GITHUB_REPO="${GITHUB_REPO:-CeasaKK/Placement-and-MBA}"
 
 if [[ -z "$COLLEGE_EMAIL" ]]; then
   echo "Set COLLEGE_EMAIL first, e.g.:" >&2
@@ -75,7 +77,7 @@ gcloud projects add-iam-policy-binding "$PROJECT" \
   --role="roles/aiplatform.user" \
   --condition=None >/dev/null
 
-for secret in inbox-agent-primary-token inbox-agent-college-token; do
+for secret in inbox-agent-primary-token inbox-agent-college-token inbox-agent-github-token; do
   if gcloud secrets describe "$secret" >/dev/null 2>&1; then
     gcloud secrets add-iam-policy-binding "$secret" \
       --member="serviceAccount:${SA_EMAIL}" \
@@ -96,7 +98,7 @@ gcloud run jobs deploy "$JOB" \
   --task-timeout 15m \
   --memory 1Gi \
   --cpu 1 \
-  --set-env-vars "GCP_PROJECT=${PROJECT},GCP_REGION=${REGION},STATE_BUCKET=${BUCKET},VERTEX_LOCATION=${REGION},GEMINI_MODEL=${GEMINI_MODEL},PRIMARY_EMAIL=${PRIMARY_EMAIL},COLLEGE_EMAIL=${COLLEGE_EMAIL},REPORT_TO=${REPORT_TO},TIMEZONE=${TZ_NAME},DRY_RUN=true"
+  --set-env-vars "GCP_PROJECT=${PROJECT},GCP_REGION=${REGION},STATE_BUCKET=${BUCKET},VERTEX_LOCATION=${REGION},GEMINI_MODEL=${GEMINI_MODEL},PRIMARY_EMAIL=${PRIMARY_EMAIL},COLLEGE_EMAIL=${COLLEGE_EMAIL},REPORT_TO=${REPORT_TO},TIMEZONE=${TZ_NAME},GITHUB_REPO=${GITHUB_REPO},DRY_RUN=true"
 
 say "Scheduler service account"
 PROJECT_NUMBER="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')"
@@ -135,9 +137,16 @@ create_schedule() {
 }
 
 say "Schedules"
-# One entry covers all four digests; a second drives the urgent sweep.
+# One entry covers all four digests; a second drives the urgent sweep. Three
+# scheduler jobs total, which is exactly the free-tier allowance.
 create_schedule "${JOB}-digest" "0 7,12,17,21 * * *" "digest"
 create_schedule "${JOB}-sweep"  "*/15 * * * *"       "sweep"
+if [[ -n "$GITHUB_REPO" ]]; then
+  # Weekly. Deadlines do not move often, and every run costs a PR to read.
+  create_schedule "${JOB}-siteupdate" "0 9 * * 1" "site-update"
+else
+  echo "  (GITHUB_REPO empty, skipping the site-update schedule)"
+fi
 
 cat <<EOF
 

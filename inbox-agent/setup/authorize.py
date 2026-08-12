@@ -30,6 +30,9 @@ SCOPES = {
     "primary": [
         "https://www.googleapis.com/auth/gmail.modify",
         "https://www.googleapis.com/auth/gmail.send",
+        # Secondary calendars this app created, and nothing else. Not
+        # calendar.events, which would grant your whole diary.
+        "https://www.googleapis.com/auth/calendar.app.created",
     ],
     "college": [
         "https://www.googleapis.com/auth/gmail.modify",

@@ -133,7 +133,7 @@ class Message:
         return f"{self.subject}\n{self.sender}\n{self.snippet}".lower()
 
 
-def _load_credentials(project: str, secret_name: str) -> Credentials:
+def load_credentials(project: str, secret_name: str) -> Credentials:
     """Pull the stored OAuth bundle out of Secret Manager and refresh it."""
     client = secretmanager.SecretManagerServiceClient()
     path = f"projects/{project}/secrets/{secret_name}/versions/latest"
@@ -156,7 +156,7 @@ class GmailClient:
     def __init__(self, account_key: str, email: str, project: str, secret_name: str):
         self.account_key = account_key
         self.email = email
-        creds = _load_credentials(project, secret_name)
+        creds = load_credentials(project, secret_name)
         self.service = build("gmail", "v1", credentials=creds, cache_discovery=False)
         self._thread_sent_cache: dict[str, bool] = {}
         self._label_cache: dict[str, str] | None = None
@@ -361,7 +361,11 @@ class GmailClient:
             log.warning("[%s] trash failed for %s: %s", self.account_key, message_id, exc)
             return False
 
-    def send_html(self, to: str, subject: str, html_body: str, text_body: str = "") -> bool:
+    def send_html(
+        self, to: str, subject: str, html_body: str, text_body: str = ""
+    ) -> dict[str, str] | None:
+        """Returns {"id", "threadId"} on success, so a reply to this message
+        can be found later. None on failure."""
         msg = EmailMessage()
         msg["To"] = to
         msg["From"] = self.email
@@ -371,17 +375,17 @@ class GmailClient:
 
         encoded = base64.urlsafe_b64encode(msg.as_bytes()).decode()
         try:
-            _retry(
+            sent = _retry(
                 lambda: self.service.users()
                 .messages()
                 .send(userId="me", body={"raw": encoded})
                 .execute()
             )
             log.info("Sent %r to %s", subject, to)
-            return True
+            return {"id": sent.get("id", ""), "threadId": sent.get("threadId", "")}
         except HttpError as exc:
             log.error("Sending failed: %s", exc)
-            return False
+            return None
 
 
 def _retry(call, attempts: int = 4, base_delay: float = 1.0):
