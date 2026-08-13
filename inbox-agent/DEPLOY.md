@@ -70,8 +70,11 @@ gcloud services enable \
   storage.googleapis.com \
   gmail.googleapis.com \
   calendar-json.googleapis.com \
-  artifactregistry.googleapis.com
+  artifactregistry.googleapis.com \
+  developerconnect.googleapis.com
 ```
+
+(`developerconnect` is only used later, for automatic deploys in step 12 — enabling it now just means one less wait later. `bootstrap.sh` in step 9 enables this same list again regardless, so this step is technically redundant with it; running both is harmless.)
 
 Takes 2–3 minutes the first time.
 
@@ -274,6 +277,10 @@ live in `config.yaml`; edit and redeploy with:
 gcloud run jobs deploy inbox-agent --source . --region asia-south1
 ```
 
+(Once step 12 is done, `git push` replaces this command — every push to
+`main` redeploys automatically. Until then, this is how a `config.yaml` edit
+takes effect.)
+
 ---
 
 ## 11. Go live
@@ -305,7 +312,93 @@ gcloud run jobs deploy inbox-agent --source . --region asia-south1
 
 ---
 
-## 12. Using the calendar feature
+## 12. Automatic deploys on push
+
+Everything up to here deploys by running a command yourself, whenever you
+choose to. This step wires up Cloud Build so that from now on, **any push to
+`main`** — a config tweak, a code change, or a merged site-update PR —
+automatically rebuilds the container and redeploys the Cloud Run Job. No more
+running `gcloud run jobs deploy` by hand.
+
+Worth knowing before turning this on: it applies to *any* push to `main`,
+including the data-only PRs the weekly site-update job opens (deadline
+changes in `data/*.json`). Merging one of those triggers a full rebuild and
+redeploy of the agent too, even though nothing about the agent's own code
+changed — a few wasted minutes, not a real problem, but the reason this step
+is optional rather than folded into `bootstrap.sh`.
+
+`bootstrap.sh` already granted Cloud Build's own service account everything it
+needs to build, push, and deploy (`roles/run.developer`,
+`roles/artifactregistry.writer`, `roles/logging.logWriter`, and
+`roles/iam.serviceAccountUser` on the agent's runtime identity) — re-run it
+first if you skipped straight here.
+
+### Connect the repo
+
+```bash
+gcloud builds connections create github inbox-agent-github --region=asia-south1
+```
+
+This prints nothing useful yet — it creates the connection in a
+pending-authorization state. Fetch the URL to finish it:
+
+```bash
+gcloud builds connections describe inbox-agent-github --region=asia-south1 \
+  --format='value(installationState.actionUri)'
+```
+
+Open that URL on your laptop, sign in to GitHub, and either install the
+**Google Cloud Build** GitHub App fresh or, if you've connected a repo to
+Cloud Build before, add `CeasaKK/Placement-and-MBA` to its existing
+installation. This is the one manual, browser-based step — GitHub's app
+installation can't be scripted.
+
+Confirm it went through:
+
+```bash
+gcloud builds connections describe inbox-agent-github --region=asia-south1 \
+  --format='value(installationState.stage)'
+```
+
+Should print `COMPLETE`.
+
+### Register the repository and create the trigger
+
+```bash
+gcloud builds repositories create placement-and-mba \
+  --connection=inbox-agent-github --region=asia-south1 \
+  --remote-uri=https://github.com/CeasaKK/Placement-and-MBA.git
+```
+
+```bash
+gcloud builds triggers create github \
+  --name=inbox-agent-deploy \
+  --region=asia-south1 \
+  --repository=projects/YOUR_PROJECT_ID/locations/asia-south1/connections/inbox-agent-github/repositories/placement-and-mba \
+  --branch-pattern='^main$' \
+  --build-config=inbox-agent/cloudbuild.yaml
+```
+
+That's it. Push anything to `main` and check progress at **Cloud Build →
+History** in the Console, or:
+
+```bash
+gcloud builds list --region=asia-south1 --limit=5
+```
+
+One thing this trigger deliberately does *not* do: touch the job's
+environment variables. `inbox-agent/cloudbuild.yaml` rebuilds the image and
+redeploys it without specifying `--set-env-vars` or `--update-env-vars` at
+all — Cloud Run carries the existing job's env forward unless told otherwise.
+This is what stops an auto-deploy from silently resetting `DRY_RUN` back to
+`true` after you've gone live in step 11. If you ever need to change an env
+var, do it explicitly with `gcloud run jobs update ... --update-env-vars`, the
+same as before — CI/CD only replaces the manual *code* redeploy, not the
+manual *config* one.
+
+---
+
+## 13. Using the calendar feature
 
 After go-live, a digest may include a numbered "Add to calendar?" section.
 **Nothing in it is scheduled yet.** Reply to that email (same thread) with
@@ -331,7 +424,7 @@ them).
 
 ---
 
-## 13. Turning on the site-update job
+## 14. Turning on the site-update job
 
 Only if you set up the GitHub token in step 8 — it's already scheduled weekly
 (Monday 9am IST) by `bootstrap.sh`. To run it once manually and see what it
@@ -349,7 +442,7 @@ in step 11, it opens real pull requests against
 
 ---
 
-## 14. Publish the tracker site
+## 15. Publish the tracker site
 
 If you haven't already:
 
@@ -395,6 +488,19 @@ status. A `PERMISSION_DENIED` there usually means the
 `roles/run.invoker` binding — re-run `bootstrap.sh`, it's idempotent.
 
 **Want to change how aggressive cleanup or starring is** — everything tunable
-lives in `config.yaml` with comments explaining each rule. Edit, then
-`gcloud run jobs deploy inbox-agent --source . --region asia-south1` to
-redeploy.
+lives in `config.yaml` with comments explaining each rule. Edit, commit, and
+push (if step 12 is set up) or run
+`gcloud run jobs deploy inbox-agent --source . --region asia-south1` yourself
+to redeploy.
+
+**Cloud Build trigger fires but the deploy step fails with a permission
+error** — almost always one of the four roles `bootstrap.sh` grants Cloud
+Build's service account (`roles/run.developer`,
+`roles/artifactregistry.writer`, `roles/logging.logWriter`, and
+`roles/iam.serviceAccountUser` on the `inbox-agent` runtime identity). Re-run
+`bootstrap.sh`; all four grants are idempotent.
+
+**`gcloud builds connections describe` never reaches `COMPLETE`** — the
+GitHub App installation didn't finish. Re-run the `installationState.actionUri`
+command to get a fresh URL and go through the GitHub authorization page again;
+it's safe to repeat.

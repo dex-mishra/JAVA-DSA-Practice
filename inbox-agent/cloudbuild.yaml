@@ -1,0 +1,51 @@
+# Cloud Build config for the CI/CD trigger. Runs on every push to main:
+# build the image, push it, redeploy the Cloud Run Job to use it.
+#
+# Deliberately does NOT touch the job's environment variables. DRY_RUN is
+# flipped exactly once, by hand, per DEPLOY.md step 11 -- if this file set env
+# vars on every deploy it would silently reset DRY_RUN back to true on every
+# push and quietly stop the agent from doing anything. Leaving env vars
+# unspecified here means `gcloud run jobs deploy` carries the existing job's
+# env forward untouched, same as any other unspecified field.
+#
+# Builds explicit docker build/push/deploy steps rather than `gcloud run jobs
+# deploy --source`, because --source triggers a *nested* Cloud Build invocation
+# from inside this one, which needs a wider set of IAM grants on the trigger's
+# service account than a plain docker build does. Simpler and more robust to
+# build once, push once, deploy the built image.
+
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    dir: "inbox-agent"
+    args:
+      - build
+      - -t
+      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/inbox-agent:${SHORT_SHA}"
+      - .
+
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - push
+      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/inbox-agent:${SHORT_SHA}"
+
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      - run
+      - jobs
+      - deploy
+      - inbox-agent
+      - "--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/inbox-agent:${SHORT_SHA}"
+      - "--region=${_REGION}"
+      - "--service-account=${_SERVICE_ACCOUNT}"
+
+images:
+  - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/inbox-agent:${SHORT_SHA}"
+
+substitutions:
+  _REGION: asia-south1
+  _ARTIFACT_REPO: inbox-agent-images
+  _SERVICE_ACCOUNT: inbox-agent@${PROJECT_ID}.iam.gserviceaccount.com
+
+options:
+  logging: CLOUD_LOGGING_ONLY

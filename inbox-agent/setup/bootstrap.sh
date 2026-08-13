@@ -13,6 +13,7 @@ JOB="${JOB:-inbox-agent}"
 SA="${SA:-inbox-agent}"
 BUCKET="${BUCKET:-${PROJECT}-inbox-agent-state}"
 TZ_NAME="${TZ_NAME:-Asia/Kolkata}"
+ARTIFACT_REPO="${ARTIFACT_REPO:-inbox-agent-images}"
 
 if [[ -z "$PROJECT" ]]; then
   echo "usage: $0 <gcp-project-id>" >&2
@@ -49,12 +50,23 @@ gcloud services enable \
   aiplatform.googleapis.com \
   storage.googleapis.com \
   gmail.googleapis.com \
-  artifactregistry.googleapis.com
+  calendar-json.googleapis.com \
+  artifactregistry.googleapis.com \
+  developerconnect.googleapis.com
 
 say "State bucket: gs://${BUCKET}"
 if ! gcloud storage buckets describe "gs://${BUCKET}" >/dev/null 2>&1; then
   gcloud storage buckets create "gs://${BUCKET}" \
     --location="$REGION" --uniform-bucket-level-access
+else
+  echo "already exists"
+fi
+
+say "Artifact Registry repo: ${ARTIFACT_REPO}"
+if ! gcloud artifacts repositories describe "$ARTIFACT_REPO" --location="$REGION" >/dev/null 2>&1; then
+  gcloud artifacts repositories create "$ARTIFACT_REPO" \
+    --repository-format=docker --location="$REGION" \
+    --description="inbox-agent container images"
 else
   echo "already exists"
 fi
@@ -88,6 +100,31 @@ for secret in inbox-agent-primary-token inbox-agent-college-token inbox-agent-gi
   fi
 done
 
+say "Cloud Build permissions (for the CI/CD trigger, see DEPLOY.md)"
+PROJECT_NUMBER="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')"
+CLOUDBUILD_SA="${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com"
+
+# Push the built image, deploy the job, and write its own build logs. Granted
+# unconditionally and harmlessly even if the GitHub trigger is never set up --
+# it just sits unused until then.
+gcloud projects add-iam-policy-binding "$PROJECT" \
+  --member="serviceAccount:${CLOUDBUILD_SA}" \
+  --role="roles/run.developer" \
+  --condition=None >/dev/null
+gcloud projects add-iam-policy-binding "$PROJECT" \
+  --member="serviceAccount:${CLOUDBUILD_SA}" \
+  --role="roles/artifactregistry.writer" \
+  --condition=None >/dev/null
+gcloud projects add-iam-policy-binding "$PROJECT" \
+  --member="serviceAccount:${CLOUDBUILD_SA}" \
+  --role="roles/logging.logWriter" \
+  --condition=None >/dev/null
+# Deploying a job that runs AS ${SA_EMAIL} requires this on that identity
+# specifically, not just on the project.
+gcloud iam service-accounts add-iam-policy-binding "$SA_EMAIL" \
+  --member="serviceAccount:${CLOUDBUILD_SA}" \
+  --role="roles/iam.serviceAccountUser" >/dev/null
+
 say "Deploying the Cloud Run job"
 gcloud run jobs deploy "$JOB" \
   --source "$ROOT" \
@@ -101,7 +138,6 @@ gcloud run jobs deploy "$JOB" \
   --set-env-vars "GCP_PROJECT=${PROJECT},GCP_REGION=${REGION},STATE_BUCKET=${BUCKET},VERTEX_LOCATION=${REGION},GEMINI_MODEL=${GEMINI_MODEL},PRIMARY_EMAIL=${PRIMARY_EMAIL},COLLEGE_EMAIL=${COLLEGE_EMAIL},REPORT_TO=${REPORT_TO},TIMEZONE=${TZ_NAME},GITHUB_REPO=${GITHUB_REPO},DRY_RUN=true"
 
 say "Scheduler service account"
-PROJECT_NUMBER="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')"
 SCHED_SA="scheduler-invoker@${PROJECT}.iam.gserviceaccount.com"
 if ! gcloud iam service-accounts describe "$SCHED_SA" >/dev/null 2>&1; then
   gcloud iam service-accounts create scheduler-invoker --display-name="Cloud Scheduler invoker"
