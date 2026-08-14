@@ -518,6 +518,18 @@ of `setup/bootstrap.sh`, then just re-run it. It's idempotent: anything
 already created is reported as "already exists" and skipped, so re-running
 picks up exactly where it stopped.
 
+**`gcloud run jobs deploy --source` fails with "does not have
+storage.objects.get access" on a `...-compute@developer.gserviceaccount.com`
+identity** — projects created after roughly May 2024 no longer auto-grant the
+Compute Engine default service account the broad Editor role it used to have,
+which is what silently let `--source` deploys work with zero configuration
+before. `bootstrap.sh` grants this identity `roles/cloudbuild.builds.builder`
+specifically so it can read the source it's asked to build — if you see this
+on a current checkout, `git pull` and re-run `bootstrap.sh` (idempotent, picks
+up from wherever it stopped). This also matters for every *manual* redeploy
+in this guide that uses `gcloud run jobs deploy --source .` — not just the
+first one.
+
 **"redirect_uri_mismatch" during authorize.py** — the Desktop app OAuth client
 type handles this automatically; if you see it, double check you picked
 **Desktop app**, not **Web application**, in step 6.

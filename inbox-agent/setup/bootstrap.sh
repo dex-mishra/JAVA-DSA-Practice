@@ -149,6 +149,20 @@ retry gcloud iam service-accounts add-iam-policy-binding "$SA_EMAIL" \
   --member="serviceAccount:${CLOUDBUILD_SA}" \
   --role="roles/iam.serviceAccountUser"
 
+# `gcloud run jobs deploy --source` (used both by the very next step, and by
+# any manual redeploy run the same way later) triggers an implicit Cloud
+# Build behind the scenes. On projects created after ~May 2024, that build
+# runs as the Compute Engine default SA rather than the dedicated Cloud
+# Build one above -- and unlike older projects, this identity is no longer
+# auto-granted the broad Editor role that used to make this work invisibly.
+# Without this it fails part-build with "storage.objects.get" denied on the
+# uploaded source zip, since it can't even read what it's supposed to build.
+COMPUTE_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+retry gcloud projects add-iam-policy-binding "$PROJECT" \
+  --member="serviceAccount:${COMPUTE_SA}" \
+  --role="roles/cloudbuild.builds.builder" \
+  --condition=None
+
 say "Deploying the Cloud Run job"
 gcloud run jobs deploy "$JOB" \
   --source "$ROOT" \
