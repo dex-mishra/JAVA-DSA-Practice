@@ -265,18 +265,34 @@ def _coerce(raw: dict[str, Any]) -> Label | None:
     )
 
 
-def _extract_json(text: str) -> dict[str, Any] | None:
+def _extract_json(text: str) -> Any | None:
     try:
         return json.loads(text)
     except (ValueError, TypeError):
         pass
-    match = re.search(r"\{.*\}", text or "", re.S)
-    if not match:
-        return None
-    try:
-        return json.loads(match.group(0))
-    except ValueError:
-        return None
+    # Try both shapes: an object (the schema-constrained response) and a bare
+    # array (what the unstructured fallback sometimes emits instead of
+    # wrapping its rows in {"results": [...]}).
+    for pattern in (r"\{.*\}", r"\[.*\]"):
+        match = re.search(pattern, text or "", re.S)
+        if not match:
+            continue
+        try:
+            return json.loads(match.group(0))
+        except ValueError:
+            continue
+    return None
+
+
+def _extract_rows(parsed: Any) -> list[Any] | None:
+    """Normalise both shapes the model can return: {"results": [...]} from
+    the schema-constrained call, or a bare [...] from the unstructured
+    fallback, which isn't bound to the schema's object wrapper."""
+    if isinstance(parsed, list):
+        return parsed
+    if isinstance(parsed, dict):
+        return parsed.get("results", []) or []
+    return None
 
 
 class Classifier:
@@ -302,17 +318,19 @@ class Classifier:
 
         text = self._generate(prompt, structured=True)
         parsed = _extract_json(text) if text else None
-        if not parsed:
+        rows = _extract_rows(parsed)
+        if rows is None:
             log.warning("Structured call gave nothing usable; retrying unstructured.")
             text = self._generate(prompt, structured=False)
             parsed = _extract_json(text) if text else None
+            rows = _extract_rows(parsed)
 
-        if not parsed:
+        if rows is None:
             log.error("Classification failed for a batch of %d; defaulting them.", len(batch))
             return {m.id: Label.safe_default(m.id) for m in batch}
 
         out: dict[str, Label] = {}
-        for row in parsed.get("results", []) or []:
+        for row in rows:
             if not isinstance(row, dict):
                 continue
             label = _coerce(row)
