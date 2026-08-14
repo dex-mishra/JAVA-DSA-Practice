@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 
@@ -108,6 +109,21 @@ def main() -> int:
             "If your university blocks third-party apps you will see "
             "'access blocked' here -- see the IMAP fallback in the README.\n"
         )
+
+    # oauthlib refuses to process an http:// authorization_response URL
+    # unless this is set -- normally invisible, since run_local_server() sets
+    # it internally before calling fetch_token(). We call fetch_token()
+    # directly, so it has to be set here or every exchange fails with
+    # "InsecureTransportError: OAuth 2 MUST utilize https." before it even
+    # looks at the code.
+    #
+    # Safe specifically because of what it does and doesn't affect: it only
+    # relaxes the scheme check on the local, never-contacted placeholder URL
+    # used to carry the code (http://localhost:8085/?code=...) -- nothing
+    # ever connects to that URL, it exists only to be parsed. The actual
+    # token exchange is a direct network call to Google's token endpoint,
+    # hardcoded to https:// in the client library and unaffected by this.
+    os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "1")
 
     flow = InstalledAppFlow.from_client_secrets_file(args.client_secret, scopes)
     # A loopback address, per Google's "Desktop app" client rules -- Desktop
