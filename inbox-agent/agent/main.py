@@ -263,39 +263,66 @@ def _run_cleanup(
         return [], [], errors
 
     body_chars = int(settings.section("scan").get("body_chars", 1800))
-    labels = classifier.classify(candidates, body_chars)
-
     cap = int(cleanup_cfg.get("max_trash_per_run", 100))
     dry = settings.cleanup_dry_run
     quarantine = cleanup_cfg.get("quarantine_label")
 
+    # Screen on metadata before spending anything on the model. trash_verdict
+    # makes all of these checks too, so whatever drops out here was going to
+    # be kept regardless -- see policy.may_be_trashable.
+    screened = [m for m in candidates if policy_mod.may_be_trashable(m, settings.policy)]
+    log.info(
+        "Cleanup: %d candidates, %d still eligible after the metadata screen.",
+        len(candidates),
+        len(screened),
+    )
+
     trashed: list[tuple[Message, str]] = []
     would: list[tuple[Message, str]] = []
+    hit_cap = False
 
-    for msg in candidates:
-        if len(trashed) + len(would) >= cap:
-            log.info("Hit the per-run cleanup cap of %d.", cap)
+    # Classify a chunk at a time and stop once the cap is reached, rather than
+    # classifying everything upfront. The cap applies to the verdict, so on a
+    # large mailbox the old order paid for hundreds of classifications whose
+    # results were then thrown away -- enough to push the digest past its
+    # 15-minute task timeout, get killed, retry, and get killed again.
+    chunk = max(1, classifier.batch_size)
+    for start in range(0, len(screened), chunk):
+        if hit_cap:
             break
+        block = screened[start : start + chunk]
+        labels = classifier.classify(block, body_chars)
 
-        client = clients.get(msg.account)
-        if not client:
-            continue
+        for msg in block:
+            if len(trashed) + len(would) >= cap:
+                hit_cap = True
+                break
 
-        label = labels.get(msg.id) or Label.safe_default(msg.id)
-        verdict = policy_mod.trash_verdict(msg, label, settings.policy, client.thread_has_sent)
-        if not verdict.allowed:
-            log.debug("Keeping %s: %s", msg.subject[:50], verdict.reasons[-1] if verdict.reasons else "")
-            continue
+            client = clients.get(msg.account)
+            if not client:
+                continue
 
-        reason = verdict.reasons[-1] if verdict.reasons else "matched cleanup rules"
-        if dry:
-            would.append((msg, reason))
-            continue
+            label = labels.get(msg.id) or Label.safe_default(msg.id)
+            verdict = policy_mod.trash_verdict(msg, label, settings.policy, client.thread_has_sent)
+            if not verdict.allowed:
+                log.debug(
+                    "Keeping %s: %s",
+                    msg.subject[:50],
+                    verdict.reasons[-1] if verdict.reasons else "",
+                )
+                continue
 
-        ok = client.apply_label(msg.id, quarantine) if quarantine else client.trash(msg.id)
-        if ok:
-            trashed.append((msg, reason))
+            reason = verdict.reasons[-1] if verdict.reasons else "matched cleanup rules"
+            if dry:
+                would.append((msg, reason))
+                continue
 
+            ok = client.apply_label(msg.id, quarantine) if quarantine else client.trash(msg.id)
+            if ok:
+                trashed.append((msg, reason))
+
+    if hit_cap:
+        log.info("Hit the per-run cleanup cap of %d; stopped there.", cap)
     log.info("Cleanup: %d trashed, %d would-trash (dry_run=%s).", len(trashed), len(would), dry)
     return trashed, would, errors
 

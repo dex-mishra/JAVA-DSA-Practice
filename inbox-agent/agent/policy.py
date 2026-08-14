@@ -86,6 +86,49 @@ def _matches_keyword(msg: Message, keywords: list[str]) -> str | None:
 # --------------------------------------------------------------------------
 
 
+def may_be_trashable(msg: Message, cfg: dict[str, Any]) -> bool:
+    """Cheap metadata-only screen, used to avoid classifying mail that is
+    already certain to be kept.
+
+    Every check here is one `trash_verdict` below also makes, and every one
+    reads only headers and metadata -- nothing the model produces. So `False`
+    here means `trash_verdict` would deny the message anyway, and skipping it
+    cannot change an outcome. The converse does not hold: `True` means only
+    "not yet excluded", and the full verdict still decides.
+
+    Why it exists: the cap on how many messages may be trashed is enforced on
+    the *verdict*, so classifying every candidate upfront meant paying the
+    model for hundreds of results that were then discarded -- slow enough on a
+    large mailbox to run the digest past its task timeout.
+
+    Deliberately conservative. Leaving a check out only wastes a
+    classification. Adding one that `trash_verdict` does not also make would
+    silently keep mail that should have been considered, so don't.
+    """
+    cleanup = cfg.get("cleanup", {}) or {}
+    protect = cleanup.get("protect", {}) or {}
+
+    if not cleanup.get("enabled", False):
+        return False
+    if msg.age_days < float(cleanup.get("min_age_days", 30)):
+        return False
+    if msg.is_starred:
+        return False
+    if set(protect.get("labels", []) or []) & set(msg.label_ids):
+        return False
+    if "SENT" in msg.label_ids or "DRAFT" in msg.label_ids:
+        return False
+    if _matches_sender(msg, protect.get("senders", [])):
+        return False
+    if _matches_keyword(msg, protect.get("keywords", [])):
+        return False
+    if protect.get("human_senders", True) and not msg.is_bulk:
+        return False
+    # Not screened here: the category/importance/needs-action checks, which
+    # need the model, and the thread-reply check, which costs an API call.
+    return True
+
+
 def trash_verdict(
     msg: Message,
     label: Label,

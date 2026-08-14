@@ -301,6 +301,22 @@ This runs a full digest cycle in dry-run — you'll see in the logs exactly what
 it *would* send, star, and propose for your calendar, without anything
 happening yet.
 
+**Expect 5–10 minutes**, and longer on the first run, which also does a
+cleanup pass. Most of that is Gemini: roughly 25 seconds per batch of 15
+messages. The job's ceiling is 30 minutes.
+
+**Ctrl-C is safe at any point.** It stops your terminal watching; it does not
+cancel the execution, which keeps running on Google's side. If you get bored
+or lose the connection, detach and check on it instead:
+
+```bash
+gcloud run jobs executions list --job=inbox-agent --region=asia-south1 --limit=5
+```
+
+`STATUS` tells you where it is. Then read what it actually did with the
+`gcloud logging read` command above (widen `--freshness` to `40m` if it's been
+a while).
+
 ```bash
 gcloud run jobs execute inbox-agent --region asia-south1 --args="--mode=cleanup" --wait
 gcloud logging read \
@@ -557,6 +573,26 @@ wrong flag lived.
 retries without the schema, and that retry is free to answer with a bare
 `[...]` array instead. The parser now accepts either shape. `git pull`, then
 redeploy with `gcloud run jobs deploy --source . --region asia-south1`.
+
+**`--mode=digest` runs for ~30 minutes and then reports failure** — that
+number is the tell: the task timeout is 30 minutes and `--max-retries 1`
+means one timeout becomes two, so a stuck digest lands on almost exactly
+double the ceiling. On older checkouts the ceiling was 15 minutes, so the
+same symptom showed up at 30 minutes there too.
+
+The cause was cleanup classifying every candidate it fetched — up to 250 per
+mailbox — before applying the cap on how many it may actually trash, so most
+of that model time was spent on results that were then discarded. Cleanup now
+screens on metadata first (age, starred, protected sender, protected keyword,
+human sender) and only classifies what survives, in chunks, stopping once the
+cap is reached. On a 16,000-message mailbox that is about 7 Gemini calls
+instead of 34. `git pull` and re-run `bootstrap.sh`.
+
+To check whether an execution is still running rather than wedged:
+
+```bash
+gcloud run jobs executions list --job=inbox-agent --region=asia-south1 --limit=5
+```
 
 **"redirect_uri_mismatch" during authorize.py** — the Desktop app OAuth client
 type handles this automatically; if you see it, double check you picked

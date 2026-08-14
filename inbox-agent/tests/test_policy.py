@@ -20,6 +20,7 @@ from agent.gmail import Message  # noqa: E402
 from agent.policy import (  # noqa: E402
     build_cleanup_query,
     career_verdict,
+    may_be_trashable,
     star_verdict,
     trash_verdict,
     urgent_verdict,
@@ -318,6 +319,94 @@ class CareerRules(unittest.TestCase):
     def test_non_career_category_is_skipped(self):
         label = Label(id="x", category="promotional", career_is_opportunity=True, career_company="Acme")
         self.assertFalse(career_verdict(make_message(), label, POLICY).allowed)
+
+
+class MetadataScreen(unittest.TestCase):
+    """The screen decides what is worth classifying. It is a performance
+    optimisation sitting in front of a safety rule, so the only thing that
+    really matters is that it never drops something trash_verdict would have
+    allowed -- that would silently exempt mail from cleanup instead."""
+
+    # Every distinguishing shape the screen or the verdict looks at, so the
+    # invariant below is exercised against protections rather than one case.
+    SHAPES = [
+        dict(),  # the ordinary trashable promo
+        dict(age_days=5),
+        dict(age_days=29.9),
+        dict(labels=["CATEGORY_PROMOTIONS", "STARRED"]),
+        dict(labels=["CATEGORY_PROMOTIONS", "IMPORTANT"]),
+        dict(labels=["SENT"]),
+        dict(labels=["DRAFT"]),
+        dict(labels=[]),
+        dict(subject="Your exam schedule"),
+        dict(subject="Invoice attached"),
+        dict(sender="Prof <prof@iitkgp.ac.in>", sender_email="prof@iitkgp.ac.in"),
+        dict(
+            sender="A Human <someone@gmail.com>",
+            sender_email="someone@gmail.com",
+            headers={},
+            labels=[],
+        ),
+        dict(body="fee payment due"),
+    ]
+
+    LABELS = [
+        promo_label(),
+        promo_label(importance="urgent"),
+        promo_label(importance="high"),
+        promo_label(needs_action=True),
+        promo_label(needs_reply=True),
+        Label(id="x", category="academic", importance="normal"),
+        Label(id="x", category="personal", importance="normal"),
+    ]
+
+    def test_screen_never_hides_a_trashable_message(self):
+        """The invariant the optimisation rests on: screened out => denied
+        anyway. If this ever fails, cleanup is quietly skipping mail."""
+        for shape in self.SHAPES:
+            msg = make_message(**shape)
+            if may_be_trashable(msg, POLICY):
+                continue
+            for label in self.LABELS:
+                for replied in (NEVER_REPLIED, ALWAYS_REPLIED):
+                    verdict = trash_verdict(msg, label, POLICY, replied)
+                    self.assertFalse(
+                        verdict.allowed,
+                        f"screen dropped {shape} but trash_verdict allowed it "
+                        f"with {label.category}/{label.importance}",
+                    )
+
+    def test_screen_keeps_the_ordinary_trashable_promo(self):
+        """The converse sanity check: if the screen rejected everything it
+        would satisfy the invariant above and break cleanup entirely."""
+        self.assertTrue(may_be_trashable(make_message(), POLICY))
+
+    def test_screen_rejects_on_metadata_alone(self):
+        self.assertFalse(may_be_trashable(make_message(age_days=5), POLICY))
+        self.assertFalse(
+            may_be_trashable(make_message(labels=["CATEGORY_PROMOTIONS", "STARRED"]), POLICY)
+        )
+        # No List-* headers and no promotions label: a person, so kept.
+        self.assertFalse(
+            may_be_trashable(
+                make_message(
+                    sender="A Human <someone@gmail.com>",
+                    sender_email="someone@gmail.com",
+                    headers={},
+                    labels=[],
+                ),
+                POLICY,
+            )
+        )
+
+    def test_screen_does_not_preempt_the_model(self):
+        """A message the model would rule out must still reach the model --
+        the screen has no business guessing category or importance."""
+        self.assertTrue(may_be_trashable(make_message(), POLICY))
+        denied = trash_verdict(
+            make_message(), Label(id="x", category="academic"), POLICY, NEVER_REPLIED
+        )
+        self.assertFalse(denied.allowed)
 
 
 if __name__ == "__main__":

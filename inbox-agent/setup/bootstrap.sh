@@ -170,7 +170,7 @@ gcloud run jobs deploy "$JOB" \
   --service-account "$SA_EMAIL" \
   --tasks 1 \
   --max-retries 1 \
-  --task-timeout 15m \
+  --task-timeout 30m \
   --memory 1Gi \
   --cpu 1 \
   --set-env-vars "GCP_PROJECT=${PROJECT},GCP_REGION=${REGION},STATE_BUCKET=${BUCKET},VERTEX_LOCATION=${REGION},GEMINI_MODEL=${GEMINI_MODEL},PRIMARY_EMAIL=${PRIMARY_EMAIL},COLLEGE_EMAIL=${COLLEGE_EMAIL},REPORT_TO=${REPORT_TO},TIMEZONE=${TZ_NAME},GITHUB_REPO=${GITHUB_REPO},DRY_RUN=true"
