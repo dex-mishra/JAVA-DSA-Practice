@@ -235,11 +235,18 @@ printf '%s' 'PASTE_YOUR_TOKEN_HERE' | gcloud secrets create inbox-agent-github-t
 ## 9. Everything else, in one script
 
 ```bash
-COLLEGE_EMAIL=you@kgpian.iitkgp.ac.in ./setup/bootstrap.sh YOUR_PROJECT_ID
+PRIMARY_EMAIL=you@gmail.com COLLEGE_EMAIL=you@kgpian.iitkgp.ac.in ./setup/bootstrap.sh YOUR_PROJECT_ID
 ```
 
-Replace `you@kgpian.iitkgp.ac.in` with your actual college address. (If you
-went the forwarding route in step 7, omit `COLLEGE_EMAIL=...` entirely.)
+Replace both addresses with your real ones. (If you went the forwarding route
+in step 7, omit `COLLEGE_EMAIL=...` entirely.)
+
+**Set `PRIMARY_EMAIL`.** It is where every report gets sent, from both
+mailboxes. Leave it out and it falls back to a placeholder, `you@example.com`,
+and your digests go to an address that does not exist — the job still runs and
+still reports success, because sending to a bad address is not an error Gmail
+raises back to it. Step 10 catches this if it happens: look for a line reading
+`config says you@example.com but the token belongs to ...`.
 
 This one script:
 - creates the GCS bucket that holds the agent's small state file
@@ -529,6 +536,27 @@ on a current checkout, `git pull` and re-run `bootstrap.sh` (idempotent, picks
 up from wherever it stopped). This also matters for every *manual* redeploy
 in this guide that uses `gcloud run jobs deploy --source .` — not just the
 first one.
+
+**`bootstrap.sh` fails at the Schedules step with "unrecognized arguments:
+--headers=Content-Type=application/json (did you mean '--clear-headers'?)"** —
+`gcloud scheduler jobs create http` and `... update http` disagree on the flag
+name: create takes `--headers` (it sets the whole header map), update takes
+`--update-headers` (it merges into the existing one). Everything up to and
+including the Cloud Run deploy has already succeeded at this point, so nothing
+is broken — only the three schedule entries were left untouched. Fixed on
+current checkouts; `git pull` and re-run.
+
+Worth knowing why this only ever appears on a **re-run**: the first run creates
+the schedules, which takes the `create` branch and works. Every run after that
+finds them already there and takes the `update` branch, which is where the
+wrong flag lived.
+
+**`--mode=digest` crashes with `AttributeError: 'list' object has no attribute
+'get'`** — the classifier asks Gemini for a fixed JSON shape,
+`{"results": [...]}`. When that schema-constrained call comes back empty it
+retries without the schema, and that retry is free to answer with a bare
+`[...]` array instead. The parser now accepts either shape. `git pull`, then
+redeploy with `gcloud run jobs deploy --source . --region asia-south1`.
 
 **"redirect_uri_mismatch" during authorize.py** — the Desktop app OAuth client
 type handles this automatically; if you see it, double check you picked

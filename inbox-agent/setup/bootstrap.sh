@@ -192,11 +192,16 @@ create_schedule() {
   local body="{\"overrides\":{\"containerOverrides\":[{\"args\":[\"--mode=${mode}\"]}]}}"
 
   if gcloud scheduler jobs describe "$name" --location="$REGION" >/dev/null 2>&1; then
+    # `update http` spells this --update-headers, not --headers: it takes the
+    # update/remove/clear triad for merging into an existing header map,
+    # whereas `create http` below sets the whole map at once with --headers.
+    # Every other flag is shared between the two, which is exactly why this
+    # only surfaces on a re-run, after the first run created the job.
     gcloud scheduler jobs update http "$name" \
       --location="$REGION" --schedule="$cron" --time-zone="$TZ_NAME" \
       --uri="$JOB_URI" --http-method=POST \
       --message-body="$body" \
-      --headers="Content-Type=application/json" \
+      --update-headers="Content-Type=application/json" \
       --oauth-service-account-email="$SCHED_SA" >/dev/null
     echo "  updated $name ($cron)"
   else
