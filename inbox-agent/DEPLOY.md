@@ -266,13 +266,28 @@ Takes 3–5 minutes, mostly the container build.
 gcloud run jobs execute inbox-agent --region asia-south1 --args="--mode=check" --wait
 ```
 
+`--wait` only tells you whether the execution succeeded or failed, not what it
+actually did — Cloud Run Jobs write their output to Cloud Logging, not back to
+this terminal. Read it with:
+
+```bash
+gcloud logging read \
+  'resource.type="cloud_run_job" AND resource.labels.job_name="inbox-agent"' \
+  --freshness=10m --order=asc --format='value(textPayload)' --limit=200
+```
+
+(`--freshness=10m` scopes this to whatever you just ran, so it doesn't matter
+that the same command works for every mode below too.)
+
 Confirms both mailboxes are reachable, the state bucket exists, and Vertex AI
 responds. Read the output — it prints each mailbox's actual email address, so
 you can catch a token authorized under the wrong account.
 
 ```bash
 gcloud run jobs execute inbox-agent --region asia-south1 --args="--mode=digest" --wait
-gcloud run jobs executions logs read --region asia-south1 --job inbox-agent | tail -80
+gcloud logging read \
+  'resource.type="cloud_run_job" AND resource.labels.job_name="inbox-agent"' \
+  --freshness=10m --order=asc --format='value(textPayload)' --limit=200
 ```
 
 This runs a full digest cycle in dry-run — you'll see in the logs exactly what
@@ -281,7 +296,9 @@ happening yet.
 
 ```bash
 gcloud run jobs execute inbox-agent --region asia-south1 --args="--mode=cleanup" --wait
-gcloud run jobs executions logs read --region asia-south1 --job inbox-agent | tail -60
+gcloud logging read \
+  'resource.type="cloud_run_job" AND resource.labels.job_name="inbox-agent"' \
+  --freshness=10m --order=asc --format='value(textPayload)' --limit=200
 ```
 
 Same, for the cleanup rules specifically — every message it would trash, and
@@ -449,7 +466,9 @@ proposes:
 
 ```bash
 gcloud run jobs execute inbox-agent --region asia-south1 --args="--mode=site-update" --wait
-gcloud run jobs executions logs read --region asia-south1 --job inbox-agent | tail -60
+gcloud logging read \
+  'resource.type="cloud_run_job" AND resource.labels.job_name="inbox-agent"' \
+  --freshness=10m --order=asc --format='value(textPayload)' --limit=200
 ```
 
 In dry-run this just logs what it would propose. Once you flip `DRY_RUN=false`
@@ -488,6 +507,16 @@ All comfortably inside free-trial credits.
 ---
 
 ## Troubleshooting
+
+**`bootstrap.sh` dies partway with "... does not exist" right after creating a
+service account** — IAM propagation lag: a freshly created service account
+can take a few seconds to become visible to a different API's IAM binding
+endpoint. The script retries every binding that could hit this automatically
+(10 attempts, a few seconds apart), so this shouldn't happen on a current
+checkout — if you see it, `git pull` to make sure you're not on an older copy
+of `setup/bootstrap.sh`, then just re-run it. It's idempotent: anything
+already created is reported as "already exists" and skipped, so re-running
+picks up exactly where it stopped.
 
 **"redirect_uri_mismatch" during authorize.py** — the Desktop app OAuth client
 type handles this automatically; if you see it, double check you picked

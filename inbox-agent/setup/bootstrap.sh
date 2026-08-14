@@ -39,6 +39,28 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 say() { printf "\n\033[1m==> %s\033[0m\n" "$1"; }
 
+# IAM propagation is eventually consistent: a service account (or an API
+# freshly enabled, like Cloud Build's own SA) can exist and still be invisible
+# to a *different* backend's IAM binding endpoint for several seconds. Every
+# add-iam-policy-binding call below that references a principal this same run
+# just created goes through this instead of running gcloud directly, so a
+# losing race is a short wait, not a hard stop -- set -e would otherwise kill
+# the whole script on the very first one, as it did for whoever hits this.
+retry() {
+  local attempts=10 delay=3 i
+  for ((i = 1; i <= attempts; i++)); do
+    if "$@" >/dev/null; then
+      return 0
+    fi
+    if ((i < attempts)); then
+      echo "  not visible yet, retrying in ${delay}s (${i}/${attempts})..." >&2
+      sleep "$delay"
+    fi
+  done
+  echo "  gave up after ${attempts} attempts: $*" >&2
+  return 1
+}
+
 gcloud config set project "$PROJECT" >/dev/null
 
 say "Enabling APIs (a few minutes the first time)"
@@ -80,20 +102,20 @@ fi
 
 say "Granting roles"
 # Bucket-scoped rather than project-wide: the agent can only touch its own state.
-gcloud storage buckets add-iam-policy-binding "gs://${BUCKET}" \
+retry gcloud storage buckets add-iam-policy-binding "gs://${BUCKET}" \
   --member="serviceAccount:${SA_EMAIL}" \
-  --role="roles/storage.objectAdmin" >/dev/null
+  --role="roles/storage.objectAdmin"
 
-gcloud projects add-iam-policy-binding "$PROJECT" \
+retry gcloud projects add-iam-policy-binding "$PROJECT" \
   --member="serviceAccount:${SA_EMAIL}" \
   --role="roles/aiplatform.user" \
-  --condition=None >/dev/null
+  --condition=None
 
 for secret in inbox-agent-primary-token inbox-agent-college-token inbox-agent-github-token; do
   if gcloud secrets describe "$secret" >/dev/null 2>&1; then
-    gcloud secrets add-iam-policy-binding "$secret" \
+    retry gcloud secrets add-iam-policy-binding "$secret" \
       --member="serviceAccount:${SA_EMAIL}" \
-      --role="roles/secretmanager.secretAccessor" >/dev/null
+      --role="roles/secretmanager.secretAccessor"
     echo "  granted access to $secret"
   else
     echo "  !! $secret does not exist yet -- run setup/authorize.py, then re-run this script"
@@ -106,24 +128,26 @@ CLOUDBUILD_SA="${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com"
 
 # Push the built image, deploy the job, and write its own build logs. Granted
 # unconditionally and harmlessly even if the GitHub trigger is never set up --
-# it just sits unused until then.
-gcloud projects add-iam-policy-binding "$PROJECT" \
+# it just sits unused until then. The Cloud Build API was possibly just
+# enabled a few lines up in this same run, so its service account is subject
+# to the same propagation delay as any freshly created one.
+retry gcloud projects add-iam-policy-binding "$PROJECT" \
   --member="serviceAccount:${CLOUDBUILD_SA}" \
   --role="roles/run.developer" \
-  --condition=None >/dev/null
-gcloud projects add-iam-policy-binding "$PROJECT" \
+  --condition=None
+retry gcloud projects add-iam-policy-binding "$PROJECT" \
   --member="serviceAccount:${CLOUDBUILD_SA}" \
   --role="roles/artifactregistry.writer" \
-  --condition=None >/dev/null
-gcloud projects add-iam-policy-binding "$PROJECT" \
+  --condition=None
+retry gcloud projects add-iam-policy-binding "$PROJECT" \
   --member="serviceAccount:${CLOUDBUILD_SA}" \
   --role="roles/logging.logWriter" \
-  --condition=None >/dev/null
+  --condition=None
 # Deploying a job that runs AS ${SA_EMAIL} requires this on that identity
 # specifically, not just on the project.
-gcloud iam service-accounts add-iam-policy-binding "$SA_EMAIL" \
+retry gcloud iam service-accounts add-iam-policy-binding "$SA_EMAIL" \
   --member="serviceAccount:${CLOUDBUILD_SA}" \
-  --role="roles/iam.serviceAccountUser" >/dev/null
+  --role="roles/iam.serviceAccountUser"
 
 say "Deploying the Cloud Run job"
 gcloud run jobs deploy "$JOB" \
@@ -142,10 +166,10 @@ SCHED_SA="scheduler-invoker@${PROJECT}.iam.gserviceaccount.com"
 if ! gcloud iam service-accounts describe "$SCHED_SA" >/dev/null 2>&1; then
   gcloud iam service-accounts create scheduler-invoker --display-name="Cloud Scheduler invoker"
 fi
-gcloud projects add-iam-policy-binding "$PROJECT" \
+retry gcloud projects add-iam-policy-binding "$PROJECT" \
   --member="serviceAccount:${SCHED_SA}" \
   --role="roles/run.invoker" \
-  --condition=None >/dev/null
+  --condition=None
 
 JOB_URI="https://${REGION}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${PROJECT}/jobs/${JOB}:run"
 
@@ -196,7 +220,8 @@ will not star, trash, or send anything until you turn that off.
 
   See what cleanup would do, without doing it:
     gcloud run jobs execute ${JOB} --region ${REGION} --args="--mode=cleanup" --wait
-    gcloud run jobs executions logs read --region ${REGION} --job ${JOB}
+    gcloud logging read 'resource.type="cloud_run_job" AND resource.labels.job_name="${JOB}"' \\
+      --project=${PROJECT} --freshness=10m --order=asc --format='value(textPayload)'
 
   Go live once the reports look right:
     gcloud run jobs update ${JOB} --region ${REGION} --update-env-vars DRY_RUN=false

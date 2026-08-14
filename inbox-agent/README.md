@@ -172,7 +172,9 @@ gcloud run jobs execute inbox-agent --region asia-south1 --args="--mode=cleanup"
 ```
 
 ```bash
-gcloud run jobs executions logs read --region asia-south1 --job inbox-agent
+gcloud logging read \
+  'resource.type="cloud_run_job" AND resource.labels.job_name="inbox-agent"' \
+  --freshness=10m --order=asc --format='value(textPayload)' --limit=200
 ```
 
 ### 5. Go live
