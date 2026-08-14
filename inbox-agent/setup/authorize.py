@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""One-time OAuth for a mailbox. Run this on your laptop, once per account.
+"""One-time OAuth for a mailbox. Run once per account, from Cloud Shell or a
+laptop -- both work the same way here.
 
-It opens a browser, you approve, and the resulting refresh token is written
-straight into Secret Manager. The token never lands in a file you might later
-commit.
+You visit a URL, approve, and paste back the page it lands on. The resulting
+refresh token is written straight into Secret Manager; it never touches disk.
 
     python setup/authorize.py --account primary --secret inbox-agent-primary-token
     python setup/authorize.py --account college --secret inbox-agent-college-token
@@ -15,6 +15,16 @@ Scopes are assigned by role, least privilege first:
 
 Neither is `https://mail.google.com/`, so neither token can permanently delete
 a message. That is the point.
+
+Why copy/paste instead of the library's automatic `run_local_server` flow:
+that flow starts a web server and waits for Google to redirect your browser
+back to `localhost:<port>`. That only works when the browser and the server
+are the same machine. From Cloud Shell they are not -- the browser is on your
+laptop, the listener is on a remote VM -- so the redirect always fails with
+nothing on the other end, and the script hangs forever waiting for a
+connection that cannot arrive. Exchanging the code by hand sidesteps the
+problem entirely: the page Google redirects you to doesn't need to load, it
+only needs to exist in your address bar long enough to copy.
 """
 
 from __future__ import annotations
@@ -100,7 +110,43 @@ def main() -> int:
         )
 
     flow = InstalledAppFlow.from_client_secrets_file(args.client_secret, scopes)
-    creds = flow.run_local_server(port=0, prompt="consent", access_type="offline")
+    # A loopback address, per Google's "Desktop app" client rules -- Desktop
+    # clients accept any port here without pre-registering it, and it never
+    # needs to actually be reachable for this manual flow. Using an explicit
+    # port rather than a bare "http://localhost" only because that is the
+    # exact form already proven to work: it is what run_local_server used to
+    # generate, and Google accepted it without a redirect_uri_mismatch error.
+    flow.redirect_uri = "http://localhost:8085"
+
+    auth_url, _ = flow.authorization_url(access_type="offline", prompt="consent")
+
+    print("Open this URL and sign in as the account you want the agent to read:\n")
+    print(f"  {auth_url}\n")
+    print(
+        "After you approve, Google sends the browser to a 'localhost' page\n"
+        "that fails to load -- that is expected, not an error; nothing is\n"
+        "listening there on purpose. Copy the FULL URL from the address bar\n"
+        "at that point (it starts with http://localhost:8085/?state=...&code=...)\n"
+        "and paste it below.\n"
+    )
+
+    pasted = input("Paste that URL here: ").strip()
+    if not pasted:
+        raise SystemExit("Nothing pasted; run this again.")
+    if not pasted.startswith("http"):
+        # Tolerate someone pasting just the query string rather than a full URL.
+        pasted = "http://localhost:8085/?" + pasted.lstrip("?")
+
+    try:
+        flow.fetch_token(authorization_response=pasted)
+    except Exception as exc:  # noqa: BLE001 -- surfaced to the user, not swallowed
+        raise SystemExit(
+            f"Could not exchange that code ({exc}). Codes are single-use and "
+            "expire quickly -- run this script again for a fresh URL rather "
+            "than reusing an old one."
+        ) from exc
+
+    creds = flow.credentials
 
     if not creds.refresh_token:
         raise SystemExit(

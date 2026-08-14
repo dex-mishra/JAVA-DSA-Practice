@@ -150,9 +150,10 @@ python3 -m venv .venv
   --project YOUR_PROJECT_ID --secret inbox-agent-primary-token
 ```
 
-This prints a URL. **Cloud Shell has no browser** — copy the URL into a new
-tab on your laptop, sign in as `malhotra.aryan.a01@gmail.com`, approve. You'll
-see:
+This prints a URL and then waits for you to paste something back — it does
+**not** complete on its own. **Cloud Shell has no browser**, so: copy the
+printed URL into a new tab on your laptop, sign in as
+`malhotra.aryan.a01@gmail.com`, approve. You'll see:
 
 > Google hasn't verified this app
 
@@ -163,11 +164,27 @@ Google hasn't manually reviewed it; you wrote the code, so this is fine.
 Approve all three scopes it asks for: read/modify Gmail, send Gmail, and
 "create calendars" — the last one is what lets it create events later.
 
-After approving, the browser redirects to `localhost` and appears to hang or
-error ("can't connect") — **that's fine**, ignore it. Copy the full redirected
-URL from the browser's address bar back into Cloud Shell if it's waiting for
-one, or just check Cloud Shell — it usually completes on its own once the
-redirect fires. You'll see "Stored a new version of inbox-agent-primary-token."
+After approving, your browser lands on a `localhost:8085` page that **fails
+to load** — "can't connect," or similar. This is expected, not an error:
+nothing is meant to be listening there. The thing you actually need is
+already sitting in your address bar. Copy the **entire URL** from that failed
+page — it looks like:
+
+```
+http://localhost:8085/?state=xxxx&code=xxxx&scope=xxxx
+```
+
+and paste it into the Cloud Shell terminal at the `Paste that URL here:`
+prompt, then press Enter. You'll see "Stored a new version of
+inbox-agent-primary-token."
+
+(Why the browser-based `run_local_server` flow other Google auth guides
+describe doesn't work here: it starts a listener and waits for Google to
+redirect *back to it*, but that listener is a process on the remote Cloud
+Shell VM while your browser is on your laptop — the redirect has nowhere
+reachable to land, and the script would hang forever. Copying the URL by hand
+sidesteps that; the failed page only needs to exist long enough to copy from,
+never to actually load.)
 
 ### College — your @kgpian.iitkgp.ac.in address
 
@@ -475,6 +492,14 @@ All comfortably inside free-trial credits.
 **"redirect_uri_mismatch" during authorize.py** — the Desktop app OAuth client
 type handles this automatically; if you see it, double check you picked
 **Desktop app**, not **Web application**, in step 6.
+
+**authorize.py errors on the pasted URL, or `authorize.py` just hangs after
+you paste** — codes are single-use and expire in minutes. If you waited a
+while, re-ran the script, or opened the URL twice, the code in your address
+bar is stale. Re-run the script for a fresh URL rather than pasting an old
+one. Also make sure you copied the *entire* URL, including everything after
+`code=` — an editor or terminal that word-wraps the line can make it easy to
+copy only part of it.
 
 **check mode shows the wrong email for an account** — the token was
 authorized while signed into the wrong Google account in that browser tab. Use
