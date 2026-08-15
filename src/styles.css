@@ -495,3 +495,21 @@ ul.accounts .mono { flex: 1; font-size: 12.5px; color: var(--ink); min-width: 12
   background: var(--bg); color: var(--ink); border: 1px solid var(--line);
   border-radius: var(--r); font-family: var(--mono); font-size: 13px;
 }
+
+/* sync indicator in the footer */
+.sync { font-family: var(--mono); font-size: 11px; }
+.sync.local   { color: var(--ink-3); }
+.sync.syncing { color: var(--ink-2); }
+.sync.synced  { color: var(--ok); }
+.sync.error   { color: var(--warn); }
+
+/* run-now list: each action paired with what it actually does */
+.run-list { display: grid; gap: 14px; }
+.run-item {
+  display: grid; grid-template-columns: minmax(210px, auto) 1fr; gap: 14px;
+  align-items: start; padding-bottom: 14px; border-bottom: 1px solid var(--line-soft);
+}
+.run-item:last-child { border-bottom: 0; padding-bottom: 0; }
+.run-item .btn { width: 100%; }
+@media (max-width: 620px) { .run-item { grid-template-columns: 1fr; } }
+.switch-row .muted b { color: var(--ink-2); font-weight: 600; }

@@ -3,6 +3,8 @@
   --mode=sweep    every 15 min. Cheap. Stars and files new mail, and sends an
                   out-of-band alert only for things that are genuinely urgent.
   --mode=digest   4x a day. Full report, and runs the cleanup pass once daily.
+  --mode=review   on demand. Reads the WHOLE inbox, opened and unopened,
+                  and mails one stocktake. Read-only whatever else is set.
   --mode=cleanup  cleanup only, for testing the rules in isolation.
   --mode=check    verifies credentials and config, touching nothing.
 
@@ -488,6 +490,89 @@ def run_digest(settings: Settings, *, force_cleanup: bool = False) -> int:
     return 0
 
 
+def run_review(settings: Settings) -> int:
+    """Read the whole inbox once and mail back a stocktake.
+
+    Read-only by construction, not by configuration. It never calls the star,
+    trash, career or calendar paths at all, so no switch can make a review
+    act -- which matters because this is the one mode that touches mail from
+    years ago, where a misjudgement is least recoverable and least expected.
+    """
+    cfg = settings.section("review")
+    if not cfg.get("enabled", True):
+        log.info("Review mode is disabled in config.yaml.")
+        return 0
+
+    clients = _connect(settings)
+    if not clients:
+        log.error("No mailboxes reachable; nothing to do.")
+        return 1
+
+    query = str(cfg.get("query", "in:inbox -in:chats"))
+    cap = int(cfg.get("max_messages_per_account", 300))
+    body_chars = int(settings.section("scan").get("body_chars", 1800))
+
+    messages: list[Message] = []
+    errors: list[str] = []
+    per_account: dict[str, int] = {}
+    available = 0
+
+    for key, client in clients.items():
+        try:
+            # Ask for more than the cap purely to learn the true size, so the
+            # report can say "300 of 4,812" instead of implying it read it all.
+            ids = client.search_ids(query, max(cap * 4, cap))
+            available += len(ids)
+            taken = ids[:cap]
+            fetched = client.fetch(taken, body_chars)
+            messages.extend(fetched)
+            per_account[key] = len(fetched)
+            log.info("[%s] reviewing %d of %d matching messages.", key, len(fetched), len(ids))
+        except Exception as exc:
+            msg = f"{key}: could not read mail ({exc})"
+            log.error(msg)
+            errors.append(msg)
+
+    if not messages:
+        log.info("Nothing matched %r.", query)
+        return 0
+
+    classifier = Classifier(
+        settings.project,
+        settings.vertex_location,
+        settings.gemini_model,
+        batch_size=int(cfg.get("batch_size", 25)),
+        instructions=settings.instructions,
+    )
+    log.info("Classifying %d messages in batches of %d.", len(messages), classifier.batch_size)
+    labels = classifier.classify(messages, body_chars)
+
+    items = [
+        report_mod.Item(m, labels.get(m.id) or Label.safe_default(m.id)) for m in messages
+    ]
+    subject, body = report_mod.render_review(
+        items,
+        _now(settings),
+        scanned=len(messages),
+        available=available,
+        per_account=per_account,
+        errors=errors,
+    )
+
+    primary = clients.get(settings.primary.key)
+    if not primary:
+        log.error("Primary account is not connected; cannot send the review.")
+        return 1
+
+    if settings.dry_run:
+        log.info("[dry-run] would send %r to %s", subject, settings.report_to)
+    elif primary.send_html(settings.report_to, subject, body):
+        log.info("Review sent to %s.", settings.report_to)
+
+    log.info("Review done: %d read of %d available.", len(messages), available)
+    return 0
+
+
 def run_check(settings: Settings) -> int:
     """Verify wiring without touching anything."""
     ok = True
@@ -547,7 +632,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--mode",
         default="sweep",
-        choices=["sweep", "digest", "cleanup", "check", "site-update"],
+        choices=["sweep", "digest", "review", "cleanup", "check", "site-update"],
     )
     args = parser.parse_args(argv)
 
@@ -564,6 +649,8 @@ def main(argv: list[str] | None = None) -> int:
         return run_sweep(settings)
     if args.mode == "digest":
         return run_digest(settings)
+    if args.mode == "review":
+        return run_review(settings)
     if args.mode == "cleanup":
         clients = _connect(settings)
         classifier = Classifier(

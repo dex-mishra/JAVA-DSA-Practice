@@ -145,13 +145,77 @@ def secret_manager():
     return secretmanager.SecretManagerServiceClient()
 
 
-def read_state() -> dict:
+def read_json_blob(path: str, default):
     try:
-        blob = gcs().bucket(BUCKET).blob("state.json")
+        blob = gcs().bucket(BUCKET).blob(path)
         return json.loads(blob.download_as_bytes().decode("utf-8"))
     except Exception as exc:  # noqa: BLE001
-        log.info("No readable state.json yet: %s", exc)
-        return {}
+        log.info("No readable %s yet: %s", path, exc)
+        return default
+
+
+def read_state() -> dict:
+    return read_json_blob("state.json", {})
+
+
+# ---------------------------------------------------------------------------
+# Tracker progress, shared across devices
+# ---------------------------------------------------------------------------
+
+PROGRESS_BLOB = "console/progress.json"
+# A tick is a short id and a boolean. Tens of thousands of them still fit in
+# well under this; anything larger is a bug or someone poking at the endpoint.
+MAX_PROGRESS_BYTES = 512 * 1024
+
+
+@app.get("/api/progress")
+@protected
+def progress_get():
+    """Your ticked boxes, from the server rather than one browser.
+
+    Returns 'updated_ts': 0 when nothing has ever been saved, which the page
+    reads as "keep whatever this browser already had" on first sync.
+    """
+    doc = read_json_blob(PROGRESS_BLOB, {})
+    return jsonify(
+        {
+            "data": doc.get("data") or {},
+            "updated_ts": float(doc.get("updated_ts") or 0),
+        }
+    )
+
+
+@app.put("/api/progress")
+@protected
+def progress_put():
+    body = request.get_json(silent=True) or {}
+    data = body.get("data")
+    if not isinstance(data, dict):
+        return jsonify({"error": "expected an object under 'data'"}), 400
+
+    payload = json.dumps({"version": 1, "updated_ts": time.time(), "data": data},
+                         separators=(",", ":"))
+    if len(payload.encode("utf-8")) > MAX_PROGRESS_BYTES:
+        return jsonify({"error": "progress payload too large"}), 413
+
+    gcs().bucket(BUCKET).blob(PROGRESS_BLOB).upload_from_string(
+        payload, content_type="application/json"
+    )
+    return jsonify({"updated_ts": json.loads(payload)["updated_ts"]})
+
+
+@app.get("/api/opportunities")
+@protected
+def opportunities():
+    """The career feed the agent maintains, served live.
+
+    The site used to read a build-time data/opportunities.json that was never
+    generated, so the tab was permanently empty while the agent happily wrote
+    entries here on every digest.
+    """
+    doc = read_json_blob("career/opportunities.json", {})
+    items = doc.get("opportunities")
+    return jsonify({"opportunities": items if isinstance(items, list) else []})
 
 
 # ---------------------------------------------------------------------------
@@ -304,7 +368,7 @@ def api_settings_put():
 def api_run():
     """Kick off a job execution now, instead of waiting for the schedule."""
     mode = (request.get_json(silent=True) or {}).get("mode", "digest")
-    if mode not in {"digest", "sweep", "cleanup", "check", "site-update"}:
+    if mode not in {"digest", "sweep", "review", "cleanup", "check", "site-update"}:
         return jsonify({"error": f"unknown mode {mode!r}"}), 400
     try:
         import google.auth

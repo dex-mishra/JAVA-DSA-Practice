@@ -110,6 +110,18 @@ retry gcloud projects add-iam-policy-binding "$PROJECT" \
   --member="serviceAccount:${AGENT_SA}" \
   --role="roles/secretmanager.secretAccessor" --condition=None
 
+# Deploying a service that RUNS AS launch-console requires this on that
+# identity specifically. bootstrap.sh grants the equivalent for the agent's
+# service account; without this one, the push-to-deploy trigger can rebuild
+# the site and then fail at the last step.
+PROJECT_NUMBER="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')"
+for builder in "${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com" \
+               "${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"; do
+  retry gcloud iam service-accounts add-iam-policy-binding "$SA_EMAIL" \
+    --member="serviceAccount:${builder}" \
+    --role="roles/iam.serviceAccountUser"
+done
+
 say "Building the site"
 if command -v node >/dev/null 2>&1; then
   (cd "$ROOT" && node tools/build.mjs)

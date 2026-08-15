@@ -15,6 +15,28 @@ scan:
   # Characters of body text handed to the model per message.
   body_chars: 1800
 
+review:
+  # The full-inbox stocktake, run on demand from the console's "Full inbox
+  # review" button. Unlike the digest it reads everything sitting in the
+  # inbox -- opened and unopened, this week's and last year's.
+  enabled: true
+
+  # Read-only, always. A review never stars, bins or schedules, whatever the
+  # other switches say, because a one-off deep pass over old mail is exactly
+  # where a misjudgement would do the most damage.
+
+  # The honest limit. A full pass over 16,000 messages would be roughly
+  # eleven hours of model time and cost real money; the job's ceiling is 30
+  # minutes. This reads the most recent N per mailbox and says plainly in the
+  # email when it did not reach the bottom.
+  max_messages_per_account: 300
+
+  # Larger than the digest's 15. Fewer, bigger calls is the cheaper shape
+  # when the run is one long sequential pass.
+  batch_size: 25
+
+  query: "in:inbox -in:chats"
+
 report:
   # Sections are rendered in this order; empty sections are dropped.
   sections:

@@ -1,0 +1,97 @@
+# Redeploys EVERYTHING on a push to main: the website (Cloud Run Service) and
+# the inbox agent (Cloud Run Job).
+#
+# The website has to be in here, not just the agent. The site is baked into
+# the console image at build time, so without this step a merged site-update
+# PR changes data/mba.json in GitHub while the live page keeps serving the
+# previous build forever -- which would make the weekly deadline refresh
+# pointless.
+#
+# Note what is deliberately absent: --set-env-vars on either deploy. Cloud Run
+# carries the existing env forward when it is not told otherwise, and that is
+# what stops an automatic deploy from resetting DRY_RUN, PRIMARY_EMAIL or the
+# console's session key behind your back.
+
+steps:
+  # ---- 1. the site --------------------------------------------------------
+  # Rebuild index.html from data/ first: the whole point of this trigger is
+  # that a data change reaches the page, and index.html is a build artefact.
+  - id: build-site
+    name: "node:20-slim"
+    entrypoint: node
+    args: ["tools/build.mjs"]
+
+  - id: console-image
+    name: "gcr.io/cloud-builders/docker"
+    waitFor: ["build-site"]
+    args:
+      - build
+      - -f
+      - console/Dockerfile
+      - -t
+      - "${_CONSOLE_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/launch-console:${SHORT_SHA}"
+      - .
+
+  - id: console-push
+    name: "gcr.io/cloud-builders/docker"
+    waitFor: ["console-image"]
+    args:
+      - push
+      - "${_CONSOLE_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/launch-console:${SHORT_SHA}"
+
+  - id: console-deploy
+    name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    waitFor: ["console-push"]
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - launch-console
+      - "--image=${_CONSOLE_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/launch-console:${SHORT_SHA}"
+      - "--region=${_CONSOLE_REGION}"
+      - "--service-account=${_CONSOLE_SA}"
+
+  # ---- 2. the agent -------------------------------------------------------
+  # Independent of the site steps, so a JS change does not rebuild the agent
+  # image from scratch and vice versa. Both still run on every push, which is
+  # the simple behaviour that was asked for.
+  - id: agent-image
+    name: "gcr.io/cloud-builders/docker"
+    waitFor: ["-"]
+    dir: inbox-agent
+    args:
+      - build
+      - -t
+      - "${_AGENT_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/inbox-agent:${SHORT_SHA}"
+      - .
+
+  - id: agent-push
+    name: "gcr.io/cloud-builders/docker"
+    waitFor: ["agent-image"]
+    args:
+      - push
+      - "${_AGENT_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/inbox-agent:${SHORT_SHA}"
+
+  - id: agent-deploy
+    name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    waitFor: ["agent-push"]
+    entrypoint: gcloud
+    args:
+      - run
+      - jobs
+      - deploy
+      - inbox-agent
+      - "--image=${_AGENT_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/inbox-agent:${SHORT_SHA}"
+      - "--region=${_AGENT_REGION}"
+      - "--service-account=${_AGENT_SA}"
+
+substitutions:
+  _AGENT_REGION: asia-south1
+  _CONSOLE_REGION: asia-southeast1
+  _ARTIFACT_REPO: inbox-agent-images
+  _AGENT_SA: inbox-agent@${PROJECT_ID}.iam.gserviceaccount.com
+  _CONSOLE_SA: launch-console@${PROJECT_ID}.iam.gserviceaccount.com
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8

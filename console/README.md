@@ -51,6 +51,22 @@ point your inbox summaries at themselves.
 classify and log, change nothing. *Bin stale bulk mail* is separate and
 stays off independently, because it is the only one that touches Trash.
 
+**Run something now.** Four buttons, all of which also happen on a schedule:
+*Email me a summary* (the 3-day digest), *Full inbox review*, *Check for
+anything urgent* (the 15-minute sweep), and *Show me what it would bin*.
+
+**Full inbox review** is the deep one — `--mode=review`. It reads the whole
+inbox, opened and unopened, however old, and mails back a single stocktake:
+what still wants something from you, what has a date, what is career-related,
+and a census of the rest. It is read-only by construction: it never calls the
+star, bin, career or calendar paths at all, so no switch can make a review
+act. That matters because it is the only mode that touches years-old mail.
+
+It reads the most recent `review.max_messages_per_account` (default 300) per
+mailbox rather than all 16,000 — a full pass would be hours of model time
+against a 30-minute job ceiling — and the email says plainly when it did not
+reach the bottom.
+
 **Mailboxes.** Everything connected here folds into the single summary sent
 to your primary address. Added mailboxes are read-only — `gmail.modify`, no
 `gmail.send`. Only the primary sends.
@@ -73,6 +89,44 @@ client and will be rejected here.
    ```
 
 Everything else on the tab works without this.
+
+## Auto-deploy on push
+
+Without this, a merged site-update PR changes `data/mba.json` on GitHub while
+the live page keeps serving the previous build — the site is baked into the
+image at build time. `cloudbuild.yaml` at the repo root rebuilds and
+redeploys **both** the site and the agent on every push to `main`.
+
+One-off setup. Step 2 is the only part that needs a browser:
+
+```bash
+gcloud builds connections create github inbox-agent-github --region=asia-south1
+```
+
+```bash
+gcloud builds connections describe inbox-agent-github --region=asia-south1 --format='value(installationState.actionUri)'
+```
+
+Open that URL, install the **Google Cloud Build** GitHub App, give it
+`CeasaKK/Placement-and-MBA`. Confirm it says `COMPLETE`:
+
+```bash
+gcloud builds connections describe inbox-agent-github --region=asia-south1 --format='value(installationState.stage)'
+```
+
+```bash
+gcloud builds repositories create placement-and-mba --connection=inbox-agent-github --region=asia-south1 --remote-uri=https://github.com/CeasaKK/Placement-and-MBA.git
+```
+
+```bash
+gcloud builds triggers create github --name=deploy-all --region=asia-south1 --repository=projects/YOUR_PROJECT_ID/locations/asia-south1/connections/inbox-agent-github/repositories/placement-and-mba --branch-pattern='^main$' --build-config=cloudbuild.yaml
+```
+
+Neither deploy passes `--set-env-vars`, so Cloud Run carries the existing
+environment forward. An automatic deploy cannot reset `DRY_RUN`,
+`PRIMARY_EMAIL`, or the console's session key behind your back.
+
+Watch a run with `gcloud builds list --region=asia-south1 --limit=5`.
 
 ## Custom domain
 

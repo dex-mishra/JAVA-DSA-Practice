@@ -22,6 +22,10 @@
   var DATA = window.__DATA__ || {};
   var PL = DATA.placement || { ranks: [], tracks: [], badges: [] };
   var MBA = DATA.mba || { phases: [], schools: [], excluded: [] };
+  /* Filled from the agent's live career feed at boot. The baked value is
+     only a fallback for opening this file without a server -- the real
+     source is gs://<bucket>/career/opportunities.json, which the agent
+     appends to every time it spots an internship or placement mail. */
   var OPPS = (DATA.opportunities && DATA.opportunities.opportunities) || [];
 
   var DAY1 = new Date("2026-12-01T00:00:00");
@@ -87,17 +91,81 @@
     }
   }
 
+  /* Progress lives on the server so it is the same on every device. The
+     browser copy is a cache, not the record: it makes the first paint
+     instant and keeps the page usable if the API is unreachable, but the
+     server copy wins whenever it is newer. */
+
+  var SYNC = { on: false, ts: 0, state: "local", timer: null };
+
+  function setSync(state) {
+    SYNC.state = state;
+    var el = document.getElementById("syncNote");
+    if (!el) return;
+    el.textContent = {
+      local: "this browser only",
+      syncing: "saving…",
+      synced: "synced across your devices",
+      error: "not synced — changes are local"
+    }[state] || "";
+    el.className = "sync " + state;
+  }
+
   function save() {
-    if (memOnly) return;
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(function () {
+    if (!memOnly) {
       try {
         localStorage.setItem(KEY, JSON.stringify(S));
       } catch (e) {
         memOnly = true;
-        toast("Could not save progress. Storage may be full or blocked.");
+        toast("Could not cache progress in this browser.");
       }
-    }, 300);
+    }
+    if (!SYNC.on) return;
+
+    clearTimeout(saveTimer);
+    setSync("syncing");
+    // Debounced: ticking ten boxes quickly is one write, not ten.
+    saveTimer = setTimeout(function () {
+      fetch("/api/progress", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: S })
+      })
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function (r) { SYNC.ts = r.updated_ts; setSync("synced"); })
+        .catch(function () { setSync("error"); });
+    }, 600);
+  }
+
+  /* Adopt the server's copy if it has one. Called once at boot; the local
+     cache has already painted by then, so this only ever corrects it. */
+  function syncFromServer() {
+    return fetch("/api/progress")
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (r) {
+        SYNC.on = true;
+        SYNC.ts = r.updated_ts || 0;
+        if (r.updated_ts && r.data && Object.keys(r.data).length) {
+          S = {
+            checked: r.data.checked || {},
+            mba: r.data.mba || {},
+            days: r.data.days || [],
+            badges: r.data.badges || [],
+            open: r.data.open || {},
+            opps: r.data.opps || {}
+          };
+          try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* cache only */ }
+          setSync("synced");
+          return true;
+        }
+        // Nothing saved server-side yet. Push what this browser has, so an
+        // existing local history becomes the shared starting point instead
+        // of being wiped by the first save from another device.
+        setSync("synced");
+        save();
+        return false;
+      })
+      .catch(function () { SYNC.on = false; setSync("local"); return false; });
   }
 
   /* ---------------------------------------------------------- helpers */
@@ -786,12 +854,12 @@
     var cleanupLive = cfg.cleanup_dry_run === false;
 
     var cards = [
-      ["Last digest", ago(s.last_digest_ts)],
-      ["Last urgent alert", ago(s.last_alert_ts)],
-      ["Last cleanup", ago(s.last_cleanup_ts)],
-      ["Awaiting your reply", s.open_proposals + (s.open_proposals === 1 ? " item" : " items")],
-      ["Events created", String(s.events_created)],
-      ["Binned to date", String(s.trashed_total)]
+      ["Last summary", ago(s.last_digest_ts)],
+      ["Last urgent ping", ago(s.last_alert_ts)],
+      ["Last junk sweep", ago(s.last_cleanup_ts)],
+      ["Calendar items to confirm", s.open_proposals + (s.open_proposals === 1 ? " item" : " items")],
+      ["Added to calendar", String(s.events_created)],
+      ["Junk binned so far", String(s.trashed_total)]
     ].map(function (c) {
       return '<div class="stat"><div class="k">' + esc(c[0]) + '</div><div class="v">' + esc(c[1]) + "</div></div>";
     }).join("");
@@ -808,9 +876,9 @@
       '<div class="strip agent-strip">' + cards + "</div>" +
 
       '<div class="card">' +
-        "<h3>Instructions</h3>" +
-        '<p class="muted">Written in plain English and handed to the model every run. ' +
-        "Use it to say what matters to you, what is noise, and how to judge borderline mail.</p>" +
+        "<h3>Tell it what matters</h3>" +
+        '<p class="muted">Write here like you are briefing a person. It reads this ' +
+        "before going through your mail, every single time.</p>" +
         '<textarea id="agInstr" rows="14" maxlength="' + (cfg.max_instructions || 8000) + '" ' +
         'placeholder="Examples:&#10;&#10;Anything from Prof. Sharma or the CDC office is always important.&#10;' +
         'Placement and internship mail outranks everything else this semester.&#10;' +
@@ -823,40 +891,64 @@
           '<span class="muted" id="agSaved">Last saved ' + ago(cfg.updated_ts) + "</span>" +
           '<span class="muted count" id="agCount"></span>' +
         "</div>" +
-        '<p class="muted fineprint">This guides judgement — what gets flagged, starred, ' +
-        "summarised or treated as an opportunity. It cannot widen what the agent is " +
-        "allowed to do: the rules that decide what may be binned, the per-run caps and " +
-        "the mail scopes live in code, not here. It also cannot change where your " +
-        "summaries are sent.</p>" +
+        '<p class="muted fineprint">This changes its <b>judgement</b> — what it treats ' +
+        "as important, ignorable, or worth flagging. It cannot give it new powers. " +
+        "The limits on what may be binned, how much it may touch in one go, and where " +
+        "your summaries are sent are fixed in the code and cannot be changed from this " +
+        "page. So a badly worded instruction can make it noisy, but not dangerous.</p>" +
       "</div>" +
 
       '<div class="card">' +
-        "<h3>Mode</h3>" +
+        "<h3>Switches</h3>" +
         '<div class="switch-row">' +
           '<label class="switch"><input type="checkbox" id="agLive"' + (live ? " checked" : "") + ">" +
-          "<span>Act on mail</span></label>" +
+          "<span>Let it act</span></label>" +
           '<span class="muted">' + (live
-            ? "Live — stars, sends digests and alerts."
-            : "Dry run — reads and reports to the log, changes nothing.") + "</span>" +
+            ? "<b>On.</b> It stars mail and emails you for real."
+            : "<b>Off.</b> It reads and works everything out, but changes nothing " +
+              "and sends nothing. Practice mode.") + "</span>" +
         "</div>" +
         '<div class="switch-row">' +
           '<label class="switch"><input type="checkbox" id="agCleanup"' + (cleanupLive ? " checked" : "") + ">" +
-          "<span>Bin stale bulk mail</span></label>" +
+          "<span>Let it bin junk</span></label>" +
           '<span class="muted">' + (cleanupLive
-            ? "Live — moves matching mail to Trash, recoverable for 30 days."
-            : "Dry run — lists what it would bin, bins nothing.") + "</span>" +
-        "</div>" +
-        '<div class="agent-actions">' +
-          '<button class="btn" data-run="digest">Run a digest now</button>' +
-          '<button class="btn" data-run="sweep">Run a sweep</button>' +
-          '<button class="btn" data-run="cleanup">Preview cleanup</button>' +
-          '<span class="muted" id="agRun"></span>' +
+            ? "<b>On.</b> Old newsletters and promos go to Trash, where Gmail " +
+              "keeps them for 30 days. Nothing is ever deleted for good."
+            : "<b>Off.</b> It lists what it would bin so you can check its taste " +
+              "first. Bins nothing.") + "</span>" +
         "</div>" +
       "</div>" +
 
       '<div class="card">' +
-        "<h3>Mailboxes</h3>" +
-        '<p class="muted">Everything here is folded into the one summary sent to ' +
+        "<h3>Run something now</h3>" +
+        "<p class=\"muted\">It does all of this on a schedule anyway — these are " +
+        "for when you don't want to wait.</p>" +
+        '<div class="run-list">' +
+          '<div class="run-item"><button class="btn primary" data-run="digest">Email me a summary</button>' +
+          '<span class="muted">The last 3 days of mail: what needs you, what has a ' +
+          'deadline, any new opportunities. Happens automatically at 7am, noon, 5pm ' +
+          'and 9pm. Takes 3–5 minutes.</span></div>' +
+
+          '<div class="run-item"><button class="btn primary" data-run="review">Full inbox review</button>' +
+          '<span class="muted">Reads your <b>whole inbox</b> — old and new, opened and ' +
+          'unopened — and emails one master summary of everything still hanging over ' +
+          'you. Never stars or bins anything. Takes 10–20 minutes.</span></div>' +
+
+          '<div class="run-item"><button class="btn" data-run="sweep">Check for anything urgent</button>' +
+          '<span class="muted">Glances at the last few hours and emails you only if ' +
+          'something genuinely cannot wait. Runs by itself every 15 minutes, so this ' +
+          'is rarely needed. Usually silent.</span></div>' +
+
+          '<div class="run-item"><button class="btn" data-run="cleanup">Show me what it would bin</button>' +
+          '<span class="muted">Lists the junk it thinks could go, without touching ' +
+          'it. Use this a few times before turning on "let it bin junk".</span></div>' +
+        "</div>" +
+        '<div class="agent-actions"><span class="muted" id="agRun"></span></div>' +
+      "</div>" +
+
+      '<div class="card">' +
+        "<h3>Mailboxes it reads</h3>" +
+        '<p class="muted">All of these are combined into the single summary sent to ' +
         '<span class="mono">' + esc(s.report_to) + "</span>.</p>" +
         '<ul class="accounts">' + accounts + "</ul>" +
         (s.oauth_ready
@@ -864,8 +956,7 @@
           : '<p class="muted">Adding more mailboxes needs a one-off web OAuth client ' +
             "(see <span class=\"mono\">console/README.md</span>). The mailboxes above " +
             "work regardless — this is the only thing that setup unlocks.</p>") +
-        '<p class="muted fineprint">Added mailboxes are read-only: they can be read, ' +
-        "starred and tidied, but cannot send. Only the primary sends.</p>" +
+        '<p class="muted fineprint">Mailboxes you add can be read and tidied, but can never send email. Only your main address sends.</p>' +
       "</div>";
   }
 
@@ -926,9 +1017,15 @@
     document.querySelectorAll("[data-run]").forEach(function (b) {
       b.onclick = function () {
         var note = document.getElementById("agRun");
+        var slow = b.dataset.run === "review";
         b.disabled = true; if (note) note.textContent = "starting…";
         api("/api/run", { method: "POST", body: JSON.stringify({ mode: b.dataset.run }) })
-          .then(function () { if (note) note.textContent = "started — check your inbox in a few minutes"; })
+          .then(function () {
+            if (!note) return;
+            note.textContent = slow
+              ? "started — it is reading your whole inbox, so give it 10–20 minutes"
+              : "started — check your inbox in a few minutes";
+          })
           .catch(function (e) { if (note) note.textContent = "failed: " + e.message; })
           .then(function () { b.disabled = false; });
       };
@@ -1021,8 +1118,10 @@
       };
     });
 
-    // section collapse
-    document.querySelectorAll(".seg").forEach(function (sec) {
+    // Collapsible content blocks inside a track. These are .section, NOT the
+    // .seg top-level nav buttons -- distinct things that briefly shared a
+    // class name.
+    document.querySelectorAll("section.section").forEach(function (sec) {
       var head = sec.querySelector(".sec-head");
       if (!head) return;
       head.onclick = function () {
@@ -1036,7 +1135,7 @@
     document.querySelectorAll(".btn[data-all]").forEach(function (b) {
       b.onclick = function () {
         var open = b.dataset.all === "1";
-        document.querySelectorAll(".seg").forEach(function (sec) {
+        document.querySelectorAll("section.section").forEach(function (sec) {
           S.open[sec.dataset.key] = open;
           sec.classList.toggle("open", open);
         });
@@ -1072,6 +1171,22 @@
     document.getElementById("panel").classList.remove("hide");
     render();
     if (memOnly) toast("Progress will not persist in this browser.");
+
+    // Both are server-backed and both are optional: opened from disk with no
+    // API, the page still works off its cache and its baked data.
+    syncFromServer().then(function () {
+      refreshBadges(stats());
+      render();
+    });
+
+    fetch("/api/opportunities")
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (r) {
+        if (!Array.isArray(r.opportunities)) return;
+        OPPS = r.opportunities;
+        render();
+      })
+      .catch(function () { /* keep the baked fallback */ });
   }
 
   if (document.readyState === "loading") {

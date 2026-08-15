@@ -378,6 +378,129 @@ def render_digest(data: DigestData, policy: dict[str, Any], timestamp: datetime)
     return subject, html_doc
 
 
+def render_review(
+    items: list[Item],
+    timestamp: datetime,
+    *,
+    scanned: int,
+    available: int,
+    per_account: dict[str, int],
+    errors: list[str] | None = None,
+) -> tuple[str, str]:
+    """The full-inbox review: one stocktake of everything sitting in the
+    inbox, read and unread alike, rather than the last few days.
+
+    Different job from the digest, so a different shape. The digest asks
+    "what happened today"; this asks "what is actually in here". It leads
+    with everything still wanting action however old, then dated items in
+    date order, then opportunities, then a census of the rest -- because the
+    useful answer to 9,000 newsletters is a number, not nine thousand rows.
+    """
+    errors = list(errors or [])
+
+    def sort_key(item: Item) -> tuple:
+        return (item.label.deadline_iso or "9999-99-99", -item.message.age_days)
+
+    needs = [i for i in items if i.label.needs_action or i.label.needs_reply]
+    needs.sort(key=sort_key)
+
+    dated = [i for i in items if i.label.deadline_iso and i not in needs]
+    dated.sort(key=sort_key)
+
+    opportunities = [
+        i for i in items
+        if i.label.category == "placement_internship" and i not in needs and i not in dated
+    ]
+
+    counted: set[int] = {id(i) for i in needs + dated + opportunities}
+    rest = [i for i in items if id(i) not in counted]
+
+    census: dict[str, int] = {}
+    for item in rest:
+        census[item.label.category] = census.get(item.label.category, 0) + 1
+
+    body = ""
+    body += _section("Still wants something from you", needs, 40)
+    body += _section("Has a date on it", dated, 30)
+    body += _section("Placement &amp; internships", opportunities, 25)
+
+    if census:
+        rows = "".join(
+            f'<tr><td style="padding:4px 12px 4px 0;color:{INK}">'
+            f'{esc(SECTION_TITLES.get(k, k.replace("_", " ").title()))}</td>'
+            f'<td style="padding:4px 0;color:{MUTED};text-align:right">{v}</td></tr>'
+            for k, v in sorted(census.items(), key=lambda kv: -kv[1])
+        )
+        body += f"""
+        <div style="margin-top:26px">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.08em;
+                      text-transform:uppercase;color:{MUTED};
+                      border-bottom:1px solid {RULE};padding-bottom:6px">
+            Everything else, counted
+          </div>
+          <table style="margin-top:10px;font-size:13px;border-collapse:collapse">{rows}</table>
+          <div style="font-size:12px;color:{MUTED};margin-top:8px">
+            Nothing here asked for anything. Listed as counts because that is
+            the useful shape for {len(rest)} messages.
+          </div>
+        </div>"""
+
+    coverage = " &middot; ".join(f"{k}: {v}" for k, v in sorted(per_account.items()))
+    truncated = ""
+    if available > scanned:
+        truncated = f"""
+        <div style="margin-top:22px;padding:11px;border-left:3px solid {WARN};
+                    background:#fffbeb;font-size:12px;color:{WARN}">
+          <strong>Not the whole inbox.</strong> Read the {scanned} most recent of
+          {available} matching messages. The cap keeps one review inside its
+          time budget; raise <code>review.max_messages_per_account</code> in
+          config.yaml to go deeper.
+        </div>"""
+
+    errors_html = ""
+    if errors:
+        listed = "".join(f"<div>{esc(e)}</div>" for e in errors)
+        errors_html = f"""
+        <div style="margin-top:22px;padding:11px;border-left:3px solid {DANGER};
+                    background:#fef2f2;font-size:12px;color:{DANGER}">
+          <strong>Ran into trouble</strong>{listed}
+        </div>"""
+
+    if not body.strip():
+        body = (
+            f'<div style="padding:26px 0;color:{MUTED};font-size:14px">'
+            f"Read {scanned} messages and found nothing that wants anything.</div>"
+        )
+
+    subject = f"Full inbox review: {len(needs)} still open of {scanned} read"
+    html_doc = f"""<!doctype html>
+<html><body style="margin:0;padding:0;background:#ffffff">
+  <div style="max-width:640px;margin:0 auto;padding:26px 20px;font-family:{FONT};color:{INK}">
+    <div style="border-bottom:2px solid {INK};padding-bottom:12px">
+      <div style="font-size:20px;font-weight:700">Full inbox review</div>
+      <div style="font-size:13px;color:{MUTED};margin-top:3px">
+        {timestamp.strftime("%A %d %B, %I:%M %p")} &middot; {scanned} messages read,
+        old and new, opened and unopened
+      </div>
+      <div style="font-size:13px;color:{ACCENT};margin-top:5px;font-weight:600">
+        {len(needs)} still want something &middot; {len(dated)} dated &middot;
+        {len(opportunities)} career &middot; {len(rest)} noise
+      </div>
+      <div style="font-size:11px;color:{MUTED};margin-top:4px">{coverage}</div>
+    </div>
+    {body}
+    {truncated}
+    {errors_html}
+    <div style="margin-top:28px;padding-top:12px;border-top:1px solid {RULE};
+                font-size:11px;color:{MUTED};line-height:1.6">
+      A review reads only. It does not star, bin, or schedule anything, whatever
+      the other switches say.
+    </div>
+  </div>
+</body></html>"""
+    return subject, html_doc
+
+
 def render_alert(items: list[Item], timestamp: datetime) -> tuple[str, str]:
     """The out-of-band urgent notification. Deliberately short."""
     lead = items[0].message.subject[:60] if items else "Something needs you"
