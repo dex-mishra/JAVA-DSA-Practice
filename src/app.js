@@ -48,7 +48,7 @@
   var LEGACY_PLACEMENT = "placement-ladder-v1";
   var LEGACY_MBA = "mba-launch-windows-v1";
 
-  var S = { checked: {}, mba: {}, days: [], badges: [], open: {}, opps: {} };
+  var S = { checked: {}, mba: {}, days: [], badges: [], open: {}, opps: {}, quest: {} };
   var memOnly = false;
   var saveTimer = null;
 
@@ -72,7 +72,8 @@
           days: p.days || [],
           badges: p.badges || [],
           open: p.open || {},
-          opps: p.opps || {}
+          opps: p.opps || {},
+          quest: p.quest || {}
         };
         return;
       }
@@ -152,7 +153,8 @@
             days: r.data.days || [],
             badges: r.data.badges || [],
             open: r.data.open || {},
-            opps: r.data.opps || {}
+            opps: r.data.opps || {},
+            quest: r.data.quest || {}
           };
           try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* cache only */ }
           setSync("synced");
@@ -491,6 +493,7 @@
   var SECTION = "placement";
   var ACTIVE = "overview";
   var QUERY = "";
+  var FILTER = "all";   // all | todo | done
 
   function sectionTabs() {
     return TABS.filter(function (t) { return t.section === SECTION; });
@@ -555,9 +558,29 @@
 
   function renderTrack(track) {
     var q = QUERY.toLowerCase();
+    var trackItems = INDEX.filter(function (x) { return x.track === track.id; });
+    var trackDone = trackItems.filter(function (x) { return S.checked[x.id]; }).length;
+    var counts = {
+      all: trackItems.length,
+      todo: trackItems.length - trackDone,
+      done: trackDone
+    };
+
+    // Filtering narrows the view, so sections open regardless of their
+    // collapsed state -- a filtered result hidden inside a shut section
+    // reads as "no matches".
+    var narrowed = !!q || FILTER !== "all";
+
     var html = '<div class="toolbar">' +
       '<input class="search" id="search" placeholder="Filter topics in ' + esc(track.label) +
       '…" value="' + esc(QUERY) + '">' +
+      '<div class="filters">' +
+        [["all", "All"], ["todo", "To do"], ["done", "Done"]].map(function (f) {
+          return '<button class="btn filt" data-filter="' + f[0] + '" aria-pressed="' +
+            (FILTER === f[0]) + '">' + f[1] +
+            ' <span class="pc">' + counts[f[0]] + "</span></button>";
+        }).join("") +
+      "</div>" +
       '<button class="btn" data-all="1">Expand all</button>' +
       '<button class="btn" data-all="0">Collapse all</button></div>';
 
@@ -568,20 +591,24 @@
             return x.track === track.id && x.sec === sec.n && x.label === label;
           });
         }).filter(function (x) {
-          return x && (!q || x.label.toLowerCase().indexOf(q) !== -1);
+          if (!x) return false;
+          if (q && x.label.toLowerCase().indexOf(q) === -1) return false;
+          if (FILTER === "done" && !S.checked[x.id]) return false;
+          if (FILTER === "todo" && S.checked[x.id]) return false;
+          return true;
         });
         if (!items.length) return "";
         return '<div class="grp-name">' + esc(g.n) + "</div>" +
           '<div class="items">' + items.map(itemRow).join("") + "</div>";
       }).join("");
 
-      if (q && !groups) return;
+      if (narrowed && !groups) return;
 
       var all = INDEX.filter(function (x) { return x.track === track.id && x.sec === sec.n; });
       var done = all.filter(function (x) { return S.checked[x.id]; }).length;
       var pct = all.length ? (done / all.length) * 100 : 0;
       var key = track.id + "|" + sec.n;
-      var open = q ? true : !!S.open[key];
+      var open = narrowed ? true : !!S.open[key];
 
       html += '<section class="section' + (open ? " open" : "") + (pct >= 100 ? " done" : "") +
         '" data-key="' + esc(key) + '">' +
@@ -595,19 +622,50 @@
     return html;
   }
 
+  /* The day's three, chosen once and then held.
+
+     They used to be picked fresh on every render from the list of unchecked
+     topics. The date seed made that look stable, but the pool it indexed
+     into shrank the moment you ticked one -- so `seed % pending.length`
+     landed somewhere else and all three were replaced. Ticking one item
+     appeared to wipe the card.
+
+     Storing the chosen ids for the day fixes both halves: the other two stay
+     put, and the one you ticked stays on screen with a line through it,
+     which is the part that makes it feel like progress. */
+  function dailyThree() {
+    var t = today();
+    if (S.quest && S.quest.date === t && (S.quest.ids || []).length) {
+      return S.quest.ids
+        .map(function (id) {
+          return RATED.find(function (x) { return x.id === id; });
+        })
+        .filter(Boolean);
+    }
+
+    var pending = RATED.filter(function (x) { return !S.checked[x.id]; });
+    var seed = 0;
+    for (var i = 0; i < t.length; i++) seed = (seed * 31 + t.charCodeAt(i)) >>> 0;
+
+    var picked = [], seen = {}, tries = 0;
+    while (picked.length < 3 && pending.length && tries < 40) {
+      tries++;
+      seed = (seed * 1103515245 + 12345) >>> 0;
+      var cand = pending[seed % pending.length];
+      if (cand && !seen[cand.id]) { seen[cand.id] = 1; picked.push(cand); }
+    }
+
+    S.quest = { date: t, ids: picked.map(function (x) { return x.id; }) };
+    save();
+    return picked;
+  }
+
   function renderOverview() {
     var st = stats();
     var ws = windowStats();
 
-    // Daily three: seeded by the date so the set is stable through the day.
-    var pending = RATED.filter(function (x) { return !S.checked[x.id]; });
-    var seed = 0, t = today();
-    for (var i = 0; i < t.length; i++) seed = (seed * 31 + t.charCodeAt(i)) >>> 0;
-    var quests = [];
-    for (var k = 0; k < 3 && pending.length; k++) {
-      seed = (seed * 1103515245 + 12345) >>> 0;
-      quests.push(pending[seed % pending.length]);
-    }
+    var quests = dailyThree();
+    var questsDone = quests.length && quests.every(function (x) { return S.checked[x.id]; });
 
     var heat = [];
     for (var d = 35; d >= 0; d--) {
@@ -625,7 +683,12 @@
             return '<li data-id="' + x.id + '" class="' + (S.checked[x.id] ? "on" : "") + '">' +
               '<span class="box"></span><span><span class="qtxt">' + esc(x.label) + "</span>" +
               '<span class="qtag">' + esc(x.sec) + "</span></span></li>";
-          }).join("") + "</ul>"
+          }).join("") +
+          "</ul>" +
+          (questsDone
+            ? '<div class="quest-done">All three done. ' +
+              '<button class="btn tiny" data-newquest="1">Draw three more</button></div>'
+            : "")
         : '<div class="empty">Everything cleared.</div>') +
       "</div>" +
 
@@ -1129,6 +1192,23 @@
         S.open[key] = !S.open[key];
         sec.classList.toggle("open");
         save();
+      };
+    });
+
+    // All / To do / Done. Re-render only the panel so the toolbar does not
+    // jump under the pointer.
+    document.querySelectorAll(".btn[data-filter]").forEach(function (b) {
+      b.onclick = function () {
+        FILTER = b.dataset.filter;
+        render();
+      };
+    });
+
+    document.querySelectorAll("[data-newquest]").forEach(function (b) {
+      b.onclick = function () {
+        S.quest = {};
+        save();
+        render();
       };
     });
 
