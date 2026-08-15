@@ -859,7 +859,11 @@
         '<p class="muted">Everything here is folded into the one summary sent to ' +
         '<span class="mono">' + esc(s.report_to) + "</span>.</p>" +
         '<ul class="accounts">' + accounts + "</ul>" +
-        '<a class="btn primary" href="/api/accounts/connect">Connect another mailbox</a>' +
+        (s.oauth_ready
+          ? '<a class="btn primary" href="/api/accounts/connect">Connect another mailbox</a>'
+          : '<p class="muted">Adding more mailboxes needs a one-off web OAuth client ' +
+            "(see <span class=\"mono\">console/README.md</span>). The mailboxes above " +
+            "work regardless — this is the only thing that setup unlocks.</p>") +
         '<p class="muted fineprint">Added mailboxes are read-only: they can be read, ' +
         "starred and tidied, but cannot send. Only the primary sends.</p>" +
       "</div>";

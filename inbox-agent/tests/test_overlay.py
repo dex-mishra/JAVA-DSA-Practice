@@ -6,14 +6,19 @@ does, so the interesting cases are all about what it must NOT be able to do.
 
 from __future__ import annotations
 
+import os
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agent import overlay  # noqa: E402
 from agent.classify import FENCE  # noqa: E402
+from agent.config import load_settings  # noqa: E402
+
+CONFIG = Path(__file__).parent.parent / "config.yaml"
 
 
 class FenceConstant(unittest.TestCase):
@@ -124,6 +129,60 @@ class LoadIsFailSoft(unittest.TestCase):
         first = overlay.load("")
         first["instructions"] = "mutated"
         self.assertEqual(overlay.load("")["instructions"], "")
+
+
+class MailboxesSurviveWithoutTheConsole(unittest.TestCase):
+    """If the console is never deployed, or is deployed but its web OAuth
+    client is never set up, the two mailboxes configured at deploy time must
+    keep working exactly as before. The console only ever adds."""
+
+    ENV = {
+        "PRIMARY_EMAIL": "me@gmail.com",
+        "COLLEGE_EMAIL": "me@kgpian.iitkgp.ac.in",
+        "GCP_PROJECT": "proj",
+        "STATE_BUCKET": "bucket",
+        "DRY_RUN": "false",
+    }
+
+    def settings_with(self, over):
+        with mock.patch.dict(os.environ, self.ENV, clear=False):
+            with mock.patch.object(overlay, "load", return_value=over):
+                return load_settings(CONFIG)
+
+    def test_no_overlay_leaves_both_mailboxes_intact(self):
+        s = self.settings_with(dict(overlay.DEFAULTS))
+        self.assertEqual([a.key for a in s.accounts], ["primary", "college"])
+        self.assertEqual(s.accounts[0].email, "me@gmail.com")
+        self.assertEqual(s.accounts[1].email, "me@kgpian.iitkgp.ac.in")
+        self.assertEqual(s.accounts[0].secret_name, "inbox-agent-primary-token")
+        self.assertEqual(s.accounts[1].secret_name, "inbox-agent-college-token")
+
+    def test_no_overlay_leaves_sending_and_reporting_alone(self):
+        s = self.settings_with(dict(overlay.DEFAULTS))
+        self.assertTrue(s.primary.can_send)
+        self.assertFalse(s.accounts[1].can_send)
+        self.assertEqual(s.report_to, "me@gmail.com")
+
+    def test_no_overlay_means_no_extra_prompt_text(self):
+        self.assertEqual(self.settings_with(dict(overlay.DEFAULTS)).instructions, "")
+
+    def test_absent_switches_do_not_override_the_deployed_value(self):
+        """dry_run is None in a fresh overlay, which must defer to the
+        environment rather than being read as False."""
+        self.assertFalse(self.settings_with(dict(overlay.DEFAULTS)).dry_run)
+        with mock.patch.dict(os.environ, {**self.ENV, "DRY_RUN": "true"}, clear=False):
+            with mock.patch.object(overlay, "load", return_value=dict(overlay.DEFAULTS)):
+                self.assertTrue(load_settings(CONFIG).dry_run)
+
+    def test_a_connected_mailbox_is_added_but_cannot_send(self):
+        over = dict(overlay.DEFAULTS)
+        over["extra_accounts"] = [
+            {"key": "side", "email": "side@gmail.com", "secret_name": "inbox-agent-acct-side-token"}
+        ]
+        s = self.settings_with(over)
+        self.assertEqual([a.key for a in s.accounts], ["primary", "college", "side"])
+        self.assertEqual([a for a in s.accounts if a.can_send], [s.accounts[0]])
+        self.assertEqual(s.report_to, "me@gmail.com")
 
 
 if __name__ == "__main__":

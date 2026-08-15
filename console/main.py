@@ -219,6 +219,22 @@ def _known_accounts(over: dict) -> list[dict]:
     return rows
 
 
+def _oauth_ready() -> bool:
+    """Whether a web OAuth client has been stored yet.
+
+    Connecting a mailbox is the one feature needing setup beyond the deploy,
+    so the UI asks first rather than offering a button that cannot work.
+    Everything else on the tab is unaffected by this being False.
+    """
+    if not PROJECT:
+        return False
+    try:
+        secret_manager().get_secret(name=f"projects/{PROJECT}/secrets/{OAUTH_CLIENT_SECRET}")
+        return True
+    except Exception:  # noqa: BLE001 -- absent, or unreadable; same answer
+        return False
+
+
 @app.get("/api/status")
 @protected
 def api_status():
@@ -227,6 +243,7 @@ def api_status():
     return jsonify(
         {
             "accounts": _known_accounts(over),
+            "oauth_ready": _oauth_ready(),
             "report_to": PRIMARY_EMAIL,
             "last_digest_ts": state.get("last_digest_ts", 0),
             "last_cleanup_ts": state.get("last_cleanup_ts", 0),
@@ -337,6 +354,14 @@ def _redirect_uri() -> str:
 @app.get("/api/accounts/connect")
 @protected
 def accounts_connect():
+    # A full-page navigation, not a fetch, so failures answer in HTML. A JSON
+    # blob rendered raw in the address bar is not a useful error message.
+    if not _oauth_ready():
+        return _done_page(
+            "No web OAuth client is set up yet, so mailboxes cannot be connected "
+            "from here. Your existing mailboxes are unaffected and keep working. "
+            "See console/README.md for the four-step setup."
+        )
     try:
         from google_auth_oauthlib.flow import Flow
 
@@ -350,7 +375,7 @@ def accounts_connect():
         return redirect(auth_url)
     except Exception as exc:  # noqa: BLE001
         log.exception("Could not start the OAuth flow")
-        return jsonify({"error": str(exc)}), 500
+        return _done_page(f"Could not start the connection: {exc}")
 
 
 @app.get("/api/oauth/callback")
