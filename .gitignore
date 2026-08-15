@@ -8,3 +8,9 @@ venv/
 client_secret*.json
 token_*.json
 *.local.json
+
+# Assembled at image build time from the repo root and inbox-agent/.
+# Committing them would mean two copies of index.html and overlay.py silently
+# drifting apart.
+console/static/
+console/_agent/

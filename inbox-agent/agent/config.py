@@ -9,6 +9,8 @@ from typing import Any
 
 import yaml
 
+from . import overlay as overlay_mod
+
 _CONFIG_PATH = Path(os.environ.get("CONFIG_PATH", Path(__file__).parent.parent / "config.yaml"))
 
 
@@ -51,6 +53,10 @@ class Settings:
     github_secret: str = "inbox-agent-github-token"
     accounts: list[Account] = field(default_factory=list)
     policy: dict[str, Any] = field(default_factory=dict)
+    # Free text from the console, handed to the classifier as operator
+    # guidance. Steers judgement only; policy.py still decides everything
+    # with a consequence.
+    instructions: str = ""
 
     @property
     def primary(self) -> Account:
@@ -75,11 +81,12 @@ def load_policy(path: Path | None = None) -> dict[str, Any]:
         return yaml.safe_load(handle) or {}
 
 
-def load_settings(policy_path: Path | None = None) -> Settings:
+def load_settings(policy_path: Path | None = None, *, use_overlay: bool = True) -> Settings:
     policy = load_policy(policy_path)
 
     primary_email = _env("PRIMARY_EMAIL", required=True)
     college_email = _env("COLLEGE_EMAIL")
+    state_bucket = _env("STATE_BUCKET", required=True)
 
     accounts = [
         Account(
@@ -99,17 +106,44 @@ def load_settings(policy_path: Path | None = None) -> Settings:
             )
         )
 
+    # Anything the console has changed since the last deploy. Absent or
+    # unreadable overlays yield defaults, so this can only ever add.
+    over = overlay_mod.load(state_bucket) if use_overlay else dict(overlay_mod.DEFAULTS)
+
+    # Mailboxes connected from the web UI. can_send stays False for every one
+    # of them: only the primary sends, and that is fixed at deploy time so a
+    # console edit can never redirect where your reports go.
+    for extra in over.get("extra_accounts", []):
+        if any(a.key == extra["key"] for a in accounts):
+            continue
+        accounts.append(
+            Account(
+                key=extra["key"],
+                email=extra["email"],
+                secret_name=extra["secret_name"],
+                can_send=False,
+            )
+        )
+
+    dry_run = _env_bool("DRY_RUN", True)
+    if over.get("dry_run") is not None:
+        dry_run = bool(over["dry_run"])
+
+    if over.get("cleanup_dry_run") is not None:
+        policy.setdefault("cleanup", {})["dry_run"] = bool(over["cleanup_dry_run"])
+
     return Settings(
         project=_env("GCP_PROJECT", required=True),
         region=_env("GCP_REGION", "asia-south1"),
-        state_bucket=_env("STATE_BUCKET", required=True),
+        state_bucket=state_bucket,
         gemini_model=_env("GEMINI_MODEL", "gemini-2.5-flash"),
         vertex_location=_env("VERTEX_LOCATION", _env("GCP_REGION", "asia-south1")),
         report_to=_env("REPORT_TO", primary_email),
         timezone=_env("TIMEZONE", "Asia/Kolkata"),
-        dry_run=_env_bool("DRY_RUN", True),
+        dry_run=dry_run,
         github_repo=_env("GITHUB_REPO", ""),
         github_secret=_env("GITHUB_SECRET", "inbox-agent-github-token"),
         accounts=accounts,
         policy=policy,
+        instructions=over.get("instructions", ""),
     )

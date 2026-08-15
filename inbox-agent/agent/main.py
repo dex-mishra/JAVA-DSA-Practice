@@ -354,7 +354,12 @@ def run_sweep(settings: Settings) -> int:
         state.save()
         return 0
 
-    classifier = Classifier(settings.project, settings.vertex_location, settings.gemini_model)
+    classifier = Classifier(
+        settings.project,
+        settings.vertex_location,
+        settings.gemini_model,
+        instructions=settings.instructions,
+    )
     labels = classifier.classify(fresh, int(settings.section("scan").get("body_chars", 1800)))
 
     _apply_stars(fresh, labels, clients, settings)
@@ -401,7 +406,12 @@ def run_digest(settings: Settings, *, force_cleanup: bool = False) -> int:
     days = int(settings.section("scan").get("attention_window_days", 3))
     messages, errors = _collect(clients, f"in:inbox newer_than:{days}d -in:chats", settings)
 
-    classifier = Classifier(settings.project, settings.vertex_location, settings.gemini_model)
+    classifier = Classifier(
+        settings.project,
+        settings.vertex_location,
+        settings.gemini_model,
+        instructions=settings.instructions,
+    )
     labels = classifier.classify(
         messages, int(settings.section("scan").get("body_chars", 1800))
     )
@@ -516,7 +526,12 @@ def run_check(settings: Settings) -> int:
             ok = False
 
     try:
-        Classifier(settings.project, settings.vertex_location, settings.gemini_model)
+        Classifier(
+            settings.project,
+            settings.vertex_location,
+            settings.gemini_model,
+            instructions=settings.instructions,
+        )
         log.info("Vertex AI client constructed (model=%s).", settings.gemini_model)
     except Exception as exc:
         log.error("Vertex AI unavailable: %s", exc)
@@ -551,7 +566,12 @@ def main(argv: list[str] | None = None) -> int:
         return run_digest(settings)
     if args.mode == "cleanup":
         clients = _connect(settings)
-        classifier = Classifier(settings.project, settings.vertex_location, settings.gemini_model)
+        classifier = Classifier(
+            settings.project,
+            settings.vertex_location,
+            settings.gemini_model,
+            instructions=settings.instructions,
+        )
         trashed, would, _ = _run_cleanup(clients, settings, classifier)
         log.info("Trashed=%d would_trash=%d", len(trashed), len(would))
         for msg, reason in (would or trashed)[:40]:

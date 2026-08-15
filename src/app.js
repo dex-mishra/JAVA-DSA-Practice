@@ -404,19 +404,55 @@
 
   /* ---------------------------------------------------------- tabs */
 
-  var TABS = [{ id: "overview", label: "Overview", domain: "placement" }];
-  PL.tracks.forEach(function (t) {
-    TABS.push({ id: t.id, label: t.label, domain: "placement", track: t });
-  });
-  TABS.push({ id: "mba", label: "MBA Windows", domain: "mba" });
-  TABS.push({ id: "career", label: "Opportunities", domain: "placement" });
+  /* Three top-level parts. Sub-tabs live inside a part, so the placement
+     track list no longer sits next to unrelated things. */
+  var SECTIONS = [
+    { id: "placement", label: "Placement" },
+    { id: "mba", label: "MBA" },
+    { id: "agent", label: "Email Agent" }
+  ];
 
+  var TABS = [{ id: "overview", label: "Overview", domain: "placement", section: "placement" }];
+  PL.tracks.forEach(function (t) {
+    TABS.push({ id: t.id, label: t.label, domain: "placement", section: "placement", track: t });
+  });
+  TABS.push({ id: "career", label: "Opportunities", domain: "placement", section: "placement" });
+  TABS.push({ id: "mba", label: "MBA Windows", domain: "mba", section: "mba" });
+  TABS.push({ id: "agent", label: "Agent", domain: "agent", section: "agent" });
+
+  var SECTION = "placement";
   var ACTIVE = "overview";
   var QUERY = "";
 
+  function sectionTabs() {
+    return TABS.filter(function (t) { return t.section === SECTION; });
+  }
+
+  function renderSections() {
+    document.getElementById("sections").innerHTML = SECTIONS.map(function (s) {
+      return '<button class="seg" role="tab" data-section="' + s.id +
+        '" aria-selected="' + (SECTION === s.id) + '">' + esc(s.label) + "</button>";
+    }).join("");
+
+    document.querySelectorAll(".seg").forEach(function (b) {
+      b.onclick = function () {
+        SECTION = b.dataset.section;
+        ACTIVE = sectionTabs()[0].id;
+        QUERY = "";
+        location.hash = SECTION;
+        render();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      };
+    });
+  }
+
   function renderTabs() {
     var st = stats();
-    document.getElementById("tabs").innerHTML = TABS.map(function (t) {
+    var mine = sectionTabs();
+    // A single-view section does not need a sub-tab bar above it.
+    var bar = document.getElementById("tabs");
+    bar.classList.toggle("hide", mine.length < 2);
+    bar.innerHTML = mine.map(function (t) {
       var pc = "";
       if (t.track) {
         pc = ' <span class="pc">' + Math.round(st.trackPct(t.track.id)) + "%</span>";
@@ -678,21 +714,253 @@
     }).join("");
   }
 
+  /* ---------------------------------------------------------- agent */
+
+  /* The Agent tab is the only part of this page backed by a server. When the
+     file is opened straight from disk there is no API to talk to, so it says
+     so rather than showing controls that silently do nothing. */
+
+  var AGENT = { loading: false, loaded: false, error: "", locked: false, status: null, settings: null };
+
+  function ago(ts) {
+    if (!ts) return "never";
+    var s = Date.now() / 1000 - Number(ts);
+    if (s < 90) return "just now";
+    if (s < 5400) return Math.round(s / 60) + " min ago";
+    if (s < 172800) return Math.round(s / 3600) + " h ago";
+    return Math.round(s / 86400) + " d ago";
+  }
+
+  function api(path, opts) {
+    var o = opts || {};
+    o.headers = Object.assign({ "Content-Type": "application/json" }, o.headers || {});
+    if (AGENT.password) o.headers["X-Console-Password"] = AGENT.password;
+    return fetch(path, o).then(function (r) {
+      if (r.status === 401) { AGENT.locked = true; throw new Error("locked"); }
+      if (!r.ok) {
+        return r.json().catch(function () { return {}; }).then(function (j) {
+          throw new Error(String(j.error || r.status).slice(0, 240));
+        });
+      }
+      return r.json();
+    });
+  }
+
+  function loadAgent() {
+    if (AGENT.loading) return;
+    AGENT.loading = true;
+    Promise.all([api("/api/status"), api("/api/settings")])
+      .then(function (r) {
+        AGENT.status = r[0]; AGENT.settings = r[1];
+        AGENT.loaded = true; AGENT.error = "";
+      })
+      .catch(function (e) { AGENT.error = e.message || String(e); })
+      .then(function () { AGENT.loading = false; repaintAgent(); });
+  }
+
+  function repaintAgent() {
+    if (ACTIVE !== "agent") return;
+    document.getElementById("panel").innerHTML = renderAgent();
+    bindAgent();
+  }
+
+  function renderAgent() {
+    if (AGENT.locked) {
+      return '<div class="card agent-gate"><h3>This console is password protected</h3>' +
+        '<input type="password" id="agPass" placeholder="Password" autocomplete="current-password">' +
+        '<button class="btn primary" id="agUnlock">Unlock</button></div>';
+    }
+    if (!AGENT.loaded) {
+      if (AGENT.error) {
+        return '<div class="card agent-off"><h3>Agent controls unavailable</h3>' +
+          "<p>Could not reach the console API. This tab only works on the deployed " +
+          "site, not on a copy opened from disk.</p>" +
+          '<p class="mono err">' + esc(AGENT.error) + "</p>" +
+          '<button class="btn" id="agRetry">Try again</button></div>';
+      }
+      return '<div class="card"><p class="muted">Loading agent…</p></div>';
+    }
+
+    var s = AGENT.status, cfg = AGENT.settings;
+    var live = cfg.dry_run === false;
+    var cleanupLive = cfg.cleanup_dry_run === false;
+
+    var cards = [
+      ["Last digest", ago(s.last_digest_ts)],
+      ["Last urgent alert", ago(s.last_alert_ts)],
+      ["Last cleanup", ago(s.last_cleanup_ts)],
+      ["Awaiting your reply", s.open_proposals + (s.open_proposals === 1 ? " item" : " items")],
+      ["Events created", String(s.events_created)],
+      ["Binned to date", String(s.trashed_total)]
+    ].map(function (c) {
+      return '<div class="stat"><div class="k">' + esc(c[0]) + '</div><div class="v">' + esc(c[1]) + "</div></div>";
+    }).join("");
+
+    var accounts = s.accounts.map(function (a) {
+      return '<li><span class="mono">' + esc(a.email) + "</span>" +
+        '<span class="pill' + (a.can_send ? " send" : "") + '">' + esc(a.role) + "</span>" +
+        (a.removable
+          ? '<button class="btn tiny danger" data-remove="' + esc(a.key) + '">Disconnect</button>'
+          : '<span class="muted tiny">fixed at deploy</span>') + "</li>";
+    }).join("");
+
+    return "" +
+      '<div class="strip agent-strip">' + cards + "</div>" +
+
+      '<div class="card">' +
+        "<h3>Instructions</h3>" +
+        '<p class="muted">Written in plain English and handed to the model every run. ' +
+        "Use it to say what matters to you, what is noise, and how to judge borderline mail.</p>" +
+        '<textarea id="agInstr" rows="14" maxlength="' + (cfg.max_instructions || 8000) + '" ' +
+        'placeholder="Examples:&#10;&#10;Anything from Prof. Sharma or the CDC office is always important.&#10;' +
+        'Placement and internship mail outranks everything else this semester.&#10;' +
+        'Treat coding-contest invitations as opportunities, not newsletters.&#10;' +
+        'I am tracking deferred MBA programmes — flag anything mentioning ISB YLP or Harvard 2+2.&#10;' +
+        'Newsletters from Unstop and Naukri are noise unless they name a real deadline.">' +
+        esc(cfg.instructions || "") + "</textarea>" +
+        '<div class="agent-actions">' +
+          '<button class="btn primary" id="agSave">Save instructions</button>' +
+          '<span class="muted" id="agSaved">Last saved ' + ago(cfg.updated_ts) + "</span>" +
+          '<span class="muted count" id="agCount"></span>' +
+        "</div>" +
+        '<p class="muted fineprint">This guides judgement — what gets flagged, starred, ' +
+        "summarised or treated as an opportunity. It cannot widen what the agent is " +
+        "allowed to do: the rules that decide what may be binned, the per-run caps and " +
+        "the mail scopes live in code, not here. It also cannot change where your " +
+        "summaries are sent.</p>" +
+      "</div>" +
+
+      '<div class="card">' +
+        "<h3>Mode</h3>" +
+        '<div class="switch-row">' +
+          '<label class="switch"><input type="checkbox" id="agLive"' + (live ? " checked" : "") + ">" +
+          "<span>Act on mail</span></label>" +
+          '<span class="muted">' + (live
+            ? "Live — stars, sends digests and alerts."
+            : "Dry run — reads and reports to the log, changes nothing.") + "</span>" +
+        "</div>" +
+        '<div class="switch-row">' +
+          '<label class="switch"><input type="checkbox" id="agCleanup"' + (cleanupLive ? " checked" : "") + ">" +
+          "<span>Bin stale bulk mail</span></label>" +
+          '<span class="muted">' + (cleanupLive
+            ? "Live — moves matching mail to Trash, recoverable for 30 days."
+            : "Dry run — lists what it would bin, bins nothing.") + "</span>" +
+        "</div>" +
+        '<div class="agent-actions">' +
+          '<button class="btn" data-run="digest">Run a digest now</button>' +
+          '<button class="btn" data-run="sweep">Run a sweep</button>' +
+          '<button class="btn" data-run="cleanup">Preview cleanup</button>' +
+          '<span class="muted" id="agRun"></span>' +
+        "</div>" +
+      "</div>" +
+
+      '<div class="card">' +
+        "<h3>Mailboxes</h3>" +
+        '<p class="muted">Everything here is folded into the one summary sent to ' +
+        '<span class="mono">' + esc(s.report_to) + "</span>.</p>" +
+        '<ul class="accounts">' + accounts + "</ul>" +
+        '<a class="btn primary" href="/api/accounts/connect">Connect another mailbox</a>' +
+        '<p class="muted fineprint">Added mailboxes are read-only: they can be read, ' +
+        "starred and tidied, but cannot send. Only the primary sends.</p>" +
+      "</div>";
+  }
+
+  function bindAgent() {
+    if (AGENT.locked) {
+      var unlock = document.getElementById("agUnlock");
+      if (unlock) unlock.onclick = function () {
+        AGENT.password = document.getElementById("agPass").value;
+        AGENT.locked = false; AGENT.loaded = false;
+        repaintAgent(); loadAgent();
+      };
+      return;
+    }
+    if (!AGENT.loaded) {
+      var retry = document.getElementById("agRetry");
+      if (retry) retry.onclick = function () { AGENT.error = ""; repaintAgent(); loadAgent(); };
+      if (!AGENT.error) loadAgent();
+      return;
+    }
+
+    var box = document.getElementById("agInstr");
+    var count = document.getElementById("agCount");
+    function updateCount() {
+      if (count && box) count.textContent = box.value.length + " / " + (AGENT.settings.max_instructions || 8000);
+    }
+    if (box) { box.oninput = updateCount; updateCount(); }
+
+    var save = document.getElementById("agSave");
+    if (save) save.onclick = function () {
+      save.disabled = true;
+      api("/api/settings", { method: "PUT", body: JSON.stringify({ instructions: box.value }) })
+        .then(function (r) {
+          AGENT.settings = Object.assign(AGENT.settings, r);
+          document.getElementById("agSaved").textContent = "Last saved just now";
+          toast("Instructions saved. They apply from the next run.");
+        })
+        .catch(function (e) { toast("Could not save: " + e.message); })
+        .then(function () { save.disabled = false; });
+    };
+
+    function toggle(id, field, label) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.onchange = function () {
+        var body = {}; body[field] = !el.checked;   // checkbox is "act", field is "dry run"
+        api("/api/settings", { method: "PUT", body: JSON.stringify(body) })
+          .then(function (r) {
+            AGENT.settings = Object.assign(AGENT.settings, r);
+            toast(label + (el.checked ? " is live." : " is in dry run."));
+            repaintAgent();
+          })
+          .catch(function (e) { el.checked = !el.checked; toast("Could not change: " + e.message); });
+      };
+    }
+    toggle("agLive", "dry_run", "Acting on mail");
+    toggle("agCleanup", "cleanup_dry_run", "Cleanup");
+
+    document.querySelectorAll("[data-run]").forEach(function (b) {
+      b.onclick = function () {
+        var note = document.getElementById("agRun");
+        b.disabled = true; if (note) note.textContent = "starting…";
+        api("/api/run", { method: "POST", body: JSON.stringify({ mode: b.dataset.run }) })
+          .then(function () { if (note) note.textContent = "started — check your inbox in a few minutes"; })
+          .catch(function (e) { if (note) note.textContent = "failed: " + e.message; })
+          .then(function () { b.disabled = false; });
+      };
+    });
+
+    document.querySelectorAll("[data-remove]").forEach(function (b) {
+      b.onclick = function () {
+        if (!confirm("Stop reading " + b.dataset.remove + "?")) return;
+        api("/api/accounts/remove", { method: "POST", body: JSON.stringify({ key: b.dataset.remove }) })
+          .then(function () { AGENT.loaded = false; repaintAgent(); loadAgent(); })
+          .catch(function (e) { toast("Could not disconnect: " + e.message); });
+      };
+    });
+  }
+
   /* ---------------------------------------------------------- render */
 
   function render() {
-    var tab = TABS.find(function (t) { return t.id === ACTIVE; }) || TABS[0];
+    var mine = sectionTabs();
+    var tab = mine.find(function (t) { return t.id === ACTIVE; }) || mine[0];
+    ACTIVE = tab.id;
     document.body.classList.toggle("domain-mba", tab.domain === "mba");
+    document.body.classList.toggle("domain-agent", tab.domain === "agent");
 
     var panel = document.getElementById("panel");
     if (tab.id === "overview") panel.innerHTML = renderOverview();
     else if (tab.id === "mba") panel.innerHTML = renderMba();
     else if (tab.id === "career") panel.innerHTML = renderCareer();
+    else if (tab.id === "agent") panel.innerHTML = renderAgent();
     else panel.innerHTML = renderTrack(tab.track);
 
     renderHeader();
+    renderSections();
     renderTabs();
     bind();
+    if (tab.id === "agent") bindAgent();
   }
 
   function markToday() {
@@ -750,7 +1018,7 @@
     });
 
     // section collapse
-    document.querySelectorAll(".section").forEach(function (sec) {
+    document.querySelectorAll(".seg").forEach(function (sec) {
       var head = sec.querySelector(".sec-head");
       if (!head) return;
       head.onclick = function () {
@@ -764,7 +1032,7 @@
     document.querySelectorAll(".btn[data-all]").forEach(function (b) {
       b.onclick = function () {
         var open = b.dataset.all === "1";
-        document.querySelectorAll(".section").forEach(function (sec) {
+        document.querySelectorAll(".seg").forEach(function (sec) {
           S.open[sec.dataset.key] = open;
           sec.classList.toggle("open", open);
         });
@@ -790,6 +1058,12 @@
   function boot() {
     load();
     refreshBadges(stats());
+    // The OAuth round trip comes back to /#agent, so honour the hash.
+    var wanted = (location.hash || "").replace("#", "");
+    if (SECTIONS.some(function (s) { return s.id === wanted; })) {
+      SECTION = wanted;
+      ACTIVE = sectionTabs()[0].id;
+    }
     document.getElementById("loading").classList.add("hide");
     document.getElementById("panel").classList.remove("hide");
     render();

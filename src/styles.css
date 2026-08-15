@@ -176,8 +176,26 @@ header { padding: 32px 0 18px; }
 
 /* ---------------------------------------------------------- tabs */
 
+/* Top-level parts. Deliberately heavier than the sub-tabs below them: these
+   three are different places, the tabs under them are views of one place. */
+nav.segnav {
+  display: flex; gap: 6px; margin: 30px 0 0; flex-wrap: wrap;
+}
+.seg {
+  appearance: none; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); color: var(--ink-3);
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: .16em;
+  text-transform: uppercase; padding: 11px 20px; cursor: pointer;
+  transition: color .2s, border-color .2s, background .2s;
+}
+.seg:hover { color: var(--ink-2); border-color: var(--accent); }
+.seg[aria-selected="true"] {
+  color: var(--ink); border-color: var(--accent); background: var(--raise);
+}
+.seg:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
 nav.tabs {
-  display: flex; gap: 2px; margin: 28px 0 0; border-bottom: 1px solid var(--line);
+  display: flex; gap: 2px; margin: 18px 0 0; border-bottom: 1px solid var(--line);
   overflow-x: auto; scrollbar-width: none;
 }
 nav.tabs::-webkit-scrollbar { display: none; }
@@ -405,4 +423,75 @@ table.cost td.n { font-family: var(--mono); color: var(--ink); }
   body { background: #fff; color: #000; }
   .tabs, .toolbar, .toast, .btn { display: none !important; }
   .section .sec-body { display: block !important; }
+}
+
+/* ---------------------------------------------------------- agent tab
+
+   The one part of this page backed by a server. Styled to sit inside the
+   same shell as the trackers rather than look like a bolted-on admin panel. */
+
+body.domain-agent::before {
+  background: radial-gradient(1100px 520px at 50% -12%, rgba(76, 175, 125, .10), transparent 70%);
+}
+.tab[aria-selected="true"][data-domain="agent"] { border-bottom-color: var(--ok); }
+
+.agent-strip { margin-top: 16px; }
+.agent-strip .v { font-size: 17px; }
+
+.card textarea {
+  width: 100%; box-sizing: border-box; resize: vertical;
+  background: var(--bg); color: var(--ink); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 14px;
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.75;
+}
+.card textarea:focus { outline: none; border-color: var(--accent); }
+.card textarea::placeholder { color: var(--ink-3); }
+
+.agent-actions {
+  display: flex; align-items: center; gap: 12px; margin-top: 13px; flex-wrap: wrap;
+}
+.agent-actions .count { margin-left: auto; font-family: var(--mono); font-size: 11px; }
+
+.btn.primary { color: var(--ink); border-color: var(--accent); background: var(--raise); }
+.btn.primary:hover { border-color: var(--ok); color: #fff; }
+.btn.tiny { padding: 6px 10px; font-size: 10px; }
+.btn.danger:hover { border-color: var(--crit); color: var(--crit); }
+a.btn { text-decoration: none; display: inline-block; }
+
+.muted { color: var(--ink-3); font-size: 12.5px; line-height: 1.65; }
+.muted.tiny { font-size: 10.5px; font-family: var(--mono); }
+.fineprint { margin: 13px 0 0; padding-top: 13px; border-top: 1px solid var(--line-soft); }
+.err { color: var(--crit); font-size: 11.5px; word-break: break-word; }
+
+.switch-row {
+  display: flex; align-items: center; gap: 14px; padding: 12px 0;
+  border-bottom: 1px solid var(--line-soft); flex-wrap: wrap;
+}
+.switch-row:last-of-type { border-bottom: 0; }
+.switch { display: flex; align-items: center; gap: 9px; cursor: pointer; min-width: 190px; }
+.switch input { width: 17px; height: 17px; accent-color: var(--ok); cursor: pointer; }
+.switch span {
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--ink-2);
+}
+
+ul.accounts { list-style: none; margin: 0 0 16px; padding: 0; }
+ul.accounts li {
+  display: flex; align-items: center; gap: 12px; padding: 11px 0;
+  border-bottom: 1px solid var(--line-soft); flex-wrap: wrap;
+}
+ul.accounts li:last-child { border-bottom: 0; }
+ul.accounts .mono { flex: 1; font-size: 12.5px; color: var(--ink); min-width: 12rem; }
+.pill {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .14em;
+  text-transform: uppercase; padding: 4px 9px; border-radius: 100px;
+  border: 1px solid var(--line); color: var(--ink-3);
+}
+.pill.send { border-color: var(--ok); color: var(--ok); }
+
+.agent-gate { max-width: 26rem; }
+.agent-gate input {
+  width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 11px 13px;
+  background: var(--bg); color: var(--ink); border: 1px solid var(--line);
+  border-radius: var(--r); font-family: var(--mono); font-size: 13px;
 }
