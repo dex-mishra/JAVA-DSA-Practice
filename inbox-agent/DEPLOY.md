@@ -355,6 +355,17 @@ mail actually alerts, matching mail actually gets starred, and calendar
 proposals actually go out (though nothing is scheduled until you reply to
 them — see below).
 
+Only flip this once you have seen a digest run **all the way to the end** in
+dry-run — look for a `Digest done.` line in the logs. A digest that crashes or
+times out partway still stars mail (that happens early) but never sends the
+report, so going live on one of those gets you the side effects without the
+email that explains them.
+
+Re-running `bootstrap.sh` after this point keeps you live: it reads the
+deployed job's current `DRY_RUN` and carries it forward rather than resetting
+it. Force it either way with `DRY_RUN=true ./setup/bootstrap.sh ...` if you
+ever want to go back to dry-run.
+
 Cleanup stays off separately. Once a week or so of digests look right, edit
 `config.yaml`:
 
@@ -530,6 +541,25 @@ All comfortably inside free-trial credits.
 ---
 
 ## Troubleshooting
+
+**A fix you pulled doesn't seem to have taken effect** — check what is
+actually deployed before debugging anything else. Interrupting `bootstrap.sh`
+or a `gcloud run jobs deploy` during "Building container..." leaves the *old*
+image running: the build continues on Google's side, but the deploy step that
+would have pointed the job at the new image never runs. The job keeps serving
+the previous build, and the logs look like your fix simply didn't work.
+
+```bash
+gcloud run jobs describe inbox-agent --region asia-south1 \
+  --format='value(spec.template.spec.template.spec.containers[0].image, spec.template.spec.taskTimeout)'
+```
+
+Compare the image digest against your most recent successful build
+(`gcloud builds list --region=asia-south1 --limit=5`). A `taskTimeout` of
+`900s` also means you are on a build older than the 30-minute change.
+
+Let `bootstrap.sh` run to completion — it is the deploy step, not the build,
+that matters.
 
 **`bootstrap.sh` dies partway with "... does not exist" right after creating a
 service account** — IAM propagation lag: a freshly created service account

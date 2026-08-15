@@ -163,7 +163,41 @@ retry gcloud projects add-iam-policy-binding "$PROJECT" \
   --role="roles/cloudbuild.builds.builder" \
   --condition=None
 
-say "Deploying the Cloud Run job"
+# DRY_RUN is carried over from the deployed job rather than forced back to
+# true. --set-env-vars below replaces the whole env map, so hardcoding it
+# would switch a live agent back off on every re-run -- silently, and the
+# troubleshooting steps in DEPLOY.md send you back here for every fix. A
+# fresh install has no job to read, so it still starts in dry run, which is
+# the behaviour that matters for a first deploy. Export DRY_RUN=true or
+# DRY_RUN=false to force it either way.
+current_dry_run() {
+  gcloud run jobs describe "$JOB" --region "$REGION" --format=json 2>/dev/null | python3 -c '
+import json, sys
+
+def walk(node):
+    if isinstance(node, dict):
+        if node.get("name") == "DRY_RUN" and "value" in node:
+            yield node["value"]
+        for value in node.values():
+            yield from walk(value)
+    elif isinstance(node, list):
+        for value in node:
+            yield from walk(value)
+
+try:
+    doc = json.load(sys.stdin)
+except Exception:
+    raise SystemExit
+for found in walk(doc):
+    print(found)
+    break
+' 2>/dev/null || true
+}
+
+DRY_RUN_VALUE="${DRY_RUN:-$(current_dry_run)}"
+DRY_RUN_VALUE="${DRY_RUN_VALUE:-true}"
+
+say "Deploying the Cloud Run job (DRY_RUN=${DRY_RUN_VALUE})"
 gcloud run jobs deploy "$JOB" \
   --source "$ROOT" \
   --region "$REGION" \
@@ -173,7 +207,7 @@ gcloud run jobs deploy "$JOB" \
   --task-timeout 30m \
   --memory 1Gi \
   --cpu 1 \
-  --set-env-vars "GCP_PROJECT=${PROJECT},GCP_REGION=${REGION},STATE_BUCKET=${BUCKET},VERTEX_LOCATION=${REGION},GEMINI_MODEL=${GEMINI_MODEL},PRIMARY_EMAIL=${PRIMARY_EMAIL},COLLEGE_EMAIL=${COLLEGE_EMAIL},REPORT_TO=${REPORT_TO},TIMEZONE=${TZ_NAME},GITHUB_REPO=${GITHUB_REPO},DRY_RUN=true"
+  --set-env-vars "GCP_PROJECT=${PROJECT},GCP_REGION=${REGION},STATE_BUCKET=${BUCKET},VERTEX_LOCATION=${REGION},GEMINI_MODEL=${GEMINI_MODEL},PRIMARY_EMAIL=${PRIMARY_EMAIL},COLLEGE_EMAIL=${COLLEGE_EMAIL},REPORT_TO=${REPORT_TO},TIMEZONE=${TZ_NAME},GITHUB_REPO=${GITHUB_REPO},DRY_RUN=${DRY_RUN_VALUE}"
 
 say "Scheduler service account"
 SCHED_SA="scheduler-invoker@${PROJECT}.iam.gserviceaccount.com"
@@ -227,12 +261,20 @@ else
   echo "  (GITHUB_REPO empty, skipping the site-update schedule)"
 fi
 
+if [[ "$DRY_RUN_VALUE" == "true" ]]; then
+  STATE_NOTE="The agent is deployed in DRY_RUN mode: it will read, classify and report,
+but will not star, trash, or send anything until you turn that off."
+else
+  STATE_NOTE="The agent is deployed LIVE (DRY_RUN=${DRY_RUN_VALUE}), carried over from the
+previous deploy: it will star and send for real. Cleanup obeys its own
+separate switch, cleanup.dry_run in config.yaml."
+fi
+
 cat <<EOF
 
 Done.
 
-The agent is deployed in DRY_RUN mode: it will read, classify and report, but
-will not star, trash, or send anything until you turn that off.
+${STATE_NOTE}
 
   Run it once now:
     gcloud run jobs execute ${JOB} --region ${REGION} --args="--mode=check" --wait
