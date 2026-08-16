@@ -536,17 +536,60 @@ def run_digest(settings: Settings, *, force_cleanup: bool = False) -> int:
     else:
         log.info("Cleanup already ran today; skipping.")
 
+    # Anything already covered by an earlier digest is not listed again. The
+    # scan window is three days and digests run four times a day, so without
+    # this every message appears in up to twelve consecutive summaries -- the
+    # dedup state was being written and never read.
+    #
+    # Dropping them outright would be worse than repeating, though: an
+    # unanswered deadline would be mentioned once and then go quiet. So a
+    # previously-reported message reappears only while it still wants
+    # something, and then only as a one-line reminder.
+    report_cfg = settings.section("report")
+    repeat = str(report_cfg.get("repeat_reported", "open_only"))
+
+    def still_open(msg: Message) -> bool:
+        label = labels.get(msg.id) or Label.safe_default(msg.id)
+        return bool(label.needs_action or label.needs_reply)
+
+    if repeat == "always":
+        fresh, carried_msgs = messages, []
+    else:
+        fresh = [m for m in messages if not state.already_reported(m.id)]
+        seen = [m for m in messages if state.already_reported(m.id)]
+        carried_msgs = [m for m in seen if still_open(m)] if repeat == "open_only" else []
+
+    log.info(
+        "Digest: %d new, %d carried over, %d already handled.",
+        len(fresh), len(carried_msgs), len(messages) - len(fresh) - len(carried_msgs),
+    )
+
     items = [
         report_mod.Item(m, labels.get(m.id) or Label.safe_default(m.id))
-        for m in messages
+        for m in fresh
+    ]
+    carried = [
+        report_mod.Item(m, labels.get(m.id) or Label.safe_default(m.id))
+        for m in carried_msgs
     ]
     starred_ids = {i.message.id for i in starred}
     for item in items:
         if item.message.id in starred_ids:
             item.starred = True
 
+    # A digest with no new mail, nothing still open and nothing to confirm is
+    # noise. Four of those a day trains you to ignore the ones that matter.
+    nothing_to_say = (
+        not items and not carried and not proposals and not trashed and not would
+    )
+    if nothing_to_say and report_cfg.get("skip_if_empty", True):
+        log.info("Nothing new since the last digest; not sending.")
+        state.save()
+        return 0
+
     data = report_mod.DigestData(
         items=items,
+        carried=carried,
         starred=starred,
         trashed=trashed,
         would_trash=would,

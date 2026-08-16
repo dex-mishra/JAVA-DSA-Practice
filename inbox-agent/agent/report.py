@@ -54,6 +54,9 @@ class DigestData:
     proposals: list[Any] = field(default_factory=list)
     proposal_token: str = ""
     items: list[Item] = field(default_factory=list)
+    # Already covered by an earlier digest, but still unanswered. Listed
+    # compactly rather than repeated in full.
+    carried: list[Item] = field(default_factory=list)
     starred: list[Item] = field(default_factory=list)
     trashed: list[tuple[Message, str]] = field(default_factory=list)
     would_trash: list[tuple[Message, str]] = field(default_factory=list)
@@ -299,6 +302,42 @@ def render_confirmation(created: list[tuple[Any, str]], skipped: int, timestamp:
     return subject, html_doc
 
 
+def _carried_block(data: DigestData) -> str:
+    """Still-open items from previous digests, one line each.
+
+    Deliberately plain and below the fold: the point is that you have already
+    read about these, so they should register as a nudge rather than compete
+    with what is new."""
+    if not data.carried:
+        return ""
+    rows = "".join(
+        f'<div style="padding:5px 0;font-size:13px;color:{INK}">'
+        f"{esc(_sender_name(i.message))} &middot; {esc(i.message.subject[:78])}"
+        f'{f" <span style=\'color:{WARN}\'>due {esc(i.label.deadline_iso)}</span>" if i.label.deadline_iso else ""}'
+        f"</div>"
+        for i in data.carried[:12]
+    )
+    more = (
+        f'<div style="font-size:12px;color:{MUTED};margin-top:6px">'
+        f"and {len(data.carried) - 12} more</div>"
+        if len(data.carried) > 12
+        else ""
+    )
+    return f"""
+    <div style="margin-top:26px">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.08em;
+                  text-transform:uppercase;color:{MUTED};
+                  border-bottom:1px solid {RULE};padding-bottom:6px">
+        Still open from before
+      </div>
+      <div style="margin-top:8px">{rows}</div>{more}
+      <div style="font-size:12px;color:{MUTED};margin-top:8px">
+        Already in an earlier summary and still unanswered. Everything else you
+        have seen is left out rather than repeated.
+      </div>
+    </div>"""
+
+
 def render_digest(data: DigestData, policy: dict[str, Any], timestamp: datetime) -> tuple[str, str]:
     """Returns (subject, html)."""
     report_cfg = policy.get("report", {}) or {}
@@ -359,11 +398,12 @@ def render_digest(data: DigestData, policy: dict[str, Any], timestamp: datetime)
     <div style="border-bottom:2px solid {INK};padding-bottom:12px">
       <div style="font-size:20px;font-weight:700">Inbox report</div>
       <div style="font-size:13px;color:{MUTED};margin-top:3px">
-        {timestamp.strftime("%A %d %B, %I:%M %p")} &middot; {data.scanned} messages read
+        {timestamp.strftime("%A %d %B, %I:%M %p")} &middot; {len(data.items)} new of {data.scanned} read
       </div>
       <div style="font-size:13px;color:{ACCENT};margin-top:5px;font-weight:600">{headline}</div>
     </div>
     {body}
+    {_carried_block(data)}
     {_proposals_block(data)}
     {_career_block(data)}
     {_cleanup_block(data)}

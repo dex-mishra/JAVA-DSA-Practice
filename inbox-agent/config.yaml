@@ -48,6 +48,18 @@ report:
     - security
     - fyi
   max_items_per_section: 12
+
+  # How a message already covered by an earlier digest is treated.
+  #   open_only  listed once in full; afterwards it reappears only while it
+  #              still needs action, as a one-line reminder. (default)
+  #   never      never mentioned again once reported
+  #   always     the old behaviour -- every scan window, every time, which
+  #              meant up to twelve appearances for one email
+  repeat_reported: open_only
+
+  # Do not send a digest with no new mail, nothing still open and nothing to
+  # confirm. Four empty summaries a day teach you to ignore all of them.
+  skip_if_empty: true
   # Include the "what I cleaned up" table in the digest.
   show_cleanup_summary: true
 
