@@ -18,15 +18,18 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+import time
 from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from . import actions as actions_mod
+from . import archive as archive_mod
 from . import career as career_mod
 from . import policy as policy_mod
 from . import proposals as proposals_mod
 from . import report as report_mod
-from .calendar import CalendarClient
+from .calendar import CalendarClient, EventSpec
 from .classify import Classifier, Label
 from .config import Account, Settings, load_settings
 from .gmail import GmailClient, Message
@@ -47,6 +50,34 @@ def _setup_logging() -> None:
 
 def _now(settings: Settings) -> datetime:
     return datetime.now(ZoneInfo(settings.timezone))
+
+
+def _deliver(
+    primary: GmailClient | None,
+    settings: Settings,
+    mode: str,
+    subject: str,
+    html: str,
+) -> tuple[bool, str | None]:
+    """Send a report and keep a copy. Returns (sent, archived report id).
+
+    Everything goes through here so the console can show you what was sent --
+    including reports withheld by dry run, which are archived as sent=False.
+    Otherwise "did it run?" is only answerable from Cloud Logging, and a run
+    that dies before sending leaves no trace in the one place you look.
+    """
+    sent = False
+    if settings.dry_run:
+        log.info("[dry-run] would send %r to %s", subject, settings.report_to)
+    elif primary:
+        sent = bool(primary.send_html(settings.report_to, subject, html))
+    else:
+        log.error("Primary account not connected; cannot send %r", subject)
+
+    report_id = archive_mod.save_report(
+        settings.state_bucket, mode=mode, subject=subject, html=html, sent=sent
+    )
+    return sent, report_id
 
 
 def _connect(settings: Settings) -> dict[str, GmailClient]:
@@ -157,6 +188,71 @@ def _update_career(
     return added, feed.upcoming()
 
 
+def _run_queued_actions(
+    clients: dict[str, GmailClient], settings: Settings
+) -> tuple[int, list[str]]:
+    """Perform calendar requests the website queued.
+
+    The console cannot create events itself -- that needs your OAuth token and
+    the calendar scope, which live with the job and must not be copied into a
+    public web service. So it queues an intent and this performs it.
+
+    Each request is marked terminal before the attempt, so a crash cannot
+    leave one to be retried on every sweep forever.
+    """
+    queued = actions_mod.load(settings.state_bucket)
+    if not queued:
+        return 0, []
+
+    expired = actions_mod.expire_stale(queued)
+    todo = actions_mod.pending(queued)
+    if not todo and not expired:
+        return 0, []
+
+    created, errors = 0, []
+    calendar: CalendarClient | None = None
+
+    for action in todo:
+        if action.get("kind") != "create_event":
+            action["status"] = "failed"
+            action["detail"] = f"unknown kind {action.get('kind')!r}"
+            continue
+        if settings.dry_run:
+            action["status"] = "failed"
+            action["detail"] = "agent is in dry run; nothing was scheduled"
+            continue
+        try:
+            if calendar is None:
+                calendar = CalendarClient(
+                    settings.project, settings.primary.secret_name, settings.timezone
+                )
+                calendar.ensure_calendar()
+            spec = EventSpec(
+                title=action["title"],
+                start=action["start"],
+                end=action.get("end", ""),
+                all_day=bool(action.get("all_day", True)),
+                source_url=action.get("source_url", ""),
+            )
+            calendar.create_event(spec)
+            action["status"] = "done"
+            created += 1
+        except Exception as exc:  # noqa: BLE001 -- reported back to the page
+            action["status"] = "failed"
+            action["detail"] = str(exc)[:300]
+            errors.append(f"calendar: {exc}")
+        action["finished_ts"] = time.time()
+
+    try:
+        actions_mod.save(settings.state_bucket, queued)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Could not write back the action queue: %s", exc)
+
+    if created or expired:
+        log.info("Queued actions: %d created, %d expired.", created, expired)
+    return created, errors
+
+
 def _resolve_calendar_replies(
     clients: dict[str, GmailClient], settings: Settings, state: State
 ) -> tuple[int, list[str]]:
@@ -240,10 +336,7 @@ def _resolve_calendar_replies(
         state.count_events(len(created))
 
         subject, html = report_mod.render_confirmation(created, skipped, _now(settings))
-        if settings.dry_run:
-            log.info("[dry-run] would confirm: %s", subject)
-        else:
-            primary.send_html(settings.report_to, subject, html)
+        _deliver(primary, settings, "confirmation", subject, html)
 
     state.prune_batches(expiry)
     return created_total, errors
@@ -346,6 +439,9 @@ def run_sweep(settings: Settings) -> int:
     events_made, _ = _resolve_calendar_replies(clients, settings, state)
     if events_made:
         log.info("Created %d calendar events from your reply.", events_made)
+    queued_made, _ = _run_queued_actions(clients, settings)
+    if queued_made:
+        log.info("Created %d calendar events queued from the website.", queued_made)
 
     hours = int(settings.section("scan").get("sweep_window_hours", 6))
     messages, errors = _collect(clients, f"in:inbox newer_than:{hours}h -in:chats", settings)
@@ -386,11 +482,9 @@ def run_sweep(settings: Settings) -> int:
 
     subject, body = report_mod.render_alert(urgent, _now(settings))
     primary = clients.get(settings.primary.key)
-    if primary and not settings.dry_run:
-        if primary.send_html(settings.report_to, subject, body):
-            state.mark_alerted([i.message.id for i in urgent])
-    else:
-        log.info("[dry-run] would alert on: %s", [i.message.subject[:50] for i in urgent])
+    sent, _ = _deliver(primary, settings, "alert", subject, body)
+    if sent:
+        state.mark_alerted([i.message.id for i in urgent])
 
     state.save()
     if errors:
@@ -425,6 +519,9 @@ def run_digest(settings: Settings, *, force_cleanup: bool = False) -> int:
     # the numbering never overlaps between two open batches.
     events_made, cal_errors = _resolve_calendar_replies(clients, settings, state)
     errors.extend(cal_errors)
+    queued_made, queued_errors = _run_queued_actions(clients, settings)
+    events_made += queued_made
+    errors.extend(queued_errors)
 
     proposals = proposals_mod.build_proposals(messages, labels, settings.policy)
     batch = proposals_mod.ProposalBatch.new(proposals) if proposals else None
@@ -472,8 +569,14 @@ def run_digest(settings: Settings, *, force_cleanup: bool = False) -> int:
         log.info("[dry-run] would send %r to %s", subject, settings.report_to)
         if proposals:
             log.info("[dry-run] %d calendar proposals withheld", len(proposals))
+        archive_mod.save_report(
+            settings.state_bucket, mode="digest", subject=subject, html=body, sent=False
+        )
     else:
         sent = primary.send_html(settings.report_to, subject, body)
+        archive_mod.save_report(
+            settings.state_bucket, mode="digest", subject=subject, html=body, sent=bool(sent)
+        )
         if sent:
             state.mark_digest_sent()
             state.mark_reported([m.id for m in messages])
@@ -564,9 +667,8 @@ def run_review(settings: Settings) -> int:
         log.error("Primary account is not connected; cannot send the review.")
         return 1
 
-    if settings.dry_run:
-        log.info("[dry-run] would send %r to %s", subject, settings.report_to)
-    elif primary.send_html(settings.report_to, subject, body):
+    sent, _ = _deliver(primary, settings, "review", subject, body)
+    if sent:
         log.info("Review sent to %s.", settings.report_to)
 
     log.info("Review done: %d read of %d available.", len(messages), available)
@@ -639,19 +741,36 @@ def main(argv: list[str] | None = None) -> int:
     _setup_logging()
     settings = load_settings()
     log.info("Starting mode=%s at %s", args.mode, _now(settings).isoformat())
+    started = time.time()
 
-    if args.mode == "check":
+    try:
+        code = _dispatch(args.mode, settings)
+    except Exception as exc:  # noqa: BLE001 -- logged, then re-raised
+        archive_mod.log_run(
+            settings.state_bucket, mode=args.mode, ok=False,
+            detail=f"{type(exc).__name__}: {exc}", started_ts=started,
+        )
+        raise
+    archive_mod.log_run(
+        settings.state_bucket, mode=args.mode, ok=(code == 0),
+        detail="" if code == 0 else f"exited {code}", started_ts=started,
+    )
+    return code
+
+
+def _dispatch(mode: str, settings: Settings) -> int:
+    if mode == "check":
         return run_check(settings)
-    if args.mode == "site-update":
+    if mode == "site-update":
         from . import site_update
         return site_update.run(settings)
-    if args.mode == "sweep":
+    if mode == "sweep":
         return run_sweep(settings)
-    if args.mode == "digest":
+    if mode == "digest":
         return run_digest(settings)
-    if args.mode == "review":
+    if mode == "review":
         return run_review(settings)
-    if args.mode == "cleanup":
+    if mode == "cleanup":
         clients = _connect(settings)
         classifier = Classifier(
             settings.project,

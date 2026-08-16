@@ -536,6 +536,217 @@ def overview():
     )
 
 
+# ---------------------------------------------------------------------------
+# Sent reports and run history
+# ---------------------------------------------------------------------------
+
+
+@app.get("/api/reports")
+@protected
+def reports_list():
+    """What the agent has sent, newest first, plus how recent runs ended.
+
+    Runs are included because a run that fails before sending produces no
+    report and no email -- without this, "I clicked it and nothing happened"
+    has no answer short of reading Cloud Logging.
+    """
+    index = read_json_blob("reports/index.json", {}) or {}
+    runs = (read_json_blob("reports/runs.json", {}) or {}).get("runs") or []
+    return jsonify(
+        {
+            "reports": (index.get("reports") or [])[:40],
+            "runs": runs[:20],
+        }
+    )
+
+
+@app.get("/api/reports/<report_id>")
+@protected
+def report_body(report_id: str):
+    """The archived HTML of one report, rendered in the page."""
+    if not re.fullmatch(r"[0-9]+-[a-z-]+", report_id):
+        return jsonify({"error": "bad report id"}), 400
+    try:
+        html = (
+            gcs().bucket(BUCKET).blob(f"reports/{report_id}.html").download_as_bytes().decode("utf-8")
+        )
+    except Exception:  # noqa: BLE001
+        return jsonify({"error": "no such report"}), 404
+    # Served as a fragment for the page to sandbox in an iframe rather than
+    # injecting: the body is agent-generated HTML built from email content.
+    return Response(html, mimetype="text/html; charset=utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Calendar: confirm proposals, or add something directly
+# ---------------------------------------------------------------------------
+
+ACTIONS_BLOB = "console/actions.json"
+
+
+def _read_actions() -> list:
+    doc = read_json_blob(ACTIONS_BLOB, {}) or {}
+    items = doc.get("actions")
+    return items if isinstance(items, list) else []
+
+
+def _write_actions(items: list) -> None:
+    gcs().bucket(BUCKET).blob(ACTIONS_BLOB).upload_from_string(
+        json.dumps({"actions": items[-50:]}, indent=2), content_type="application/json"
+    )
+
+
+@app.get("/api/proposals")
+@protected
+def proposals_list():
+    """Calendar items the agent proposed and is still waiting on.
+
+    Previously only answerable by replying to the digest email. Same
+    underlying batches; this just surfaces them where you already are.
+    """
+    state = read_state()
+    out = []
+    for batch in (state.get("proposals") or {}).values():
+        if batch.get("resolved"):
+            continue
+        out.append(
+            {
+                "token": batch.get("token"),
+                "sent_ts": batch.get("sent_ts", 0),
+                "items": [
+                    {
+                        "n": i.get("n"),
+                        "title": i.get("title"),
+                        "start": i.get("start"),
+                        "end": i.get("end", ""),
+                        "all_day": i.get("all_day", True),
+                        "source_url": i.get("source_url", ""),
+                    }
+                    for i in (batch.get("items") or [])
+                ],
+            }
+        )
+    queued = _read_actions()
+    return jsonify(
+        {
+            "batches": out,
+            "queued": [a for a in queued if a.get("status") == "pending"],
+            "recent": queued[-8:][::-1],
+        }
+    )
+
+
+_WHEN = re.compile(r"^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$")
+
+
+@app.post("/api/calendar/request")
+@protected
+def calendar_request():
+    """Queue an event for the agent to create on its next sweep.
+
+    The console cannot create it directly: that needs the OAuth token and the
+    calendar scope, which stay with the job. Queuing keeps the privileged
+    half of the work out of a service that is open to the internet.
+    """
+    body = request.get_json(silent=True) or {}
+    title = str(body.get("title", "")).strip()[:200]
+    start = str(body.get("start", "")).strip()
+    end = str(body.get("end", "")).strip()
+
+    if not title:
+        return jsonify({"error": "title is required"}), 400
+    if not _WHEN.match(start):
+        return jsonify({"error": "start must be YYYY-MM-DD or YYYY-MM-DDTHH:MM"}), 400
+    if end and not _WHEN.match(end):
+        return jsonify({"error": "end must be YYYY-MM-DD or YYYY-MM-DDTHH:MM"}), 400
+    if end and end < start:
+        end = ""
+
+    items = _read_actions()
+    if any(
+        a.get("status") == "pending" and a.get("title") == title and a.get("start") == start
+        for a in items
+    ):
+        return jsonify({"error": "already queued"}), 409
+
+    action = {
+        "id": "a" + pysecrets.token_hex(4),
+        "kind": "create_event",
+        "title": title,
+        "start": start,
+        "end": end,
+        "all_day": len(start) <= 10,
+        "source_url": str(body.get("source_url", ""))[:500],
+        "origin": str(body.get("origin", "site"))[:40],
+        "status": "pending",
+        "created_ts": time.time(),
+    }
+    items.append(action)
+    _write_actions(items)
+    log.info("Queued calendar event: %s on %s", title[:60], start)
+    return jsonify(action), 201
+
+
+@app.post("/api/proposals/decide")
+@protected
+def proposals_decide():
+    """Confirm or dismiss a proposed batch from the website.
+
+    Confirmed items become queued create_event actions, which the agent
+    performs on its next sweep with the credentials it already holds.
+    """
+    body = request.get_json(silent=True) or {}
+    token = str(body.get("token", ""))
+    track = body.get("track") or []
+    if not isinstance(track, list):
+        return jsonify({"error": "track must be a list of numbers"}), 400
+
+    state = read_state()
+    batch = (state.get("proposals") or {}).get(token)
+    if not batch:
+        return jsonify({"error": f"no open batch {token!r}"}), 404
+
+    wanted = {int(n) for n in track if str(n).isdigit()}
+    items = _read_actions()
+    queued = 0
+    for item in batch.get("items") or []:
+        if item.get("n") not in wanted:
+            continue
+        start = str(item.get("start", ""))
+        if not _WHEN.match(start):
+            continue
+        items.append(
+            {
+                "id": "a" + pysecrets.token_hex(4),
+                "kind": "create_event",
+                "title": str(item.get("title", ""))[:200],
+                "start": start,
+                "end": str(item.get("end", "")),
+                "all_day": bool(item.get("all_day", True)),
+                "source_url": str(item.get("source_url", ""))[:500],
+                "origin": f"proposal:{token}",
+                "status": "pending",
+                "created_ts": time.time(),
+            }
+        )
+        queued += 1
+
+    if queued:
+        _write_actions(items)
+
+    # Close the batch either way -- deciding "none" is a decision, and the
+    # agent should stop waiting for a reply to it.
+    doc = read_json_blob("state.json", {}) or {}
+    if token in (doc.get("proposals") or {}):
+        doc["proposals"][token]["resolved"] = True
+        gcs().bucket(BUCKET).blob("state.json").upload_from_string(
+            json.dumps(doc, separators=(",", ":")), content_type="application/json"
+        )
+
+    log.info("Batch %s decided from the site: %d queued.", token, queued)
+    return jsonify({"queued": queued, "token": token})
+
+
 @app.get("/api/opportunities")
 @protected
 def opportunities():

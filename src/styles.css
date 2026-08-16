@@ -7,38 +7,48 @@
    not"), so that is the shared DNA. Archivo was dropped rather than run a
    third family; Space Grotesk carries the compressed uppercase headings.
 
-   Colour: the placement base survives as the shell because it is the surface
-   you stare at across 1,328 topics. Accent is domain-coded and that coding
-   is meaningful, not decorative:
+   Colour: a light, high-contrast surface in the Codeforces/LeetCode register
+   -- white cards on a cool grey page, hairline borders doing the structural
+   work instead of glow. Accent is domain-coded and that coding is meaningful,
+   not decorative:
      - placement accent = your current rank colour. It is earned, so it moves.
+       The ladder values in data/placement.json are the light-background
+       variants; the originals were picked against near-black and Newbie grey
+       would sit at about 1.5:1 on white.
      - MBA accent = fixed amber. Windows have no tiers; a door is open or shut.
    ============================================================ */
 
 :root {
-  --bg: #12151f;
-  --surface: #191d2b;
-  --raise: #212739;
-  --line: #2c3348;
-  --line-soft: #232a3c;
-  --ink: #e9ecf5;
-  --ink-2: #a8b0c6;
-  --ink-3: #6d7691;
+  --bg: #f2f4f7;
+  --surface: #ffffff;
+  --raise: #eaeef3;
+  --line: #cfd6df;
+  --line-soft: #e4e9ef;
+  --ink: #11151b;
+  --ink-2: #495260;
+  --ink-3: #737d8c;
 
   /* Overwritten at runtime from the current rank. */
-  --accent: #9aa4b8;
-  --accent-soft: rgba(154, 164, 184, 0.14);
+  --accent: #6b7280;
+  --accent-soft: rgba(107, 114, 128, 0.10);
 
   /* MBA domain. Amber is constant by design. */
-  --amber: #e2a72e;
-  --amber-soft: rgba(226, 167, 46, 0.13);
+  --amber: #b45309;
+  --amber-soft: rgba(180, 83, 9, 0.09);
 
-  --ok: #4caf7d;
-  --warn: #f0932b;
-  --crit: #ee5a5a;
+  /* Actions get their own colour rather than the rank accent. Accent means
+     "how good are you", which at Newbie is grey -- a primary button must be
+     obviously pressable at every rank, and must not imply progress. */
+  --action: #1d4ed8;
+  --action-hover: #1e40af;
+
+  --ok: #15803d;
+  --warn: #b45309;
+  --crit: #b91c1c;
 
   --display: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  --r: 10px;
+  --r: 6px;
 }
 
 * { box-sizing: border-box; }
@@ -60,11 +70,11 @@ body::before {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background: radial-gradient(1100px 520px at 50% -12%, var(--accent-soft), transparent 70%);
+  background: linear-gradient(var(--accent-soft), transparent 220px);
   transition: background .6s ease;
 }
 body.domain-mba::before {
-  background: radial-gradient(1100px 520px at 50% -12%, var(--amber-soft), transparent 70%);
+  background: linear-gradient(var(--amber-soft), transparent 220px);
 }
 
 .wrap { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; padding: 0 18px; }
@@ -431,7 +441,7 @@ table.cost td.n { font-family: var(--mono); color: var(--ink); }
    same shell as the trackers rather than look like a bolted-on admin panel. */
 
 body.domain-agent::before {
-  background: radial-gradient(1100px 520px at 50% -12%, rgba(76, 175, 125, .10), transparent 70%);
+  background: linear-gradient(rgba(21, 128, 61, .07), transparent 220px);
 }
 .tab[aria-selected="true"][data-domain="agent"] { border-bottom-color: var(--ok); }
 
@@ -452,8 +462,14 @@ body.domain-agent::before {
 }
 .agent-actions .count { margin-left: auto; font-family: var(--mono); font-size: 11px; }
 
-.btn.primary { color: var(--ink); border-color: var(--accent); background: var(--raise); }
-.btn.primary:hover { border-color: var(--ok); color: #fff; }
+.btn.primary {
+  color: #fff; background: var(--action); border-color: var(--action);
+  font-weight: 600;
+}
+.btn.primary:hover { background: var(--action-hover); border-color: var(--action-hover); color: #fff; }
+.btn:disabled, .btn[disabled] {
+  opacity: .5; cursor: progress; filter: none;
+}
 .btn.tiny { padding: 6px 10px; font-size: 10px; }
 .btn.danger:hover { border-color: var(--crit); color: var(--crit); }
 a.btn { text-decoration: none; display: inline-block; }
@@ -532,3 +548,35 @@ ul.accounts .mono { flex: 1; font-size: 12.5px; color: var(--ink); min-width: 12
 /* A ticked quest stays on the card struck through rather than vanishing --
    seeing it go is the point. */
 .quests li.on .qtxt { text-decoration: line-through; opacity: .55; }
+
+
+/* ---------------------------------------------------------- calendar + reports
+
+   Both are agent-facing panels living in the Email Agent tab. */
+
+.prop-list li { align-items: flex-start; gap: 10px; }
+.prop-list .switch { min-width: 0; }
+.prop-list .rbody { flex: 1; min-width: 12rem; }
+.prop-list .rtask { font-size: 13.5px; color: var(--ink); }
+.prop-list .rmeta { margin-top: 3px; }
+.prop-batch + .prop-batch { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+
+ul.reports li { gap: 10px; }
+.linkish {
+  appearance: none; background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--action); font: inherit; font-size: 13.5px; text-align: left;
+  flex: 1; min-width: 12rem; text-decoration: underline; text-underline-offset: 3px;
+}
+.linkish:hover { color: var(--ink); }
+.report-frame {
+  width: 100%; height: 520px; margin-top: 14px; background: #fff;
+  border: 1px solid var(--line); border-radius: var(--r);
+}
+.run-fail {
+  margin-bottom: 12px; padding: 10px 12px; border-left: 3px solid var(--crit);
+  background: #fef2f2; color: var(--crit); font-size: 12.5px; border-radius: 0 var(--r) var(--r) 0;
+}
+
+/* A closed opportunity stays listed but stops competing for attention. */
+.opp.closed { opacity: .55; }
+.opp.closed:hover { opacity: 1; }

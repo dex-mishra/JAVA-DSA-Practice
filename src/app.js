@@ -48,7 +48,7 @@
   var LEGACY_PLACEMENT = "placement-ladder-v1";
   var LEGACY_MBA = "mba-launch-windows-v1";
 
-  var S = { checked: {}, mba: {}, days: [], badges: [], open: {}, opps: {}, quest: {} };
+  var S = { checked: {}, mba: {}, days: [], badges: [], open: {}, opps: {}, quest: {}, dayCount: {} };
   var memOnly = false;
   var saveTimer = null;
 
@@ -73,7 +73,8 @@
           badges: p.badges || [],
           open: p.open || {},
           opps: p.opps || {},
-          quest: p.quest || {}
+          quest: p.quest || {},
+          dayCount: p.dayCount || {}
         };
         return;
       }
@@ -154,7 +155,8 @@
             badges: r.data.badges || [],
             open: r.data.open || {},
             opps: r.data.opps || {},
-            quest: r.data.quest || {}
+            quest: r.data.quest || {},
+            dayCount: r.data.dayCount || {}
           };
           try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* cache only */ }
           setSync("synced");
@@ -316,13 +318,18 @@
     full: function (s) { return s.pct >= 100; }
   };
 
+  /* Badges reflect the current state, they are not a permanent record of
+     having once qualified. Untick the work and the badge goes with it --
+     otherwise the count drifts upward and stops meaning anything. */
   function refreshBadges(st) {
     var gained = [];
     PL.badges.forEach(function (b) {
       var rule = BADGE_RULES[b.id];
       if (!rule) return;
-      var has = S.badges.indexOf(b.id) !== -1;
-      if (!has && rule(st)) { S.badges.push(b.id); gained.push(b); }
+      var at = S.badges.indexOf(b.id);
+      var earned = !!rule(st);
+      if (earned && at === -1) { S.badges.push(b.id); gained.push(b); }
+      else if (!earned && at !== -1) { S.badges.splice(at, 1); }
     });
     return gained;
   }
@@ -531,7 +538,8 @@
         var ws = windowStats();
         pc = ' <span class="pc">' + Math.round(ws.pct) + "%</span>";
       } else if (t.id === "career") {
-        pc = OPPS.length ? ' <span class="pc">' + OPPS.length + "</span>" : "";
+        var live = liveOpps().length;
+        pc = live ? ' <span class="pc">' + live + "</span>" : "";
       }
       return '<button class="tab" role="tab" data-tab="' + t.id + '" data-domain="' + t.domain +
         '" aria-selected="' + (ACTIVE === t.id) + '">' + esc(t.label) + pc + "</button>";
@@ -807,6 +815,17 @@
   }
 
   var OPP_STATUSES = ["new", "interested", "applied", "shortlisted", "rejected", "offer", "dropped"];
+  /* Closed outcomes. Still listed, because "I applied and was rejected" is
+     worth keeping, but they stop counting towards the tab badge -- a number
+     that includes things you have finished with is not a to-do count. */
+  var OPP_CLOSED = ["rejected", "dropped", "offer"];
+
+  function oppStatus(o) {
+    return (S.opps[o.id] && S.opps[o.id].status) || (o.user && o.user.status) || "new";
+  }
+  function liveOpps() {
+    return OPPS.filter(function (o) { return OPP_CLOSED.indexOf(oppStatus(o)) === -1; });
+  }
 
   function renderCareer() {
     if (!OPPS.length) {
@@ -821,9 +840,10 @@
     });
 
     return sorted.map(function (o) {
-      var status = (S.opps[o.id] && S.opps[o.id].status) || (o.user && o.user.status) || "new";
+      var status = oppStatus(o);
+      var closed = OPP_CLOSED.indexOf(status) !== -1;
       var dd = o.deadline ? daysUntil(o.deadline) : null;
-      return '<div class="opp"><div class="opp-hd">' +
+      return '<div class="opp' + (closed ? " closed" : "") + '"><div class="opp-hd">' +
         '<span class="opp-co">' + esc(o.company || "Unknown") + "</span>" +
         '<span class="opp-role">' + esc(o.role || o.kind || "") + "</span>" +
         (o.deadline ? '<span class="rt ' + level(dd) + '">' + tminus(dd) + "</span>" : "") +
@@ -838,6 +858,9 @@
         (o.location ? '<span class="tag">' + esc(o.location) + "</span>" : "") +
         (o.stipend ? '<span class="tag">' + esc(o.stipend) + "</span>" : "") +
         (o.apply_url ? ' <a class="tag" href="' + esc(o.apply_url) + '" target="_blank" rel="noopener noreferrer">Apply</a>' : "") +
+        (o.deadline && !closed
+          ? ' <button class="btn tiny" data-oppcal="' + esc(o.id) + '">Add deadline to calendar</button>'
+          : "") +
         (o.source && o.source.gmail_url
           ? ' <a class="tag" href="' + esc(o.source.gmail_url) + '" target="_blank" rel="noopener noreferrer">Mail</a>'
           : "") +
@@ -880,9 +903,17 @@
   function loadAgent() {
     if (AGENT.loading) return;
     AGENT.loading = true;
-    Promise.all([api("/api/status"), api("/api/settings")])
+    Promise.all([
+      api("/api/status"),
+      api("/api/settings"),
+      // Optional extras: an older console will not have these, and the tab
+      // should degrade rather than refuse to render.
+      api("/api/proposals").catch(function () { return { batches: [], recent: [] }; }),
+      api("/api/reports").catch(function () { return { reports: [], runs: [] }; })
+    ])
       .then(function (r) {
         AGENT.status = r[0]; AGENT.settings = r[1];
+        AGENT.proposals = r[2]; AGENT.reports = r[3];
         AGENT.loaded = true; AGENT.error = "";
       })
       .catch(function (e) { AGENT.error = e.message || String(e); })
@@ -1009,6 +1040,9 @@
         '<div class="agent-actions"><span class="muted" id="agRun"></span></div>' +
       "</div>" +
 
+      calendarCard() +
+      reportsCard() +
+
       '<div class="card">' +
         "<h3>Mailboxes it reads</h3>" +
         '<p class="muted">All of these are combined into the single summary sent to ' +
@@ -1021,6 +1055,83 @@
             "work regardless — this is the only thing that setup unlocks.</p>") +
         '<p class="muted fineprint">Mailboxes you add can be read and tidied, but can never send email. Only your main address sends.</p>' +
       "</div>";
+  }
+
+  /* Calendar items the agent proposed. Previously these could only be
+     confirmed by replying to the digest email; the same batches are shown
+     here so you can decide wherever you happen to be. Confirming queues the
+     work for the agent -- this page cannot create events itself, because
+     that needs the calendar credentials that deliberately stay with the
+     job rather than with a service open to the internet. */
+  function calendarCard() {
+    var p = AGENT.proposals || {};
+    var batches = p.batches || [];
+    var queued = p.queued || [];
+
+    if (!batches.length && !queued.length) {
+      return '<div class="card"><h3>Calendar</h3>' +
+        '<p class="muted">Nothing waiting. When the agent spots something with ' +
+        "a date on it, the proposal appears here and in your digest.</p></div>";
+    }
+
+    var body = batches.map(function (b) {
+      var rows = b.items.map(function (i) {
+        return '<li><label class="switch"><input type="checkbox" data-prop="' +
+          esc(b.token) + '" value="' + i.n + '"><span></span></label>' +
+          '<div class="rbody"><div class="rtask">' + esc(i.title) + "</div>" +
+          '<div class="rmeta"><span class="rdate">' + esc(i.start) +
+          (i.all_day ? "" : " (timed)") + "</span></div></div></li>";
+      }).join("");
+      return '<div class="prop-batch"><ul class="accounts prop-list">' + rows + "</ul>" +
+        '<div class="agent-actions">' +
+        '<button class="btn primary" data-propgo="' + esc(b.token) + '">Add ticked to calendar</button>' +
+        '<button class="btn" data-propnone="' + esc(b.token) + '">Dismiss all</button>' +
+        "</div></div>";
+    }).join("");
+
+    var pending = queued.length
+      ? '<p class="muted fineprint">' + queued.length +
+        " queued — the agent adds these on its next run, within 15 minutes.</p>"
+      : "";
+
+    return '<div class="card"><h3>Calendar — waiting on you</h3>' +
+      '<p class="muted">Nothing below is on your calendar yet.</p>' +
+      body + pending + "</div>";
+  }
+
+  /* Every report the agent sends is archived, so "did my full inbox review
+     work?" is answerable here rather than only from the cloud logs -- and a
+     run that failed before sending still shows up, which is exactly the case
+     that is otherwise invisible. */
+  function reportsCard() {
+    var r = AGENT.reports || {};
+    var reports = r.reports || [];
+    var runs = r.runs || [];
+
+    var failed = runs.filter(function (x) { return !x.ok; }).slice(0, 3);
+    var failedHtml = failed.length
+      ? '<div class="run-fail">' + failed.map(function (x) {
+          return "<div><b>" + esc(x.mode) + "</b> failed " + ago(x.finished_ts) +
+            (x.detail ? " — " + esc(x.detail) : "") + "</div>";
+        }).join("") + "</div>"
+      : "";
+
+    if (!reports.length) {
+      return '<div class="card"><h3>Sent reports</h3>' + failedHtml +
+        '<p class="muted">Nothing archived yet. Reports appear here from the ' +
+        "next run onwards.</p></div>";
+    }
+
+    var list = reports.map(function (x) {
+      return '<li><button class="linkish" data-report="' + esc(x.id) + '">' +
+        esc(x.subject || x.mode) + "</button>" +
+        '<span class="pill">' + esc(x.mode) + "</span>" +
+        '<span class="muted tiny">' + ago(x.ts) + (x.sent ? "" : " · not sent") + "</span></li>";
+    }).join("");
+
+    return '<div class="card"><h3>Sent reports</h3>' + failedHtml +
+      '<ul class="accounts reports">' + list + "</ul>" +
+      '<div id="reportView"></div></div>';
   }
 
   function bindAgent() {
@@ -1094,6 +1205,57 @@
       };
     });
 
+    // --- calendar proposals ------------------------------------------
+    function decide(token, numbers, label) {
+      api("/api/proposals/decide", {
+        method: "POST",
+        body: JSON.stringify({ token: token, track: numbers })
+      })
+        .then(function (r) {
+          toast(r.queued
+            ? r.queued + " queued — on your calendar within 15 minutes."
+            : label);
+          AGENT.loaded = false; repaintAgent(); loadAgent();
+        })
+        .catch(function (e) { toast("Could not save that: " + e.message); });
+    }
+
+    document.querySelectorAll("[data-propgo]").forEach(function (b) {
+      b.onclick = function () {
+        var token = b.dataset.propgo;
+        var picked = [];
+        document.querySelectorAll('[data-prop="' + token + '"]').forEach(function (cb) {
+          if (cb.checked) picked.push(Number(cb.value));
+        });
+        if (!picked.length) { toast("Tick the ones you want first."); return; }
+        b.disabled = true;
+        decide(token, picked, "");
+      };
+    });
+
+    document.querySelectorAll("[data-propnone]").forEach(function (b) {
+      b.onclick = function () {
+        b.disabled = true;
+        decide(b.dataset.propnone, [], "Dismissed. Nothing was scheduled.");
+      };
+    });
+
+    // --- archived reports ----------------------------------------------
+    document.querySelectorAll("[data-report]").forEach(function (b) {
+      b.onclick = function () {
+        var host = document.getElementById("reportView");
+        if (!host) return;
+        if (host.dataset.showing === b.dataset.report) {
+          host.innerHTML = ""; host.dataset.showing = ""; return;
+        }
+        host.dataset.showing = b.dataset.report;
+        // An iframe, not innerHTML: the body is built from email content, so
+        // it stays in its own document rather than joining this one.
+        host.innerHTML = '<iframe class="report-frame" sandbox="" src="/api/reports/' +
+          encodeURIComponent(b.dataset.report) + '"></iframe>';
+      };
+    });
+
     document.querySelectorAll("[data-remove]").forEach(function (b) {
       b.onclick = function () {
         if (!confirm("Stop reading " + b.dataset.remove + "?")) return;
@@ -1127,13 +1289,26 @@
     if (tab.id === "agent") bindAgent();
   }
 
-  function markToday() {
+  /* The streak counts days you actually moved something, so reverting the
+     last tick of the day has to give the day back. That needs a per-day
+     count -- a bare list of dates cannot tell "ticked three, untick one"
+     from "ticked one, untick it". */
+  function markToday(delta) {
     var t = today();
-    if (S.days.indexOf(t) === -1) S.days.push(t);
+    var counts = S.dayCount || (S.dayCount = {});
+    if (counts[t] === undefined) {
+      // Days recorded before counts existed are worth at least one tick.
+      counts[t] = S.days.indexOf(t) !== -1 ? 1 : 0;
+    }
+    counts[t] = Math.max(0, counts[t] + (delta === undefined ? 1 : delta));
+
+    var at = S.days.indexOf(t);
+    if (counts[t] > 0 && at === -1) S.days.push(t);
+    if (counts[t] === 0 && at !== -1) S.days.splice(at, 1);
   }
 
-  function afterChange() {
-    markToday();
+  function afterChange(delta) {
+    markToday(delta);
     var gained = refreshBadges(stats());
     save();
     render();
@@ -1146,7 +1321,7 @@
       input.onchange = function () {
         var id = input.dataset.id;
         if (input.checked) S.checked[id] = 1; else delete S.checked[id];
-        afterChange();
+        afterChange(input.checked ? 1 : -1);
       };
     });
 
@@ -1154,8 +1329,9 @@
     document.querySelectorAll(".quests li[data-id]").forEach(function (li) {
       li.onclick = function () {
         var id = li.dataset.id;
-        if (S.checked[id]) delete S.checked[id]; else S.checked[id] = 1;
-        afterChange();
+        var nowOn = !S.checked[id];
+        if (nowOn) S.checked[id] = 1; else delete S.checked[id];
+        afterChange(nowOn ? 1 : -1);
       };
     });
 
@@ -1163,10 +1339,36 @@
     document.querySelectorAll(".row[data-mba]").forEach(function (row) {
       row.onclick = function () {
         var id = row.dataset.mba;
-        if (S.mba[id]) delete S.mba[id]; else S.mba[id] = 1;
-        markToday();
+        var nowOn = !S.mba[id];
+        if (nowOn) S.mba[id] = 1; else delete S.mba[id];
+        markToday(nowOn ? 1 : -1);
         save();
         render();
+      };
+    });
+
+    document.querySelectorAll("[data-oppcal]").forEach(function (b) {
+      b.onclick = function () {
+        var o = OPPS.find(function (x) { return x.id === b.dataset.oppcal; });
+        if (!o) return;
+        b.disabled = true;
+        fetch("/api/calendar/request", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: (o.company ? o.company + " — " : "") + (o.role || "Application deadline"),
+            start: o.deadline,
+            source_url: o.apply_url || "",
+            origin: "opportunity"
+          })
+        })
+          .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+          .then(function (res) {
+            if (res.ok) { toast("Queued — on your calendar within 15 minutes."); b.textContent = "Queued"; }
+            else if (res.j && /already queued/.test(res.j.error || "")) { toast("Already queued."); b.textContent = "Queued"; }
+            else { toast("Could not queue: " + ((res.j && res.j.error) || "unknown")); b.disabled = false; }
+          })
+          .catch(function () { toast("Could not reach the server."); b.disabled = false; });
       };
     });
 
