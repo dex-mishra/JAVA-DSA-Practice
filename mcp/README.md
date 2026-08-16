@@ -16,6 +16,20 @@ python3 -m venv mcp/.venv && mcp/.venv/bin/pip install -r mcp/requirements.txt
 
 ### Claude Code
 
+A committed `.mcp.json` at the repo root already registers this server, so
+there is nothing to run — open Claude Code in this directory and restart it.
+
+That file holds **absolute** paths, because neither client resolves relative
+ones. If the project folder ever moves, regenerate it:
+
+```bash
+python3 -c 'import json,os; r=os.getcwd(); json.dump({"mcpServers":{"launch-console":{"command":r+"/mcp/.venv/bin/python","args":[r+"/mcp/server.py"],"env":{"CONSOLE_URL":"https://launch-console-3xcyebaaxq-as.a.run.app"}}}}, open(".mcp.json","w"), indent=2)'
+```
+
+If you do have the `claude` CLI on your PATH, this is the equivalent one-liner
+— but it is not installed by the desktop app, so `command not found` there is
+expected rather than a broken setup:
+
 ```bash
 claude mcp add launch-console --env CONSOLE_URL=https://launch-console-3xcyebaaxq-as.a.run.app -- /ABSOLUTE/PATH/TO/mcp/.venv/bin/python /ABSOLUTE/PATH/TO/mcp/server.py
 ```
