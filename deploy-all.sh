@@ -24,6 +24,13 @@ cd "$ROOT"
 
 say() { printf "\n\033[1m######## %s\033[0m\n" "$1"; }
 
+# Stamped into both images so the site can show which build each half is
+# running. The two deploy separately, so a run that dies between them leaves
+# the page current and the agent stale -- which is indistinguishable from a
+# fix that did not work until you can see both numbers side by side.
+export APP_VERSION="${APP_VERSION:-$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo local)}"
+echo "Deploying version ${APP_VERSION}"
+
 say "1/2  Website  ->  Cloud Run Service (asia-southeast1)"
 ./console/deploy.sh "$PROJECT"
 

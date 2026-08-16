@@ -164,6 +164,9 @@ ENV_VARS="${ENV_VARS},AGENT_SERVICE_ACCOUNT=${AGENT_SA}"
 ENV_VARS="${ENV_VARS},CONSOLE_PASSWORD=${CONSOLE_PASSWORD}"
 ENV_VARS="${ENV_VARS},MCP_TOKEN=${MCP_TOKEN}"
 ENV_VARS="${ENV_VARS},FLASK_SECRET=${FLASK_SECRET}"
+# Shown on the agent tab next to the agent's own version, so a half-finished
+# deploy is visible rather than looking like a fix that did not take.
+ENV_VARS="${ENV_VARS},APP_VERSION=${APP_VERSION:-$(git rev-parse --short HEAD 2>/dev/null || echo local)}"
 
 gcloud run deploy "$SERVICE" \
   --image "$IMAGE" \

@@ -1045,6 +1045,7 @@
 
       calendarCard() +
       reportsCard() +
+      versionCard(s) +
 
       '<div class="card">' +
         "<h3>Mailboxes it reads</h3>" +
@@ -1135,6 +1136,30 @@
     return '<div class="card"><h3>Sent reports</h3>' + failedHtml +
       '<ul class="accounts reports">' + list + "</ul>" +
       '<div id="reportView"></div></div>';
+  }
+
+  /* The website and the agent are two separate deployments made from one
+     build. A build that fails halfway updates the page and leaves the agent
+     on older code -- which looks exactly like a fix that did not work, and
+     costs a day of chasing the wrong thing. So both versions are on screen. */
+  function versionCard(s) {
+    if (!s.console_version && !s.agent_version) return "";
+    var mismatch = s.console_version && s.agent_version && !s.versions_match;
+    return '<div class="card' + (mismatch ? " warn" : "") + '">' +
+      "<h3>Deployed version</h3>" +
+      (mismatch
+        ? '<p class="err">These do not match. The last deploy only finished ' +
+          "half way, so the agent is still running older code — anything you " +
+          "changed recently is not live yet. Re-run <span class=\"mono\">" +
+          "./deploy-all.sh</span>.</p>"
+        : "") +
+      '<ul class="accounts"><li><span>This website</span>' +
+      '<span class="mono">' + esc(s.console_version || "unknown") + "</span></li>" +
+      "<li><span>Email agent</span>" +
+      '<span class="mono">' + esc(s.agent_version || "not reported yet") + "</span></li></ul>" +
+      (s.agent_version ? "" : '<p class="muted fineprint">The agent reports its ' +
+        "version on its next run, within 15 minutes of a deploy.</p>") +
+      "</div>";
   }
 
   /* What your prose compiled to. Shown because a rule that changes what gets

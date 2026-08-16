@@ -402,9 +402,21 @@ def _resolve_calendar_replies(
 
 
 def _run_cleanup(
-    clients: dict[str, GmailClient], settings: Settings, classifier: Classifier
+    clients: dict[str, GmailClient],
+    settings: Settings,
+    classifier: Classifier,
+    *,
+    force_preview: bool = False,
 ) -> tuple[list[tuple[Message, str]], list[tuple[Message, str]], list[str]]:
-    """Returns (trashed, would_trash, errors)."""
+    """Returns (trashed, would_trash, errors).
+
+    `force_preview` makes this pass read-only regardless of configuration. It
+    exists so the site's "Show me what it would bin" button cannot bin: a
+    button that promises a preview must not be one switch away from deleting
+    a hundred emails, and the switch it depended on is exactly the sort of
+    thing that turns out to be set differently from what the page displays.
+    It can only ever make a run safer, never the reverse.
+    """
     cleanup_cfg = settings.section("cleanup")
     if not cleanup_cfg.get("enabled", False):
         return [], [], []
@@ -418,7 +430,7 @@ def _run_cleanup(
 
     body_chars = int(settings.section("scan").get("body_chars", 1800))
     cap = int(cleanup_cfg.get("max_trash_per_run", 100))
-    dry = settings.cleanup_dry_run
+    dry = settings.cleanup_dry_run or force_preview
     quarantine = cleanup_cfg.get("quarantine_label")
 
     # Screen on metadata before spending anything on the model. trash_verdict
@@ -553,7 +565,53 @@ def run_sweep(settings: Settings) -> int:
     return 0
 
 
-def run_digest(settings: Settings, *, force_cleanup: bool = False) -> int:
+def run_cleanup_only(settings: Settings, *, preview: bool = False) -> int:
+    """Cleanup on its own, and -- unlike before -- it tells you what it found.
+
+    This is what the site's "Show me what it would bin" button runs. It used
+    to write its findings to the log and return, so the one button whose whole
+    purpose is to show you something showed you nothing unless you went to
+    Cloud Logging to look. An empty result still sends: "nothing matched" is
+    an answer, and silence is indistinguishable from a button that is broken.
+    """
+    _recompile_rules_if_due(settings)
+    settings = load_settings()
+    state = State(settings.state_bucket).load()
+
+    clients = _connect(settings)
+    if not clients:
+        log.error("No mailboxes reachable; nothing to do.")
+        return 1
+
+    classifier = Classifier(
+        settings.project,
+        settings.vertex_location,
+        settings.gemini_model,
+        instructions=settings.instructions,
+    )
+    trashed, would, errors = _run_cleanup(
+        clients, settings, classifier, force_preview=preview
+    )
+    dry = settings.cleanup_dry_run or preview
+
+    # Only a run that actually binned things counts as the day's cleanup. A
+    # preview must not satisfy the 20-hour gap, or clicking the preview button
+    # would quietly cancel the real sweep.
+    if not dry:
+        state.mark_cleanup_ran(len(trashed))
+        state.save()
+
+    subject, html = report_mod.render_cleanup(
+        trashed, would, _now(settings), dry_run=dry, errors=errors
+    )
+    _deliver(clients.get(settings.primary.key), settings, "cleanup", subject, html)
+    log.info("Cleanup: %d binned, %d previewed.", len(trashed), len(would))
+    return 0
+
+
+def run_digest(
+    settings: Settings, *, force_cleanup: bool = False, manual: bool = False
+) -> int:
     _recompile_rules_if_due(settings)
     # Reload so this run acts on the rules it just compiled rather than
     # waiting for the next one.
@@ -647,7 +705,12 @@ def run_digest(settings: Settings, *, force_cleanup: bool = False) -> int:
     nothing_to_say = (
         not items and not carried and not proposals and not trashed and not would
     )
-    if nothing_to_say and report_cfg.get("skip_if_empty", True):
+    # A scheduled digest with nothing to say stays quiet. One you asked for by
+    # pressing a button does not: you are owed an answer to a question you
+    # just asked, and "all clear" is an answer. Staying silent here is what
+    # makes a working button look broken -- and now that repeats are filtered,
+    # a manual digest with nothing new is the common case, not the rare one.
+    if nothing_to_say and report_cfg.get("skip_if_empty", True) and not manual:
         log.info("Nothing new since the last digest; not sending.")
         state.save()
         return 0
@@ -745,7 +808,14 @@ def run_review(settings: Settings) -> int:
             errors.append(msg)
 
     if not messages:
+        # Still sends. A review is always something you asked for by hand, and
+        # "your inbox is empty" is a result, not a reason to say nothing.
         log.info("Nothing matched %r.", query)
+        subject, body = report_mod.render_review(
+            [], _now(settings), scanned=0, available=available,
+            per_account=per_account, errors=errors,
+        )
+        _deliver(clients.get(settings.primary.key), settings, "review", subject, body)
         return 0
 
     classifier = Classifier(
@@ -844,15 +914,33 @@ def main(argv: list[str] | None = None) -> int:
         default="sweep",
         choices=["sweep", "digest", "review", "cleanup", "check", "site-update"],
     )
+    parser.add_argument(
+        "--manual",
+        action="store_true",
+        help="This run was asked for from the site, not by the scheduler. It "
+             "always reports back, even when there is nothing to say.",
+    )
+    parser.add_argument(
+        "--preview",
+        action="store_true",
+        help="Force cleanup to be read-only for this run, whatever the "
+             "switches say.",
+    )
     args = parser.parse_args(argv)
 
     _setup_logging()
     settings = load_settings()
-    log.info("Starting mode=%s at %s", args.mode, _now(settings).isoformat())
+    log.info(
+        "Starting mode=%s%s%s at %s",
+        args.mode,
+        " (manual)" if args.manual else "",
+        " (preview)" if args.preview else "",
+        _now(settings).isoformat(),
+    )
     started = time.time()
 
     try:
-        code = _dispatch(args.mode, settings)
+        code = _dispatch(args.mode, settings, manual=args.manual, preview=args.preview)
     except Exception as exc:  # noqa: BLE001 -- logged, then re-raised
         archive_mod.log_run(
             settings.state_bucket, mode=args.mode, ok=False,
@@ -866,7 +954,9 @@ def main(argv: list[str] | None = None) -> int:
     return code
 
 
-def _dispatch(mode: str, settings: Settings) -> int:
+def _dispatch(
+    mode: str, settings: Settings, *, manual: bool = False, preview: bool = False
+) -> int:
     if mode == "check":
         return run_check(settings)
     if mode == "site-update":
@@ -875,22 +965,11 @@ def _dispatch(mode: str, settings: Settings) -> int:
     if mode == "sweep":
         return run_sweep(settings)
     if mode == "digest":
-        return run_digest(settings)
+        return run_digest(settings, manual=manual)
     if mode == "review":
         return run_review(settings)
     if mode == "cleanup":
-        clients = _connect(settings)
-        classifier = Classifier(
-            settings.project,
-            settings.vertex_location,
-            settings.gemini_model,
-            instructions=settings.instructions,
-        )
-        trashed, would, _ = _run_cleanup(clients, settings, classifier)
-        log.info("Trashed=%d would_trash=%d", len(trashed), len(would))
-        for msg, reason in (would or trashed)[:40]:
-            log.info("  %-64s | %s", msg.subject[:64], reason)
-        return 0
+        return run_cleanup_only(settings, preview=preview)
     return 1
 
 

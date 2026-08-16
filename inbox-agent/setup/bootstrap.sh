@@ -206,6 +206,10 @@ for found in walk(doc):
 DRY_RUN_VALUE="${DRY_RUN:-$(current_dry_run)}"
 DRY_RUN_VALUE="${DRY_RUN_VALUE:-true}"
 
+# Which build this is, so the site can show it back and you can tell at a
+# glance whether a fix you pushed is actually the code that is running.
+APP_VERSION_VALUE="${APP_VERSION:-$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo local)}"
+
 say "Deploying the Cloud Run job (DRY_RUN=${DRY_RUN_VALUE})"
 gcloud run jobs deploy "$JOB" \
   --source "$ROOT" \
@@ -216,7 +220,7 @@ gcloud run jobs deploy "$JOB" \
   --task-timeout 30m \
   --memory 1Gi \
   --cpu 1 \
-  --set-env-vars "GCP_PROJECT=${PROJECT},GCP_REGION=${REGION},STATE_BUCKET=${BUCKET},VERTEX_LOCATION=${REGION},GEMINI_MODEL=${GEMINI_MODEL},PRIMARY_EMAIL=${PRIMARY_EMAIL},COLLEGE_EMAIL=${COLLEGE_EMAIL},REPORT_TO=${REPORT_TO},TIMEZONE=${TZ_NAME},GITHUB_REPO=${GITHUB_REPO},DRY_RUN=${DRY_RUN_VALUE}"
+  --set-env-vars "GCP_PROJECT=${PROJECT},GCP_REGION=${REGION},STATE_BUCKET=${BUCKET},VERTEX_LOCATION=${REGION},GEMINI_MODEL=${GEMINI_MODEL},PRIMARY_EMAIL=${PRIMARY_EMAIL},COLLEGE_EMAIL=${COLLEGE_EMAIL},REPORT_TO=${REPORT_TO},TIMEZONE=${TZ_NAME},GITHUB_REPO=${GITHUB_REPO},DRY_RUN=${DRY_RUN_VALUE},APP_VERSION=${APP_VERSION_VALUE}"
 
 say "Scheduler service account"
 SCHED_SA="scheduler-invoker@${PROJECT}.iam.gserviceaccount.com"

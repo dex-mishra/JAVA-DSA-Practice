@@ -294,6 +294,9 @@ nav.tabs::-webkit-scrollbar { display: none; }
 .cols { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; margin-top: 20px; }
 .card { border: 1px solid var(--line-soft); background: var(--surface); border-radius: var(--r); padding: 18px; }
 .card + .card { margin-top: 16px; }
+/* A card raising something you have to act on. Used when the website and the
+   agent are on different builds, which otherwise reads as a fix that failed. */
+.card.warn { border-color: var(--crit); border-left-width: 3px; }
 .card h3 {
   margin: 0 0 15px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .2em;
   text-transform: uppercase; color: var(--ink-3); font-weight: 500;

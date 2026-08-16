@@ -541,9 +541,99 @@ def render_review(
     return subject, html_doc
 
 
+def render_cleanup(
+    trashed: list[tuple[Message, str]],
+    would: list[tuple[Message, str]],
+    timestamp: datetime,
+    *,
+    dry_run: bool,
+    scanned: int = 0,
+    errors: list[str] | None = None,
+) -> tuple[str, str]:
+    """The standalone answer to "show me what it would bin".
+
+    This exists because the cleanup mode used to write its findings to the
+    logs and nothing else, so the button that promises a preview produced no
+    preview -- you had to learn gcloud to see the one thing the button was for.
+
+    An empty result still sends. "Nothing matched" is a real answer to a
+    question you asked, and silence is indistinguishable from a broken button.
+    """
+    rows = list(would if dry_run else trashed)
+    if dry_run:
+        subject = (
+            f"Junk preview: {len(rows)} would be binned" if rows
+            else "Junk preview: nothing matched"
+        )
+        heading, note = (
+            "Would be binned",
+            "Nothing was touched. This is a preview &mdash; turn off the "
+            "&ldquo;preview only&rdquo; switch on the site to let it act.",
+        )
+    else:
+        subject = f"Binned {len(rows)} messages" if rows else "Binned nothing this run"
+        heading, note = (
+            "Binned",
+            "Moved to Trash, where Gmail keeps them for 30 days. Nothing here "
+            "was deleted permanently &mdash; the agent holds no permission to "
+            "do that.",
+        )
+
+    listed = rows[:40]
+    body = "".join(
+        f"""<div style="padding:7px 0;border-bottom:1px solid {RULE}">
+             <div style="font-size:13px;color:{INK}">{esc(m.subject[:80])}</div>
+             <div style="font-size:11px;color:{MUTED};margin-top:2px">
+               {esc(_sender_name(m))} &middot; {esc(reason)}</div>
+           </div>"""
+        for m, reason in listed
+    )
+    if not rows:
+        body = (
+            f'<div style="font-size:13px;color:{MUTED};padding:10px 0">Nothing in '
+            f"your inbox matched the cleanup rules.</div>"
+        )
+    more = (
+        f'<div style="font-size:12px;color:{MUTED};padding-top:9px">and '
+        f"{len(rows) - len(listed)} more</div>"
+        if len(rows) > len(listed)
+        else ""
+    )
+    problems = (
+        f"""<div style="margin-top:18px;padding:10px;background:#fef2f2;border-radius:6px;
+                    font-size:12px;color:{DANGER}">
+          {"<br>".join(esc(e) for e in (errors or [])[:6])}
+        </div>"""
+        if errors
+        else ""
+    )
+
+    html_doc = f"""<!doctype html>
+<html><body style="margin:0;padding:0;background:#ffffff">
+  <div style="max-width:600px;margin:0 auto;padding:22px 20px;font-family:{FONT};color:{INK}">
+    <div style="border-bottom:2px solid {INK};padding-bottom:12px">
+      <div style="font-size:20px;font-weight:700">{heading} ({len(rows)})</div>
+      <div style="font-size:13px;color:{MUTED};margin-top:3px">
+        {timestamp.strftime("%A %d %B, %I:%M %p")}
+        {f"&middot; {scanned} considered" if scanned else ""}
+      </div>
+      <div style="font-size:12.5px;color:{MUTED};margin-top:6px;line-height:1.5">{note}</div>
+    </div>
+    <div style="margin-top:14px">{body}{more}</div>
+    {problems}
+  </div>
+</body></html>"""
+    return subject, html_doc
+
+
 def render_alert(items: list[Item], timestamp: datetime) -> tuple[str, str]:
     """The out-of-band urgent notification. Deliberately short."""
     lead = items[0].message.subject[:60] if items else "Something needs you"
+    # Strip a leading "Urgent:" the sender already wrote, so the subject does
+    # not grow one prefix per hop into "Urgent: Urgent: Urgent: ...".
+    while lead.lower().startswith("urgent:"):
+        lead = lead[len("urgent:"):].lstrip()
+    lead = lead or "Something needs you"
     subject = f"Urgent: {lead}" if len(items) == 1 else f"Urgent: {len(items)} things need you"
 
     rows = "".join(

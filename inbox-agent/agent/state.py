@@ -142,6 +142,12 @@ class State:
                     log.warning("Could not re-read state to merge: %s", exc)
                     return
                 self.data = self._merge_onto(remote)
+                # The merged data now carries the remote counters, so the
+                # remote becomes the new baseline. Without this a second
+                # retry would compute its delta against the original load and
+                # add this run's increment on top of a total that already
+                # includes it.
+                self._base = copy.deepcopy(remote)
                 self._generation = generation
 
     def _prune(self) -> None:

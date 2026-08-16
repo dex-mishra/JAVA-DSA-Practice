@@ -50,6 +50,9 @@ steps:
       - "--image=${_CONSOLE_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/launch-console:${SHORT_SHA}"
       - "--region=${_CONSOLE_REGION}"
       - "--service-account=${_CONSOLE_SA}"
+      # --update-env-vars, not --set-env-vars: this adds one variable and
+      # leaves DRY_RUN, PRIMARY_EMAIL and the session key exactly as they are.
+      - "--update-env-vars=APP_VERSION=${SHORT_SHA}"
 
   # ---- 2. the agent -------------------------------------------------------
   # Independent of the site steps, so a JS change does not rebuild the agent
@@ -84,6 +87,7 @@ steps:
       - "--image=${_AGENT_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/inbox-agent:${SHORT_SHA}"
       - "--region=${_AGENT_REGION}"
       - "--service-account=${_AGENT_SA}"
+      - "--update-env-vars=APP_VERSION=${SHORT_SHA}"
 
 substitutions:
   _AGENT_REGION: asia-south1

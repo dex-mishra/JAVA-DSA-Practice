@@ -19,10 +19,18 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
 from typing import Any
 
 log = logging.getLogger(__name__)
+
+# Stamped onto every run so the console can say which build of the agent is
+# actually running. The job and the website deploy as two separate things and
+# a half-finished build leaves them on different versions -- which looks
+# exactly like a bug that was never fixed, because the fix is sitting in an
+# image nothing is using.
+VERSION = os.environ.get("APP_VERSION", "")
 
 INDEX_BLOB = "reports/index.json"
 RUNS_BLOB = "reports/runs.json"
@@ -120,6 +128,7 @@ def log_run(
                 "ok": bool(ok),
                 "detail": detail[:400],
                 "report_id": report_id,
+                "version": VERSION,
                 "started_ts": started_ts or finished,
                 "finished_ts": finished,
                 "seconds": round(finished - (started_ts or finished), 1),

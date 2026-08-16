@@ -91,6 +91,8 @@ _OWN_SUBJECTS = (
     "full inbox review:",
     "added ",
     "nothing added to your calendar",
+    "junk preview:",
+    "binned ",
 )
 
 

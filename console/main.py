@@ -61,6 +61,9 @@ OAUTH_CLIENT_SECRET = os.environ.get("OAUTH_CLIENT_SECRET_NAME", "inbox-agent-oa
 # Unset by default: the console is open, as configured. Set it to require a
 # password on every request without changing anything else.
 CONSOLE_PASSWORD = os.environ.get("CONSOLE_PASSWORD", "")
+# The build that produced this image. Compared against the agent's, because
+# the two deploy separately and can silently drift apart.
+APP_VERSION = os.environ.get("APP_VERSION", "")
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -556,7 +559,9 @@ def reports_list():
     return jsonify(
         {
             "reports": (index.get("reports") or [])[:40],
-            "runs": runs[:20],
+            # Twenty covered about five hours, which is not long enough to
+            # answer "I pressed the button this morning and got nothing".
+            "runs": runs[:60],
         }
     )
 
@@ -848,9 +853,22 @@ def _oauth_ready() -> bool:
 def api_status():
     state = read_state()
     over = overlay_mod.load(BUCKET)
+
+    # Which build of each half is live. The site and the agent deploy as two
+    # separate things from one build, so a build that fails partway leaves the
+    # page updated and the agent running last week's code -- indistinguishable
+    # from a fix that did not work, unless both versions are on screen.
+    runs = (read_json_blob("reports/runs.json", {}) or {}).get("runs") or []
+    agent_version = next((r.get("version") for r in runs if r.get("version")), "")
+
     return jsonify(
         {
             "accounts": _known_accounts(over),
+            "console_version": APP_VERSION,
+            "agent_version": agent_version,
+            "versions_match": bool(
+                agent_version and APP_VERSION and agent_version == APP_VERSION
+            ),
             "oauth_ready": _oauth_ready(),
             "report_to": PRIMARY_EMAIL,
             "last_digest_ts": state.get("last_digest_ts", 0),
@@ -929,6 +947,15 @@ def api_run():
     mode = (request.get_json(silent=True) or {}).get("mode", "digest")
     if mode not in {"digest", "sweep", "review", "cleanup", "check", "site-update"}:
         return jsonify({"error": f"unknown mode {mode!r}"}), 400
+
+    # Every run started from here was asked for by a person looking at the
+    # page, so it always reports back rather than staying quiet when there is
+    # nothing new. And the cleanup button is labelled "show me what it would
+    # bin", so it is pinned to read-only here rather than trusting whatever
+    # the dry-run switch happens to be set to.
+    argv = [f"--mode={mode}", "--manual"]
+    if mode == "cleanup":
+        argv.append("--preview")
     try:
         import google.auth
         from google.auth.transport.requests import AuthorizedSession
@@ -942,7 +969,7 @@ def api_run():
         )
         resp = AuthorizedSession(creds).post(
             url,
-            json={"overrides": {"containerOverrides": [{"args": [f"--mode={mode}"]}]}},
+            json={"overrides": {"containerOverrides": [{"args": argv}]}},
             timeout=30,
         )
         if resp.status_code >= 300:
