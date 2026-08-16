@@ -32,6 +32,7 @@ import re
 import secrets as pysecrets
 import sys
 import time
+from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
 
@@ -202,6 +203,337 @@ def progress_put():
         payload, content_type="application/json"
     )
     return jsonify({"updated_ts": json.loads(payload)["updated_ts"]})
+
+
+# ---------------------------------------------------------------------------
+# Curriculum, resolved. Lets the API and the MCP server talk about "the
+# pandas topic" instead of the opaque id the page uses internally.
+# ---------------------------------------------------------------------------
+
+DATA_DIR = Path(__file__).parent / "data"
+_curriculum: dict | None = None
+
+
+def _topic_id(text: str) -> str:
+    """djb2, uint32, base36 -- byte-identical to hash() in src/app.js.
+
+    The two MUST agree: the page writes progress keyed by this id and the API
+    reads it back. tests/test_topic_ids.py pins them against ids captured
+    from a real browser session, so a divergence fails rather than silently
+    orphaning everyone's ticks.
+    """
+    h = 5381
+    for ch in text:
+        h = ((h << 5) + h + ord(ch)) & 0xFFFFFFFF
+    if h == 0:
+        return "0"
+    digits = "0123456789abcdefghijklmnopqrstuvwxyz"
+    out = ""
+    while h:
+        out = digits[h % 36] + out
+        h //= 36
+    return out
+
+
+def curriculum() -> dict:
+    global _curriculum
+    if _curriculum is not None:
+        return _curriculum
+
+    def read(name, fallback):
+        try:
+            return json.loads((DATA_DIR / name).read_text(encoding="utf-8"))
+        except Exception as exc:  # noqa: BLE001
+            log.warning("Could not read %s: %s", name, exc)
+            return fallback
+
+    placement = read("placement.json", {"tracks": [], "ranks": []})
+    mba = read("mba.json", {"phases": [], "excluded": []})
+
+    topics = []
+    for track in placement.get("tracks", []):
+        for section in track.get("sections", []):
+            for group in section.get("g", []):
+                for label in group.get("i", []):
+                    topics.append(
+                        {
+                            "id": _topic_id(f"{track['id']}|{section['n']}|{label}"),
+                            "label": label,
+                            "track": track["id"],
+                            "track_label": track.get("label", track["id"]),
+                            "section": section["n"],
+                            "group": group.get("n", ""),
+                            "rated": bool(track.get("rated")),
+                        }
+                    )
+
+    mba_items = []
+    for phase in mba.get("phases", []):
+        for item in phase.get("items", []):
+            mba_items.append({**item, "phase": phase.get("n"), "excluded": False})
+    for item in mba.get("excluded", []):
+        mba_items.append({**item, "phase": "EXCLUDED", "excluded": True})
+
+    _curriculum = {"topics": topics, "mba_items": mba_items, "ranks": placement.get("ranks", [])}
+    log.info("Curriculum: %d topics, %d MBA items.", len(topics), len(mba_items))
+    return _curriculum
+
+
+def _progress() -> dict:
+    return (read_json_blob(PROGRESS_BLOB, {}) or {}).get("data") or {}
+
+
+def _write_progress(data: dict) -> None:
+    gcs().bucket(BUCKET).blob(PROGRESS_BLOB).upload_from_string(
+        json.dumps({"version": 1, "updated_ts": time.time(), "data": data},
+                   separators=(",", ":")),
+        content_type="application/json",
+    )
+
+
+@app.get("/api/topics")
+@protected
+def topics_list():
+    status = request.args.get("status", "all")
+    track = request.args.get("track", "")
+    query = request.args.get("q", "").strip().lower()
+    limit = max(1, min(int(request.args.get("limit", 100)), 1000))
+
+    checked = _progress().get("checked") or {}
+    rows = []
+    for t in curriculum()["topics"]:
+        done = bool(checked.get(t["id"]))
+        if status == "done" and not done:
+            continue
+        if status == "todo" and done:
+            continue
+        if track and t["track"] != track:
+            continue
+        if query and query not in t["label"].lower():
+            continue
+        rows.append({**t, "done": done})
+
+    return jsonify({"total": len(rows), "topics": rows[:limit]})
+
+
+@app.post("/api/topics/set")
+@protected
+def topics_set():
+    body = request.get_json(silent=True) or {}
+    ids = body.get("ids") or ([body["id"]] if body.get("id") else [])
+    done = bool(body.get("done", True))
+    if not ids:
+        return jsonify({"error": "pass 'id' or 'ids'"}), 400
+
+    known = {t["id"] for t in curriculum()["topics"]}
+    unknown = [i for i in ids if i not in known]
+    if unknown:
+        return jsonify({"error": f"unknown topic ids: {unknown[:5]}"}), 400
+
+    data = _progress()
+    checked = data.setdefault("checked", {})
+    for i in ids:
+        if done:
+            checked[i] = 1
+        else:
+            checked.pop(i, None)
+
+    # Ticking anything counts towards the streak, exactly as the page does.
+    if done:
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        days = data.setdefault("days", [])
+        if today not in days:
+            days.append(today)
+
+    _write_progress(data)
+    return jsonify({"updated": len(ids), "done": done})
+
+
+@app.get("/api/mba")
+@protected
+def mba_list():
+    checked = _progress().get("mba") or {}
+    rows = [
+        {
+            "id": i.get("id"),
+            "task": i.get("task"),
+            "date": i.get("date", ""),
+            "phase": i.get("phase"),
+            "tags": i.get("tags", []),
+            "excluded": i.get("excluded", False),
+            "done": bool(checked.get(i.get("id"))),
+        }
+        for i in curriculum()["mba_items"]
+    ]
+    return jsonify({"total": len(rows), "items": rows})
+
+
+@app.post("/api/mba/set")
+@protected
+def mba_set():
+    body = request.get_json(silent=True) or {}
+    item_id = body.get("id", "")
+    done = bool(body.get("done", True))
+    if not any(i.get("id") == item_id for i in curriculum()["mba_items"]):
+        return jsonify({"error": f"unknown MBA item {item_id!r}"}), 400
+
+    data = _progress()
+    mba = data.setdefault("mba", {})
+    if done:
+        mba[item_id] = 1
+    else:
+        mba.pop(item_id, None)
+    _write_progress(data)
+    return jsonify({"id": item_id, "done": done})
+
+
+# ---------------------------------------------------------------------------
+# Goals -- free-form, unlike the fixed curriculum above
+# ---------------------------------------------------------------------------
+
+GOALS_BLOB = "console/goals.json"
+GOAL_STATUS = {"open", "done", "dropped"}
+MAX_GOALS = 200
+
+
+def _goals() -> list:
+    doc = read_json_blob(GOALS_BLOB, {}) or {}
+    items = doc.get("goals")
+    return items if isinstance(items, list) else []
+
+
+def _save_goals(items: list) -> None:
+    gcs().bucket(BUCKET).blob(GOALS_BLOB).upload_from_string(
+        json.dumps({"version": 1, "updated_ts": time.time(), "goals": items}, indent=2),
+        content_type="application/json",
+    )
+
+
+@app.get("/api/goals")
+@protected
+def goals_list():
+    status = request.args.get("status", "")
+    items = _goals()
+    if status:
+        items = [g for g in items if g.get("status") == status]
+    return jsonify({"total": len(items), "goals": items})
+
+
+@app.post("/api/goals")
+@protected
+def goals_create():
+    body = request.get_json(silent=True) or {}
+    title = str(body.get("title", "")).strip()
+    if not title:
+        return jsonify({"error": "title is required"}), 400
+
+    items = _goals()
+    if len(items) >= MAX_GOALS:
+        return jsonify({"error": f"at most {MAX_GOALS} goals"}), 400
+
+    goal = {
+        "id": "g_" + pysecrets.token_hex(4),
+        "title": title[:300],
+        "detail": str(body.get("detail", ""))[:2000],
+        "due": str(body.get("due", ""))[:10],
+        "status": "open",
+        # Recorded so you can always tell what you wrote from what an
+        # assistant added on your behalf.
+        "source": str(body.get("source", "you"))[:40],
+        "created_ts": time.time(),
+        "updated_ts": time.time(),
+    }
+    items.append(goal)
+    _save_goals(items)
+    log.info("Goal created: %s", goal["title"][:60])
+    return jsonify(goal), 201
+
+
+@app.patch("/api/goals/<goal_id>")
+@protected
+def goals_update(goal_id: str):
+    body = request.get_json(silent=True) or {}
+    items = _goals()
+    for goal in items:
+        if goal.get("id") != goal_id:
+            continue
+        if "title" in body:
+            goal["title"] = str(body["title"])[:300]
+        if "detail" in body:
+            goal["detail"] = str(body["detail"])[:2000]
+        if "due" in body:
+            goal["due"] = str(body["due"])[:10]
+        if "status" in body:
+            if body["status"] not in GOAL_STATUS:
+                return jsonify({"error": f"status must be one of {sorted(GOAL_STATUS)}"}), 400
+            goal["status"] = body["status"]
+        goal["updated_ts"] = time.time()
+        _save_goals(items)
+        return jsonify(goal)
+    return jsonify({"error": f"no goal {goal_id!r}"}), 404
+
+
+@app.delete("/api/goals/<goal_id>")
+@protected
+def goals_delete(goal_id: str):
+    items = _goals()
+    kept = [g for g in items if g.get("id") != goal_id]
+    if len(kept) == len(items):
+        return jsonify({"error": f"no goal {goal_id!r}"}), 404
+    _save_goals(kept)
+    return jsonify({"deleted": goal_id})
+
+
+@app.get("/api/overview")
+@protected
+def overview():
+    """Everything an assistant needs to open with, in one call."""
+    data = _progress()
+    checked = data.get("checked") or {}
+    cur = curriculum()
+
+    rated = [t for t in cur["topics"] if t["rated"]]
+    done = sum(1 for t in rated if checked.get(t["id"]))
+    total = len(rated)
+    pct = (done / total * 100) if total else 0
+    rating = round(800 + (pct / 100) * 2400)
+
+    rank = ""
+    for r in cur["ranks"]:
+        if rating >= r.get("min", 0):
+            rank = r.get("n", r.get("name", ""))
+
+    mba_checked = data.get("mba") or {}
+    today = datetime.now(timezone.utc).date()
+    dated = [i for i in cur["mba_items"] if i.get("date")]
+    missed = 0
+    for item in dated:
+        if mba_checked.get(item.get("id")):
+            continue
+        try:
+            if datetime.strptime(item["date"], "%Y-%m-%d").date() < today:
+                missed += 1
+        except ValueError:
+            continue
+    integrity = round(100 - (missed / len(dated) * 100)) if dated else 100
+
+    per_track: dict[str, dict] = {}
+    for t in cur["topics"]:
+        row = per_track.setdefault(t["track"], {"label": t["track_label"], "done": 0, "total": 0})
+        row["total"] += 1
+        if checked.get(t["id"]):
+            row["done"] += 1
+
+    return jsonify(
+        {
+            "mastery": {"rating": rating, "rank": rank, "done": done, "total": total,
+                        "percent": round(pct, 1)},
+            "window_integrity": {"percent": integrity, "missed": missed, "dated_items": len(dated)},
+            "tracks": per_track,
+            "goals_open": sum(1 for g in _goals() if g.get("status") == "open"),
+            "streak_days": len(data.get("days") or []),
+        }
+    )
 
 
 @app.get("/api/opportunities")

@@ -24,6 +24,10 @@ COPY inbox-agent/agent/overlay.py _agent/overlay.py
 # the site needs to ship.
 COPY index.html static/index.html
 
+# The curriculum, so the API can resolve an opaque topic id to "the pandas
+# one". Same files the page is built from, so the two cannot disagree.
+COPY data/ ./data/
+
 EXPOSE 8080
 # One worker: every request is I/O against Google APIs, threads handle it, and
 # a second worker would only duplicate cold-start cost on a service that

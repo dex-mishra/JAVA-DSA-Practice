@@ -14,3 +14,6 @@ token_*.json
 # drifting apart.
 console/static/
 console/_agent/
+
+# Copied in at image build time from data/ at the repo root.
+console/data/

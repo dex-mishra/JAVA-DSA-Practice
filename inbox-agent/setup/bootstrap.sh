@@ -214,9 +214,17 @@ SCHED_SA="scheduler-invoker@${PROJECT}.iam.gserviceaccount.com"
 if ! gcloud iam service-accounts describe "$SCHED_SA" >/dev/null 2>&1; then
   gcloud iam service-accounts create scheduler-invoker --display-name="Cloud Scheduler invoker"
 fi
+# NOT roles/run.invoker. That grants run.jobs.run, which is enough to start a
+# job with its deployed arguments -- but every schedule here passes the mode
+# as a container override, and overriding requires the separate
+# run.jobs.runWithOverrides permission, which run.invoker does not include.
+# With the wrong role each scheduled fire returns 403 and simply never runs,
+# while manual `gcloud run jobs execute` keeps working because that runs as
+# you. The symptom is an agent that looks deployed and healthy and silently
+# never sends anything.
 retry gcloud projects add-iam-policy-binding "$PROJECT" \
   --member="serviceAccount:${SCHED_SA}" \
-  --role="roles/run.invoker" \
+  --role="roles/run.jobsExecutorWithOverrides" \
   --condition=None
 
 JOB_URI="https://${REGION}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${PROJECT}/jobs/${JOB}:run"

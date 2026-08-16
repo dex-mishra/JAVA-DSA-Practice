@@ -97,7 +97,19 @@ the live page keeps serving the previous build — the site is baked into the
 image at build time. `cloudbuild.yaml` at the repo root rebuilds and
 redeploys **both** the site and the agent on every push to `main`.
 
-One-off setup. Step 2 is the only part that needs a browser:
+One-off setup. Step 2 is the only part that needs a browser.
+
+First, let Cloud Build's own service agent use Secret Manager. A GitHub
+connection stores its token there, and without this the very first command
+fails with *"could not assert Secret Manager permissions"*:
+
+```bash
+PROJECT_NUMBER=$(gcloud projects describe YOUR_PROJECT_ID --format='value(projectNumber)')
+```
+
+```bash
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID --member="serviceAccount:service-${PROJECT_NUMBER}@gcp-sa-cloudbuild.iam.gserviceaccount.com" --role="roles/secretmanager.admin"
+```
 
 ```bash
 gcloud builds connections create github inbox-agent-github --region=asia-south1
