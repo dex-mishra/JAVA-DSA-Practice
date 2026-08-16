@@ -81,6 +81,37 @@ def _matches_keyword(msg: Message, keywords: list[str]) -> str | None:
     return None
 
 
+# The agent's own reports, by subject. Only consulted for mail the agent
+# appears to have sent to itself, and only as a fallback for messages that
+# predate the X-Inbox-Agent header -- new reports carry the header and are
+# recognised without guessing from a subject line.
+_OWN_SUBJECTS = (
+    "inbox: ",
+    "urgent: ",
+    "full inbox review:",
+    "added ",
+    "nothing added to your calendar",
+)
+
+
+def is_own_mail(msg: Message, own_addresses: set[str]) -> bool:
+    """True for a report the agent sent to itself.
+
+    Reports go from your address to your address, so they arrive in the very
+    inbox being watched. An alert titled "Urgent: 3 things need you" is, read
+    plainly, urgent -- so the classifier is right and the loop is structural.
+    It has to be cut here, before judgement, rather than by asking the model
+    to be less literal.
+    """
+    if msg.agent_marker:
+        return True
+    sender = (msg.sender_email or "").lower()
+    if not sender or sender not in {a.lower() for a in own_addresses if a}:
+        return False
+    subject = (msg.subject or "").strip().lower()
+    return subject.startswith(_OWN_SUBJECTS)
+
+
 # --------------------------------------------------------------------------
 # Cleanup
 # --------------------------------------------------------------------------
@@ -291,6 +322,11 @@ def urgent_verdict(msg: Message, label: Label, cfg: dict[str, Any]) -> Verdict:
 
     if not urgent.get("enabled", True):
         return verdict.deny("urgent alerts disabled")
+
+    # Checked before the always-urgent list, so not even that can be used to
+    # make the agent alert on its own output.
+    if msg.agent_marker:
+        return verdict.deny("this is the agent's own report")
 
     always = _matches_sender(msg, urgent.get("always_urgent_senders", []))
     if always:

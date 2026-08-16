@@ -72,7 +72,7 @@ def _deliver(
     if settings.dry_run:
         log.info("[dry-run] would send %r to %s", subject, settings.report_to)
     elif primary:
-        sent = bool(primary.send_html(settings.report_to, subject, html))
+        sent = bool(primary.send_html(settings.report_to, subject, html, kind=mode))
     else:
         log.error("Primary account not connected; cannot send %r", subject)
 
@@ -148,16 +148,28 @@ def _collect(
     limit = int(scan.get("max_messages_per_run", 250))
     body_chars = int(scan.get("body_chars", 1800))
 
+    # Everything the agent sends lands back in the inbox it reads. Dropped
+    # here, once, so no later stage has to remember: not classified, not
+    # starred, not alerted on, not filed as an opportunity, not binned.
+    own = {a.email for a in settings.accounts} | {settings.report_to}
+
     messages: list[Message] = []
     errors: list[str] = []
+    skipped = 0
     for key, client in clients.items():
         try:
             ids = client.search_ids(query, limit)
-            messages.extend(client.fetch(ids, body_chars))
+            for message in client.fetch(ids, body_chars):
+                if policy_mod.is_own_mail(message, own):
+                    skipped += 1
+                    continue
+                messages.append(message)
         except Exception as exc:
             msg = f"{key}: could not read mail ({exc})"
             log.error(msg)
             errors.append(msg)
+    if skipped:
+        log.info("Ignored %d of the agent's own reports.", skipped)
     return messages, errors
 
 
@@ -669,7 +681,7 @@ def run_digest(settings: Settings, *, force_cleanup: bool = False) -> int:
             settings.state_bucket, mode="digest", subject=subject, html=body, sent=False
         )
     else:
-        sent = primary.send_html(settings.report_to, subject, body)
+        sent = primary.send_html(settings.report_to, subject, body, kind="digest")
         archive_mod.save_report(
             settings.state_bucket, mode="digest", subject=subject, html=body, sent=bool(sent)
         )

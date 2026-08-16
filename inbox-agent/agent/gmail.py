@@ -28,6 +28,9 @@ from googleapiclient.errors import HttpError
 
 log = logging.getLogger(__name__)
 
+# Stamped on everything the agent sends, and checked on everything it reads.
+AGENT_HEADER = "X-Inbox-Agent"
+
 # Read + modify + trash. Deliberately excludes the full-access scope.
 SCOPES_READ_MODIFY = ["https://www.googleapis.com/auth/gmail.modify"]
 SCOPES_SEND = ["https://www.googleapis.com/auth/gmail.send"]
@@ -94,6 +97,14 @@ class Message:
     body: str
     label_ids: list[str] = field(default_factory=list)
     headers: dict[str, str] = field(default_factory=dict)
+
+    @property
+    def agent_marker(self) -> str:
+        """Non-empty when this is mail the agent itself sent."""
+        for key, value in self.headers.items():
+            if key.lower() == AGENT_HEADER.lower():
+                return str(value or "").strip()
+        return ""
     web_url: str = ""
 
     @property
@@ -362,7 +373,7 @@ class GmailClient:
             return False
 
     def send_html(
-        self, to: str, subject: str, html_body: str, text_body: str = ""
+        self, to: str, subject: str, html_body: str, text_body: str = "", kind: str = "report"
     ) -> dict[str, str] | None:
         """Returns {"id", "threadId"} on success, so a reply to this message
         can be found later. None on failure."""
@@ -370,6 +381,12 @@ class GmailClient:
         msg["To"] = to
         msg["From"] = self.email
         msg["Subject"] = subject
+        # Reports are sent from your address to your address, so they land in
+        # the inbox the agent reads. Left unmarked, an alert titled
+        # "Urgent: 3 things need you" is read by the next sweep, judged
+        # urgent -- correctly, on the face of it -- and alerted on again.
+        # This header is what breaks that loop.
+        msg[AGENT_HEADER] = kind
         msg.set_content(text_body or "This report is best viewed as HTML.")
         msg.add_alternative(html_body, subtype="html")
 
