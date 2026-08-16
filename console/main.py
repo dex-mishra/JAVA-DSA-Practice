@@ -42,6 +42,7 @@ from flask import Flask, Response, jsonify, redirect, request, send_from_directo
 # identically. Vendored onto the path rather than duplicated.
 sys.path.insert(0, str(Path(__file__).parent / "_agent"))
 import overlay as overlay_mod  # noqa: E402
+import rules as rules_mod  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("console")
@@ -868,6 +869,7 @@ def api_status():
 @protected
 def api_settings_get():
     over = overlay_mod.load(BUCKET)
+    derived = over.get("derived") or {}
     return jsonify(
         {
             "instructions": over.get("instructions", ""),
@@ -875,6 +877,14 @@ def api_settings_get():
             "cleanup_dry_run": over.get("cleanup_dry_run"),
             "updated_ts": over.get("updated_ts", 0),
             "max_instructions": overlay_mod.MAX_INSTRUCTIONS,
+            # What the prose compiled to, in plain English, plus whether a
+            # recompile is still pending so the page can say so rather than
+            # showing stale rules as if they were current.
+            "rules": rules_mod.describe(derived),
+            "rules_note": derived.get("note", ""),
+            "compiled_ts": over.get("compiled_ts", 0),
+            "compile_pending": float(over.get("compile_requested_ts") or 0)
+            > float(over.get("compiled_ts") or 0),
         }
     )
 
@@ -889,6 +899,12 @@ def api_settings_put():
     merged = dict(current)
     if "instructions" in body:
         merged["instructions"] = body["instructions"]
+        # Only ask for a recompile when the text actually changed. Flipping a
+        # switch should not send the agent off to re-read the prose.
+        if overlay_mod.sanitize_instructions(body["instructions"]) != current.get(
+            "instructions", ""
+        ):
+            merged["compile_requested_ts"] = time.time()
     if "dry_run" in body:
         merged["dry_run"] = body["dry_run"]
     if "cleanup_dry_run" in body:

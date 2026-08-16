@@ -69,6 +69,12 @@ DEFAULTS: dict[str, Any] = {
     "cleanup_dry_run": None,
     "extra_accounts": [],
     "updated_ts": 0.0,
+    # Rules compiled from `instructions`. Written by the agent, read by both
+    # sides. Kept separate from the prose so a failed compile leaves the
+    # previous rules in force rather than wiping them.
+    "derived": {},
+    "compile_requested_ts": 0.0,
+    "compiled_ts": 0.0,
 }
 
 
@@ -134,6 +140,15 @@ def normalise(raw: Any) -> dict[str, Any]:
     data["dry_run"] = _tristate(raw.get("dry_run"))
     data["cleanup_dry_run"] = _tristate(raw.get("cleanup_dry_run"))
     data["extra_accounts"] = _clean_accounts(raw.get("extra_accounts"))
+
+    from . import rules as rules_mod
+
+    data["derived"] = rules_mod.normalise(raw.get("derived"))
+    for key in ("compile_requested_ts", "compiled_ts"):
+        try:
+            data[key] = float(raw.get(key) or 0.0)
+        except (TypeError, ValueError):
+            data[key] = 0.0
     try:
         data["updated_ts"] = float(raw.get("updated_ts") or 0.0)
     except (TypeError, ValueError):

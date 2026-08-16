@@ -10,6 +10,7 @@ from typing import Any
 import yaml
 
 from . import overlay as overlay_mod
+from . import rules as rules_mod
 
 _CONFIG_PATH = Path(os.environ.get("CONFIG_PATH", Path(__file__).parent.parent / "config.yaml"))
 
@@ -57,6 +58,10 @@ class Settings:
     # guidance. Steers judgement only; policy.py still decides everything
     # with a consequence.
     instructions: str = ""
+    # The compiled form of `instructions`, and whether a recompile is due.
+    derived: dict[str, Any] = field(default_factory=dict)
+    compile_requested_ts: float = 0.0
+    compiled_ts: float = 0.0
 
     @property
     def primary(self) -> Account:
@@ -132,6 +137,11 @@ def load_settings(policy_path: Path | None = None, *, use_overlay: bool = True) 
     if over.get("cleanup_dry_run") is not None:
         policy.setdefault("cleanup", {})["dry_run"] = bool(over["cleanup_dry_run"])
 
+    # Rules compiled from the instructions box. Purely additive -- see
+    # rules.apply_to_policy, which cannot remove a protection or drop a
+    # section however the instructions were worded.
+    policy = rules_mod.apply_to_policy(policy, over.get("derived") or {})
+
     return Settings(
         project=_env("GCP_PROJECT", required=True),
         region=_env("GCP_REGION", "asia-south1"),
@@ -146,4 +156,7 @@ def load_settings(policy_path: Path | None = None, *, use_overlay: bool = True) 
         accounts=accounts,
         policy=policy,
         instructions=over.get("instructions", ""),
+        derived=over.get("derived") or {},
+        compile_requested_ts=float(over.get("compile_requested_ts") or 0.0),
+        compiled_ts=float(over.get("compiled_ts") or 0.0),
     )

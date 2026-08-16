@@ -18,7 +18,7 @@ COPY console/main.py console/mcp_http.py ./
 # The overlay schema is shared with the agent rather than reimplemented, so
 # the console validates a saved setting exactly as the job will read it.
 RUN mkdir -p _agent
-COPY inbox-agent/agent/overlay.py _agent/overlay.py
+COPY inbox-agent/agent/overlay.py inbox-agent/agent/rules.py _agent/
 
 # tools/build.mjs emits a single self-contained index.html; nothing else from
 # the site needs to ship.

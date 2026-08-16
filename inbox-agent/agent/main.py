@@ -29,8 +29,10 @@ from . import career as career_mod
 from . import policy as policy_mod
 from . import proposals as proposals_mod
 from . import report as report_mod
+from . import rules as rules_mod
 from .calendar import CalendarClient, EventSpec
 from .classify import Classifier, Label
+from . import overlay as overlay_mod
 from .config import Account, Settings, load_settings
 from .gmail import GmailClient, Message
 from .state import State
@@ -78,6 +80,51 @@ def _deliver(
         settings.state_bucket, mode=mode, subject=subject, html=html, sent=sent
     )
     return sent, report_id
+
+
+def _recompile_rules_if_due(settings: Settings) -> None:
+    """Turn the instructions box into rules, when it has changed.
+
+    Done here rather than in the console so the compile runs with the Vertex
+    access the job already has, and so the rules are produced by the same
+    process that will act on them.
+
+    A failure leaves the previous rules in force. That is the important
+    property: instructions that fail to compile must not quietly strip the
+    protections the last successful compile put in place.
+    """
+    if settings.compile_requested_ts <= settings.compiled_ts:
+        return
+
+    log.info("Instructions changed; compiling them into rules.")
+    try:
+        from . import rule_compiler
+
+        classifier = Classifier(
+            settings.project, settings.vertex_location, settings.gemini_model
+        )
+        own = {a.email.split("@")[-1].lower() for a in settings.accounts if "@" in a.email}
+        derived = rule_compiler.compile_instructions(
+            classifier.client, settings.gemini_model, settings.instructions, own_domains=own
+        )
+    except Exception as exc:  # noqa: BLE001
+        log.error("Could not compile instructions: %s", exc)
+        return
+
+    if rules_mod.is_empty(derived) and settings.instructions.strip():
+        log.warning("Instructions produced no usable rules; keeping the previous set.")
+        # Still stamp it, or every run retries a compile that will not improve.
+        derived = settings.derived or {}
+
+    try:
+        current = overlay_mod.load(settings.state_bucket)
+        current["derived"] = derived
+        current["compiled_ts"] = time.time()
+        overlay_mod.save(settings.state_bucket, current)
+        for line in rules_mod.describe(derived):
+            log.info("  rule: %s", line)
+    except Exception as exc:  # noqa: BLE001
+        log.error("Compiled the rules but could not save them: %s", exc)
 
 
 def _connect(settings: Settings) -> dict[str, GmailClient]:
@@ -428,6 +475,8 @@ def _run_cleanup(
 
 
 def run_sweep(settings: Settings) -> int:
+    _recompile_rules_if_due(settings)
+    settings = load_settings()
     state = State(settings.state_bucket).load()
     clients = _connect(settings)
     if not clients:
@@ -493,6 +542,10 @@ def run_sweep(settings: Settings) -> int:
 
 
 def run_digest(settings: Settings, *, force_cleanup: bool = False) -> int:
+    _recompile_rules_if_due(settings)
+    # Reload so this run acts on the rules it just compiled rather than
+    # waiting for the next one.
+    settings = load_settings()
     state = State(settings.state_bucket).load()
     clients = _connect(settings)
     if not clients:

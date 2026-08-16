@@ -126,6 +126,8 @@ def may_be_trashable(msg: Message, cfg: dict[str, Any]) -> bool:
         return False
     # Not screened here: the category/importance/needs-action checks, which
     # need the model, and the thread-reply check, which costs an API call.
+    # Nor the compiled bin rules -- those only ever widen what is eligible,
+    # so nothing they name could be screened out at this stage anyway.
     return True
 
 
@@ -148,8 +150,17 @@ def trash_verdict(
         return verdict.deny("cleanup disabled")
 
     # -- inclusion: must be positively eligible ----------------------------
+    # Two ways in: the model put it in a trashable category, or one of your
+    # own compiled bin rules names it. The second is an extra doorway, not a
+    # bypass -- every protection below still runs, so a rule you wrote cannot
+    # reach starred mail, a real person, a protected keyword, or anything
+    # younger than min_age_days.
     trashable = cleanup.get("trashable_categories", []) or []
-    if label.category not in trashable:
+    named = (
+        _matches_sender(msg, cleanup.get("extra_senders", []))
+        or _matches_keyword(msg, cleanup.get("extra_keywords", []))
+    )
+    if label.category not in trashable and not named:
         return verdict.deny(f"category '{label.category}' is not in trashable_categories")
 
     min_age = float(cleanup.get("min_age_days", 30))
@@ -191,6 +202,8 @@ def trash_verdict(
     if protect.get("threads_you_replied_to", True) and thread_has_sent(msg.thread_id):
         return verdict.deny("you replied in this thread")
 
+    if named and label.category not in trashable:
+        return verdict.allow(f"matches your bin rule '{named}', {msg.age_days:.0f}d old")
     return verdict.allow(f"stale {label.category}, {msg.age_days:.0f}d old, bulk sender")
 
 

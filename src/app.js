@@ -985,11 +985,14 @@
           '<span class="muted" id="agSaved">Last saved ' + ago(cfg.updated_ts) + "</span>" +
           '<span class="muted count" id="agCount"></span>' +
         "</div>" +
+        rulesBlock(cfg) +
         '<p class="muted fineprint">This changes its <b>judgement</b> — what it treats ' +
-        "as important, ignorable, or worth flagging. It cannot give it new powers. " +
-        "The limits on what may be binned, how much it may touch in one go, and where " +
-        "your summaries are sent are fixed in the code and cannot be changed from this " +
-        "page. So a badly worded instruction can make it noisy, but not dangerous.</p>" +
+        "as important, ignorable, or worth flagging — and what it stars, protects and " +
+        "bins, via the rules above. Everything it does is <b>additive</b>: no wording " +
+        "here can remove a protection, shorten a list, or drop a section from your " +
+        "summary. How much may be binned in one run, the 30-day minimum age, and the " +
+        "fact that nothing is ever deleted permanently are fixed in code and cannot be " +
+        "reached from this page.</p>" +
       "</div>" +
 
       '<div class="card">' +
@@ -1134,6 +1137,26 @@
       '<div id="reportView"></div></div>';
   }
 
+  /* What your prose compiled to. Shown because a rule that changes what gets
+     binned should be visible as a rule, not inferred from a paragraph. */
+  function rulesBlock(cfg) {
+    if (cfg.compile_pending) {
+      return '<div class="rules pending">Working out the rules from what you ' +
+        "wrote — they appear here after the next run, within 15 minutes.</div>";
+    }
+    var lines = cfg.rules || [];
+    if (!lines.length) {
+      return cfg.instructions
+        ? '<div class="rules">No concrete rules came out of this yet — it still ' +
+          "guides how mail is judged.</div>"
+        : "";
+    }
+    return '<div class="rules"><div class="rules-hd">Rules in force</div>' +
+      "<ul>" + lines.map(function (l) { return "<li>" + esc(l) + "</li>"; }).join("") + "</ul>" +
+      (cfg.rules_note ? '<div class="rules-note">' + esc(cfg.rules_note) + "</div>" : "") +
+      "</div>";
+  }
+
   function bindAgent() {
     if (AGENT.locked) {
       var unlock = document.getElementById("agUnlock");
@@ -1165,7 +1188,8 @@
         .then(function (r) {
           AGENT.settings = Object.assign(AGENT.settings, r);
           document.getElementById("agSaved").textContent = "Last saved just now";
-          toast("Instructions saved. They apply from the next run.");
+          toast("Saved. The rules are worked out on the next run.");
+          repaintAgent();
         })
         .catch(function (e) { toast("Could not save: " + e.message); })
         .then(function () { save.disabled = false; });

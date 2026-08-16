@@ -580,3 +580,21 @@ ul.reports li { gap: 10px; }
 /* A closed opportunity stays listed but stops competing for attention. */
 .opp.closed { opacity: .55; }
 .opp.closed:hover { opacity: 1; }
+
+/* Rules compiled from the instructions box */
+.rules {
+  margin-top: 14px; padding: 13px 15px; border: 1px solid var(--line);
+  border-left: 3px solid var(--ok); border-radius: 0 var(--r) var(--r) 0;
+  background: var(--raise); font-size: 12.5px; color: var(--ink-2);
+}
+.rules.pending { border-left-color: var(--warn); color: var(--ink-3); }
+.rules-hd {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px;
+}
+.rules ul { margin: 0; padding-left: 18px; }
+.rules li { margin: 3px 0; color: var(--ink); }
+.rules-note {
+  margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--line-soft);
+  color: var(--ink-3); font-style: italic;
+}
