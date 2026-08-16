@@ -126,28 +126,38 @@ say "Cloud Build permissions (for the CI/CD trigger, see DEPLOY.md)"
 PROJECT_NUMBER="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')"
 CLOUDBUILD_SA="${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com"
 
-# Push the built image, deploy the job, and write its own build logs. Granted
-# unconditionally and harmlessly even if the GitHub trigger is never set up --
-# it just sits unused until then. The Cloud Build API was possibly just
-# enabled a few lines up in this same run, so its service account is subject
-# to the same propagation delay as any freshly created one.
-retry gcloud projects add-iam-policy-binding "$PROJECT" \
-  --member="serviceAccount:${CLOUDBUILD_SA}" \
-  --role="roles/run.developer" \
-  --condition=None
-retry gcloud projects add-iam-policy-binding "$PROJECT" \
-  --member="serviceAccount:${CLOUDBUILD_SA}" \
-  --role="roles/artifactregistry.writer" \
-  --condition=None
-retry gcloud projects add-iam-policy-binding "$PROJECT" \
-  --member="serviceAccount:${CLOUDBUILD_SA}" \
-  --role="roles/logging.logWriter" \
-  --condition=None
-# Deploying a job that runs AS ${SA_EMAIL} requires this on that identity
-# specifically, not just on the project.
-retry gcloud iam service-accounts add-iam-policy-binding "$SA_EMAIL" \
-  --member="serviceAccount:${CLOUDBUILD_SA}" \
-  --role="roles/iam.serviceAccountUser"
+COMPUTE_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+
+# Both identities, because which one actually runs a build is not something
+# this script gets to decide. A trigger created in the Console picks a service
+# account from a dropdown; `gcloud run deploy --source` uses the Compute
+# default; Google's own defaults have moved over time. Granting one and
+# guessing wrong produces a build that compiles and pushes perfectly and then
+# fails on the last step with "run.jobs.get denied", which is a slow way to
+# learn this. These are build-and-deploy roles on identities that already
+# exist, so granting both is cheap and idempotent.
+for builder in "$CLOUDBUILD_SA" "$COMPUTE_SA"; do
+  # Deploy the service and the job.
+  retry gcloud projects add-iam-policy-binding "$PROJECT" \
+    --member="serviceAccount:${builder}" \
+    --role="roles/run.developer" \
+    --condition=None
+  # Push the built images.
+  retry gcloud projects add-iam-policy-binding "$PROJECT" \
+    --member="serviceAccount:${builder}" \
+    --role="roles/artifactregistry.writer" \
+    --condition=None
+  # Write its own build logs.
+  retry gcloud projects add-iam-policy-binding "$PROJECT" \
+    --member="serviceAccount:${builder}" \
+    --role="roles/logging.logWriter" \
+    --condition=None
+  # Deploying a job that RUNS AS ${SA_EMAIL} needs this on that identity
+  # specifically, not merely on the project.
+  retry gcloud iam service-accounts add-iam-policy-binding "$SA_EMAIL" \
+    --member="serviceAccount:${builder}" \
+    --role="roles/iam.serviceAccountUser"
+done
 
 # `gcloud run jobs deploy --source` (used both by the very next step, and by
 # any manual redeploy run the same way later) triggers an implicit Cloud
@@ -157,7 +167,6 @@ retry gcloud iam service-accounts add-iam-policy-binding "$SA_EMAIL" \
 # auto-granted the broad Editor role that used to make this work invisibly.
 # Without this it fails part-build with "storage.objects.get" denied on the
 # uploaded source zip, since it can't even read what it's supposed to build.
-COMPUTE_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 retry gcloud projects add-iam-policy-binding "$PROJECT" \
   --member="serviceAccount:${COMPUTE_SA}" \
   --role="roles/cloudbuild.builds.builder" \
