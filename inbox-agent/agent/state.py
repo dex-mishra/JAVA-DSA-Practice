@@ -7,6 +7,7 @@ Entries expire so the blob stays small.
 
 from __future__ import annotations
 
+import copy
 import json
 import logging
 import time
@@ -40,6 +41,9 @@ class State:
         self._blob = self._bucket.blob(BLOB_NAME)
         self._generation: int | None = None
         self.data: dict[str, Any] = dict(_EMPTY)
+        # What we loaded, kept so a concurrent write can be merged rather than
+        # dropped: counters need the delta, not the absolute value.
+        self._base: dict[str, Any] = dict(_EMPTY)
 
     def load(self) -> "State":
         try:
@@ -49,32 +53,96 @@ class State:
             merged = dict(_EMPTY)
             merged.update(loaded)
             self.data = merged
+            self._base = copy.deepcopy(merged)
         except gcs_exceptions.NotFound:
             log.info("No prior state at gs://%s/%s; starting fresh.", self._bucket.name, BLOB_NAME)
             self.data = dict(_EMPTY)
+            self._base = dict(_EMPTY)
             self._generation = 0
         except (ValueError, UnicodeDecodeError):
             log.warning("State blob was unreadable; starting fresh rather than guessing.")
             self.data = dict(_EMPTY)
+            self._base = dict(_EMPTY)
             self._generation = None
         return self
 
-    def save(self) -> None:
+    def _fetch(self) -> tuple[dict[str, Any], int | None]:
+        raw = self._blob.download_as_bytes()
+        merged = dict(_EMPTY)
+        merged.update(json.loads(raw.decode("utf-8")))
+        return merged, self._blob.generation
+
+    def _merge_onto(self, remote: dict[str, Any]) -> dict[str, Any]:
+        """Fold this run's changes into state written by another run.
+
+        Every field here has an obvious combining rule, which is why merging
+        beats picking a winner: the id maps are unions, the timestamps are
+        high-water marks, and the counters are sums -- so a counter is applied
+        as the delta this run produced, never as its absolute value, or a
+        concurrent run's increment would be erased.
+        """
+        merged = dict(remote)
+
+        for key in ("alerted", "reported"):
+            combined = dict(remote.get(key) or {})
+            combined.update(self.data.get(key) or {})
+            merged[key] = combined
+
+        # Ours wins per token: resolving a batch must not be undone by a run
+        # that still saw it open.
+        batches = dict(remote.get("proposals") or {})
+        batches.update(self.data.get("proposals") or {})
+        merged["proposals"] = batches
+
+        for key in ("last_digest_ts", "last_cleanup_ts", "last_alert_ts"):
+            merged[key] = max(
+                float(remote.get(key) or 0), float(self.data.get(key) or 0)
+            )
+
+        for key in ("trashed_total", "events_created"):
+            delta = int(self.data.get(key, 0)) - int(self._base.get(key, 0))
+            merged[key] = int(remote.get(key, 0)) + max(0, delta)
+
+        merged["version"] = self.data.get("version", 1)
+        return merged
+
+    def save(self, attempts: int = 3) -> None:
+        """Write, merging rather than surrendering if another run got there
+        first.
+
+        The digest and the sweep were both scheduled on the hour, so they ran
+        together four times a day. The loser used to log a warning and drop
+        its write entirely -- which silently lost the digest timestamp and,
+        worse, the record of which messages had been reported, so the next
+        digest repeated them.
+        """
         self._prune()
-        payload = json.dumps(self.data, separators=(",", ":"), sort_keys=True)
-        try:
-            # if_generation_match makes overlapping runs fail loudly instead of
-            # silently clobbering each other's dedup records.
-            if self._generation is not None:
-                self._blob.upload_from_string(
-                    payload,
-                    content_type="application/json",
-                    if_generation_match=self._generation,
-                )
-            else:
-                self._blob.upload_from_string(payload, content_type="application/json")
-        except gcs_exceptions.PreconditionFailed:
-            log.warning("State changed underneath this run (concurrent job?); skipping the write.")
+        for attempt in range(1, attempts + 1):
+            payload = json.dumps(self.data, separators=(",", ":"), sort_keys=True)
+            try:
+                if self._generation is not None:
+                    self._blob.upload_from_string(
+                        payload,
+                        content_type="application/json",
+                        if_generation_match=self._generation,
+                    )
+                else:
+                    self._blob.upload_from_string(payload, content_type="application/json")
+                return
+            except gcs_exceptions.PreconditionFailed:
+                if attempt == attempts:
+                    log.error(
+                        "State contended %d times; giving up on this write.", attempts
+                    )
+                    return
+                log.info("State changed underneath this run; merging and retrying.")
+                try:
+                    remote, generation = self._fetch()
+                except Exception as exc:  # noqa: BLE001
+                    log.warning("Could not re-read state to merge: %s", exc)
+                    return
+                self.data = self._merge_onto(remote)
+                self._generation = generation
 
     def _prune(self) -> None:
         cutoff = time.time() - RETENTION_SECONDS

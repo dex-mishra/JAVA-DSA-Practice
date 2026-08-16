@@ -261,7 +261,11 @@ say "Schedules"
 # One entry covers all four digests; a second drives the urgent sweep. Three
 # scheduler jobs total, which is exactly the free-tier allowance.
 create_schedule "${JOB}-digest" "0 7,12,17,21 * * *" "digest"
-create_schedule "${JOB}-sweep"  "*/15 * * * *"       "sweep"
+# Offset off the hour rather than */15. Both used to fire at :00, so four
+# times a day the digest and a sweep ran together and contended for the state
+# object. State now merges on conflict, but not colliding by construction is
+# cheaper than merging, and the interval is unchanged.
+create_schedule "${JOB}-sweep"  "7,22,37,52 * * * *" "sweep"
 if [[ -n "$GITHUB_REPO" ]]; then
   # Weekly. Deadlines do not move often, and every run costs a PR to read.
   create_schedule "${JOB}-siteupdate" "0 9 * * 1" "site-update"
