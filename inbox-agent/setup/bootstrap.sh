@@ -278,6 +278,20 @@ previous deploy: it will star and send for real. Cleanup obeys its own
 separate switch, cleanup.dry_run in config.yaml."
 fi
 
+# Telling someone already live to "go live" is just confusing, so the last
+# hint depends on which mode was actually deployed.
+if [[ "$DRY_RUN_VALUE" == "true" ]]; then
+  NEXT_STEP="  Go live once the reports look right:
+    gcloud run jobs update ${JOB} --region ${REGION} --update-env-vars DRY_RUN=false"
+else
+  NEXT_STEP="  Confirm the schedules can actually start the job (they need
+  run.jobsExecutorWithOverrides, not run.invoker -- see the note above the
+  grant in this script). Anything other than OK here means nothing is firing:
+    gcloud logging read 'resource.type=\"cloud_scheduler_job\"' \\
+      --project=${PROJECT} --freshness=1d --order=desc --limit=10 \\
+      --format='value(timestamp,resource.labels.job_id,jsonPayload.status)'"
+fi
+
 cat <<EOF
 
 Done.
@@ -292,7 +306,6 @@ ${STATE_NOTE}
     gcloud logging read 'resource.type="cloud_run_job" AND resource.labels.job_name="${JOB}"' \\
       --project=${PROJECT} --freshness=10m --order=asc --format='value(textPayload)'
 
-  Go live once the reports look right:
-    gcloud run jobs update ${JOB} --region ${REGION} --update-env-vars DRY_RUN=false
+${NEXT_STEP}
 
 EOF
