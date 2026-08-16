@@ -90,12 +90,35 @@ client and will be rejected here.
 
 Everything else on the tab works without this.
 
+## Deploying both at once
+
+```bash
+./deploy-all.sh
+```
+
+Site and agent, in that order. Use this rather than either script alone: the
+site is baked into the console image and the agent writes what the site
+displays, so deploying one without the other gives you a page whose Calendar
+and Reports cards 404 against an older backend.
+
 ## Auto-deploy on push
 
-Without this, a merged site-update PR changes `data/mba.json` on GitHub while
+Optional. `./deploy-all.sh` does the same job in one command and needs no
+GitHub connection, so treat this as a convenience rather than a requirement —
+the setup below hinges on a GitHub App installation, which is a browser flow
+that can fail in ways no script can work around.
+
+Without it, a merged site-update PR changes `data/mba.json` on GitHub while
 the live page keeps serving the previous build — the site is baked into the
 image at build time. `cloudbuild.yaml` at the repo root rebuilds and
 redeploys **both** the site and the agent on every push to `main`.
+
+**If the install window opens and closes itself**, the CLI-generated link is
+the fragile part, not your setup. Do it from the Cloud Console instead:
+**Cloud Build → Triggers → Connect Repository**, region `asia-south1`, source
+*GitHub (Cloud Build GitHub App)*. That runs the same installation from an
+already-authenticated session. Then come back and finish from
+`gcloud builds repositories create` below.
 
 One-off setup. Step 2 is the only part that needs a browser.
 
