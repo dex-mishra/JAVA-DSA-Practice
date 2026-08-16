@@ -1,5 +1,22 @@
 # Launch Console MCP server
 
+> **Easiest route: no install at all.** The console serves the same tools over
+> HTTP, so you can add it in Claude as a *custom connector* with just a URL:
+>
+> | Field | Value |
+> |---|---|
+> | Name | `Launch Console` |
+> | Remote MCP server URL | `https://launch-console-3xcyebaaxq-as.a.run.app/mcp` |
+> | OAuth client ID / secret | leave blank |
+>
+> That needs no Python, no virtualenv, and no absolute paths to go stale when
+> a folder moves. It also works from claude.ai and your phone, not only from
+> the one Mac. Deploy with `MCP_TOKEN=something-long` to move the endpoint to
+> `/mcp/<token>` -- a connector can only supply a URL, never a header, so a
+> secret in the path is the only protection compatible with it.
+>
+> The stdio server below remains for local development.
+
 Lets an assistant read and change the same things you can from the website:
 placement and MBA progress, goals, the inbox agent's instructions, and the
 opportunities it has found in your mail.

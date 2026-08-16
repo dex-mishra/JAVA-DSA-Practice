@@ -34,6 +34,11 @@ COLLEGE_EMAIL="${COLLEGE_EMAIL:-}"
 # Empty means the console is open to anyone with the URL, which is the
 # default. Set it to require a password on every request.
 CONSOLE_PASSWORD="${CONSOLE_PASSWORD:-}"
+# When set, the MCP endpoint moves to /mcp/<token>. A custom connector can
+# only supply a URL -- it cannot attach a header -- so a secret in the path
+# is the one protection compatible with it. Empty leaves /mcp open, matching
+# the rest of this console.
+MCP_TOKEN="${MCP_TOKEN:-}"
 
 if [[ -z "$PRIMARY_EMAIL" ]]; then
   echo "Set PRIMARY_EMAIL so the console can show where reports go, e.g.:" >&2
@@ -157,6 +162,7 @@ ENV_VARS="${ENV_VARS},PRIMARY_EMAIL=${PRIMARY_EMAIL}"
 ENV_VARS="${ENV_VARS},COLLEGE_EMAIL=${COLLEGE_EMAIL}"
 ENV_VARS="${ENV_VARS},AGENT_SERVICE_ACCOUNT=${AGENT_SA}"
 ENV_VARS="${ENV_VARS},CONSOLE_PASSWORD=${CONSOLE_PASSWORD}"
+ENV_VARS="${ENV_VARS},MCP_TOKEN=${MCP_TOKEN}"
 ENV_VARS="${ENV_VARS},FLASK_SECRET=${FLASK_SECRET}"
 
 gcloud run deploy "$SERVICE" \
@@ -173,6 +179,9 @@ gcloud run deploy "$SERVICE" \
 
 URL="$(gcloud run services describe "$SERVICE" --region "$REGION" --format='value(status.url)')"
 
+MCP_PATH="/mcp"
+[[ -n "$MCP_TOKEN" ]] && MCP_PATH="/mcp/${MCP_TOKEN}"
+
 cat <<EOF
 
 Done.
@@ -180,6 +189,11 @@ Done.
   Your console:  ${URL}
 
 Three tabs: Placement, MBA, Email Agent. The first two work immediately.
+
+  Add to Claude as a custom connector -- no local install, nothing to run:
+    Name                  Launch Console
+    Remote MCP server URL ${URL}${MCP_PATH}
+    OAuth                 leave blank
 EOF
 
 if [[ -z "$CONSOLE_PASSWORD" ]]; then

@@ -1102,5 +1102,203 @@ def _done_page(message: str) -> Response:
     return Response(body, mimetype="text/html")
 
 
+# ---------------------------------------------------------------------------
+# MCP over HTTP
+#
+# Same capabilities as the REST API above, shaped for assistants. Registered
+# last so every helper it leans on already exists.
+# ---------------------------------------------------------------------------
+
+
+def _mcp_overview():
+    with app.test_request_context():
+        return overview().get_json()
+
+
+def _mcp_topics(status, track, query, limit):
+    checked = _progress().get("checked") or {}
+    rows = []
+    for t in curriculum()["topics"]:
+        done = bool(checked.get(t["id"]))
+        if status == "done" and not done:
+            continue
+        if status == "todo" and done:
+            continue
+        if track and t["track"] != track:
+            continue
+        if query and query.lower() not in t["label"].lower():
+            continue
+        rows.append({**t, "done": done})
+    return {"total": len(rows), "topics": rows[: max(1, min(limit, 500))]}
+
+
+def _mcp_set_topics(ids, done):
+    known = {t["id"] for t in curriculum()["topics"]}
+    unknown = [i for i in ids if i not in known]
+    if unknown:
+        return {"error": f"unknown topic ids: {unknown[:5]}"}
+    data = _progress()
+    checked = data.setdefault("checked", {})
+    for i in ids:
+        if done:
+            checked[i] = 1
+        else:
+            checked.pop(i, None)
+    if done:
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        days = data.setdefault("days", [])
+        if today not in days:
+            days.append(today)
+    _write_progress(data)
+    return {"updated": len(ids), "done": done}
+
+
+def _mcp_mba():
+    checked = _progress().get("mba") or {}
+    return {
+        "items": [
+            {"id": i.get("id"), "task": i.get("task"), "date": i.get("date", ""),
+             "phase": i.get("phase"), "tags": i.get("tags", []),
+             "excluded": i.get("excluded", False), "done": bool(checked.get(i.get("id")))}
+            for i in curriculum()["mba_items"]
+        ]
+    }
+
+
+def _mcp_set_mba(item_id, done):
+    if not any(i.get("id") == item_id for i in curriculum()["mba_items"]):
+        return {"error": f"unknown MBA item {item_id!r}"}
+    data = _progress()
+    mba = data.setdefault("mba", {})
+    if done:
+        mba[item_id] = 1
+    else:
+        mba.pop(item_id, None)
+    _write_progress(data)
+    return {"id": item_id, "done": done}
+
+
+def _mcp_goals(status):
+    items = _goals()
+    if status:
+        items = [g for g in items if g.get("status") == status]
+    return {"total": len(items), "goals": items}
+
+
+def _mcp_create_goal(title, detail, due):
+    title = str(title).strip()
+    if not title:
+        return {"error": "title is required"}
+    items = _goals()
+    if len(items) >= MAX_GOALS:
+        return {"error": f"at most {MAX_GOALS} goals"}
+    goal = {
+        "id": "g_" + pysecrets.token_hex(4),
+        "title": title[:300], "detail": str(detail)[:2000], "due": str(due)[:10],
+        "status": "open", "source": "ai",
+        "created_ts": time.time(), "updated_ts": time.time(),
+    }
+    items.append(goal)
+    _save_goals(items)
+    return goal
+
+
+def _mcp_update_goal(goal_id, fields):
+    items = _goals()
+    for goal in items:
+        if goal.get("id") != goal_id:
+            continue
+        for key in ("title", "detail", "due", "status"):
+            value = fields.get(key)
+            if not value:
+                continue
+            if key == "status" and value not in GOAL_STATUS:
+                return {"error": f"status must be one of {sorted(GOAL_STATUS)}"}
+            goal[key] = str(value)
+        goal["updated_ts"] = time.time()
+        _save_goals(items)
+        return goal
+    return {"error": f"no goal {goal_id!r}"}
+
+
+def _mcp_opportunities(limit):
+    doc = read_json_blob("career/opportunities.json", {}) or {}
+    items = doc.get("opportunities")
+    items = items if isinstance(items, list) else []
+    return {"total": len(items), "opportunities": items[: max(1, min(limit, 200))]}
+
+
+def _mcp_settings():
+    over = overlay_mod.load(BUCKET)
+    return {
+        "instructions": over.get("instructions", ""),
+        "dry_run": over.get("dry_run"),
+        "cleanup_dry_run": over.get("cleanup_dry_run"),
+        "updated_ts": over.get("updated_ts", 0),
+    }
+
+
+def _mcp_set_instructions(text):
+    current = overlay_mod.load(BUCKET)
+    current["instructions"] = text
+    saved = overlay_mod.save(BUCKET, current)
+    return {"instructions": saved["instructions"], "updated_ts": saved["updated_ts"]}
+
+
+def _mcp_status():
+    with app.test_request_context():
+        return api_status().get_json()
+
+
+def _mcp_proposals():
+    with app.test_request_context():
+        return proposals_list().get_json()
+
+
+def _mcp_add_event(title, start, end, source_url):
+    with app.test_request_context(
+        json={"title": title, "start": start, "end": end,
+              "source_url": source_url, "origin": "assistant"}
+    ):
+        result = calendar_request()
+        body, status = (result if isinstance(result, tuple) else (result, 200))
+        payload = body.get_json()
+        return payload if status < 400 else {"error": payload.get("error", "failed")}
+
+
+def _mcp_run_agent(mode):
+    with app.test_request_context(json={"mode": mode}):
+        result = api_run()
+        body, status = (result if isinstance(result, tuple) else (result, 200))
+        payload = body.get_json()
+        return payload if status < 400 else {"error": payload.get("error", "failed")}
+
+
+from mcp_http import build_blueprint  # noqa: E402
+
+app.register_blueprint(
+    build_blueprint(
+        {
+            "overview": _mcp_overview,
+            "topics": _mcp_topics,
+            "set_topics": _mcp_set_topics,
+            "mba": _mcp_mba,
+            "set_mba": _mcp_set_mba,
+            "goals": _mcp_goals,
+            "create_goal": _mcp_create_goal,
+            "update_goal": _mcp_update_goal,
+            "opportunities": _mcp_opportunities,
+            "settings": _mcp_settings,
+            "set_instructions": _mcp_set_instructions,
+            "status": _mcp_status,
+            "proposals": _mcp_proposals,
+            "add_event": _mcp_add_event,
+            "run_agent": _mcp_run_agent,
+        },
+        token=os.environ.get("MCP_TOKEN", ""),
+    )
+)
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
