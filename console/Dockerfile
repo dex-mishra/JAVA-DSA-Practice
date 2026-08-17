@@ -17,7 +17,13 @@ COPY console/main.py console/mcp_http.py ./
 
 # The overlay schema is shared with the agent rather than reimplemented, so
 # the console validates a saved setting exactly as the job will read it.
-RUN mkdir -p _agent
+#
+# It has to arrive as a *package*, not as two loose modules on sys.path.
+# overlay.py does `from . import rules`, which needs a parent package to
+# resolve against; imported top-level it raised ImportError inside normalise()
+# -- so every attempt to save the instructions box failed, and every read of
+# the settings silently fell back to defaults.
+COPY console/_agent/__init__.py _agent/
 COPY inbox-agent/agent/overlay.py inbox-agent/agent/rules.py _agent/
 
 # tools/build.mjs emits a single self-contained index.html; nothing else from

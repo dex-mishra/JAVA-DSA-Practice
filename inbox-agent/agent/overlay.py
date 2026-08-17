@@ -156,22 +156,54 @@ def normalise(raw: Any) -> dict[str, Any]:
     return data
 
 
-def load(bucket_name: str, client: Any = None) -> dict[str, Any]:
-    """Read the overlay. Any failure yields defaults, never an exception."""
+def load_with_status(bucket_name: str, client: Any = None) -> tuple[dict[str, Any], str]:
+    """Read the overlay, and say whether the read actually worked.
+
+    Returns (settings, error). The error is empty both on success and when
+    there is simply nothing saved yet -- but it is filled in when a saved
+    overlay exists and could not be used.
+
+    That distinction is the whole point of this function. "Nothing saved" and
+    "saved, but unreadable" produce identical output and mean opposite things:
+    the first honestly reports the deployed defaults, the second reports
+    defaults while the job is reading something else entirely. Collapsing them
+    is how the settings page came to show cleanup as preview-only while the
+    agent had it switched on and was moving mail to Trash.
+    """
     if not bucket_name:
-        return dict(DEFAULTS)
+        return dict(DEFAULTS), ""
+
     try:
         from google.cloud import storage
 
         gcs = client or storage.Client()
         blob = gcs.bucket(bucket_name).blob(BLOB_NAME)
-        raw = json.loads(blob.download_as_bytes().decode("utf-8"))
-        return normalise(raw)
+        raw = blob.download_as_bytes().decode("utf-8")
     except Exception as exc:  # noqa: BLE001 -- deliberately total
         # Debug, not warning: no overlay is the normal state until the console
         # is first used, and this runs on every single job execution.
-        log.debug("No usable console overlay (%s); using deployed config.", exc)
-        return dict(DEFAULTS)
+        log.debug("No console overlay (%s); using deployed config.", exc)
+        return dict(DEFAULTS), ""
+
+    try:
+        return normalise(json.loads(raw)), ""
+    except Exception as exc:  # noqa: BLE001
+        log.error(
+            "The console overlay exists but could not be read (%s); the agent "
+            "is running on its deployed configuration instead.", exc
+        )
+        return dict(DEFAULTS), f"{type(exc).__name__}: {exc}"
+
+
+def load(bucket_name: str, client: Any = None) -> dict[str, Any]:
+    """Read the overlay. Any failure yields defaults, never an exception.
+
+    Kept forgiving for the agent's sake: the console being broken must never
+    stop the job from doing its work. Callers that display settings back to a
+    person should use load_with_status instead, so a failed read is shown as a
+    failure rather than as an empty form.
+    """
+    return load_with_status(bucket_name, client)[0]
 
 
 def save(bucket_name: str, data: dict[str, Any], client: Any = None) -> dict[str, Any]:

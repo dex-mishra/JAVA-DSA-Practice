@@ -39,10 +39,12 @@ from pathlib import Path
 from flask import Flask, Response, jsonify, redirect, request, send_from_directory, session
 
 # The overlay schema is shared with the agent so both sides validate
-# identically. Vendored onto the path rather than duplicated.
-sys.path.insert(0, str(Path(__file__).parent / "_agent"))
-import overlay as overlay_mod  # noqa: E402
-import rules as rules_mod  # noqa: E402
+# identically. Vendored as a package rather than duplicated -- as a package
+# because overlay.py resolves `from . import rules` against its parent, and
+# loose modules on sys.path give it none.
+sys.path.insert(0, str(Path(__file__).parent))
+from _agent import overlay as overlay_mod  # noqa: E402
+from _agent import rules as rules_mod  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("console")
@@ -886,10 +888,15 @@ def api_status():
 @app.get("/api/settings")
 @protected
 def api_settings_get():
-    over = overlay_mod.load(BUCKET)
+    over, read_error = overlay_mod.load_with_status(BUCKET)
     derived = over.get("derived") or {}
     return jsonify(
         {
+            # Empty unless a saved overlay exists and could not be read. An
+            # empty form and an unreadable one look the same on screen, so the
+            # page has to be told which it is -- otherwise it shows switches
+            # that do not reflect what the agent is doing.
+            "read_error": read_error,
             "instructions": over.get("instructions", ""),
             "dry_run": over.get("dry_run"),
             "cleanup_dry_run": over.get("cleanup_dry_run"),
@@ -911,7 +918,22 @@ def api_settings_get():
 @protected
 def api_settings_put():
     body = request.get_json(silent=True) or {}
-    current = overlay_mod.load(BUCKET)
+    current, read_error = overlay_mod.load_with_status(BUCKET)
+    if read_error:
+        # Saving on top of a failed read would write defaults over whatever is
+        # actually stored -- silently disconnecting extra mailboxes and
+        # discarding the compiled rules. Refuse instead.
+        return (
+            jsonify(
+                {
+                    "error": "Your saved settings exist but could not be read, "
+                    f"so nothing was changed ({read_error}). Saving now would "
+                    "have overwritten them."
+                }
+            ),
+            503,
+        )
+
     # Only the three fields the UI owns. extra_accounts is managed by the
     # OAuth endpoints, so a hand-rolled PUT cannot inject a mailbox.
     merged = dict(current)
@@ -1272,20 +1294,38 @@ def _mcp_opportunities(limit):
 
 
 def _mcp_settings():
-    over = overlay_mod.load(BUCKET)
+    over, read_error = overlay_mod.load_with_status(BUCKET)
     return {
         "instructions": over.get("instructions", ""),
         "dry_run": over.get("dry_run"),
         "cleanup_dry_run": over.get("cleanup_dry_run"),
         "updated_ts": over.get("updated_ts", 0),
+        "rules": rules_mod.describe(over.get("derived") or {}),
+        # Present only when the stored settings could not be read, so an
+        # assistant reporting these back does not present defaults as fact.
+        "read_error": read_error,
     }
 
 
 def _mcp_set_instructions(text):
-    current = overlay_mod.load(BUCKET)
+    current, read_error = overlay_mod.load_with_status(BUCKET)
+    if read_error:
+        raise RuntimeError(
+            f"Saved settings exist but could not be read ({read_error}); "
+            "nothing was changed, because saving would have overwritten them."
+        )
+    changed = overlay_mod.sanitize_instructions(text) != current.get("instructions", "")
     current["instructions"] = text
+    if changed:
+        # Without this the prose steers judgement but never compiles into
+        # rules, so nothing gets starred or protected by what was written.
+        current["compile_requested_ts"] = time.time()
     saved = overlay_mod.save(BUCKET, current)
-    return {"instructions": saved["instructions"], "updated_ts": saved["updated_ts"]}
+    return {
+        "instructions": saved["instructions"],
+        "updated_ts": saved["updated_ts"],
+        "compile_requested": changed,
+    }
 
 
 def _mcp_status():

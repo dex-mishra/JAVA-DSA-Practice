@@ -971,6 +971,15 @@
 
       '<div class="card">' +
         "<h3>Tell it what matters</h3>" +
+        /* An unreadable settings file and an empty one look identical here,
+           and mean opposite things -- the second is honest, the first shows
+           you switches that are not what the agent is using. */
+        (cfg.read_error
+          ? '<p class="err">Your saved settings could not be read, so this box ' +
+            "is showing defaults rather than what is stored — and saving is " +
+            "blocked until it is fixed, because it would overwrite them. " +
+            '<span class="mono">' + esc(cfg.read_error) + "</span></p>"
+          : "") +
         '<p class="muted">Write here like you are briefing a person. It reads this ' +
         "before going through your mail, every single time.</p>" +
         '<textarea id="agInstr" rows="14" maxlength="' + (cfg.max_instructions || 8000) + '" ' +

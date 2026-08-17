@@ -13,7 +13,11 @@ token_*.json
 # Committing them would mean two copies of index.html and overlay.py silently
 # drifting apart.
 console/static/
-console/_agent/
+# The copies themselves are generated; the package marker beside them is not.
+# Without a committed __init__.py the copies are two loose modules and
+# overlay.py's `from . import rules` cannot resolve.
+console/_agent/overlay.py
+console/_agent/rules.py
 
 # Copied in at image build time from data/ at the repo root.
 console/data/
