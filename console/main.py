@@ -165,6 +165,50 @@ def read_state() -> dict:
     return read_json_blob("state.json", {})
 
 
+def mutate_json_blob(path: str, mutate, *, attempts: int = 4):
+    """Read-modify-write a shared blob without trampling a concurrent writer.
+
+    The agent writes state.json and actions.json on every run. Downloading one,
+    editing it in memory and uploading the whole object -- which is what this
+    replaces -- silently discards anything the agent wrote in between: the
+    alerted and reported maps, the run timestamps, the counters. So confirming
+    a single calendar item from the site could wipe the record of which mail
+    had been summarised and make the next digest repeat all of it.
+
+    `mutate` receives the document, edits it in place, and returns whatever the
+    caller wants back. It may be called more than once, so it must not have
+    side effects of its own.
+    """
+    from google.api_core import exceptions as gexc
+
+    blob = gcs().bucket(BUCKET).blob(path)
+    for attempt in range(1, attempts + 1):
+        try:
+            raw = blob.download_as_bytes()
+            generation = blob.generation
+            doc = json.loads(raw.decode("utf-8"))
+            if not isinstance(doc, dict):
+                raise ValueError(f"{path} is not a JSON object")
+        except gexc.NotFound:
+            doc, generation = {}, 0
+        # A blob that exists but cannot be parsed is deliberately not handled:
+        # overwriting it would destroy state the agent may still be using.
+
+        result = mutate(doc)
+        payload = json.dumps(doc, separators=(",", ":"))
+        try:
+            blob.upload_from_string(
+                payload,
+                content_type="application/json",
+                if_generation_match=generation,
+            )
+            return result
+        except gexc.PreconditionFailed:
+            if attempt == attempts:
+                raise
+            log.info("%s changed underneath this write; re-reading (%d).", path, attempt)
+
+
 # ---------------------------------------------------------------------------
 # Tracker progress, shared across devices
 # ---------------------------------------------------------------------------
@@ -598,10 +642,23 @@ def _read_actions() -> list:
     return items if isinstance(items, list) else []
 
 
-def _write_actions(items: list) -> None:
-    gcs().bucket(BUCKET).blob(ACTIONS_BLOB).upload_from_string(
-        json.dumps({"actions": items[-50:]}, indent=2), content_type="application/json"
-    )
+def _append_actions(new_items: list, *, skip_duplicate_of=None):
+    """Add queued actions, keeping whatever the agent has written meanwhile.
+
+    The agent updates the status of these same entries as it performs them, so
+    a plain overwrite here could resurrect an action it had just marked done --
+    and create the calendar event a second time.
+    """
+    def mutate(doc):
+        items = doc.get("actions")
+        items = items if isinstance(items, list) else []
+        if skip_duplicate_of and any(skip_duplicate_of(a) for a in items):
+            return None
+        items.extend(new_items)
+        doc["actions"] = items[-50:]
+        return list(new_items)
+
+    return mutate_json_blob(ACTIONS_BLOB, mutate)
 
 
 @app.get("/api/proposals")
@@ -670,13 +727,6 @@ def calendar_request():
     if end and end < start:
         end = ""
 
-    items = _read_actions()
-    if any(
-        a.get("status") == "pending" and a.get("title") == title and a.get("start") == start
-        for a in items
-    ):
-        return jsonify({"error": "already queued"}), 409
-
     action = {
         "id": "a" + pysecrets.token_hex(4),
         "kind": "create_event",
@@ -689,8 +739,19 @@ def calendar_request():
         "status": "pending",
         "created_ts": time.time(),
     }
-    items.append(action)
-    _write_actions(items)
+    # The duplicate check happens inside the same preconditioned write, so two
+    # taps on the button cannot both pass it and queue the event twice.
+    added = _append_actions(
+        [action],
+        skip_duplicate_of=lambda a: (
+            a.get("status") == "pending"
+            and a.get("title") == title
+            and a.get("start") == start
+        ),
+    )
+    if added is None:
+        return jsonify({"error": "already queued"}), 409
+
     log.info("Queued calendar event: %s on %s", title[:60], start)
     return jsonify(action), 201
 
@@ -715,15 +776,14 @@ def proposals_decide():
         return jsonify({"error": f"no open batch {token!r}"}), 404
 
     wanted = {int(n) for n in track if str(n).isdigit()}
-    items = _read_actions()
-    queued = 0
+    new_actions = []
     for item in batch.get("items") or []:
         if item.get("n") not in wanted:
             continue
         start = str(item.get("start", ""))
         if not _WHEN.match(start):
             continue
-        items.append(
+        new_actions.append(
             {
                 "id": "a" + pysecrets.token_hex(4),
                 "kind": "create_event",
@@ -737,19 +797,28 @@ def proposals_decide():
                 "created_ts": time.time(),
             }
         )
-        queued += 1
 
+    queued = len(new_actions)
     if queued:
-        _write_actions(items)
+        _append_actions(new_actions)
 
     # Close the batch either way -- deciding "none" is a decision, and the
     # agent should stop waiting for a reply to it.
-    doc = read_json_blob("state.json", {}) or {}
-    if token in (doc.get("proposals") or {}):
-        doc["proposals"][token]["resolved"] = True
-        gcs().bucket(BUCKET).blob("state.json").upload_from_string(
-            json.dumps(doc, separators=(",", ":")), content_type="application/json"
-        )
+    #
+    # Through mutate_json_blob, because this is the agent's own state blob: it
+    # also holds which messages have been alerted on and summarised. An
+    # unconditional overwrite here would drop whatever the agent wrote while
+    # the page was open, and the visible symptom would be the next digest
+    # repeating mail you had already been sent.
+    def resolve(doc):
+        batches = doc.get("proposals") or {}
+        if token not in batches:
+            return False
+        batches[token]["resolved"] = True
+        doc["proposals"] = batches
+        return True
+
+    mutate_json_blob("state.json", resolve)
 
     log.info("Batch %s decided from the site: %d queued.", token, queued)
     return jsonify({"queued": queued, "token": token})
