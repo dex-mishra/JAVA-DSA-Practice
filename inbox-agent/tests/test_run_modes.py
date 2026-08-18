@@ -60,6 +60,7 @@ class FakeClient:
         self._messages = messages
         self.trashed: list[str] = []
         self.labelled: list[tuple[str, str]] = []
+        self.starred: list[str] = []
 
     def search_ids(self, query, limit):
         return [m.id for m in self._messages][:limit]
@@ -72,6 +73,10 @@ class FakeClient:
 
     def trash(self, message_id):
         self.trashed.append(message_id)
+        return True
+
+    def star(self, message_id, label=None):
+        self.starred.append(message_id)
         return True
 
     def apply_label(self, message_id, label):

@@ -612,6 +612,45 @@ def reports_list():
     )
 
 
+@app.get("/api/state")
+@protected
+def state_debug():
+    """A read-only look at the agent's state object.
+
+    Its own writes have been going missing, and every way of checking that
+    ran through gcloud -- so the symptom (stale numbers, repeated mail,
+    calendar items that never appear) was visible while the cause was not.
+    Counts and timestamps only; the message ids themselves are not interesting
+    and there are thousands of them.
+    """
+    doc = read_state() or {}
+    sizes = {
+        key: len(doc.get(key) or {})
+        for key in ("alerted", "reported", "starred", "proposals")
+    }
+    newest = {}
+    for key in ("alerted", "reported", "starred"):
+        values = [float(v) for v in (doc.get(key) or {}).values()]
+        newest[key] = max(values) if values else 0
+    return jsonify(
+        {
+            "present": bool(doc),
+            "counts": sizes,
+            "newest_entry_ts": newest,
+            "last_digest_ts": doc.get("last_digest_ts", 0),
+            "last_alert_ts": doc.get("last_alert_ts", 0),
+            "last_cleanup_ts": doc.get("last_cleanup_ts", 0),
+            "trashed_total": doc.get("trashed_total", 0),
+            "events_created": doc.get("events_created", 0),
+            "open_proposals": [
+                {"token": t, "items": len(b.get("items") or []), "sent_ts": b.get("sent_ts", 0)}
+                for t, b in (doc.get("proposals") or {}).items()
+                if not b.get("resolved")
+            ],
+        }
+    )
+
+
 @app.get("/api/reports/<report_id>")
 @protected
 def report_body(report_id: str):
@@ -969,6 +1008,7 @@ def api_settings_get():
             "instructions": over.get("instructions", ""),
             "dry_run": over.get("dry_run"),
             "cleanup_dry_run": over.get("cleanup_dry_run"),
+            "paused": bool(over.get("paused", False)),
             "updated_ts": over.get("updated_ts", 0),
             "max_instructions": overlay_mod.MAX_INSTRUCTIONS,
             # What the prose compiled to, in plain English, plus whether a
@@ -1018,6 +1058,10 @@ def api_settings_put():
         merged["dry_run"] = body["dry_run"]
     if "cleanup_dry_run" in body:
         merged["cleanup_dry_run"] = body["cleanup_dry_run"]
+    if "paused" in body:
+        merged["paused"] = bool(body["paused"])
+        log.warning("Agent %s from the website.",
+                    "STOPPED" if merged["paused"] else "restarted")
 
     saved = overlay_mod.save(BUCKET, merged)
     log.info("Settings saved (%d chars of guidance).", len(saved["instructions"]))
@@ -1026,6 +1070,7 @@ def api_settings_put():
             "instructions": saved["instructions"],
             "dry_run": saved["dry_run"],
             "cleanup_dry_run": saved["cleanup_dry_run"],
+            "paused": saved["paused"],
             "updated_ts": saved["updated_ts"],
         }
     )
@@ -1368,6 +1413,7 @@ def _mcp_settings():
         "instructions": over.get("instructions", ""),
         "dry_run": over.get("dry_run"),
         "cleanup_dry_run": over.get("cleanup_dry_run"),
+        "paused": bool(over.get("paused", False)),
         "updated_ts": over.get("updated_ts", 0),
         "rules": rules_mod.describe(over.get("derived") or {}),
         # Present only when the stored settings could not be read, so an

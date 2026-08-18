@@ -297,6 +297,13 @@ nav.tabs::-webkit-scrollbar { display: none; }
 /* A card raising something you have to act on. Used when the website and the
    agent are on different builds, which otherwise reads as a fix that failed. */
 .card.warn { border-color: var(--crit); border-left-width: 3px; }
+/* The stop switch when it is on. Loud on purpose: an agent that is doing
+   nothing should never be mistaken for one that is quietly working. */
+.switch-row.stopped {
+  background: color-mix(in srgb, var(--crit) 8%, transparent);
+  border-left: 3px solid var(--crit);
+  padding: 10px 12px; border-radius: var(--r); margin: -2px 0 4px;
+}
 .card h3 {
   margin: 0 0 15px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .2em;
   text-transform: uppercase; color: var(--ink-3); font-weight: 500;

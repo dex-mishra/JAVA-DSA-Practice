@@ -39,6 +39,10 @@ from .state import State
 
 log = logging.getLogger("agent")
 
+# Surfaced in the run log, so a lost write is visible on the site rather
+# than being a line in Cloud Logging nobody reads.
+STATE_LOST = "state write failed; this run's record was not kept"
+
 
 def _setup_logging() -> None:
     logging.basicConfig(
@@ -178,9 +182,20 @@ def _apply_stars(
     labels: dict[str, Label],
     clients: dict[str, GmailClient],
     settings: Settings,
+    state: State | None = None,
 ) -> list[report_mod.Item]:
-    """Star anything the rules flag. Reversible, so this ignores DRY_RUN's
-    cleanup semantics but still respects the global kill switch."""
+    """Star anything the rules flag, once and only once.
+
+    The rules used to be re-evaluated from scratch on every run, so a message
+    you unstarred by hand was starred again within the next fifteen minutes --
+    for as long as it stayed inside the scan window. The agent had no way to
+    tell "not starred yet" from "starred, and you took it off", because it
+    kept no record of having acted.
+
+    It does now, and the record is what is consulted rather than the flag in
+    Gmail: reading the flag back would answer "is it starred", when the
+    question is "have we already had our say". Your unstar is the last word.
+    """
     star_cfg = settings.section("star")
     if not star_cfg.get("enabled", False):
         return []
@@ -188,11 +203,15 @@ def _apply_stars(
     cap = int(star_cfg.get("max_stars_per_run", 50))
     label_name = star_cfg.get("also_label")
     starred: list[report_mod.Item] = []
+    skipped = 0
 
     for msg in messages:
         if len(starred) >= cap:
             log.info("Hit the per-run star cap of %d.", cap)
             break
+        if state is not None and state.already_starred(msg.id):
+            skipped += 1
+            continue
         label = labels.get(msg.id) or Label.safe_default(msg.id)
         verdict = policy_mod.star_verdict(msg, label, settings.policy)
         if not verdict.allowed:
@@ -206,6 +225,10 @@ def _apply_stars(
                 continue
         starred.append(report_mod.Item(msg, label, starred=True, star_reason=reason))
 
+    if state is not None and starred:
+        state.mark_starred([i.message.id for i in starred])
+    if skipped:
+        log.info("Left %d alone; already starred once.", skipped)
     log.info("Starred %d messages.", len(starred))
     return starred
 
@@ -533,7 +556,7 @@ def run_sweep(settings: Settings) -> int:
     )
     labels = classifier.classify(fresh, int(settings.section("scan").get("body_chars", 1800)))
 
-    _apply_stars(fresh, labels, clients, settings)
+    _apply_stars(fresh, labels, clients, settings, state)
     _update_career(fresh, labels, clients, settings)
 
     urgent: list[report_mod.Item] = []
@@ -559,7 +582,8 @@ def run_sweep(settings: Settings) -> int:
     if sent:
         state.mark_alerted([i.message.id for i in urgent])
 
-    state.save()
+    if not state.save():
+        raise RuntimeError(STATE_LOST)
     if errors:
         log.warning("Finished with %d errors.", len(errors))
     return 0
@@ -635,7 +659,7 @@ def run_digest(
         messages, int(settings.section("scan").get("body_chars", 1800))
     )
 
-    starred = _apply_stars(messages, labels, clients, settings)
+    starred = _apply_stars(messages, labels, clients, settings, state)
     career_new, career_upcoming = _update_career(messages, labels, clients, settings)
 
     # Act on any reply to a previous digest before proposing a new batch, so
@@ -760,7 +784,12 @@ def run_digest(
                 log.info("Awaiting a reply on %d calendar proposals.", len(proposals))
 
     log.info("Digest done. %d events created this run.", events_made)
-    state.save()
+    # Raised, not logged. A digest whose state write is lost repeats every
+    # message next time and forgets the calendar items it just proposed, and
+    # that is worth failing the run over -- a failure shows up on the website,
+    # a warning in Cloud Logging does not.
+    if not state.save():
+        raise RuntimeError(STATE_LOST)
     return 0
 
 
@@ -938,6 +967,22 @@ def main(argv: list[str] | None = None) -> int:
         _now(settings).isoformat(),
     )
     started = time.time()
+
+    # The stop switch, checked before anything opens a mailbox. `check` is
+    # exempt: it touches nothing and is how you confirm the wiring still works
+    # while stopped.
+    #
+    # The schedules keep firing -- this is a Cloud Run Job and there is nothing
+    # here that can unschedule them -- so a paused run starts, finds this, and
+    # exits in about a second. That is deliberate: whatever goes wrong with the
+    # console, the way back on is a switch on a page, not a redeploy.
+    if settings.paused and args.mode != "check":
+        log.warning("Stopped from the website; not reading any mail.")
+        archive_mod.log_run(
+            settings.state_bucket, mode=args.mode, ok=True,
+            detail="stopped from the website", started_ts=started,
+        )
+        return 0
 
     try:
         code = _dispatch(args.mode, settings, manual=args.manual, preview=args.preview)

@@ -25,6 +25,11 @@ _EMPTY: dict[str, Any] = {
     "version": 1,
     "alerted": {},          # message id -> unix ts of the alert
     "reported": {},         # message id -> unix ts it appeared in a digest
+    # message id -> unix ts the agent starred it. Without this the star rules
+    # are re-evaluated from scratch every run, so unstarring something by hand
+    # lasts until the next run and no longer -- the agent has no way to tell
+    # "not starred yet" from "starred, and you took it off".
+    "starred": {},
     "last_digest_ts": 0.0,
     "last_cleanup_ts": 0.0,
     "last_alert_ts": 0.0,
@@ -83,7 +88,7 @@ class State:
         """
         merged = dict(remote)
 
-        for key in ("alerted", "reported"):
+        for key in ("alerted", "reported", "starred"):
             combined = dict(remote.get(key) or {})
             combined.update(self.data.get(key) or {})
             merged[key] = combined
@@ -106,15 +111,23 @@ class State:
         merged["version"] = self.data.get("version", 1)
         return merged
 
-    def save(self, attempts: int = 3) -> None:
+    def save(self, attempts: int = 4) -> bool:
         """Write, merging rather than surrendering if another run got there
-        first.
+        first. Returns whether the write landed.
 
         The digest and the sweep were both scheduled on the hour, so they ran
         together four times a day. The loser used to log a warning and drop
         its write entirely -- which silently lost the digest timestamp and,
         worse, the record of which messages had been reported, so the next
         digest repeated them.
+
+        Merging fixed the common case, but every remaining failure path here
+        still ended in `return` -- a lost write that nothing recorded and
+        nobody could see. A digest is fifteen minutes of work and its entire
+        result lives in this one object, so the last resort is now to merge
+        onto the newest copy and write without the precondition. That can only
+        lose whatever landed in the milliseconds between that read and this
+        write; giving up loses the whole run.
         """
         self._prune()
         for attempt in range(1, attempts + 1):
@@ -128,31 +141,59 @@ class State:
                     )
                 else:
                     self._blob.upload_from_string(payload, content_type="application/json")
-                return
+                return True
             except gcs_exceptions.PreconditionFailed:
-                if attempt == attempts:
-                    log.error(
-                        "State contended %d times; giving up on this write.", attempts
-                    )
-                    return
-                log.info("State changed underneath this run; merging and retrying.")
-                try:
-                    remote, generation = self._fetch()
-                except Exception as exc:  # noqa: BLE001
-                    log.warning("Could not re-read state to merge: %s", exc)
-                    return
-                self.data = self._merge_onto(remote)
-                # The merged data now carries the remote counters, so the
-                # remote becomes the new baseline. Without this a second
-                # retry would compute its delta against the original load and
-                # add this run's increment on top of a total that already
-                # includes it.
-                self._base = copy.deepcopy(remote)
-                self._generation = generation
+                log.info(
+                    "State changed underneath this run; merging and retrying (%d/%d).",
+                    attempt, attempts,
+                )
+                if not self._remerge():
+                    break
+            except Exception as exc:  # noqa: BLE001 -- reported, not raised
+                log.error("Could not write state: %s", exc)
+                break
+
+        return self._force_save()
+
+    def _remerge(self) -> bool:
+        """Re-read the blob and fold this run's changes onto it."""
+        try:
+            remote, generation = self._fetch()
+        except Exception as exc:  # noqa: BLE001
+            log.warning("Could not re-read state to merge: %s", exc)
+            return False
+        self.data = self._merge_onto(remote)
+        # The merged data now carries the remote counters, so the remote
+        # becomes the new baseline. Without this a second retry would compute
+        # its delta against the original load and add this run's increment on
+        # top of a total that already includes it.
+        self._base = copy.deepcopy(remote)
+        self._generation = generation
+        return True
+
+    def _force_save(self) -> bool:
+        """Last resort: merge onto whatever is there now and write anyway.
+
+        Reached only after the preconditioned attempts are exhausted. Losing a
+        concurrent write is bad; losing the record of a fifteen-minute digest
+        -- which mail was summarised, which calendar items are awaiting a
+        reply -- is worse, and that is what the alternative costs.
+        """
+        self._remerge()
+        try:
+            self._blob.upload_from_string(
+                json.dumps(self.data, separators=(",", ":"), sort_keys=True),
+                content_type="application/json",
+            )
+            log.warning("State written without its precondition after contention.")
+            return True
+        except Exception as exc:  # noqa: BLE001
+            log.error("STATE WRITE LOST -- this run's record is gone: %s", exc)
+            return False
 
     def _prune(self) -> None:
         cutoff = time.time() - RETENTION_SECONDS
-        for key in ("alerted", "reported"):
+        for key in ("alerted", "reported", "starred"):
             bucket = self.data.get(key, {})
             self.data[key] = {k: v for k, v in bucket.items() if float(v) >= cutoff}
 
@@ -168,6 +209,19 @@ class State:
 
     def already_reported(self, message_id: str) -> bool:
         return message_id in self.data.get("reported", {})
+
+    def already_starred(self, message_id: str) -> bool:
+        """True once the agent has starred this, whether or not it still is.
+
+        Deliberately not a live check against Gmail: the question is not "is
+        it starred now" but "have we already had our say about it". Re-reading
+        the flag would make the agent undo an unstar every single run.
+        """
+        return message_id in self.data.get("starred", {})
+
+    def mark_starred(self, message_ids: list[str]) -> None:
+        now = time.time()
+        self.data.setdefault("starred", {}).update({mid: now for mid in message_ids})
 
     def mark_reported(self, message_ids: list[str]) -> None:
         now = time.time()

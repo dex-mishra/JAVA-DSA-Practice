@@ -67,6 +67,13 @@ DEFAULTS: dict[str, Any] = {
     # silently switch cleanup live the first time anyone saved the form.
     "dry_run": None,
     "cleanup_dry_run": None,
+    # The stop button. True means every scheduled run exits immediately
+    # without opening a mailbox -- not "act but change nothing", which is what
+    # the dry-run switches do, but "do not look at my mail at all".
+    #
+    # A plain bool rather than a tristate: there is no deployed default to
+    # defer to, and "off" has to mean off unambiguously.
+    "paused": False,
     "extra_accounts": [],
     "updated_ts": 0.0,
     # Rules compiled from `instructions`. Written by the agent, read by both
@@ -139,6 +146,7 @@ def normalise(raw: Any) -> dict[str, Any]:
     data["instructions"] = sanitize_instructions(raw.get("instructions"))
     data["dry_run"] = _tristate(raw.get("dry_run"))
     data["cleanup_dry_run"] = _tristate(raw.get("cleanup_dry_run"))
+    data["paused"] = _tristate(raw.get("paused")) is True
     data["extra_accounts"] = _clean_accounts(raw.get("extra_accounts"))
 
     from . import rules as rules_mod

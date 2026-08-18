@@ -58,6 +58,8 @@ class Settings:
     # guidance. Steers judgement only; policy.py still decides everything
     # with a consequence.
     instructions: str = ""
+    # True when the stop switch on the website is on.
+    paused: bool = False
     # The compiled form of `instructions`, and whether a recompile is due.
     derived: dict[str, Any] = field(default_factory=dict)
     compile_requested_ts: float = 0.0
@@ -155,6 +157,7 @@ def load_settings(policy_path: Path | None = None, *, use_overlay: bool = True) 
         github_secret=_env("GITHUB_SECRET", "inbox-agent-github-token"),
         accounts=accounts,
         policy=policy,
+        paused=bool(over.get("paused", False)),
         instructions=over.get("instructions", ""),
         derived=over.get("derived") or {},
         compile_requested_ts=float(over.get("compile_requested_ts") or 0.0),

@@ -946,6 +946,7 @@
     var s = AGENT.status, cfg = AGENT.settings;
     var live = cfg.dry_run === false;
     var cleanupLive = cfg.cleanup_dry_run === false;
+    var stopped = cfg.paused === true;
 
     var cards = [
       ["Last summary", ago(s.last_digest_ts)],
@@ -1006,6 +1007,20 @@
 
       '<div class="card">' +
         "<h3>Switches</h3>" +
+        /* The stop button, first, because it is the one you want when
+           something is going wrong and you do not yet know what. */
+        '<div class="switch-row' + (stopped ? " stopped" : "") + '">' +
+          '<label class="switch"><input type="checkbox" id="agStop"' + (stopped ? " checked" : "") + ">" +
+          "<span>Stop the agent</span></label>" +
+          '<span class="muted">' + (stopped
+            ? "<b>Stopped.</b> It is not reading your mail at all — no summaries, " +
+              "no urgent pings, no starring, no binning. The scheduled runs still " +
+              "start every 15 minutes, see this switch, and exit in about a second. " +
+              "Nothing is lost; turn it back on and it picks up where it left off."
+            : "<b>Running.</b> Turn this on to halt everything at once — it stops " +
+              "before opening a mailbox. Use this rather than the two switches " +
+              "below if you want it to do nothing at all.") + "</span>" +
+        "</div>" +
         '<div class="switch-row">' +
           '<label class="switch"><input type="checkbox" id="agLive"' + (live ? " checked" : "") + ">" +
           "<span>Let it act</span></label>" +
@@ -1245,6 +1260,20 @@
     }
     toggle("agLive", "dry_run", "Acting on mail");
     toggle("agCleanup", "cleanup_dry_run", "Cleanup");
+
+    /* Not a dry-run switch: ticked means stopped, so the value goes through
+       as-is rather than inverted. */
+    var stop = document.getElementById("agStop");
+    if (stop) stop.onchange = function () {
+      var want = stop.checked;
+      api("/api/settings", { method: "PUT", body: JSON.stringify({ paused: want }) })
+        .then(function (r) {
+          AGENT.settings = Object.assign(AGENT.settings, r);
+          toast(want ? "Stopped. It will not read your mail." : "Running again.");
+          repaintAgent();
+        })
+        .catch(function (e) { stop.checked = !want; toast("Could not change: " + e.message); });
+    };
 
     document.querySelectorAll("[data-run]").forEach(function (b) {
       b.onclick = function () {
