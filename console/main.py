@@ -876,10 +876,11 @@ CF_BLOB = "console/codeforces.json"
 def codeforces_stats():
     """Live rating, rank and next contest, refreshed at most hourly.
 
-    The rank costs a 17 MB download of the whole rated list -- Codeforces
-    publishes a rating and a title but no rank number, so the only way to know
-    where you stand is to count the people above you. Fine once an hour,
-    absurd on every page load, so the answer is cached in the bucket.
+    The rank is scraped from codeforces.com/ratings, not the API -- see
+    codeforces.py's module docstring for why. That means ~10 real HTTP
+    requests per refresh rather than one JSON call, taking up to ~20s. Fine
+    once an hour, and the cost of getting it right rather than getting an
+    API-shaped number that is not the number Codeforces itself shows.
 
     Refreshed synchronously when stale rather than on a timer or a background
     thread: this service scales to zero and has its CPU throttled between

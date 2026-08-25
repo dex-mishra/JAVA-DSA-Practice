@@ -559,11 +559,15 @@
       set("cfRating", commas(d.rating), cfColour(d.rating));
       set("cfRatingSub", (d.title || "") + (d.max_rating ? " · max " + commas(d.max_rating) : ""));
       set("cfWorld", d.world_rank ? "#" + commas(d.world_rank) : "—", "");
-      set("cfWorldSub", d.world_total ? "of " + commas(d.world_total) + " active" : "\u00a0");
+      // world_total is total_pages*200 -- an approximation to within one
+      // page's width, not a precise headcount, so it says "~".
+      set("cfWorldSub", d.world_total ? "of ~" + commas(d.world_total) + " rated" : "\u00a0");
       var air = d.country === "India" ? d.country_rank : null;
       set("cfAir", air ? "#" + commas(air) : "—", "");
+      // country_total, unlike world_total, is exact: it is Codeforces' own
+      // stated count for the country, lifted straight from its filter.
       set("cfAirSub",
-        air ? "of " + commas(d.country_total) + " who set India"
+        air ? "of " + commas(d.country_total) + " rated India"
             : (d.country ? d.country : "no country set on your profile"));
     }
     showContest(d.next_contest);
