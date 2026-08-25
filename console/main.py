@@ -46,6 +46,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 from _agent import overlay as overlay_mod  # noqa: E402
 from _agent import rules as rules_mod  # noqa: E402
 
+import codeforces as cf_mod  # noqa: E402
+
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("console")
 
@@ -66,6 +68,9 @@ CONSOLE_PASSWORD = os.environ.get("CONSOLE_PASSWORD", "")
 # The build that produced this image. Compared against the agent's, because
 # the two deploy separately and can silently drift apart.
 APP_VERSION = os.environ.get("APP_VERSION", "")
+# Fallback only; the handle is normally set on the page and stored in the
+# overlay, so changing it does not need a deploy.
+CF_HANDLE = os.environ.get("CF_HANDLE", "")
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -863,6 +868,59 @@ def proposals_decide():
     return jsonify({"queued": queued, "token": token})
 
 
+CF_BLOB = "console/codeforces.json"
+
+
+@app.get("/api/codeforces")
+@protected
+def codeforces_stats():
+    """Live rating, rank and next contest, refreshed at most hourly.
+
+    The rank costs a 17 MB download of the whole rated list -- Codeforces
+    publishes a rating and a title but no rank number, so the only way to know
+    where you stand is to count the people above you. Fine once an hour,
+    absurd on every page load, so the answer is cached in the bucket.
+
+    Refreshed synchronously when stale rather than on a timer or a background
+    thread: this service scales to zero and has its CPU throttled between
+    requests, so a thread is not reliably alive to do the work. The page
+    fetches this after it has already painted, so the wait costs a few late
+    tiles once an hour and nothing else.
+    """
+    handle = (
+        request.args.get("handle")
+        or overlay_mod.load(BUCKET).get("cf_handle")
+        or CF_HANDLE
+        or ""
+    ).strip()
+
+    cached = read_json_blob(CF_BLOB, {}) or {}
+    forced = request.args.get("refresh") == "1"
+    changed = cached.get("handle", "").lower() != handle.lower()
+
+    if not (forced or changed or cf_mod.is_stale(cached)):
+        return jsonify(cached)
+
+    fresh = cf_mod.refresh(handle)
+    # A failed refresh keeps the last good answer rather than blanking the
+    # tiles: a rating from 50 minutes ago is still true, and Codeforces being
+    # briefly unreachable is not news.
+    if fresh.get("error") and cached.get("rating") is not None and not changed:
+        cached["error"] = fresh["error"]
+        cached["stale"] = True
+        if fresh.get("next_contest"):
+            cached["next_contest"] = fresh["next_contest"]
+        return jsonify(cached)
+
+    try:
+        gcs().bucket(BUCKET).blob(CF_BLOB).upload_from_string(
+            json.dumps(fresh, separators=(",", ":")), content_type="application/json"
+        )
+    except Exception as exc:  # noqa: BLE001 -- caching is a convenience
+        log.warning("Could not cache the Codeforces answer: %s", exc)
+    return jsonify(fresh)
+
+
 @app.get("/api/opportunities")
 @protected
 def opportunities():
@@ -1009,6 +1067,7 @@ def api_settings_get():
             "dry_run": over.get("dry_run"),
             "cleanup_dry_run": over.get("cleanup_dry_run"),
             "paused": bool(over.get("paused", False)),
+            "cf_handle": over.get("cf_handle", "") or CF_HANDLE,
             "updated_ts": over.get("updated_ts", 0),
             "max_instructions": overlay_mod.MAX_INSTRUCTIONS,
             # What the prose compiled to, in plain English, plus whether a
@@ -1058,6 +1117,8 @@ def api_settings_put():
         merged["dry_run"] = body["dry_run"]
     if "cleanup_dry_run" in body:
         merged["cleanup_dry_run"] = body["cleanup_dry_run"]
+    if "cf_handle" in body:
+        merged["cf_handle"] = body["cf_handle"]
     if "paused" in body:
         merged["paused"] = bool(body["paused"])
         log.warning("Agent %s from the website.",
@@ -1071,6 +1132,7 @@ def api_settings_put():
             "dry_run": saved["dry_run"],
             "cleanup_dry_run": saved["cleanup_dry_run"],
             "paused": saved["paused"],
+            "cf_handle": saved["cf_handle"],
             "updated_ts": saved["updated_ts"],
         }
     )

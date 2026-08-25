@@ -53,6 +53,9 @@ _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 _KEY_OK = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
 _SECRET_OK = re.compile(r"^[a-zA-Z0-9_-]{1,255}$")
 _EMAIL_OK = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+# Codeforces handles: 3-24 of these. Validated here because it is
+# interpolated into an API URL.
+_CF_HANDLE_OK = re.compile(r"^[A-Za-z0-9_.-]{3,24}$")
 
 # Reserved: these two come from environment variables on the job itself, and
 # the console must not be able to redefine them. In particular the primary
@@ -74,6 +77,10 @@ DEFAULTS: dict[str, Any] = {
     # A plain bool rather than a tristate: there is no deployed default to
     # defer to, and "off" has to mean off unambiguously.
     "paused": False,
+    # Codeforces handle, for the live rating and rank on the header. Lives
+    # here rather than in an environment variable so it can be typed on the
+    # page instead of redeployed.
+    "cf_handle": "",
     "extra_accounts": [],
     "updated_ts": 0.0,
     # Rules compiled from `instructions`. Written by the agent, read by both
@@ -147,6 +154,8 @@ def normalise(raw: Any) -> dict[str, Any]:
     data["dry_run"] = _tristate(raw.get("dry_run"))
     data["cleanup_dry_run"] = _tristate(raw.get("cleanup_dry_run"))
     data["paused"] = _tristate(raw.get("paused")) is True
+    handle = str(raw.get("cf_handle") or "").strip()
+    data["cf_handle"] = handle if _CF_HANDLE_OK.match(handle) else ""
     data["extra_accounts"] = _clean_accounts(raw.get("extra_accounts"))
 
     from . import rules as rules_mod

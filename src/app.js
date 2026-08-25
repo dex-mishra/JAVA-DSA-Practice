@@ -473,6 +473,134 @@
     document.getElementById("badgeSub").textContent = "of " + PL.badges.length + " unlocked";
   }
 
+  /* ---------------------------------------------------------- codeforces
+
+     Real rating and rank, as opposed to the mastery rating above it, which
+     is this tracker's own scoring of how much of the curriculum you have
+     cleared. Two numbers that look alike and mean nothing like each other,
+     so the tiles say CF on them and sit apart from the four self-measured
+     ones. */
+
+  var CF = { data: null, loading: false, at: 0 };
+
+  /* Codeforces' own rank colours. Not the placement ladder's -- that one is
+     recoloured for a light background and shifts with your progress, and
+     borrowing it here would imply the two ratings are the same measurement. */
+  var CF_COLOURS = [
+    [3000, "#aa0000"], [2600, "#ff0000"], [2400, "#ff8c00"], [2100, "#ff8c00"],
+    [1900, "#aa00aa"], [1600, "#0000ff"], [1400, "#03a89e"], [1200, "#008000"],
+    [0, "#808080"]
+  ];
+  function cfColour(rating) {
+    for (var i = 0; i < CF_COLOURS.length; i++) {
+      if (rating >= CF_COLOURS[i][0]) return CF_COLOURS[i][1];
+    }
+    return "#808080";
+  }
+
+  function commas(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+
+  /* "in 3 d 4 h" / "in 12 min" / "live now". A contest three days out and one
+     starting in ten minutes are different kinds of fact. */
+  function untilContest(startTs, durationSeconds) {
+    var secs = startTs - Date.now() / 1000;
+    if (secs < 0) {
+      return secs > -(durationSeconds || 7200) ? "live now" : "";
+    }
+    var d = Math.floor(secs / 86400), h = Math.floor((secs % 86400) / 3600);
+    var m = Math.floor((secs % 3600) / 60);
+    if (d) return "in " + d + "d " + h + "h";
+    if (h) return "in " + h + "h " + m + "m";
+    return "in " + m + " min";
+  }
+
+  function loadCF(force) {
+    if (CF.loading) return;
+    CF.loading = true;
+    api("/api/codeforces" + (force ? "?refresh=1" : ""))
+      .then(function (d) { CF.data = d; CF.at = Date.now(); })
+      .catch(function (e) { CF.data = { error: e.message || String(e) }; })
+      .then(function () { CF.loading = false; renderCF(); });
+  }
+
+  function renderCF() {
+    var d = CF.data;
+    var set = function (id, text, colour) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = text;
+      if (colour !== undefined) el.style.color = colour || "";
+    };
+
+    if (!d) return;
+
+    if (!d.handle && !d.rating) {
+      /* No handle yet. The tile is the place to set it -- asking for it in a
+         settings page three clicks away would leave these reading "—" with no
+         hint as to why. */
+      set("cfRating", "set", "");
+      set("cfRatingSub", "click to add your handle");
+      var stat = document.getElementById("cfRatingStat");
+      if (stat && !stat.dataset.bound) {
+        stat.dataset.bound = "1";
+        stat.style.cursor = "pointer";
+        stat.onclick = askHandle;
+      }
+      ["cfWorld", "cfAir", "cfContest"].forEach(function (id) { set(id, "—", ""); });
+      if (d.next_contest) showContest(d.next_contest);
+      return;
+    }
+
+    if (d.rating === null || d.rating === undefined) {
+      set("cfRating", "unrated", "");
+      set("cfRatingSub", d.error ? d.error.slice(0, 40) : d.handle);
+      ["cfWorld", "cfAir"].forEach(function (id) { set(id, "—", ""); });
+    } else {
+      set("cfRating", commas(d.rating), cfColour(d.rating));
+      set("cfRatingSub", (d.title || "") + (d.max_rating ? " · max " + commas(d.max_rating) : ""));
+      set("cfWorld", d.world_rank ? "#" + commas(d.world_rank) : "—", "");
+      set("cfWorldSub", d.world_total ? "of " + commas(d.world_total) + " active" : "\u00a0");
+      var air = d.country === "India" ? d.country_rank : null;
+      set("cfAir", air ? "#" + commas(air) : "—", "");
+      set("cfAirSub",
+        air ? "of " + commas(d.country_total) + " who set India"
+            : (d.country ? d.country : "no country set on your profile"));
+    }
+    showContest(d.next_contest);
+
+    var sub = document.getElementById("cfRatingSub");
+    if (sub && d.error) { sub.textContent = d.error.slice(0, 46); sub.title = d.error; }
+  }
+
+  function showContest(c) {
+    var v = document.getElementById("cfContest");
+    var s = document.getElementById("cfContestSub");
+    if (!v || !s) return;
+    if (!c) { v.textContent = "—"; s.textContent = "none announced"; return; }
+    v.textContent = untilContest(c.start_ts, c.duration_seconds) || "—";
+    s.textContent = c.name;
+    s.title = c.name + " · " + new Date(c.start_ts * 1000).toLocaleString();
+  }
+
+  function askHandle() {
+    var current = (AGENT.settings && AGENT.settings.cf_handle) ||
+      (CF.data && CF.data.handle) || "";
+    var handle = window.prompt("Your Codeforces handle", current);
+    if (handle === null) return;
+    handle = handle.trim();
+    api("/api/settings", { method: "PUT", body: JSON.stringify({ cf_handle: handle }) })
+      .then(function (r) {
+        if (handle && !r.cf_handle) {
+          toast("That does not look like a Codeforces handle.");
+          return;
+        }
+        if (AGENT.settings) AGENT.settings.cf_handle = r.cf_handle;
+        toast(r.cf_handle ? "Handle set. Fetching…" : "Handle cleared.");
+        loadCF(true);
+      })
+      .catch(function (e) { toast("Could not save: " + e.message); });
+  }
+
   function hexSoft(hex) {
     var h = hex.replace("#", "");
     var r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
@@ -1370,6 +1498,11 @@
     else panel.innerHTML = renderTrack(tab.track);
 
     renderHeader();
+    loadCF(false);
+    /* The server caches for an hour, so asking more often than that is free
+       and just keeps the contest countdown honest. */
+    setInterval(function () { loadCF(false); }, 5 * 60 * 1000);
+    setInterval(renderCF, 60 * 1000);
     renderSections();
     renderTabs();
     bind();

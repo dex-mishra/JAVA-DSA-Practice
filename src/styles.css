@@ -184,6 +184,19 @@ header { padding: 32px 0 18px; }
 .v.urgent { color: var(--warn); }
 .v.live { color: var(--accent); transition: color .5s; }
 
+/* Live Codeforces tiles. Marked off from the four beside them because those
+   are this tracker's own scoring and these are the real rating -- two numbers
+   in the same row that would otherwise read as one measurement. */
+.stat.cf { background: var(--raise); }
+.stat.cf .k::after {
+  content: "CF"; margin-left: 6px; font-size: 8px; letter-spacing: .1em;
+  padding: 1px 4px; border-radius: 3px;
+  background: var(--line); color: var(--ink-2);
+}
+.stat.cf .v { font-variant-numeric: tabular-nums; }
+.stat.cf .s { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stat.cf[style*="cursor"] :hover { color: var(--action); }
+
 /* ---------------------------------------------------------- tabs */
 
 /* Top-level parts. Deliberately heavier than the sub-tabs below them: these
