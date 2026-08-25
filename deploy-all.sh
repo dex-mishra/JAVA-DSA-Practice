@@ -18,6 +18,9 @@ set -euo pipefail
 PROJECT="${1:-${GCP_PROJECT:-personal-agent-505411}}"
 export PRIMARY_EMAIL="${PRIMARY_EMAIL:-malhotra.aryan.a01@gmail.com}"
 export COLLEGE_EMAIL="${COLLEGE_EMAIL:-aryanmalhotra@kgpian.iitkgp.ac.in}"
+# Seeds the Codeforces tiles so they work on first load. Overridden by
+# whatever is set on the page, which is where it is meant to be changed.
+export CF_HANDLE="${CF_HANDLE:-ceasak}"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
