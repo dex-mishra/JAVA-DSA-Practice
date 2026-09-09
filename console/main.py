@@ -404,6 +404,71 @@ def topics_set():
     return jsonify({"updated": len(ids), "done": done})
 
 
+# ---------------------------------------------------------------------------
+# MBA items you add yourself -- on top of the fixed curriculum baked in at
+# build time. Two different needs share one blob:
+#
+#   items       whole new commitments, e.g. an assistant noticing a school
+#               deadline the static list does not have.
+#   tag_overlay extra tags on ANY item, curriculum or custom -- additive
+#               only, same rule as everywhere else this pattern appears
+#               (rules.py, the overlay the instructions box compiles into):
+#               a tag can be added, never removed, from here.
+#
+# The website's own MBA tab bakes data/mba.json into index.html at build
+# time and never called this API at all, which is exactly the bug the
+# Opportunities tab had before it was fixed to fetch live -- an item added
+# here would exist for an assistant to see and nowhere a person would ever
+# look. src/app.js now fetches /api/mba/custom on load and splices the
+# result into the page, the same way it already does for Opportunities.
+MBA_CUSTOM_BLOB = "console/mba_custom.json"
+MAX_CUSTOM_MBA = 200
+MAX_TAGS_PER_ITEM = 12
+_TAG_OK = re.compile(r"^[a-z][a-z0-9_-]{0,23}$")
+_DATE_OK = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _mba_custom() -> dict:
+    doc = read_json_blob(MBA_CUSTOM_BLOB, {}) or {}
+    return {
+        "items": doc.get("items") if isinstance(doc.get("items"), list) else [],
+        "tag_overlay": doc.get("tag_overlay") if isinstance(doc.get("tag_overlay"), dict) else {},
+    }
+
+
+def _clean_tags(raw) -> list[str]:
+    if not isinstance(raw, list):
+        return []
+    out: list[str] = []
+    for t in raw:
+        t = str(t).strip().lower()
+        if t and _TAG_OK.match(t) and t not in out:
+            out.append(t)
+        if len(out) >= MAX_TAGS_PER_ITEM:
+            break
+    return out
+
+
+def _all_mba_items() -> list[dict]:
+    """Curriculum items plus anything added later, tags unioned in. This is
+    the one place both /api/mba (for an assistant) and the site's live
+    splice (for a person) read from, so they cannot drift apart."""
+    custom = _mba_custom()
+    overlay = custom["tag_overlay"]
+
+    def with_overlay(item: dict, *, source: str) -> dict:
+        extra = overlay.get(item.get("id"), [])
+        tags = list(item.get("tags") or [])
+        for t in extra:
+            if t not in tags:
+                tags.append(t)
+        return {**item, "tags": tags, "source": source}
+
+    rows = [with_overlay(i, source="curriculum") for i in curriculum()["mba_items"]]
+    rows += [with_overlay(i, source="custom") for i in custom["items"]]
+    return rows
+
+
 @app.get("/api/mba")
 @protected
 def mba_list():
@@ -416,11 +481,23 @@ def mba_list():
             "phase": i.get("phase"),
             "tags": i.get("tags", []),
             "excluded": i.get("excluded", False),
+            "source": i.get("source", "curriculum"),
             "done": bool(checked.get(i.get("id"))),
         }
-        for i in curriculum()["mba_items"]
+        for i in _all_mba_items()
     ]
     return jsonify({"total": len(rows), "items": rows})
+
+
+@app.get("/api/mba/custom")
+@protected
+def mba_custom_list():
+    """Just the delta from the baked-in list: new items, and the tag
+    overlay. What the website itself fetches to splice onto the static
+    data it already shipped with, so a custom item shows up where a person
+    actually looks rather than only where an assistant does."""
+    custom = _mba_custom()
+    return jsonify({"items": custom["items"], "tag_overlay": custom["tag_overlay"]})
 
 
 @app.post("/api/mba/set")
@@ -429,7 +506,7 @@ def mba_set():
     body = request.get_json(silent=True) or {}
     item_id = body.get("id", "")
     done = bool(body.get("done", True))
-    if not any(i.get("id") == item_id for i in curriculum()["mba_items"]):
+    if not any(i.get("id") == item_id for i in _all_mba_items()):
         return jsonify({"error": f"unknown MBA item {item_id!r}"}), 400
 
     data = _progress()
@@ -440,6 +517,104 @@ def mba_set():
         mba.pop(item_id, None)
     _write_progress(data)
     return jsonify({"id": item_id, "done": done})
+
+
+@app.post("/api/mba/create")
+@protected
+def mba_create():
+    """Add a whole new MBA commitment, alongside the fixed curriculum."""
+    body = request.get_json(silent=True) or {}
+    task = str(body.get("task", "")).strip()[:300]
+    if not task:
+        return jsonify({"error": "task is required"}), 400
+
+    date = str(body.get("date", "")).strip()
+    if date and not _DATE_OK.match(date):
+        return jsonify({"error": "date must be YYYY-MM-DD"}), 400
+
+    def mutate(doc):
+        items = doc.get("items") if isinstance(doc.get("items"), list) else []
+        if len(items) >= MAX_CUSTOM_MBA:
+            return {"error": f"at most {MAX_CUSTOM_MBA} custom MBA items"}
+        item = {
+            "id": "cm" + pysecrets.token_hex(4),
+            "task": task,
+            "date": date,
+            "phase": str(body.get("phase", "")).strip()[:60] or "CUSTOM",
+            "tags": _clean_tags(body.get("tags")),
+            "excluded": bool(body.get("excluded", False)),
+            "created_ts": time.time(),
+        }
+        items.append(item)
+        doc["items"] = items
+        return item
+
+    result = mutate_json_blob(MBA_CUSTOM_BLOB, mutate)
+    if isinstance(result, dict) and result.get("error"):
+        return jsonify(result), 400
+    log.info("Added MBA item: %s", task[:60])
+    return jsonify(result), 201
+
+
+@app.post("/api/mba/tags")
+@protected
+def mba_add_tags():
+    """Add tags to an existing item, curriculum or custom. Additive only --
+    this can never remove a tag the item already has."""
+    body = request.get_json(silent=True) or {}
+    item_id = str(body.get("id", ""))
+    new_tags = _clean_tags(body.get("tags"))
+    if not new_tags:
+        return jsonify({"error": "give at least one tag (lowercase letters, digits, - or _)"}), 400
+    if not any(i.get("id") == item_id for i in curriculum()["mba_items"] + _mba_custom()["items"]):
+        return jsonify({"error": f"unknown MBA item {item_id!r}"}), 400
+
+    def mutate(doc):
+        overlay = doc.get("tag_overlay") if isinstance(doc.get("tag_overlay"), dict) else {}
+        existing = overlay.get(item_id, [])
+        for t in new_tags:
+            if t not in existing:
+                existing.append(t)
+        overlay[item_id] = existing
+        doc["tag_overlay"] = overlay
+        return existing
+
+    tags = mutate_json_blob(MBA_CUSTOM_BLOB, mutate)
+    return jsonify({"id": item_id, "added_tags": tags})
+
+
+@app.post("/api/mba/delete")
+@protected
+def mba_delete():
+    """Remove a custom item. Curriculum items are not deletable from here --
+    they ship with the site and come back on the next deploy regardless, so
+    deleting one would only be confusing, not permanent."""
+    body = request.get_json(silent=True) or {}
+    item_id = str(body.get("id", ""))
+    if any(i.get("id") == item_id for i in curriculum()["mba_items"]):
+        return jsonify({"error": "that is a built-in item and cannot be deleted here"}), 400
+
+    def mutate(doc):
+        items = doc.get("items") if isinstance(doc.get("items"), list) else []
+        kept = [i for i in items if i.get("id") != item_id]
+        if len(kept) == len(items):
+            return False
+        doc["items"] = kept
+        overlay = doc.get("tag_overlay") if isinstance(doc.get("tag_overlay"), dict) else {}
+        overlay.pop(item_id, None)
+        doc["tag_overlay"] = overlay
+        return True
+
+    found = mutate_json_blob(MBA_CUSTOM_BLOB, mutate)
+    if not found:
+        return jsonify({"error": f"no custom item {item_id!r}"}), 404
+    # A deleted item's own progress tick is now meaningless -- nothing left
+    # to point at -- so it is cleared rather than left as an orphaned id.
+    data = _progress()
+    if item_id in (data.get("mba") or {}):
+        data["mba"].pop(item_id, None)
+        _write_progress(data)
+    return jsonify({"deleted": item_id})
 
 
 # ---------------------------------------------------------------------------
@@ -1401,14 +1576,15 @@ def _mcp_mba():
         "items": [
             {"id": i.get("id"), "task": i.get("task"), "date": i.get("date", ""),
              "phase": i.get("phase"), "tags": i.get("tags", []),
-             "excluded": i.get("excluded", False), "done": bool(checked.get(i.get("id")))}
-            for i in curriculum()["mba_items"]
+             "excluded": i.get("excluded", False), "source": i.get("source", "curriculum"),
+             "done": bool(checked.get(i.get("id")))}
+            for i in _all_mba_items()
         ]
     }
 
 
 def _mcp_set_mba(item_id, done):
-    if not any(i.get("id") == item_id for i in curriculum()["mba_items"]):
+    if not any(i.get("id") == item_id for i in _all_mba_items()):
         return {"error": f"unknown MBA item {item_id!r}"}
     data = _progress()
     mba = data.setdefault("mba", {})
@@ -1418,6 +1594,32 @@ def _mcp_set_mba(item_id, done):
         mba.pop(item_id, None)
     _write_progress(data)
     return {"id": item_id, "done": done}
+
+
+def _mcp_add_mba_item(task, date, phase, tags):
+    with app.test_request_context(
+        json={"task": task, "date": date, "phase": phase, "tags": tags}
+    ):
+        result = mba_create()
+        body, status = (result if isinstance(result, tuple) else (result, 200))
+        payload = body.get_json()
+        return payload if status < 400 else {"error": payload.get("error", "failed")}
+
+
+def _mcp_add_mba_tags(item_id, tags):
+    with app.test_request_context(json={"id": item_id, "tags": tags}):
+        result = mba_add_tags()
+        body, status = (result if isinstance(result, tuple) else (result, 200))
+        payload = body.get_json()
+        return payload if status < 400 else {"error": payload.get("error", "failed")}
+
+
+def _mcp_delete_mba_item(item_id):
+    with app.test_request_context(json={"id": item_id}):
+        result = mba_delete()
+        body, status = (result if isinstance(result, tuple) else (result, 200))
+        payload = body.get_json()
+        return payload if status < 400 else {"error": payload.get("error", "failed")}
 
 
 def _mcp_goals(status):
@@ -1545,6 +1747,9 @@ app.register_blueprint(
             "set_topics": _mcp_set_topics,
             "mba": _mcp_mba,
             "set_mba": _mcp_set_mba,
+            "add_mba_item": _mcp_add_mba_item,
+            "add_mba_tags": _mcp_add_mba_tags,
+            "delete_mba_item": _mcp_delete_mba_item,
             "goals": _mcp_goals,
             "create_goal": _mcp_create_goal,
             "update_goal": _mcp_update_goal,

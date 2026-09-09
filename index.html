@@ -951,16 +951,26 @@ ul.reports li { gap: 10px; }
 
   /* MBA items flattened, excluded ones included -- the brief was explicit
      that declined options stay visible with live dates, so that "I did not
-     apply" never quietly becomes "I forgot to apply". */
+     apply" never quietly becomes "I forgot to apply".
+
+     A function rather than a one-time block: an assistant can add a whole
+     new item or tag an existing one at runtime (add_mba_item / add_mba_tags
+     over MCP), and rebuildMbaItems() re-derives this flattened list from
+     MBA.phases/MBA.excluded after boot() splices those in, the same way
+     the Opportunities tab already re-renders after its own live fetch. */
   var MBA_ITEMS = [];
-  MBA.phases.forEach(function (p) {
-    (p.items || []).forEach(function (it) {
-      MBA_ITEMS.push({ item: it, phase: p.n, phaseTitle: p.t, excluded: false });
+  function rebuildMbaItems() {
+    MBA_ITEMS = [];
+    MBA.phases.forEach(function (p) {
+      (p.items || []).forEach(function (it) {
+        MBA_ITEMS.push({ item: it, phase: p.n, phaseTitle: p.t, excluded: false });
+      });
     });
-  });
-  (MBA.excluded || []).forEach(function (it) {
-    MBA_ITEMS.push({ item: it, phase: "EXCLUDED", phaseTitle: "Decided against", excluded: true });
-  });
+    (MBA.excluded || []).forEach(function (it) {
+      MBA_ITEMS.push({ item: it, phase: "EXCLUDED", phaseTitle: "Decided against", excluded: true });
+    });
+  }
+  rebuildMbaItems();
 
   /* ---------------------------------------------------------- instrument 1
      Mastery rating. Identical maths to the original tracker: 800 at zero,
@@ -1597,7 +1607,12 @@ ul.reports li { gap: 10px; }
         verify: ["verify", "Verification task"],
         action: ["", "Action"]
       };
-      return map[tg] ? '<span class="tag ' + map[tg][0] + '">' + map[tg][1] + "</span>" : "";
+      // A tag outside this fixed set -- one an assistant added via
+      // add_mba_tags, most likely -- still gets a pill, just an unstyled
+      // one showing its own text. Dropping it silently would mean "add
+      // tags" stored the tag but never actually showed it anywhere.
+      if (map[tg]) return '<span class="tag ' + map[tg][0] + '">' + map[tg][1] + "</span>";
+      return '<span class="tag">' + esc(tg) + "</span>";
     }).join("");
 
     return '<div class="row ' + lv + (on ? " on" : "") + '" data-mba="' + esc(it.id) + '">' +
@@ -2411,6 +2426,41 @@ ul.reports li { gap: 10px; }
         render();
       })
       .catch(function () { /* keep the baked fallback */ });
+
+    /* MBA items and tags added later than the build -- via the assistant's
+       add_mba_item / add_mba_tags, most likely. The build baked data/mba.json
+       into this page; this splices in whatever exists beyond that, so an
+       item added through the MCP connector shows up here too rather than
+       only in an assistant's own answers. Same shape of fix as OPPS above. */
+    fetch("/api/mba/custom")
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (r) {
+        var overlay = (r && r.tag_overlay) || {};
+        var added = (r && r.items) || [];
+        if (!Object.keys(overlay).length && !added.length) return;
+
+        function addOverlayTags(it) {
+          var extra = overlay[it.id];
+          if (!extra || !extra.length) return;
+          var tags = it.tags || (it.tags = []);
+          extra.forEach(function (t) { if (tags.indexOf(t) === -1) tags.push(t); });
+        }
+        MBA.phases.forEach(function (p) { (p.items || []).forEach(addOverlayTags); });
+        (MBA.excluded || []).forEach(addOverlayTags);
+
+        var live = added.filter(function (it) { return !it.excluded; });
+        var excluded = added.filter(function (it) { return it.excluded; });
+        if (live.length) {
+          MBA.phases.push({ n: "CUSTOM", t: "Added later", when: "No fixed cycle", items: live });
+        }
+        if (excluded.length) {
+          MBA.excluded = (MBA.excluded || []).concat(excluded);
+        }
+
+        rebuildMbaItems();
+        render();
+      })
+      .catch(function () { /* keep the baked list; nothing added yet, or unreachable */ });
   }
 
   if (document.readyState === "loading") {

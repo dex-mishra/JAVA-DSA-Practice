@@ -15,6 +15,15 @@ HTTP: JSON-RPC over POST, answered with a single JSON object. The spec
 permits that instead of an SSE stream, and every tool here is a short
 request/response with nothing to stream. GET is answered with 405, which
 tells a client "no server-initiated stream" rather than leaving it hanging.
+
+Two unrelated systems share this one server: a placement/MBA progress
+tracker, and an inbox email agent that reads Gmail and sends summaries.
+Flattened into one tool list with generically-named tools ("settings",
+"status") next to each other, a request to tick an MBA box got answered as
+if it were about the mail agent instead. Every email-agent tool is now
+prefixed email_agent_ for that reason, and the same point is repeated in
+the `instructions` field of the initialize response below, which most MCP
+clients surface to the model before any tool is chosen.
 """
 
 from __future__ import annotations
@@ -29,6 +38,19 @@ log = logging.getLogger("console.mcp")
 
 PROTOCOL_VERSION = "2025-06-18"
 SERVER_INFO = {"name": "launch-console", "version": "1.0.0"}
+INSTRUCTIONS = (
+    "This server exposes TWO unrelated systems. Do not answer a request "
+    "about one as though it were about the other.\n\n"
+    "1. A placement/MBA progress tracker: get_overview, list_topics, "
+    "set_topics_done, list_mba_items, set_mba_item_done, add_mba_item, "
+    "add_mba_tags, delete_mba_item, list_goals, create_goal, update_goal, "
+    "list_opportunities. Ticking a box, adding an MBA item or tagging one "
+    "means one of these -- never an email_agent_ tool.\n\n"
+    "2. An inbox email agent that reads Gmail and sends summaries -- every "
+    "tool for it is prefixed email_agent_ (settings, status, "
+    "calendar_proposals, add_calendar_event, run, set_instructions). A "
+    "request about the tracker is never answered with one of these."
+)
 
 # JSON-RPC error codes used here.
 PARSE_ERROR = -32700
@@ -113,6 +135,41 @@ def build_tools(d: dict[str, Callable]) -> dict[str, dict]:
             "schema": obj({"item_id": S, "done": B}, ["item_id"]),
             "run": lambda a: d["set_mba"](a.get("item_id", ""), bool(a.get("done", True))),
         },
+        "add_mba_item": {
+            "description": (
+                "Add a brand new MBA commitment, alongside the built-in list from "
+                "list_mba_items. Shows up there afterwards, with source='custom', and "
+                "on the website itself -- not just to an assistant. date is YYYY-MM-DD "
+                "or empty for no date; phase is a free label, default 'CUSTOM'."
+            ),
+            "schema": obj(
+                {"task": S, "date": S, "phase": S, "tags": {"type": "array", "items": S}},
+                ["task"],
+            ),
+            "run": lambda a: d["add_mba_item"](
+                a.get("task", ""), a.get("date", ""), a.get("phase", ""), a.get("tags") or []
+            ),
+        },
+        "add_mba_tags": {
+            "description": (
+                "Add tags to an MBA item, built-in or custom, by id. Additive only -- "
+                "this can add a tag but never remove one already there. Lowercase "
+                "letters, digits, - and _ only."
+            ),
+            "schema": obj(
+                {"item_id": S, "tags": {"type": "array", "items": S}}, ["item_id", "tags"]
+            ),
+            "run": lambda a: d["add_mba_tags"](a.get("item_id", ""), a.get("tags") or []),
+        },
+        "delete_mba_item": {
+            "description": (
+                "Remove a custom MBA item you added, by id. Only works on items with "
+                "source='custom' -- the built-in list ships with the site and cannot "
+                "be deleted from here."
+            ),
+            "schema": obj({"item_id": S}, ["item_id"]),
+            "run": lambda a: d["delete_mba_item"](a.get("item_id", "")),
+        },
         "list_goals": {
             "description": "Goals. Optionally filter by status: open, done or dropped.",
             "schema": obj({"status": {**S, "enum": ["", "open", "done", "dropped"]}}),
@@ -150,51 +207,64 @@ def build_tools(d: dict[str, Callable]) -> dict[str, dict]:
             "schema": obj({"limit": I}),
             "run": lambda a: d["opportunities"](int(a.get("limit", 25))),
         },
-        "get_agent_settings": {
-            "description": "The agent's free-text instructions and its two dry-run switches.",
+        # --------------------------------------------------------------
+        # The INBOX EMAIL AGENT. A separate system from everything above --
+        # it reads Gmail and sends you summaries, it does not touch the
+        # placement/MBA tracker or its tick boxes. Every tool below is
+        # prefixed email_agent_ for exactly that reason: a flat tool list
+        # with "settings" and "status" sitting next to tracker tools of the
+        # same shape is how an assistant ends up answering an MBA-checkbox
+        # request by talking about the mail agent instead.
+        # --------------------------------------------------------------
+        "email_agent_settings": {
+            "description": (
+                "The INBOX EMAIL AGENT's free-text instructions and its two dry-run "
+                "switches. Unrelated to the placement/MBA tracker above."
+            ),
             "schema": obj({}),
             "run": lambda a: d["settings"](),
         },
-        "set_agent_instructions": {
+        "email_agent_set_instructions": {
             "description": (
-                "REPLACE the agent's instructions -- this does not append, so read "
-                "get_agent_settings first if you mean to extend them. Steers judgement "
-                "only; it cannot widen what the agent is permitted to do."
+                "REPLACE the email agent's instructions -- this does not append, so "
+                "read email_agent_settings first if you mean to extend them. Steers "
+                "judgement only; it cannot widen what the agent is permitted to do."
             ),
             "schema": obj({"instructions": S}, ["instructions"]),
             "run": lambda a: d["set_instructions"](a.get("instructions", "")),
         },
-        "get_agent_status": {
+        "email_agent_status": {
             "description": (
-                "Agent activity: last summary, last urgent alert, last junk sweep, "
-                "mailboxes read, and how many calendar items await confirmation."
+                "Email agent activity: last summary, last urgent alert, last junk "
+                "sweep, mailboxes read, and how many calendar items await confirmation."
             ),
             "schema": obj({}),
             "run": lambda a: d["status"](),
         },
-        "list_proposals": {
-            "description": "Calendar items the agent proposed and is still waiting on.",
+        "email_agent_calendar_proposals": {
+            "description": "Calendar items the email agent proposed and is still waiting on.",
             "schema": obj({}),
             "run": lambda a: d["proposals"](),
         },
-        "add_to_calendar": {
+        "email_agent_add_calendar_event": {
             "description": (
-                "Queue an event for the agent to create on its next run, within 15 "
-                "minutes. start is YYYY-MM-DD or YYYY-MM-DDTHH:MM."
+                "Queue an event for the email agent to create on its next run, within "
+                "15 minutes. start is YYYY-MM-DD or YYYY-MM-DDTHH:MM."
             ),
             "schema": obj({"title": S, "start": S, "end": S, "source_url": S}, ["title", "start"]),
             "run": lambda a: d["add_event"](
                 a.get("title", ""), a.get("start", ""), a.get("end", ""), a.get("source_url", "")
             ),
         },
-        "run_agent": {
+        "email_agent_run": {
             "description": (
-                "Start a run now instead of waiting for the schedule. "
+                "Start an email agent run now instead of waiting for the schedule. "
                 "digest: last 3 days, emailed, 3-5 min. "
                 "review: the WHOLE inbox, one stocktake, 10-20 min. "
                 "sweep: last few hours, emails only if urgent. "
                 "cleanup: lists what it would bin, bins nothing. "
-                "Returns once started; the result arrives by email."
+                "Returns once started; the result arrives by email. Nothing to do "
+                "with the placement/MBA tracker."
             ),
             "schema": obj(
                 {"mode": {**S, "enum": ["digest", "review", "sweep", "cleanup", "check"]}},
@@ -233,6 +303,7 @@ def build_blueprint(deps: dict[str, Callable], token: str = "") -> Blueprint:
                         "protocolVersion": asked if isinstance(asked, str) else PROTOCOL_VERSION,
                         "capabilities": {"tools": {"listChanged": False}},
                         "serverInfo": SERVER_INFO,
+                        "instructions": INSTRUCTIONS,
                     },
                 }
             )
