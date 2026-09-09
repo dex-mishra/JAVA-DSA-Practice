@@ -43,9 +43,10 @@ INSTRUCTIONS = (
     "about one as though it were about the other.\n\n"
     "1. A placement/MBA progress tracker: get_overview, list_topics, "
     "set_topics_done, list_mba_items, set_mba_item_done, add_mba_item, "
-    "add_mba_tags, delete_mba_item, list_goals, create_goal, update_goal, "
-    "list_opportunities. Ticking a box, adding an MBA item or tagging one "
-    "means one of these -- never an email_agent_ tool.\n\n"
+    "add_mba_tags, remove_mba_tags, delete_mba_item, restore_mba_item, "
+    "list_goals, create_goal, update_goal, list_opportunities. Ticking a "
+    "box, adding or removing an MBA item or tag means one of these -- "
+    "never an email_agent_ tool.\n\n"
     "2. An inbox email agent that reads Gmail and sends summaries -- every "
     "tool for it is prefixed email_agent_ (settings, status, "
     "calendar_proposals, add_calendar_event, run, set_instructions). A "
@@ -152,23 +153,45 @@ def build_tools(d: dict[str, Callable]) -> dict[str, dict]:
         },
         "add_mba_tags": {
             "description": (
-                "Add tags to an MBA item, built-in or custom, by id. Additive only -- "
-                "this can add a tag but never remove one already there. Lowercase "
-                "letters, digits, - and _ only."
+                "Add tags to an MBA item, built-in or custom, by id. Lowercase "
+                "letters, digits, - and _ only. To remove a tag instead, use "
+                "remove_mba_tags."
             ),
             "schema": obj(
                 {"item_id": S, "tags": {"type": "array", "items": S}}, ["item_id", "tags"]
             ),
             "run": lambda a: d["add_mba_tags"](a.get("item_id", ""), a.get("tags") or []),
         },
+        "remove_mba_tags": {
+            "description": (
+                "Remove tags from an MBA item, built-in or custom, by id -- including "
+                "a tag the built-in list shipped with. That cannot rewrite the "
+                "built-in data, so the tag is hidden rather than deleted; it looks "
+                "identical either way."
+            ),
+            "schema": obj(
+                {"item_id": S, "tags": {"type": "array", "items": S}}, ["item_id", "tags"]
+            ),
+            "run": lambda a: d["remove_mba_tags"](a.get("item_id", ""), a.get("tags") or []),
+        },
         "delete_mba_item": {
             "description": (
-                "Remove a custom MBA item you added, by id. Only works on items with "
-                "source='custom' -- the built-in list ships with the site and cannot "
-                "be deleted from here."
+                "Remove an MBA item by id. A custom item you added is deleted "
+                "outright. A built-in item ships with the site and comes back on "
+                "the next deploy regardless, so it is instead moved into the "
+                "EXCLUDED section -- reversible with restore_mba_item."
             ),
             "schema": obj({"item_id": S}, ["item_id"]),
             "run": lambda a: d["delete_mba_item"](a.get("item_id", "")),
+        },
+        "restore_mba_item": {
+            "description": (
+                "Undo delete_mba_item on a built-in item -- brings it back out of "
+                "the EXCLUDED section. Has no effect on a custom item, which was "
+                "deleted outright rather than hidden."
+            ),
+            "schema": obj({"item_id": S}, ["item_id"]),
+            "run": lambda a: d["restore_mba_item"](a.get("item_id", "")),
         },
         "list_goals": {
             "description": "Goals. Optionally filter by status: open, done or dropped.",

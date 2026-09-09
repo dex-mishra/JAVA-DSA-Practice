@@ -395,6 +395,36 @@ nav.tabs::-webkit-scrollbar { display: none; }
 .tag.oneshot { border-color: var(--crit); color: var(--crit); }
 .tag.verify { border-color: var(--amber); color: var(--amber); }
 
+/* Manual MBA editing -- add/remove tags, hide/delete/restore an item, add
+   a whole new one. Collapsed behind <details> so the common case (ticking
+   things off) stays as dense as before; opening one reveals the rest. */
+.mba-item { border-bottom: 1px solid var(--line-soft); }
+.mba-item .row { border-bottom: 0; }
+.mba-edit summary {
+  cursor: pointer; font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3); padding: 0 14px 8px 40px; user-select: none;
+}
+.mba-edit summary:hover { color: var(--accent); }
+.mba-edit .edit-body {
+  padding: 4px 14px 12px 40px; display: flex; flex-direction: column; gap: 8px;
+}
+.edit-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.tag.x-tag {
+  appearance: none; cursor: pointer; background: var(--surface); font: inherit;
+}
+.tag.x-tag:hover { border-color: var(--crit); color: var(--crit); }
+.edit-tag-input, .mba-add input {
+  font-family: var(--display); font-size: 12.5px; padding: 7px 9px; border-radius: var(--r);
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); min-width: 0;
+}
+.edit-tag-input { flex: 1; min-width: 100px; }
+.mba-add .edit-body input { width: 100%; box-sizing: border-box; }
+.mba-add .edit-row input { flex: 1; }
+.mba-add summary {
+  cursor: pointer; font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--accent);
+}
+
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; margin-top: 14px; }
 .sch { border: 1px solid var(--line-soft); background: var(--surface); border-radius: var(--r); padding: 15px; }
 .sch h3 { margin: 0 0 3px; font-size: 15px; font-weight: 600; }

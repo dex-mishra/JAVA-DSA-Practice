@@ -406,21 +406,34 @@ def topics_set():
 
 # ---------------------------------------------------------------------------
 # MBA items you add yourself -- on top of the fixed curriculum baked in at
-# build time. Two different needs share one blob:
+# build time. A few different needs share one blob:
 #
-#   items       whole new commitments, e.g. an assistant noticing a school
-#               deadline the static list does not have.
-#   tag_overlay extra tags on ANY item, curriculum or custom -- additive
-#               only, same rule as everywhere else this pattern appears
-#               (rules.py, the overlay the instructions box compiles into):
-#               a tag can be added, never removed, from here.
+#   items          whole new commitments, e.g. an assistant noticing a
+#                  school deadline the static list does not have.
+#   tag_add        extra tags on ANY item, curriculum or custom.
+#   tag_removed    tags suppressed on ANY item, including ones baked in by
+#                  data/mba.json -- removing a curriculum item's own tag
+#                  cannot edit that file, so it is hidden at read time
+#                  instead. add always wins over a stale remove and vice
+#                  versa: each undoes the other for the same tag, so
+#                  toggling back and forth behaves the way it looks like it
+#                  should rather than accumulating contradictory state.
+#   exclude_over   forces an item's excluded flag either way. This is what
+#                  "delete" means for a curriculum item: it ships with the
+#                  site and comes back on the next deploy regardless, so a
+#                  real delete is not on offer -- what is on offer is
+#                  hiding it into the EXCLUDED section, reversibly, which
+#                  is the same place the static "decided against" schools
+#                  already live.
 #
 # The website's own MBA tab bakes data/mba.json into index.html at build
 # time and never called this API at all, which is exactly the bug the
 # Opportunities tab had before it was fixed to fetch live -- an item added
 # here would exist for an assistant to see and nowhere a person would ever
 # look. src/app.js now fetches /api/mba/custom on load and splices the
-# result into the page, the same way it already does for Opportunities.
+# result into the page, the same way it already does for Opportunities --
+# and the page itself now has its own add/tag/hide/delete controls, so none
+# of this needs an assistant at all.
 MBA_CUSTOM_BLOB = "console/mba_custom.json"
 MAX_CUSTOM_MBA = 200
 MAX_TAGS_PER_ITEM = 12
@@ -430,9 +443,15 @@ _DATE_OK = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 def _mba_custom() -> dict:
     doc = read_json_blob(MBA_CUSTOM_BLOB, {}) or {}
+
+    def dict_of(key):
+        return doc.get(key) if isinstance(doc.get(key), dict) else {}
+
     return {
         "items": doc.get("items") if isinstance(doc.get("items"), list) else [],
-        "tag_overlay": doc.get("tag_overlay") if isinstance(doc.get("tag_overlay"), dict) else {},
+        "tag_add": dict_of("tag_add"),
+        "tag_removed": dict_of("tag_removed"),
+        "exclude_over": dict_of("exclude_over"),
     }
 
 
@@ -450,22 +469,34 @@ def _clean_tags(raw) -> list[str]:
 
 
 def _all_mba_items() -> list[dict]:
-    """Curriculum items plus anything added later, tags unioned in. This is
-    the one place both /api/mba (for an assistant) and the site's live
-    splice (for a person) read from, so they cannot drift apart."""
+    """Curriculum items plus anything added later, with every override
+    applied. This is the one place both /api/mba (for an assistant) and the
+    site's live splice (for a person) read from, so they cannot drift apart.
+    """
     custom = _mba_custom()
-    overlay = custom["tag_overlay"]
+    added = custom["tag_add"]
+    removed = custom["tag_removed"]
+    exclude_over = custom["exclude_over"]
 
-    def with_overlay(item: dict, *, source: str) -> dict:
-        extra = overlay.get(item.get("id"), [])
+    def resolve(item: dict, *, source: str) -> dict:
+        item_id = item.get("id")
         tags = list(item.get("tags") or [])
-        for t in extra:
+        for t in added.get(item_id, []):
             if t not in tags:
                 tags.append(t)
-        return {**item, "tags": tags, "source": source}
+        drop = set(removed.get(item_id, []))
+        if drop:
+            tags = [t for t in tags if t not in drop]
+        excluded = item.get("excluded", False)
+        if item_id in exclude_over:
+            excluded = exclude_over[item_id]
+        return {
+            **item, "tags": tags, "excluded": excluded, "source": source,
+            "overridden": item_id in exclude_over,
+        }
 
-    rows = [with_overlay(i, source="curriculum") for i in curriculum()["mba_items"]]
-    rows += [with_overlay(i, source="custom") for i in custom["items"]]
+    rows = [resolve(i, source="curriculum") for i in curriculum()["mba_items"]]
+    rows += [resolve(i, source="custom") for i in custom["items"]]
     return rows
 
 
@@ -482,6 +513,7 @@ def mba_list():
             "tags": i.get("tags", []),
             "excluded": i.get("excluded", False),
             "source": i.get("source", "curriculum"),
+            "overridden": i.get("overridden", False),
             "done": bool(checked.get(i.get("id"))),
         }
         for i in _all_mba_items()
@@ -492,12 +524,11 @@ def mba_list():
 @app.get("/api/mba/custom")
 @protected
 def mba_custom_list():
-    """Just the delta from the baked-in list: new items, and the tag
-    overlay. What the website itself fetches to splice onto the static
-    data it already shipped with, so a custom item shows up where a person
+    """Just the delta from the baked-in list -- new items and every
+    override. What the website itself fetches to splice onto the static
+    data it already shipped with, so a change shows up where a person
     actually looks rather than only where an assistant does."""
-    custom = _mba_custom()
-    return jsonify({"items": custom["items"], "tag_overlay": custom["tag_overlay"]})
+    return jsonify(_mba_custom())
 
 
 @app.post("/api/mba/set")
@@ -556,43 +587,140 @@ def mba_create():
     return jsonify(result), 201
 
 
+def _known_mba_id(item_id: str) -> bool:
+    return any(
+        i.get("id") == item_id
+        for i in curriculum()["mba_items"] + _mba_custom()["items"]
+    )
+
+
 @app.post("/api/mba/tags")
 @protected
 def mba_add_tags():
-    """Add tags to an existing item, curriculum or custom. Additive only --
-    this can never remove a tag the item already has."""
+    """Add tags to an existing item, curriculum or custom."""
     body = request.get_json(silent=True) or {}
     item_id = str(body.get("id", ""))
     new_tags = _clean_tags(body.get("tags"))
     if not new_tags:
         return jsonify({"error": "give at least one tag (lowercase letters, digits, - or _)"}), 400
-    if not any(i.get("id") == item_id for i in curriculum()["mba_items"] + _mba_custom()["items"]):
+    if not _known_mba_id(item_id):
         return jsonify({"error": f"unknown MBA item {item_id!r}"}), 400
 
     def mutate(doc):
-        overlay = doc.get("tag_overlay") if isinstance(doc.get("tag_overlay"), dict) else {}
-        existing = overlay.get(item_id, [])
+        added = doc.get("tag_add") if isinstance(doc.get("tag_add"), dict) else {}
+        removed = doc.get("tag_removed") if isinstance(doc.get("tag_removed"), dict) else {}
+        existing = added.get(item_id, [])
+        still_removed = removed.get(item_id, [])
         for t in new_tags:
             if t not in existing:
                 existing.append(t)
-        overlay[item_id] = existing
-        doc["tag_overlay"] = overlay
+            # Adding a tag undoes a previous removal of that same tag --
+            # otherwise it would be added back on and immediately hidden
+            # again by the leftover removal entry.
+            if t in still_removed:
+                still_removed.remove(t)
+        added[item_id] = existing
+        if still_removed:
+            removed[item_id] = still_removed
+        else:
+            removed.pop(item_id, None)
+        doc["tag_add"] = added
+        doc["tag_removed"] = removed
         return existing
 
     tags = mutate_json_blob(MBA_CUSTOM_BLOB, mutate)
     return jsonify({"id": item_id, "added_tags": tags})
 
 
+@app.post("/api/mba/tags/remove")
+@protected
+def mba_remove_tags():
+    """Remove tags from an item, curriculum or custom -- including a tag
+    the curriculum shipped with. This cannot rewrite data/mba.json, so a
+    baked-in tag is suppressed at read time rather than deleted outright;
+    the effect at the page is identical either way."""
+    body = request.get_json(silent=True) or {}
+    item_id = str(body.get("id", ""))
+    drop_tags = _clean_tags(body.get("tags"))
+    if not drop_tags:
+        return jsonify({"error": "give at least one tag to remove"}), 400
+    if not _known_mba_id(item_id):
+        return jsonify({"error": f"unknown MBA item {item_id!r}"}), 400
+
+    def mutate(doc):
+        added = doc.get("tag_add") if isinstance(doc.get("tag_add"), dict) else {}
+        removed = doc.get("tag_removed") if isinstance(doc.get("tag_removed"), dict) else {}
+        still_added = [t for t in added.get(item_id, []) if t not in drop_tags]
+        if still_added:
+            added[item_id] = still_added
+        else:
+            added.pop(item_id, None)
+        existing = removed.get(item_id, [])
+        for t in drop_tags:
+            if t not in existing:
+                existing.append(t)
+        removed[item_id] = existing
+        doc["tag_add"] = added
+        doc["tag_removed"] = removed
+        return existing
+
+    result = mutate_json_blob(MBA_CUSTOM_BLOB, mutate)
+    return jsonify({"id": item_id, "removed_tags": drop_tags, "now_suppressed": result})
+
+
+@app.post("/api/mba/exclude")
+@protected
+def mba_set_excluded():
+    """Force an item's excluded state either way.
+
+    On a curriculum item this is what "delete" means here -- see the module
+    note above. On a custom item it works the same way rather than needing
+    a real delete, since you might want it out of view without losing it.
+    """
+    body = request.get_json(silent=True) or {}
+    item_id = str(body.get("id", ""))
+    excluded = bool(body.get("excluded", True))
+    if not _known_mba_id(item_id):
+        return jsonify({"error": f"unknown MBA item {item_id!r}"}), 400
+
+    baseline = any(
+        i.get("id") == item_id and i.get("excluded", False)
+        for i in curriculum()["mba_items"] + _mba_custom()["items"]
+    )
+
+    def mutate(doc):
+        over = doc.get("exclude_over") if isinstance(doc.get("exclude_over"), dict) else {}
+        if excluded == baseline:
+            # No override needed to reach the item's own default -- and
+            # dropping the key here is what makes restore idempotent rather
+            # than piling up entries that all mean "back to normal".
+            over.pop(item_id, None)
+        else:
+            over[item_id] = excluded
+        doc["exclude_over"] = over
+        return excluded
+
+    result = mutate_json_blob(MBA_CUSTOM_BLOB, mutate)
+    return jsonify({"id": item_id, "excluded": result})
+
+
 @app.post("/api/mba/delete")
 @protected
 def mba_delete():
-    """Remove a custom item. Curriculum items are not deletable from here --
-    they ship with the site and come back on the next deploy regardless, so
-    deleting one would only be confusing, not permanent."""
+    """Remove an item. A custom one is deleted outright; a curriculum one
+    is hidden instead -- see the module note above for why a real delete
+    is not possible there."""
     body = request.get_json(silent=True) or {}
     item_id = str(body.get("id", ""))
+
     if any(i.get("id") == item_id for i in curriculum()["mba_items"]):
-        return jsonify({"error": "that is a built-in item and cannot be deleted here"}), 400
+        def mutate(doc):
+            over = doc.get("exclude_over") if isinstance(doc.get("exclude_over"), dict) else {}
+            over[item_id] = True
+            doc["exclude_over"] = over
+
+        mutate_json_blob(MBA_CUSTOM_BLOB, mutate)
+        return jsonify({"hidden": item_id})
 
     def mutate(doc):
         items = doc.get("items") if isinstance(doc.get("items"), list) else []
@@ -600,9 +728,10 @@ def mba_delete():
         if len(kept) == len(items):
             return False
         doc["items"] = kept
-        overlay = doc.get("tag_overlay") if isinstance(doc.get("tag_overlay"), dict) else {}
-        overlay.pop(item_id, None)
-        doc["tag_overlay"] = overlay
+        for key in ("tag_add", "tag_removed", "exclude_over"):
+            section = doc.get(key) if isinstance(doc.get(key), dict) else {}
+            section.pop(item_id, None)
+            doc[key] = section
         return True
 
     found = mutate_json_blob(MBA_CUSTOM_BLOB, mutate)
@@ -1577,6 +1706,7 @@ def _mcp_mba():
             {"id": i.get("id"), "task": i.get("task"), "date": i.get("date", ""),
              "phase": i.get("phase"), "tags": i.get("tags", []),
              "excluded": i.get("excluded", False), "source": i.get("source", "curriculum"),
+             "overridden": i.get("overridden", False),
              "done": bool(checked.get(i.get("id")))}
             for i in _all_mba_items()
         ]
@@ -1617,6 +1747,22 @@ def _mcp_add_mba_tags(item_id, tags):
 def _mcp_delete_mba_item(item_id):
     with app.test_request_context(json={"id": item_id}):
         result = mba_delete()
+        body, status = (result if isinstance(result, tuple) else (result, 200))
+        payload = body.get_json()
+        return payload if status < 400 else {"error": payload.get("error", "failed")}
+
+
+def _mcp_remove_mba_tags(item_id, tags):
+    with app.test_request_context(json={"id": item_id, "tags": tags}):
+        result = mba_remove_tags()
+        body, status = (result if isinstance(result, tuple) else (result, 200))
+        payload = body.get_json()
+        return payload if status < 400 else {"error": payload.get("error", "failed")}
+
+
+def _mcp_restore_mba_item(item_id):
+    with app.test_request_context(json={"id": item_id, "excluded": False}):
+        result = mba_set_excluded()
         body, status = (result if isinstance(result, tuple) else (result, 200))
         payload = body.get_json()
         return payload if status < 400 else {"error": payload.get("error", "failed")}
@@ -1749,7 +1895,9 @@ app.register_blueprint(
             "set_mba": _mcp_set_mba,
             "add_mba_item": _mcp_add_mba_item,
             "add_mba_tags": _mcp_add_mba_tags,
+            "remove_mba_tags": _mcp_remove_mba_tags,
             "delete_mba_item": _mcp_delete_mba_item,
+            "restore_mba_item": _mcp_restore_mba_item,
             "goals": _mcp_goals,
             "create_goal": _mcp_create_goal,
             "update_goal": _mcp_update_goal,

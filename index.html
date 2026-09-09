@@ -405,6 +405,36 @@ nav.tabs::-webkit-scrollbar { display: none; }
 .tag.oneshot { border-color: var(--crit); color: var(--crit); }
 .tag.verify { border-color: var(--amber); color: var(--amber); }
 
+/* Manual MBA editing -- add/remove tags, hide/delete/restore an item, add
+   a whole new one. Collapsed behind <details> so the common case (ticking
+   things off) stays as dense as before; opening one reveals the rest. */
+.mba-item { border-bottom: 1px solid var(--line-soft); }
+.mba-item .row { border-bottom: 0; }
+.mba-edit summary {
+  cursor: pointer; font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3); padding: 0 14px 8px 40px; user-select: none;
+}
+.mba-edit summary:hover { color: var(--accent); }
+.mba-edit .edit-body {
+  padding: 4px 14px 12px 40px; display: flex; flex-direction: column; gap: 8px;
+}
+.edit-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.tag.x-tag {
+  appearance: none; cursor: pointer; background: var(--surface); font: inherit;
+}
+.tag.x-tag:hover { border-color: var(--crit); color: var(--crit); }
+.edit-tag-input, .mba-add input {
+  font-family: var(--display); font-size: 12.5px; padding: 7px 9px; border-radius: var(--r);
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); min-width: 0;
+}
+.edit-tag-input { flex: 1; min-width: 100px; }
+.mba-add .edit-body input { width: 100%; box-sizing: border-box; }
+.mba-add .edit-row input { flex: 1; }
+.mba-add summary {
+  cursor: pointer; font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--accent);
+}
+
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; margin-top: 14px; }
 .sch { border: 1px solid var(--line-soft); background: var(--surface); border-radius: var(--r); padding: 15px; }
 .sch h3 { margin: 0 0 3px; font-size: 15px; font-weight: 600; }
@@ -739,7 +769,13 @@ ul.reports li { gap: 10px; }
 
   var DATA = window.__DATA__ || {};
   var PL = DATA.placement || { ranks: [], tracks: [], badges: [] };
-  var MBA = DATA.mba || { phases: [], schools: [], excluded: [] };
+  // Pristine, never mutated -- every server delta is re-applied onto a
+  // fresh clone of this rather than onto its own previous output, so
+  // re-applying after a second edit cannot compound (move an item twice,
+  // duplicate a pushed tag) the way repeatedly mutating one shared object
+  // in place would.
+  var MBA_BASE = DATA.mba || { phases: [], schools: [], excluded: [] };
+  var MBA = MBA_BASE;
   /* Filled from the agent's live career feed at boot. The baked value is
      only a fallback for opening this file without a server -- the real
      source is gs://<bucket>/career/opportunities.json, which the agent
@@ -1594,35 +1630,62 @@ ul.reports li { gap: 10px; }
       "</div></div>";
   }
 
+  var TAG_LABELS = {
+    confirmed: ["confirmed", "Confirmed date"],
+    projected: ["projected", "Projected — verify"],
+    oneshot: ["oneshot", "One shot only"],
+    verify: ["verify", "Verification task"],
+    action: ["", "Action"]
+  };
+
   function mbaRow(m) {
     var it = m.item;
     var dd = it.date ? daysUntil(it.date) : null;
     var lv = level(dd);
     var on = !!S.mba[it.id];
     var tags = (it.tags || []).map(function (tg) {
-      var map = {
-        confirmed: ["confirmed", "Confirmed date"],
-        projected: ["projected", "Projected — verify"],
-        oneshot: ["oneshot", "One shot only"],
-        verify: ["verify", "Verification task"],
-        action: ["", "Action"]
-      };
-      // A tag outside this fixed set -- one an assistant added via
-      // add_mba_tags, most likely -- still gets a pill, just an unstyled
-      // one showing its own text. Dropping it silently would mean "add
-      // tags" stored the tag but never actually showed it anywhere.
-      if (map[tg]) return '<span class="tag ' + map[tg][0] + '">' + map[tg][1] + "</span>";
+      var known = TAG_LABELS[tg];
+      // A tag outside this fixed set -- one added through the edit panel
+      // below, or an assistant's add_mba_tags -- still gets a pill, just
+      // an unstyled one showing its own text. Dropping it silently would
+      // mean "add a tag" stored the tag and then showed nothing.
+      if (known) return '<span class="tag ' + known[0] + '">' + known[1] + "</span>";
       return '<span class="tag">' + esc(tg) + "</span>";
     }).join("");
 
-    return '<div class="row ' + lv + (on ? " on" : "") + '" data-mba="' + esc(it.id) + '">' +
+    var custom = it.source === "custom";
+    var editTags = (it.tags || []).map(function (tg) {
+      var label = TAG_LABELS[tg] ? TAG_LABELS[tg][1] : tg;
+      return '<button type="button" class="tag x-tag" data-mba-tagdel="' +
+        esc(it.id) + "::" + esc(tg) + '">' + esc(label) + " ✕</button>";
+    }).join("");
+    var editActions = m.excluded
+      ? '<button type="button" class="btn tiny" data-mba-restore="' + esc(it.id) + '">Restore</button>' +
+        (custom
+          ? '<button type="button" class="btn tiny danger" data-mba-forcedelete="' + esc(it.id) +
+            '">Delete forever</button>'
+          : "")
+      : '<button type="button" class="btn tiny danger" data-mba-hide="' + esc(it.id) + '">' +
+        (custom ? "Delete" : "Hide") + "</button>";
+
+    return '<div class="mba-item">' +
+      '<div class="row ' + lv + (on ? " on" : "") + '" data-mba="' + esc(it.id) + '">' +
       '<span class="box"></span><div class="rbody">' +
       '<div class="rtask">' + esc(it.task) + "</div>" +
       (it.note ? '<div class="rnote">' + esc(it.note) + "</div>" : "") +
       '<div class="rmeta">' +
       (it.date ? '<span class="rdate">' + fmtDate(it.date) + "</span>" +
         '<span class="rt ' + lv + '">' + tminus(dd) + "</span>" : '<span class="rt cool">NO DATE</span>') +
-      tags + "</div></div></div>";
+      tags + "</div></div></div>" +
+      '<details class="mba-edit"><summary>Edit</summary><div class="edit-body">' +
+      (editTags || '<span class="muted tiny">No tags yet.</span>') +
+      '<div class="edit-row">' +
+      '<input type="text" class="edit-tag-input" placeholder="add a tag" maxlength="24" data-mba-taginput="' +
+        esc(it.id) + '">' +
+      '<button type="button" class="btn tiny" data-mba-addtag="' + esc(it.id) + '">Add tag</button>' +
+      "</div>" +
+      '<div class="edit-row">' + editActions + "</div>" +
+      "</div></details></div>";
   }
 
   function renderMba() {
@@ -1642,6 +1705,17 @@ ul.reports li { gap: 10px; }
       "the Ivy League literally would have cut Stanford GSB, MIT Sloan, Chicago Booth and " +
       "Berkeley Haas, which are four of the five strongest entrepreneurship schools in the US. " +
       "The target set is M7 plus Berkeley Haas, plus Yale and IESE for structural reasons.</p></div>";
+
+    html += '<details class="card mba-add"><summary>+ Add an MBA item</summary>' +
+      '<div class="edit-body">' +
+      '<input type="text" id="mbaNewTask" placeholder="What needs doing" maxlength="300">' +
+      '<div class="edit-row">' +
+      '<input type="date" id="mbaNewDate">' +
+      '<input type="text" id="mbaNewPhase" placeholder="Phase (optional)" maxlength="60">' +
+      "</div>" +
+      '<input type="text" id="mbaNewTags" placeholder="Tags, comma separated (optional)">' +
+      '<div class="edit-row"><button type="button" class="btn primary tiny" id="mbaNewSubmit">Add</button></div>' +
+      "</div></details>";
 
     MBA.phases.forEach(function (p) {
       html += '<section class="phase"><div class="phase-hd">' +
@@ -2304,6 +2378,91 @@ ul.reports li { gap: 10px; }
       };
     });
 
+    // MBA manual editing -- add/remove tags, hide or delete an item,
+    // restore one out of EXCLUDED, and the "+ Add an MBA item" form. Every
+    // action here writes through the API and then refetches the delta
+    // (refreshMbaCustom), rather than patching MBA locally, so this view
+    // always ends up agreeing with whatever an assistant or another tab
+    // did in the meantime.
+    document.querySelectorAll("[data-mba-tagdel]").forEach(function (b) {
+      b.onclick = function () {
+        var parts = b.dataset.mbaTagdel.split("::");
+        b.disabled = true;
+        api("/api/mba/tags/remove", { method: "POST", body: JSON.stringify({ id: parts[0], tags: [parts[1]] }) })
+          .then(function () { refreshMbaCustom(); })
+          .catch(function (e) { toast("Could not remove the tag: " + e.message); b.disabled = false; });
+      };
+    });
+
+    document.querySelectorAll("[data-mba-addtag]").forEach(function (b) {
+      b.onclick = function () {
+        var id = b.dataset.mbaAddtag;
+        var input = document.querySelector('[data-mba-taginput="' + id + '"]');
+        var tag = (input.value || "").trim().toLowerCase();
+        if (!tag) return;
+        b.disabled = true;
+        api("/api/mba/tags", { method: "POST", body: JSON.stringify({ id: id, tags: [tag] }) })
+          .then(function () { refreshMbaCustom(); })
+          .catch(function (e) { toast("Could not add the tag: " + e.message); b.disabled = false; });
+      };
+      var input = document.querySelector('[data-mba-taginput="' + b.dataset.mbaAddtag + '"]');
+      if (input) input.onkeydown = function (e) { if (e.key === "Enter") { e.preventDefault(); b.click(); } };
+    });
+
+    document.querySelectorAll("[data-mba-hide]").forEach(function (b) {
+      b.onclick = function () {
+        var id = b.dataset.mbaHide;
+        b.disabled = true;
+        api("/api/mba/delete", { method: "POST", body: JSON.stringify({ id: id }) })
+          .then(function (r) {
+            toast(r.deleted ? "Deleted." : "Hidden — Restore brings it back.");
+            refreshMbaCustom();
+          })
+          .catch(function (e) { toast("Could not remove it: " + e.message); b.disabled = false; });
+      };
+    });
+
+    document.querySelectorAll("[data-mba-restore]").forEach(function (b) {
+      b.onclick = function () {
+        var id = b.dataset.mbaRestore;
+        b.disabled = true;
+        api("/api/mba/exclude", { method: "POST", body: JSON.stringify({ id: id, excluded: false }) })
+          .then(function () { refreshMbaCustom(); })
+          .catch(function (e) { toast("Could not restore it: " + e.message); b.disabled = false; });
+      };
+    });
+
+    document.querySelectorAll("[data-mba-forcedelete]").forEach(function (b) {
+      b.onclick = function () {
+        var id = b.dataset.mbaForcedelete;
+        if (!confirm("Delete this for good? This cannot be undone.")) return;
+        b.disabled = true;
+        api("/api/mba/delete", { method: "POST", body: JSON.stringify({ id: id }) })
+          .then(function () { refreshMbaCustom(); })
+          .catch(function (e) { toast("Could not delete it: " + e.message); b.disabled = false; });
+      };
+    });
+
+    var mbaSubmit = document.getElementById("mbaNewSubmit");
+    if (mbaSubmit) mbaSubmit.onclick = function () {
+      var task = (document.getElementById("mbaNewTask").value || "").trim();
+      if (!task) { toast("Say what needs doing first."); return; }
+      var tags = (document.getElementById("mbaNewTags").value || "")
+        .split(",").map(function (t) { return t.trim().toLowerCase(); }).filter(Boolean);
+      mbaSubmit.disabled = true;
+      api("/api/mba/create", {
+        method: "POST",
+        body: JSON.stringify({
+          task: task,
+          date: document.getElementById("mbaNewDate").value || "",
+          phase: (document.getElementById("mbaNewPhase").value || "").trim(),
+          tags: tags
+        })
+      })
+        .then(function () { toast("Added."); refreshMbaCustom(); })
+        .catch(function (e) { toast("Could not add it: " + e.message); mbaSubmit.disabled = false; });
+    };
+
     document.querySelectorAll("[data-oppcal]").forEach(function (b) {
       b.onclick = function () {
         var o = OPPS.find(function (x) { return x.id === b.dataset.oppcal; });
@@ -2427,40 +2586,111 @@ ul.reports li { gap: 10px; }
       })
       .catch(function () { /* keep the baked fallback */ });
 
-    /* MBA items and tags added later than the build -- via the assistant's
-       add_mba_item / add_mba_tags, most likely. The build baked data/mba.json
-       into this page; this splices in whatever exists beyond that, so an
-       item added through the MCP connector shows up here too rather than
-       only in an assistant's own answers. Same shape of fix as OPPS above. */
-    fetch("/api/mba/custom")
+    refreshMbaCustom();
+  }
+
+  /* Items added and overrides applied later than the build -- through the
+     manual editor on this page, or through an assistant's add_mba_item /
+     add_mba_tags over MCP. The build baked data/mba.json into this page;
+     this fetches whatever exists beyond that and rebuilds MBA from
+     MBA_BASE plus the fetched delta, so a change made either way shows up
+     here rather than only in an assistant's own answers. Same shape of
+     fix as OPPS above.
+
+     Called again after every edit made from this page, rather than
+     patching MBA locally -- the server is the one place tag_add,
+     tag_removed and exclude_over actually get reconciled (add undoing a
+     stale remove and back), so re-fetching is the only way this view is
+     guaranteed to agree with what a second tab, or an assistant, sees. */
+  function refreshMbaCustom() {
+    return fetch("/api/mba/custom")
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(function (r) {
-        var overlay = (r && r.tag_overlay) || {};
-        var added = (r && r.items) || [];
-        if (!Object.keys(overlay).length && !added.length) return;
-
-        function addOverlayTags(it) {
-          var extra = overlay[it.id];
-          if (!extra || !extra.length) return;
-          var tags = it.tags || (it.tags = []);
-          extra.forEach(function (t) { if (tags.indexOf(t) === -1) tags.push(t); });
-        }
-        MBA.phases.forEach(function (p) { (p.items || []).forEach(addOverlayTags); });
-        (MBA.excluded || []).forEach(addOverlayTags);
-
-        var live = added.filter(function (it) { return !it.excluded; });
-        var excluded = added.filter(function (it) { return it.excluded; });
-        if (live.length) {
-          MBA.phases.push({ n: "CUSTOM", t: "Added later", when: "No fixed cycle", items: live });
-        }
-        if (excluded.length) {
-          MBA.excluded = (MBA.excluded || []).concat(excluded);
-        }
-
+      .then(function (delta) {
+        MBA = applyMbaDelta(delta);
         rebuildMbaItems();
         render();
       })
-      .catch(function () { /* keep the baked list; nothing added yet, or unreachable */ });
+      .catch(function () { /* keep whatever MBA already held */ });
+  }
+
+  function cloneMbaBase() {
+    return {
+      phases: (MBA_BASE.phases || []).map(function (p) {
+        return Object.assign({}, p, {
+          items: (p.items || []).map(function (it) {
+            return Object.assign({}, it, { tags: (it.tags || []).slice() });
+          })
+        });
+      }),
+      schools: MBA_BASE.schools || [],
+      excluded: (MBA_BASE.excluded || []).map(function (it) {
+        return Object.assign({}, it, { tags: (it.tags || []).slice() });
+      })
+    };
+  }
+
+  function applyMbaDelta(delta) {
+    var next = cloneMbaBase();
+    var added = (delta && delta.tag_add) || {};
+    var removed = (delta && delta.tag_removed) || {};
+    var over = (delta && delta.exclude_over) || {};
+    var newItems = ((delta && delta.items) || []).map(function (it) {
+      return Object.assign({ tags: [] }, it, { tags: (it.tags || []).slice(), source: "custom" });
+    });
+
+    function resolveTags(it) {
+      var extra = added[it.id];
+      if (extra && extra.length) {
+        extra.forEach(function (t) { if (it.tags.indexOf(t) === -1) it.tags.push(t); });
+      }
+      var drop = removed[it.id];
+      if (drop && drop.length) {
+        it.tags = it.tags.filter(function (t) { return drop.indexOf(t) === -1; });
+      }
+    }
+    function finalExcluded(it) {
+      return Object.prototype.hasOwnProperty.call(over, it.id) ? over[it.id] : !!it.excluded;
+    }
+
+    next.phases.forEach(function (p) {
+      p.items.forEach(function (it) { it.source = "curriculum"; resolveTags(it); });
+    });
+    next.excluded.forEach(function (it) { it.source = "curriculum"; resolveTags(it); });
+
+    // Move anything an override forces the other way: out of its phase and
+    // into EXCLUDED, or out of EXCLUDED into a holding section -- static
+    // data has no phase to put a restored item back into, so it gets its
+    // own section rather than a guessed one.
+    var toHide = Object.keys(over).filter(function (id) { return over[id]; });
+    var toShow = Object.keys(over).filter(function (id) { return !over[id]; });
+
+    var pulledOut = [];
+    next.phases.forEach(function (p) {
+      p.items = p.items.filter(function (it) {
+        if (toHide.indexOf(it.id) === -1) return true;
+        pulledOut.push(it);
+        return false;
+      });
+    });
+    next.excluded = next.excluded.concat(pulledOut);
+
+    var restored = [];
+    next.excluded = next.excluded.filter(function (it) {
+      if (toShow.indexOf(it.id) === -1) return true;
+      restored.push(it);
+      return false;
+    });
+
+    var liveCustom = newItems.filter(function (it) { return !finalExcluded(it); });
+    var exclCustom = newItems.filter(finalExcluded);
+
+    var extra = liveCustom.concat(restored);
+    if (extra.length) {
+      next.phases.push({ n: "CUSTOM", t: "Added or brought back", when: "No fixed cycle", items: extra });
+    }
+    next.excluded = next.excluded.concat(exclCustom);
+
+    return next;
   }
 
   if (document.readyState === "loading") {

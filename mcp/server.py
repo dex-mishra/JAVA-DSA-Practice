@@ -39,10 +39,10 @@ mcp = FastMCP(
         "about one as though it were about the other.\n\n"
         "1. A placement/MBA progress tracker: get_overview, list_topics, "
         "set_topics_done, list_mba_items, set_mba_item_done, add_mba_item, "
-        "add_mba_tags, delete_mba_item, list_goals, create_goal, "
-        "update_goal, list_opportunities. Ticking a box, adding an MBA "
-        "item or tagging one means one of these -- never an email_agent_ "
-        "tool.\n\n"
+        "add_mba_tags, remove_mba_tags, delete_mba_item, restore_mba_item, "
+        "list_goals, create_goal, update_goal, list_opportunities. Ticking "
+        "a box, adding or removing an MBA item or tag means one of these "
+        "-- never an email_agent_ tool.\n\n"
         "2. An inbox email agent that reads Gmail and sends summaries -- "
         "every tool for it is prefixed email_agent_ (settings, status, "
         "calendar_proposals, add_calendar_event, run, set_instructions). "
@@ -190,18 +190,40 @@ def add_mba_item(task: str, date: str = "", phase: str = "", tags: list[str] | N
 def add_mba_tags(item_id: str, tags: list[str]) -> dict:
     """Add tags to an MBA item, built-in or custom, by id.
 
-    Additive only -- this can add a tag but never remove one already there.
-    Lowercase letters, digits, - and _ only."""
+    Lowercase letters, digits, - and _ only. To remove a tag instead, use
+    remove_mba_tags."""
     return _call("POST", "/api/mba/tags", json={"id": item_id, "tags": tags})
 
 
 @mcp.tool()
-def delete_mba_item(item_id: str) -> dict:
-    """Remove a custom MBA item you added, by id.
+def remove_mba_tags(item_id: str, tags: list[str]) -> dict:
+    """Remove tags from an MBA item, built-in or custom, by id -- including
+    a tag the built-in list shipped with.
 
-    Only works on items with source="custom" -- the built-in list ships
-    with the site and cannot be deleted from here."""
+    That cannot rewrite the built-in data, so the tag is hidden rather than
+    deleted; it looks identical either way."""
+    return _call("POST", "/api/mba/tags/remove", json={"id": item_id, "tags": tags})
+
+
+@mcp.tool()
+def delete_mba_item(item_id: str) -> dict:
+    """Remove an MBA item by id.
+
+    A custom item you added is deleted outright. A built-in item ships
+    with the site and comes back on the next deploy regardless, so it is
+    instead moved into the EXCLUDED section -- reversible with
+    restore_mba_item."""
     return _call("POST", "/api/mba/delete", json={"id": item_id})
+
+
+@mcp.tool()
+def restore_mba_item(item_id: str) -> dict:
+    """Undo delete_mba_item on a built-in item -- brings it back out of the
+    EXCLUDED section.
+
+    Has no effect on a custom item, which was deleted outright rather than
+    hidden."""
+    return _call("POST", "/api/mba/exclude", json={"id": item_id, "excluded": False})
 
 
 @mcp.tool()

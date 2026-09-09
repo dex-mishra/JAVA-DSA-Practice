@@ -212,21 +212,91 @@ class AddingTags(MbaCustomBase):
         self.assertEqual(resp.status_code, 400)
 
 
+class RemovingTags(MbaCustomBase):
+    """The gap this session actually closes: add_mba_tags only ever added.
+    A curriculum item's own baked-in tag could not be touched at all."""
+
+    def test_a_baked_in_tag_can_be_removed(self):
+        with self.client() as c:
+            before = next(i for i in c.get("/api/mba").get_json()["items"] if i["id"] == self.a_real_id)
+            baked_tag = before["tags"][0]
+            resp = c.post("/api/mba/tags/remove", json={"id": self.a_real_id, "tags": [baked_tag]})
+            self.assertEqual(resp.status_code, 200, resp.get_data(as_text=True))
+            after = next(i for i in c.get("/api/mba").get_json()["items"] if i["id"] == self.a_real_id)
+        self.assertNotIn(baked_tag, after["tags"])
+
+    def test_an_overlay_added_tag_can_be_removed_too(self):
+        with self.client() as c:
+            c.post("/api/mba/tags", json={"id": self.a_real_id, "tags": ["temp"]})
+            c.post("/api/mba/tags/remove", json={"id": self.a_real_id, "tags": ["temp"]})
+            row = next(i for i in c.get("/api/mba").get_json()["items"] if i["id"] == self.a_real_id)
+        self.assertNotIn("temp", row["tags"])
+
+    def test_removing_then_re_adding_the_same_tag_brings_it_back(self):
+        """Add always wins over a stale removal for the same tag -- the
+        alternative is a tag you can add but that never actually shows up
+        because an old removal entry is still silently suppressing it."""
+        with self.client() as c:
+            before = next(i for i in c.get("/api/mba").get_json()["items"] if i["id"] == self.a_real_id)
+            baked_tag = before["tags"][0]
+            c.post("/api/mba/tags/remove", json={"id": self.a_real_id, "tags": [baked_tag]})
+            c.post("/api/mba/tags", json={"id": self.a_real_id, "tags": [baked_tag]})
+            after = next(i for i in c.get("/api/mba").get_json()["items"] if i["id"] == self.a_real_id)
+        self.assertIn(baked_tag, after["tags"])
+        self.assertNotIn(self.a_real_id, self.custom_blob().get("tag_removed", {}))
+
+    def test_other_curriculum_items_are_unaffected(self):
+        """A removal is scoped to one item's tags -- not to the tag name
+        globally, which would silently strip it from everything else that
+        happens to share it."""
+        other_id = next(
+            i["id"] for i in main.curriculum()["mba_items"]
+            if i["id"] != self.a_real_id and "action" in (i.get("tags") or [])
+        )
+        with self.client() as c:
+            c.post("/api/mba/tags/remove", json={"id": self.a_real_id, "tags": ["action"]})
+            other = next(i for i in c.get("/api/mba").get_json()["items"] if i["id"] == other_id)
+        self.assertIn("action", other["tags"])
+
+    def test_an_unknown_id_is_refused(self):
+        with self.client() as c:
+            resp = c.post("/api/mba/tags/remove", json={"id": "nope", "tags": ["x"]})
+        self.assertEqual(resp.status_code, 400)
+
+    def test_at_least_one_valid_tag_is_required(self):
+        with self.client() as c:
+            resp = c.post("/api/mba/tags/remove", json={"id": self.a_real_id, "tags": ["Has Space"]})
+        self.assertEqual(resp.status_code, 400)
+
+
 class DeletingItems(MbaCustomBase):
     def test_a_custom_item_can_be_deleted(self):
         with self.client() as c:
             created = c.post("/api/mba/create", json={"task": "oops"}).get_json()
             resp = c.post("/api/mba/delete", json={"id": created["id"]})
             self.assertEqual(resp.status_code, 200)
+            self.assertEqual(resp.get_json(), {"deleted": created["id"]})
             ids = [i["id"] for i in c.get("/api/mba").get_json()["items"]]
         self.assertNotIn(created["id"], ids)
 
-    def test_a_curriculum_item_cannot_be_deleted(self):
+    def test_a_curriculum_item_is_hidden_rather_than_deleted(self):
+        """A real delete would only come back on the next deploy, so
+        'delete' on a baked-in item means moving it into EXCLUDED instead
+        -- reversibly, via restore."""
         with self.client() as c:
             resp = c.post("/api/mba/delete", json={"id": self.a_real_id})
-            self.assertEqual(resp.status_code, 400)
-            ids = [i["id"] for i in c.get("/api/mba").get_json()["items"]]
-        self.assertIn(self.a_real_id, ids, "a curriculum item was deleted")
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(resp.get_json(), {"hidden": self.a_real_id})
+            row = next(i for i in c.get("/api/mba").get_json()["items"] if i["id"] == self.a_real_id)
+        self.assertTrue(row["excluded"])
+        self.assertTrue(row["overridden"])
+
+    def test_restoring_a_hidden_curriculum_item_brings_it_back(self):
+        with self.client() as c:
+            c.post("/api/mba/delete", json={"id": self.a_real_id})
+            c.post("/api/mba/exclude", json={"id": self.a_real_id, "excluded": False})
+            row = next(i for i in c.get("/api/mba").get_json()["items"] if i["id"] == self.a_real_id)
+        self.assertFalse(row["excluded"])
 
     def test_deleting_clears_its_progress_tick(self):
         """Otherwise a done=true entry for an id nothing points at anymore
@@ -243,30 +313,62 @@ class DeletingItems(MbaCustomBase):
             resp = c.post("/api/mba/delete", json={"id": "cmdoesnotexist"})
         self.assertEqual(resp.status_code, 404)
 
-    def test_its_tag_overlay_is_cleaned_up_too(self):
+    def test_its_overrides_are_cleaned_up_too(self):
         with self.client() as c:
             created = c.post("/api/mba/create", json={"task": "x"}).get_json()
             c.post("/api/mba/tags", json={"id": created["id"], "tags": ["temp"]})
             c.post("/api/mba/delete", json={"id": created["id"]})
-        self.assertNotIn(created["id"], self.custom_blob().get("tag_overlay", {}))
+        blob = self.custom_blob()
+        self.assertNotIn(created["id"], blob.get("tag_add", {}))
+        self.assertNotIn(created["id"], blob.get("exclude_over", {}))
+
+
+class ExcludingDirectly(MbaCustomBase):
+    """/api/mba/exclude, the general form delete_mba_item and
+    restore_mba_item are both built from."""
+
+    def test_forcing_excluded_true_on_an_active_item(self):
+        with self.client() as c:
+            c.post("/api/mba/exclude", json={"id": self.a_real_id, "excluded": True})
+            row = next(i for i in c.get("/api/mba").get_json()["items"] if i["id"] == self.a_real_id)
+        self.assertTrue(row["excluded"])
+
+    def test_forcing_back_to_the_baseline_drops_the_override(self):
+        """Setting excluded to whatever the item's own default already is
+        should not leave a redundant override sitting in the blob -- that
+        is what makes restore idempotent rather than accumulating state."""
+        with self.client() as c:
+            c.post("/api/mba/exclude", json={"id": self.a_real_id, "excluded": True})
+            c.post("/api/mba/exclude", json={"id": self.a_real_id, "excluded": False})
+        self.assertNotIn(self.a_real_id, self.custom_blob().get("exclude_over", {}))
+
+    def test_a_custom_item_can_be_excluded_without_deleting_it(self):
+        with self.client() as c:
+            created = c.post("/api/mba/create", json={"task": "x"}).get_json()
+            c.post("/api/mba/exclude", json={"id": created["id"], "excluded": True})
+            row = next(i for i in c.get("/api/mba").get_json()["items"] if i["id"] == created["id"])
+        self.assertTrue(row["excluded"])
+        self.assertEqual(row["source"], "custom")
 
 
 class TheDeltaEndpoint(MbaCustomBase):
     """What the website itself fetches to splice onto its build-time data."""
 
-    def test_it_returns_just_the_added_items_and_overlay(self):
+    def test_it_returns_the_added_items_and_every_override(self):
         with self.client() as c:
             c.post("/api/mba/create", json={"task": "new one"})
             c.post("/api/mba/tags", json={"id": self.a_real_id, "tags": ["flag"]})
+            c.post("/api/mba/exclude", json={"id": self.a_real_id, "excluded": True})
             delta = c.get("/api/mba/custom").get_json()
         self.assertEqual(len(delta["items"]), 1)
         self.assertEqual(delta["items"][0]["task"], "new one")
-        self.assertEqual(delta["tag_overlay"][self.a_real_id], ["flag"])
+        self.assertEqual(delta["tag_add"][self.a_real_id], ["flag"])
+        self.assertIs(delta["exclude_over"][self.a_real_id], True)
 
     def test_empty_before_anything_is_added(self):
         with self.client() as c:
             delta = c.get("/api/mba/custom").get_json()
-        self.assertEqual(delta, {"items": [], "tag_overlay": {}})
+        self.assertEqual(delta, {"items": [], "tag_add": {}, "tag_removed": {}, "exclude_over": {}})
 
 
 class McpToolNames(unittest.TestCase):
@@ -296,7 +398,10 @@ class McpToolNames(unittest.TestCase):
             self.assertIn(new_name, self.source)
 
     def test_the_new_mba_tools_are_registered(self):
-        for name in ('"add_mba_item"', '"add_mba_tags"', '"delete_mba_item"'):
+        for name in (
+            '"add_mba_item"', '"add_mba_tags"', '"remove_mba_tags"',
+            '"delete_mba_item"', '"restore_mba_item"',
+        ):
             self.assertIn(name, self.source)
 
     def test_initialize_states_the_two_systems(self):
@@ -335,7 +440,9 @@ class McpEndToEnd(unittest.TestCase):
         self.assertNotIn("get_agent_status", names)
         self.assertIn("add_mba_item", names)
         self.assertIn("add_mba_tags", names)
+        self.assertIn("remove_mba_tags", names)
         self.assertIn("delete_mba_item", names)
+        self.assertIn("restore_mba_item", names)
 
     def test_add_mba_item_over_json_rpc_actually_persists(self):
         result = self.rpc(
@@ -345,6 +452,40 @@ class McpEndToEnd(unittest.TestCase):
         self.assertFalse(result["isError"], result)
         listed = self.rpc("tools/call", {"name": "list_mba_items", "arguments": {}})["result"]
         self.assertIn("call the recommender", listed["content"][0]["text"])
+
+    def mba_items_by_id(self):
+        listed = self.rpc("tools/call", {"name": "list_mba_items", "arguments": {}})
+        payload = json.loads(listed["result"]["content"][0]["text"])
+        return {i["id"]: i for i in payload["items"]}
+
+    def test_delete_then_restore_a_curriculum_item_round_trips_over_json_rpc(self):
+        """The exact complaint this session started from: a pre-existing
+        item could not be deleted at all. Now it can, and reversibly."""
+        real_id = main.curriculum()["mba_items"][0]["id"]
+
+        deleted = self.rpc(
+            "tools/call", {"name": "delete_mba_item", "arguments": {"item_id": real_id}}
+        )["result"]
+        self.assertFalse(deleted["isError"], deleted)
+        self.assertEqual(json.loads(deleted["content"][0]["text"]), {"hidden": real_id})
+        self.assertTrue(self.mba_items_by_id()[real_id]["excluded"])
+
+        restored = self.rpc(
+            "tools/call", {"name": "restore_mba_item", "arguments": {"item_id": real_id}}
+        )["result"]
+        self.assertFalse(restored["isError"], restored)
+        self.assertFalse(self.mba_items_by_id()[real_id]["excluded"])
+
+    def test_remove_mba_tags_over_json_rpc_actually_persists(self):
+        real_id = main.curriculum()["mba_items"][0]["id"]
+        baked_tag = main.curriculum()["mba_items"][0]["tags"][0]
+
+        result = self.rpc(
+            "tools/call",
+            {"name": "remove_mba_tags", "arguments": {"item_id": real_id, "tags": [baked_tag]}},
+        )["result"]
+        self.assertFalse(result["isError"], result)
+        self.assertNotIn(baked_tag, self.mba_items_by_id()[real_id]["tags"])
 
     def test_a_typo_d_old_tool_name_gets_a_clean_error_not_a_silent_wrong_call(self):
         result = self.rpc(
