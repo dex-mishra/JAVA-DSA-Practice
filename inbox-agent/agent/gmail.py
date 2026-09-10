@@ -20,6 +20,7 @@ from email.utils import parsedate_to_datetime
 from html.parser import HTMLParser
 from typing import Any, Iterable
 
+from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.cloud import secretmanager
 from google.oauth2.credentials import Credentials
@@ -144,6 +145,18 @@ class Message:
         return f"{self.subject}\n{self.sender}\n{self.snippet}".lower()
 
 
+class TokenExpired(RuntimeError):
+    """The stored refresh token no longer works, with what to do about it.
+
+    Worth its own type because the overwhelmingly likely cause has a
+    specific fix that the raw `invalid_grant` gives no hint of: an OAuth
+    client left in **Testing** publishing status has its refresh tokens
+    expired by Google after seven days, whatever the app does. That is a
+    setup mistake that presents as the agent working for a week and then
+    every single run dying at once.
+    """
+
+
 def load_credentials(project: str, secret_name: str) -> Credentials:
     """Pull the stored OAuth bundle out of Secret Manager and refresh it."""
     client = secretmanager.SecretManagerServiceClient()
@@ -159,7 +172,18 @@ def load_credentials(project: str, secret_name: str) -> Credentials:
         token_uri=info.get("token_uri", "https://oauth2.googleapis.com/token"),
         scopes=info.get("scopes", SCOPES_READ_MODIFY),
     )
-    creds.refresh(Request())
+    try:
+        creds.refresh(Request())
+    except RefreshError as exc:
+        if "invalid_grant" in str(exc).lower():
+            raise TokenExpired(
+                f"the saved token for {secret_name} no longer works ({exc}). "
+                "Almost always this means the OAuth client is still in Testing "
+                "mode, where Google expires refresh tokens after 7 days: "
+                "publish the app (OAuth consent screen -> Audience -> Publish "
+                "app), then re-run setup/authorize.py for this mailbox."
+            ) from exc
+        raise
     return creds
 
 

@@ -44,6 +44,18 @@ log = logging.getLogger("agent")
 STATE_LOST = "state write failed; this run's record was not kept"
 
 
+class AgentError(RuntimeError):
+    """A failure whose cause is worth reading, not just a stack trace.
+
+    Everything raised as this ends up in the run log's detail field, which
+    is what the website shows under a failed run. The alternative -- what
+    this replaces -- was `return 1`, recorded as the entirely useless
+    "exited 1": four failed runs in a row, no way to tell from the site
+    whether the mailboxes were unreachable, the bucket was gone, or Vertex
+    was refusing, and no answer short of learning gcloud.
+    """
+
+
 def _setup_logging() -> None:
     logging.basicConfig(
         level=logging.INFO,
@@ -131,8 +143,16 @@ def _recompile_rules_if_due(settings: Settings) -> None:
         log.error("Compiled the rules but could not save them: %s", exc)
 
 
-def _connect(settings: Settings) -> dict[str, GmailClient]:
+def _connect(settings: Settings) -> tuple[dict[str, GmailClient], list[str]]:
+    """Open every mailbox. Returns what opened, and why the rest did not.
+
+    The reasons are returned rather than only logged because "no mailboxes
+    reachable" on its own does not tell you whether a token expired, a
+    secret was deleted, or the service account lost its grant -- and those
+    want completely different fixes.
+    """
     clients: dict[str, GmailClient] = {}
+    failures: list[str] = []
     for account in settings.accounts:
         try:
             clients[account.key] = GmailClient(
@@ -140,7 +160,19 @@ def _connect(settings: Settings) -> dict[str, GmailClient]:
             )
             log.info("Connected: %s (%s)", account.key, account.email)
         except Exception as exc:
-            log.error("Could not connect %s (%s): %s", account.key, account.email, exc)
+            reason = f"{account.key} ({account.email}): {type(exc).__name__}: {exc}"
+            log.error("Could not connect %s", reason)
+            failures.append(reason)
+    return clients, failures
+
+
+def _connect_or_fail(settings: Settings) -> dict[str, GmailClient]:
+    """Connect, and raise something readable if nothing opened at all."""
+    clients, failures = _connect(settings)
+    if not clients:
+        raise AgentError(
+            "no mailboxes could be opened -- " + " | ".join(failures or ["no accounts configured"])
+        )
     return clients
 
 
@@ -525,10 +557,7 @@ def run_sweep(settings: Settings) -> int:
     _recompile_rules_if_due(settings)
     settings = load_settings()
     state = State(settings.state_bucket).load()
-    clients = _connect(settings)
-    if not clients:
-        log.error("No mailboxes reachable; nothing to do.")
-        return 1
+    clients = _connect_or_fail(settings)
 
     # Replies are checked here too, not only on the digest, so confirming a
     # calendar item takes minutes rather than waiting for the next digest.
@@ -602,10 +631,7 @@ def run_cleanup_only(settings: Settings, *, preview: bool = False) -> int:
     settings = load_settings()
     state = State(settings.state_bucket).load()
 
-    clients = _connect(settings)
-    if not clients:
-        log.error("No mailboxes reachable; nothing to do.")
-        return 1
+    clients = _connect_or_fail(settings)
 
     classifier = Classifier(
         settings.project,
@@ -641,10 +667,7 @@ def run_digest(
     # waiting for the next one.
     settings = load_settings()
     state = State(settings.state_bucket).load()
-    clients = _connect(settings)
-    if not clients:
-        log.error("No mailboxes reachable; nothing to do.")
-        return 1
+    clients = _connect_or_fail(settings)
 
     days = int(settings.section("scan").get("attention_window_days", 3))
     messages, errors = _collect(clients, f"in:inbox newer_than:{days}d -in:chats", settings)
@@ -806,10 +829,7 @@ def run_review(settings: Settings) -> int:
         log.info("Review mode is disabled in config.yaml.")
         return 0
 
-    clients = _connect(settings)
-    if not clients:
-        log.error("No mailboxes reachable; nothing to do.")
-        return 1
+    clients = _connect_or_fail(settings)
 
     query = str(cfg.get("query", "in:inbox -in:chats"))
     cap = int(cfg.get("max_messages_per_account", 300))
@@ -883,8 +903,13 @@ def run_review(settings: Settings) -> int:
 
 
 def run_check(settings: Settings) -> int:
-    """Verify wiring without touching anything."""
-    ok = True
+    """Verify wiring without touching anything.
+
+    Every failure is collected rather than returned as a bare exit code, so
+    the one mode whose entire job is to tell you what is wrong actually
+    says what is wrong -- on the website, not only in Cloud Logging.
+    """
+    problems: list[str] = []
     log.info("Project=%s region=%s bucket=%s", settings.project, settings.region, settings.state_bucket)
     log.info("Global DRY_RUN=%s, cleanup dry run=%s", settings.dry_run, settings.cleanup_dry_run)
 
@@ -893,13 +918,13 @@ def run_check(settings: Settings) -> int:
         log.info("State bucket reachable.")
     except Exception as exc:
         log.error("State bucket unreachable: %s", exc)
-        ok = False
+        problems.append(f"state bucket {settings.state_bucket}: {type(exc).__name__}: {exc}")
 
-    clients = _connect(settings)
+    clients, connect_failures = _connect(settings)
+    problems.extend(connect_failures)
     for account in settings.accounts:
         client = clients.get(account.key)
         if not client:
-            ok = False
             continue
         try:
             profile = client.service.users().getProfile(userId="me").execute()
@@ -917,7 +942,7 @@ def run_check(settings: Settings) -> int:
                 )
         except Exception as exc:
             log.error("  %s profile read failed: %s", account.key, exc)
-            ok = False
+            problems.append(f"{account.key} profile read: {type(exc).__name__}: {exc}")
 
     try:
         Classifier(
@@ -929,11 +954,14 @@ def run_check(settings: Settings) -> int:
         log.info("Vertex AI client constructed (model=%s).", settings.gemini_model)
     except Exception as exc:
         log.error("Vertex AI unavailable: %s", exc)
-        ok = False
+        problems.append(f"Vertex AI: {type(exc).__name__}: {exc}")
 
     log.info("Cleanup query would be: %s", policy_mod.build_cleanup_query(settings.policy))
-    log.info("Check %s.", "passed" if ok else "FAILED")
-    return 0 if ok else 1
+    if problems:
+        log.error("Check FAILED: %d problem(s).", len(problems))
+        raise AgentError(" | ".join(problems))
+    log.info("Check passed.")
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -986,6 +1014,16 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         code = _dispatch(args.mode, settings, manual=args.manual, preview=args.preview)
+    except AgentError as exc:
+        # Expected and explained: record the reason and exit non-zero without
+        # a traceback, which would add noise and no information. The message
+        # is the point -- it is what the website shows under the failed run.
+        log.error("%s", exc)
+        archive_mod.log_run(
+            settings.state_bucket, mode=args.mode, ok=False,
+            detail=str(exc), started_ts=started,
+        )
+        return 1
     except Exception as exc:  # noqa: BLE001 -- logged, then re-raised
         archive_mod.log_run(
             settings.state_bucket, mode=args.mode, ok=False,

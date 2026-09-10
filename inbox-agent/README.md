@@ -126,8 +126,17 @@ project with billing enabled — your free-trial credits cover this comfortably.
 In the Cloud Console for your project:
 
 1. **APIs & Services → OAuth consent screen** → External → fill in the basics.
-   Add both your Gmail addresses as **test users**. Leave it in Testing mode;
-   you never need to publish it.
+   Add both your Gmail addresses as **test users**.
+
+   Then **publish it** — Audience → *Publish app* → confirm. This matters
+   and it is easy to get wrong: an app left in **Testing** has its refresh
+   tokens **expired by Google after seven days**, so the agent works for a
+   week and then every run dies with `invalid_grant: Token has been expired
+   or revoked`. Publishing stops that. You stay the only user, and because
+   the app is unverified you will see a "Google hasn't verified this app"
+   screen when authorising — click *Advanced → Go to (unsafe)*. That warning
+   is about other people trusting your app, which is not a thing that
+   applies when the only user is you.
 2. **Credentials → Create credentials → OAuth client ID → Desktop app.**
    Download the JSON as `client_secret.json` into this folder.
 
