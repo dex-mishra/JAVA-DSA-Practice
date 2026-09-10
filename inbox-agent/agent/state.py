@@ -30,6 +30,18 @@ _EMPTY: dict[str, Any] = {
     # lasts until the next run and no longer -- the agent has no way to tell
     # "not starred yet" from "starred, and you took it off".
     "starred": {},
+    # message id -> unix ts the sweep last classified it. The sweep only ever
+    # marked a message once it *sent an alert* about it, so a quiet six-hour
+    # window was re-read and re-classified every fifteen minutes -- twenty-four
+    # times over, at model prices, for the same mail.
+    "seen": {},
+    # message id -> unix ts it was last offered as a calendar proposal, so the
+    # same deadline is not proposed again in every digest.
+    "proposed": {},
+    # message id -> [times carried, unix ts of the last carry]. A still-open
+    # item used to reappear in all four digests a day for the full three-day
+    # window: twelve reminders for one email.
+    "carries": {},
     "last_digest_ts": 0.0,
     "last_cleanup_ts": 0.0,
     "last_alert_ts": 0.0,
@@ -39,41 +51,69 @@ _EMPTY: dict[str, Any] = {
 }
 
 
+def _blank() -> dict[str, Any]:
+    """A fresh state dict that shares nothing with the template.
+
+    `dict(_EMPTY)` is a shallow copy, so every state object built that way
+    pointed at the *same* inner maps -- and the first `setdefault(...).update()`
+    on a run that started with no saved blob wrote into the module-level
+    default, where it stayed for the rest of the process.
+    """
+    return copy.deepcopy(_EMPTY)
+
+
+def _carry_parts(record: Any) -> tuple[int, float]:
+    """Read a carry record, tolerating anything a older or corrupted blob holds."""
+    if isinstance(record, (list, tuple)) and len(record) >= 2:
+        try:
+            return int(record[0]), float(record[1])
+        except (TypeError, ValueError):
+            return 0, 0.0
+    try:
+        return 1, float(record)
+    except (TypeError, ValueError):
+        return 0, 0.0
+
+
+def _carry_ts(record: Any) -> float:
+    return _carry_parts(record)[1]
+
+
 class State:
     def __init__(self, bucket_name: str, client: storage.Client | None = None):
         self._client = client or storage.Client()
         self._bucket = self._client.bucket(bucket_name)
         self._blob = self._bucket.blob(BLOB_NAME)
         self._generation: int | None = None
-        self.data: dict[str, Any] = dict(_EMPTY)
+        self.data: dict[str, Any] = _blank()
         # What we loaded, kept so a concurrent write can be merged rather than
         # dropped: counters need the delta, not the absolute value.
-        self._base: dict[str, Any] = dict(_EMPTY)
+        self._base: dict[str, Any] = _blank()
 
     def load(self) -> "State":
         try:
             raw = self._blob.download_as_bytes()
             self._generation = self._blob.generation
             loaded = json.loads(raw.decode("utf-8"))
-            merged = dict(_EMPTY)
+            merged = _blank()
             merged.update(loaded)
             self.data = merged
             self._base = copy.deepcopy(merged)
         except gcs_exceptions.NotFound:
             log.info("No prior state at gs://%s/%s; starting fresh.", self._bucket.name, BLOB_NAME)
-            self.data = dict(_EMPTY)
-            self._base = dict(_EMPTY)
+            self.data = _blank()
+            self._base = _blank()
             self._generation = 0
         except (ValueError, UnicodeDecodeError):
             log.warning("State blob was unreadable; starting fresh rather than guessing.")
-            self.data = dict(_EMPTY)
-            self._base = dict(_EMPTY)
+            self.data = _blank()
+            self._base = _blank()
             self._generation = None
         return self
 
     def _fetch(self) -> tuple[dict[str, Any], int | None]:
         raw = self._blob.download_as_bytes()
-        merged = dict(_EMPTY)
+        merged = _blank()
         merged.update(json.loads(raw.decode("utf-8")))
         return merged, self._blob.generation
 
@@ -88,7 +128,7 @@ class State:
         """
         merged = dict(remote)
 
-        for key in ("alerted", "reported", "starred"):
+        for key in ("alerted", "reported", "starred", "seen", "proposed", "carries"):
             combined = dict(remote.get(key) or {})
             combined.update(self.data.get(key) or {})
             merged[key] = combined
@@ -193,9 +233,13 @@ class State:
 
     def _prune(self) -> None:
         cutoff = time.time() - RETENTION_SECONDS
-        for key in ("alerted", "reported", "starred"):
+        for key in ("alerted", "reported", "starred", "seen", "proposed"):
             bucket = self.data.get(key, {})
             self.data[key] = {k: v for k, v in bucket.items() if float(v) >= cutoff}
+        carries = self.data.get("carries", {})
+        self.data["carries"] = {
+            k: v for k, v in carries.items() if float(_carry_ts(v)) >= cutoff
+        }
 
     # -- dedup helpers -----------------------------------------------------
 
@@ -222,6 +266,51 @@ class State:
     def mark_starred(self, message_ids: list[str]) -> None:
         now = time.time()
         self.data.setdefault("starred", {}).update({mid: now for mid in message_ids})
+
+    def already_seen(self, message_id: str) -> bool:
+        """True once any sweep has classified this message.
+
+        The sweep's job is to notice new mail that cannot wait. Once it has
+        looked at a message and decided it is not urgent, looking again fifteen
+        minutes later cannot change the answer -- the message has not changed.
+        """
+        return message_id in self.data.get("seen", {})
+
+    def mark_seen(self, message_ids: list[str]) -> None:
+        now = time.time()
+        self.data.setdefault("seen", {}).update({mid: now for mid in message_ids})
+
+    def already_proposed(self, message_id: str) -> bool:
+        return message_id in self.data.get("proposed", {})
+
+    def mark_proposed(self, message_ids: list[str]) -> None:
+        now = time.time()
+        self.data.setdefault("proposed", {}).update({mid: now for mid in message_ids})
+
+    def carry_allowed(self, message_id: str, *, cooldown_hours: float, limit: int) -> bool:
+        """Whether a still-open item may be nudged about again.
+
+        Two separate brakes, because they answer different complaints. The
+        cooldown stops the same reminder arriving in every digest on the same
+        day; the limit stops it arriving forever. Something you have ignored
+        three days running is not going to be rescued by a fourth line of small
+        print, and the cost of that line is that the whole section stops being
+        read.
+        """
+        record = self.data.get("carries", {}).get(message_id)
+        if not record:
+            return True
+        count, last = _carry_parts(record)
+        if limit > 0 and count >= limit:
+            return False
+        return (time.time() - last) >= cooldown_hours * 3600
+
+    def mark_carried(self, message_ids: list[str]) -> None:
+        now = time.time()
+        carries = self.data.setdefault("carries", {})
+        for mid in message_ids:
+            count, _ = _carry_parts(carries.get(mid))
+            carries[mid] = [count + 1, now]
 
     def mark_reported(self, message_ids: list[str]) -> None:
         now = time.time()

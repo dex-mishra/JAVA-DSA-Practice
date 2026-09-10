@@ -77,6 +77,13 @@ DEFAULTS: dict[str, Any] = {
     # A plain bool rather than a tristate: there is no deployed default to
     # defer to, and "off" has to mean off unambiguously.
     "paused": False,
+    # Starring, on its own switch. Tristate for the same reason as the two
+    # above: None means "no opinion, use config.yaml", so a console save that
+    # never touched this switch cannot silently turn starring off. The star
+    # rules are deliberately broad and starring is the one action that touches
+    # every message it likes rather than a handful, so it is the one worth
+    # being able to stop without stopping the summaries too.
+    "star_enabled": None,
     # Codeforces handle, for the live rating and rank on the header. Lives
     # here rather than in an environment variable so it can be typed on the
     # page instead of redeployed.
@@ -154,6 +161,7 @@ def normalise(raw: Any) -> dict[str, Any]:
     data["dry_run"] = _tristate(raw.get("dry_run"))
     data["cleanup_dry_run"] = _tristate(raw.get("cleanup_dry_run"))
     data["paused"] = _tristate(raw.get("paused")) is True
+    data["star_enabled"] = _tristate(raw.get("star_enabled"))
     handle = str(raw.get("cf_handle") or "").strip()
     data["cf_handle"] = handle if _CF_HANDLE_OK.match(handle) else ""
     data["extra_accounts"] = _clean_accounts(raw.get("extra_accounts"))

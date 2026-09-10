@@ -1034,6 +1034,11 @@ def proposals_list():
                         "end": i.get("end", ""),
                         "all_day": i.get("all_day", True),
                         "source_url": i.get("source_url", ""),
+                        # The one-line summary the model wrote. Without it a
+                        # proposal is a title and a date, which is often not
+                        # enough to tell two deadlines from the same sender
+                        # apart -- and the whole point of the card is deciding.
+                        "context": i.get("context", ""),
                     }
                     for i in (batch.get("items") or [])
                 ],
@@ -1372,6 +1377,7 @@ def api_settings_get():
             "dry_run": over.get("dry_run"),
             "cleanup_dry_run": over.get("cleanup_dry_run"),
             "paused": bool(over.get("paused", False)),
+            "star_enabled": over.get("star_enabled"),
             "cf_handle": over.get("cf_handle", "") or CF_HANDLE,
             "updated_ts": over.get("updated_ts", 0),
             "max_instructions": overlay_mod.MAX_INSTRUCTIONS,
@@ -1424,6 +1430,8 @@ def api_settings_put():
         merged["cleanup_dry_run"] = body["cleanup_dry_run"]
     if "cf_handle" in body:
         merged["cf_handle"] = body["cf_handle"]
+    if "star_enabled" in body:
+        merged["star_enabled"] = body["star_enabled"]
     if "paused" in body:
         merged["paused"] = bool(body["paused"])
         log.warning("Agent %s from the website.",
@@ -1437,6 +1445,7 @@ def api_settings_put():
             "dry_run": saved["dry_run"],
             "cleanup_dry_run": saved["cleanup_dry_run"],
             "paused": saved["paused"],
+            "star_enabled": saved["star_enabled"],
             "cf_handle": saved["cf_handle"],
             "updated_ts": saved["updated_ts"],
         }
@@ -1825,6 +1834,7 @@ def _mcp_settings():
         "dry_run": over.get("dry_run"),
         "cleanup_dry_run": over.get("cleanup_dry_run"),
         "paused": bool(over.get("paused", False)),
+        "star_enabled": over.get("star_enabled"),
         "updated_ts": over.get("updated_ts", 0),
         "rules": rules_mod.describe(over.get("derived") or {}),
         # Present only when the stored settings could not be read, so an

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import html
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Iterable
 
 from .classify import Label
@@ -343,6 +343,80 @@ def _token_block(data: DigestData) -> str:
     </div>"""
 
 
+def _is_urgent(item: Item, today: str) -> bool:
+    """Urgent enough to belong above everything else.
+
+    Two ways in, because the model's `importance` and a date on the calendar
+    answer different questions. Something it called urgent is urgent; so is
+    something due today or tomorrow that still wants an action, whatever
+    adjective the model reached for. Nothing else qualifies -- the value of
+    this block is entirely in how short it is.
+    """
+    if item.label.importance == "urgent":
+        return True
+    due = (item.label.deadline_iso or "")[:10]
+    if not due or not (item.label.needs_action or item.label.needs_reply):
+        return False
+    return due <= _plus_days(today, 1)
+
+
+def _plus_days(iso_day: str, days: int) -> str:
+    try:
+        base = datetime.strptime(iso_day, "%Y-%m-%d")
+    except ValueError:
+        return iso_day
+    return (base + timedelta(days=days)).strftime("%Y-%m-%d")
+
+
+def _urgent_block(data: DigestData, today: str) -> str:
+    """The things that cannot wait, named, at the top.
+
+    Urgency used to survive into the report only as a number in the headline
+    ("2 urgent") while the messages themselves were filed into whichever
+    section their category put them in -- so the one line that said something
+    was on fire did not say which thing. Listed here in full, and still listed
+    again below in its section: this is a lead, not a move.
+    """
+    urgent = [i for i in data.items + data.carried if _is_urgent(i, today)]
+    if not urgent:
+        return ""
+
+    urgent.sort(key=lambda i: (i.label.deadline_iso or "9999-99-99", -(i.message.date_ts or 0)))
+    rows = "".join(
+        f"""
+      <div style="padding:9px 0;border-top:1px solid #fecaca">
+        <div style="font-size:15px;font-weight:700;line-height:1.35">
+          <a href="{esc(i.message.web_url)}" style="color:{DANGER};text-decoration:none"
+             >{esc(i.message.subject)}</a>
+        </div>
+        <div style="font-size:12.5px;color:{MUTED};margin-top:3px">
+          {esc(_sender_name(i.message))}
+          {f' &middot; <span style="color:{DANGER};font-weight:600">due {esc(i.label.deadline_iso)}</span>' if i.label.deadline_iso else ""}
+          {' &middot; needs a reply' if i.label.needs_reply else ""}
+        </div>
+        {f'<div style="font-size:13px;color:{INK};margin-top:3px;line-height:1.45">{esc(i.label.one_line)}</div>' if i.label.one_line else ""}
+      </div>"""
+        for i in urgent[:8]
+    )
+    more = (
+        f'<div style="font-size:12px;color:{MUTED};padding-top:8px">'
+        f"and {len(urgent) - 8} more</div>"
+        if len(urgent) > 8
+        else ""
+    )
+    return f"""
+    <div style="margin:18px 0 0;padding:14px 15px;border:2px solid {DANGER};
+                border-radius:8px;background:#fff5f5">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+                  color:{DANGER}">Needs you now ({len(urgent)})</div>
+      <div style="font-size:12px;color:{MUTED};margin:3px 0 2px">
+        Due today or tomorrow, or flagged urgent. Everything here also appears
+        in its own section below.
+      </div>
+      {rows}{more}
+    </div>"""
+
+
 def _carried_block(data: DigestData) -> str:
     """Still-open items from previous digests, one line each.
 
@@ -391,8 +465,13 @@ def render_digest(data: DigestData, policy: dict[str, Any], timestamp: datetime)
         for key in order
     )
 
+    today = timestamp.strftime("%Y-%m-%d")
     action_count = sum(1 for i in data.items if i.label.needs_action or i.label.needs_reply)
-    urgent_count = sum(1 for i in data.items if i.label.importance == "urgent")
+    # Counted the same way the block at the top selects, so the headline and
+    # the list under it can never disagree -- and counting carried items too,
+    # because a deadline you were told about yesterday and that falls tomorrow
+    # is more urgent today, not less.
+    urgent_count = sum(1 for i in data.items + data.carried if _is_urgent(i, today))
 
     if not body.strip():
         body = (
@@ -444,6 +523,7 @@ def render_digest(data: DigestData, policy: dict[str, Any], timestamp: datetime)
       </div>
       <div style="font-size:13px;color:{ACCENT};margin-top:5px;font-weight:600">{headline}</div>
     </div>
+    {_urgent_block(data, today)}
     {body}
     {_carried_block(data)}
     {_proposals_block(data)}

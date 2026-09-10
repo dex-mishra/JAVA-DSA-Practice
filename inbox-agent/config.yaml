@@ -57,6 +57,13 @@ report:
   #              meant up to twelve appearances for one email
   repeat_reported: open_only
 
+  # How often, and how many times, a still-open item may be carried over.
+  # `open_only` on its own still meant four reminders a day for the whole
+  # three-day scan window -- twelve mentions of one email. The cooldown makes
+  # it at most one a day; the cap stops it after three days.
+  carry_cooldown_hours: 20
+  max_carry_overs: 3
+
   # Do not send a digest with no new mail, nothing still open and nothing to
   # confirm. Four empty summaries a day teach you to ignore all of them.
   skip_if_empty: true
@@ -90,6 +97,11 @@ star:
   # Starring is reversible and non-destructive, so the bar here is lower than
   # for cleanup -- it is fine to over-star a little. Still rule-gated, not
   # left to the model's discretion.
+  #
+  # The switch on the website overrides this without a redeploy. The rules
+  # below are broad on purpose, which is fine when you want a flagged inbox
+  # and noise when you do not, so turning the whole thing off is a switch
+  # rather than an edit to five lists.
   enabled: true
   max_stars_per_run: 50
 
@@ -177,6 +189,13 @@ calendar:
   # Marketing mail is full of "events". Placement mail is exempt because it
   # legitimately arrives via the CDC mailing list.
   skip_bulk_senders: true
+
+  # Also propose anything the model gave a real date to and marked as needing
+  # you, even when it did not separately call it an "event". A contest closing
+  # or an application window is a date whether or not it is an event, and
+  # requiring both flags is why mail with an unmistakable deadline in the body
+  # never reached the calendar card at all.
+  propose_from_deadlines: true
 
   # Stop waiting for a reply after this long and drop the batch.
   proposal_expiry_hours: 72

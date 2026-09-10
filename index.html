@@ -623,6 +623,16 @@ ul.accounts .mono { flex: 1; font-size: 12.5px; color: var(--ink); min-width: 12
 .prop-list .rtask { font-size: 13.5px; color: var(--ink); }
 .prop-list .rmeta { margin-top: 3px; }
 .prop-batch + .prop-batch { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+.prop-list .rnote { font-size: 12.4px; margin-top: 3px; }
+.prop-list .rlink { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+.prop-manual { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.prop-manual .edit-body { padding: 0; display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.prop-manual input {
+  font-family: var(--display); font-size: 12.5px; padding: 7px 9px; border-radius: var(--r);
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  min-width: 0; box-sizing: border-box; width: 100%;
+}
+.prop-manual .edit-row input { flex: 1; width: auto; }
 
 ul.reports li { gap: 10px; }
 .linkish {
@@ -1886,6 +1896,9 @@ ul.reports li { gap: 10px; }
     var live = cfg.dry_run === false;
     var cleanupLive = cfg.cleanup_dry_run === false;
     var stopped = cfg.paused === true;
+    /* Tristate: null means "no opinion, whatever config.yaml says", which is
+       on. Only an explicit false is off. */
+    var starring = cfg.star_enabled !== false;
 
     var cards = [
       ["Last summary", ago(s.last_digest_ts)],
@@ -1969,6 +1982,18 @@ ul.reports li { gap: 10px; }
               "and sends nothing. Practice mode.") + "</span>" +
         "</div>" +
         '<div class="switch-row">' +
+          '<label class="switch"><input type="checkbox" id="agStar"' + (starring ? " checked" : "") + ">" +
+          "<span>Let it star mail</span></label>" +
+          '<span class="muted">' + (starring
+            ? "<b>On.</b> It stars anything matching its rules and labels it " +
+              "<span class=\"mono\">Agent/Flagged</span>. Those rules are broad — " +
+              "whole categories, not a handful of senders — so this is the noisiest " +
+              "thing it does. Turn it off and everything else carries on unchanged."
+            : "<b>Off.</b> It stars nothing. Summaries, urgent pings, the calendar " +
+              "loop and the cleanup all still run. Stars it has already put on are " +
+              "left alone; unstar them yourself and it will not put them back.") + "</span>" +
+        "</div>" +
+        '<div class="switch-row">' +
           '<label class="switch"><input type="checkbox" id="agCleanup"' + (cleanupLive ? " checked" : "") + ">" +
           "<span>Let it bin junk</span></label>" +
           '<span class="muted">' + (cleanupLive
@@ -2035,19 +2060,18 @@ ul.reports li { gap: 10px; }
     var batches = p.batches || [];
     var queued = p.queued || [];
 
-    if (!batches.length && !queued.length) {
-      return '<div class="card"><h3>Calendar</h3>' +
-        '<p class="muted">Nothing waiting. When the agent spots something with ' +
-        "a date on it, the proposal appears here and in your digest.</p></div>";
-    }
-
     var body = batches.map(function (b) {
       var rows = b.items.map(function (i) {
+        var meta = '<span class="rdate">' + esc(i.start) + (i.all_day ? "" : " (timed)") + "</span>";
+        if (i.source_url) {
+          meta += ' <a class="rlink" href="' + esc(i.source_url) +
+            '" target="_blank" rel="noopener">the email</a>';
+        }
         return '<li><label class="switch"><input type="checkbox" data-prop="' +
           esc(b.token) + '" value="' + i.n + '"><span></span></label>' +
           '<div class="rbody"><div class="rtask">' + esc(i.title) + "</div>" +
-          '<div class="rmeta"><span class="rdate">' + esc(i.start) +
-          (i.all_day ? "" : " (timed)") + "</span></div></div></li>";
+          (i.context ? '<div class="rnote">' + esc(i.context) + "</div>" : "") +
+          '<div class="rmeta">' + meta + "</div></div></li>";
       }).join("");
       return '<div class="prop-batch"><ul class="accounts prop-list">' + rows + "</ul>" +
         '<div class="agent-actions">' +
@@ -2061,9 +2085,33 @@ ul.reports li { gap: 10px; }
         " queued — the agent adds these on its next run, within 15 minutes.</p>"
       : "";
 
+    var intro = batches.length
+      ? '<p class="muted">Nothing below is on your calendar yet.</p>'
+      : '<p class="muted">Nothing waiting. When the agent spots a date in your ' +
+        "mail, the proposal appears here and in your digest.</p>";
+
+    /* The agent misses things -- a date buried in a paragraph, a mail that
+       arrived before it was watching, a proposal you dismissed and then
+       changed your mind about. Without this the only way onto the calendar
+       was to wait for it to offer, so a date you could see in front of you
+       was one you could not act on. Goes through the same queue as a
+       confirmed proposal: the page still cannot write to a calendar. */
+    var manual = '<div class="prop-manual">' +
+      '<div class="rtask">Add one yourself</div>' +
+      '<p class="muted fineprint">For anything it missed — a date buried in a ' +
+      "paragraph, or mail that arrived before it was watching. The agent puts it " +
+      'on the "Inbox Agent" calendar on its next run, within 15 minutes.</p>' +
+      '<div class="edit-body">' +
+        '<input id="calTitle" type="text" maxlength="200" ' +
+          'placeholder="What is it? e.g. Meesho DICE challenge closes">' +
+        '<div class="edit-row">' +
+          '<input id="calDate" type="date">' +
+          '<button type="button" class="btn primary tiny" id="calAdd">Add to calendar</button>' +
+        "</div>" +
+      "</div></div>";
+
     return '<div class="card"><h3>Calendar — waiting on you</h3>' +
-      '<p class="muted">Nothing below is on your calendar yet.</p>' +
-      body + pending + "</div>";
+      intro + body + pending + manual + "</div>";
   }
 
   /* Every report the agent sends is archived, so "did my full inbox review
@@ -2200,6 +2248,22 @@ ul.reports li { gap: 10px; }
     toggle("agLive", "dry_run", "Acting on mail");
     toggle("agCleanup", "cleanup_dry_run", "Cleanup");
 
+    /* Not a dry-run switch either: ticked means "do star", so the value goes
+       through as-is. Sent as a real boolean rather than left null, because
+       null means "defer to the deployed config" and the point of touching
+       this switch is to stop deferring. */
+    var star = document.getElementById("agStar");
+    if (star) star.onchange = function () {
+      var want = star.checked;
+      api("/api/settings", { method: "PUT", body: JSON.stringify({ star_enabled: want }) })
+        .then(function (r) {
+          AGENT.settings = Object.assign(AGENT.settings, r);
+          toast(want ? "Starring is on." : "Starring is off.");
+          repaintAgent();
+        })
+        .catch(function (e) { star.checked = !want; toast("Could not change: " + e.message); });
+    };
+
     /* Not a dry-run switch: ticked means stopped, so the value goes through
        as-is rather than inverted. */
     var stop = document.getElementById("agStop");
@@ -2230,6 +2294,25 @@ ul.reports li { gap: 10px; }
           .then(function () { b.disabled = false; });
       };
     });
+
+    var calAdd = document.getElementById("calAdd");
+    if (calAdd) calAdd.onclick = function () {
+      var title = (document.getElementById("calTitle").value || "").trim();
+      var when = document.getElementById("calDate").value || "";
+      if (!title) { toast("Give it a title first."); return; }
+      if (!when) { toast("Pick a date first."); return; }
+      calAdd.disabled = true;
+      api("/api/calendar/request", {
+        method: "POST",
+        body: JSON.stringify({ title: title, start: when, origin: "manual" })
+      })
+        .then(function () {
+          toast("Queued — on your calendar within 15 minutes.");
+          document.getElementById("calTitle").value = "";
+          AGENT.loaded = false; repaintAgent(); loadAgent();
+        })
+        .catch(function (e) { toast("Could not queue it: " + e.message); calAdd.disabled = false; });
+    };
 
     // --- calendar proposals ------------------------------------------
     function decide(token, numbers, label) {

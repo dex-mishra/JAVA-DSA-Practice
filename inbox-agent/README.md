@@ -216,6 +216,24 @@ is the highest-precision rule in the file; a listed address is always starred.
 **`star.subjects`** — your current course codes and names, e.g.
 `["CS21001", "Algorithms", "Thermodynamics"]`.
 
+If starring is simply too noisy, do not edit the five lists — there is a
+**Let it star mail** switch on the website's agent tab. It turns off starring
+and nothing else: summaries, urgent pings, the calendar loop and the cleanup
+all carry on. Stars already applied are left where they are, and unstarring
+one by hand is permanent, because the agent records having acted rather than
+reading the flag back.
+
+**How often you hear about the same thing.** Under `report:`,
+`carry_cooldown_hours` (20) and `max_carry_overs` (3) govern the "still open
+from before" list. The digest runs four times a day over a three-day window,
+so without these an unanswered item was mentioned twelve times. It now gets
+one nudge a day for three days, then stops.
+
+**`calendar.propose_from_deadlines`** — propose anything with a real date that
+the model marked as needing you, not only what it separately called an event.
+This is what puts a closing date stated in a mail body onto the website's
+calendar card. Each message is offered once; declining is declining.
+
 Keyword matching is whole-word, so `exam` will not fire on `example.com` and
 `fee` will not fire on `coffee`. Plurals are handled.
 

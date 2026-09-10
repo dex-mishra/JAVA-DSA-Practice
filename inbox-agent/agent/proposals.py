@@ -105,13 +105,29 @@ class ProposalBatch:
 
 
 def build_proposals(
-    messages: list[Message], labels: dict[str, Label], cfg: dict[str, Any]
+    messages: list[Message],
+    labels: dict[str, Label],
+    cfg: dict[str, Any],
+    *,
+    skip_ids: Any = (),
 ) -> list[Proposal]:
     """Turn classified mail into numbered calendar candidates.
 
-    Rule-gated like everything else: the model's `calendar_worthy` flag is
-    necessary but not sufficient. There must also be a real parsable date, and
-    the category must be one you asked to be prompted about.
+    Rule-gated like everything else: there must be a real parsable date, and
+    the category must be one you asked to be prompted about. Nothing here puts
+    anything on a calendar -- see the module docstring.
+
+    The model's `calendar_worthy` flag used to be a hard requirement on top of
+    that, and it is the reason mail with an unmistakable date on it -- a
+    contest closing, an application window -- never reached the website's
+    calendar card at all. The flag is a judgement about whether something is
+    "an event"; a deadline the model itself extracted into `deadline_iso` and
+    marked as wanting action is a date whether or not it is an event. So a
+    dated, actionable message in an allowed category now proposes on its own,
+    and the flag stays as the other way in rather than the only one.
+
+    `skip_ids` is anything already offered before. A proposal you have seen and
+    not confirmed should not come back in the next digest and the one after.
     """
     calendar_cfg = cfg.get("calendar", {}) or {}
     if not calendar_cfg.get("enabled", False):
@@ -120,13 +136,21 @@ def build_proposals(
     allowed = calendar_cfg.get("categories", []) or []
     max_items = int(calendar_cfg.get("max_proposals_per_digest", 8))
     skip_bulk = calendar_cfg.get("skip_bulk_senders", True)
+    from_deadlines = calendar_cfg.get("propose_from_deadlines", True)
+    seen = set(skip_ids or ())
 
     out: list[Proposal] = []
     for msg in messages:
         if len(out) >= max_items:
             break
+        if msg.id in seen:
+            continue
         label = labels.get(msg.id)
-        if not label or not label.calendar_worthy:
+        if not label:
+            continue
+        dated = bool(from_deadlines and _valid_when(label.deadline_iso)
+                     and (label.needs_action or label.needs_reply))
+        if not label.calendar_worthy and not dated:
             continue
         if allowed and label.category not in allowed:
             continue

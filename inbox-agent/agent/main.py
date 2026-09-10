@@ -588,9 +588,16 @@ def run_sweep(settings: Settings) -> int:
     hours = int(settings.section("scan").get("sweep_window_hours", 6))
     messages, errors = _collect(clients, f"in:inbox newer_than:{hours}h -in:chats", settings)
 
-    fresh = [m for m in messages if not state.already_alerted(m.id)]
+    # Already alerted, or already looked at and judged not urgent. The second
+    # test is the one that was missing: `alerted` is only written when an alert
+    # actually goes out, so a quiet six-hour window was re-fetched and
+    # re-classified on every one of the twenty-four sweeps that saw it.
+    fresh = [
+        m for m in messages
+        if not state.already_alerted(m.id) and not state.already_seen(m.id)
+    ]
     if not fresh:
-        log.info("Nothing new since the last sweep.")
+        log.info("Nothing new since the last sweep (%d already seen).", len(messages))
         state.save()
         return 0
 
@@ -610,6 +617,18 @@ def run_sweep(settings: Settings) -> int:
         label = labels.get(msg.id) or Label.safe_default(msg.id)
         if policy_mod.urgent_verdict(msg, label, settings.policy).allowed:
             urgent.append(report_mod.Item(msg, label))
+
+    # Everything the model gave a verdict on and that is *not* urgent is now
+    # settled: re-reading it next sweep cannot change the answer, because the
+    # message will not have changed. Two deliberate exclusions --
+    #
+    #   * messages the classifier failed on, so the next sweep retries rather
+    #     than writing them off on the strength of an error;
+    #   * anything urgent, which is only settled once the alert has actually
+    #     been sent -- otherwise an urgent item held back by the rate limit
+    #     below would be marked seen and never alerted on at all.
+    urgent_ids = {i.message.id for i in urgent}
+    state.mark_seen([mid for mid in labels if mid and mid not in urgent_ids])
 
     if not urgent:
         log.info("Nothing urgent among %d new messages.", len(fresh))
@@ -710,7 +729,13 @@ def run_digest(
     events_made += queued_made
     errors.extend(queued_errors)
 
-    proposals = proposals_mod.build_proposals(messages, labels, settings.policy)
+    # Anything already offered once is not offered again. Without this the
+    # same deadline was proposed by every digest inside the scan window, and
+    # each proposal landed in its own unresolved batch -- so the website's
+    # calendar card showed one event three or four times over.
+    proposals = proposals_mod.build_proposals(
+        messages, labels, settings.policy, skip_ids=state.data.get("proposed") or {}
+    )
     batch = proposals_mod.ProposalBatch.new(proposals) if proposals else None
 
     # Cleanup runs once a day, on whichever digest fires first after the gap.
@@ -739,12 +764,29 @@ def run_digest(
         label = labels.get(msg.id) or Label.safe_default(msg.id)
         return bool(label.needs_action or label.needs_reply)
 
+    # Two brakes on the carry-over list, because "list it again while it is
+    # still open" and "list it again four times a day for three days" are not
+    # the same promise. The cooldown makes a nudge daily rather than hourly;
+    # the cap stops it after a few days, on the grounds that a fourth
+    # small-print reminder is not what rescues an ignored deadline -- it is
+    # what teaches you to skip the section.
+    cooldown = float(report_cfg.get("carry_cooldown_hours", 20))
+    carry_limit = int(report_cfg.get("max_carry_overs", 3))
+
     if repeat == "always":
         fresh, carried_msgs = messages, []
     else:
         fresh = [m for m in messages if not state.already_reported(m.id)]
         seen = [m for m in messages if state.already_reported(m.id)]
-        carried_msgs = [m for m in seen if still_open(m)] if repeat == "open_only" else []
+        carried_msgs = (
+            [
+                m for m in seen
+                if still_open(m)
+                and state.carry_allowed(m.id, cooldown_hours=cooldown, limit=carry_limit)
+            ]
+            if repeat == "open_only"
+            else []
+        )
 
     log.info(
         "Digest: %d new, %d carried over, %d already handled.",
@@ -816,13 +858,19 @@ def run_digest(
         if sent:
             state.mark_digest_sent()
             state.mark_reported([m.id for m in messages])
-            # Only record the batch once the mail carrying it actually went
-            # out, otherwise we would wait forever for a reply to nothing.
+            state.mark_carried([m.id for m in carried_msgs])
+            # The reply loop needs the thread this went out on. The website
+            # does not -- so the batch is stored either way, and only the
+            # thread ids are conditional. Storing it only on a successful send
+            # meant a proposal the agent had already worked out was thrown
+            # away whenever the mail failed, and never reached the page.
             if batch:
                 batch.sent_message_id = sent["id"]
                 batch.thread_id = sent["threadId"]
-                state.put_batch(vars(batch))
                 log.info("Awaiting a reply on %d calendar proposals.", len(proposals))
+        if batch:
+            state.put_batch(vars(batch))
+            state.mark_proposed([p.message_id for p in proposals])
 
     log.info("Digest done. %d events created this run.", events_made)
     # Raised, not logged. A digest whose state write is lost repeats every

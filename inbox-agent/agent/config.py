@@ -144,6 +144,13 @@ def load_settings(policy_path: Path | None = None, *, use_overlay: bool = True) 
     # section however the instructions were worded.
     policy = rules_mod.apply_to_policy(policy, over.get("derived") or {})
 
+    # After the derived rules, not before. Those can only ever *extend* the
+    # star lists, so applying the off switch last is what makes it mean off --
+    # otherwise a compiled "always star anything from the CDC" would sit in a
+    # policy whose enabled flag had already been read.
+    if over.get("star_enabled") is not None:
+        policy.setdefault("star", {})["enabled"] = bool(over["star_enabled"])
+
     return Settings(
         project=_env("GCP_PROJECT", required=True),
         region=_env("GCP_REGION", "asia-south1"),
