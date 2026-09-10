@@ -128,15 +128,21 @@ In the Cloud Console for your project:
 1. **APIs & Services → OAuth consent screen** → External → fill in the basics.
    Add both your Gmail addresses as **test users**.
 
-   Then **publish it** — Audience → *Publish app* → confirm. This matters
-   and it is easy to get wrong: an app left in **Testing** has its refresh
-   tokens **expired by Google after seven days**, so the agent works for a
-   week and then every run dies with `invalid_grant: Token has been expired
-   or revoked`. Publishing stops that. You stay the only user, and because
-   the app is unverified you will see a "Google hasn't verified this app"
-   screen when authorising — click *Advanced → Go to (unsafe)*. That warning
-   is about other people trusting your app, which is not a thing that
-   applies when the only user is you.
+   **Leave it in Testing, and know what that costs.** Google expires refresh
+   tokens after **seven days** for any OAuth client in Testing status, so
+   every mailbox has to be re-authorised weekly (step 2 again) or the agent
+   stops dead with `invalid_grant: Token has been expired or revoked`.
+
+   Publishing would remove the expiry, but it is not reachable here:
+   publishing needs a completed branding page, and `gmail.modify` is a
+   *restricted* scope, which then needs full verification — a security
+   assessment built for products with users, not for one person's inbox.
+   Internal is not an option either unless the project sits in a Workspace
+   organisation *and* every mailbox belongs to it; a personal @gmail.com
+   never does.
+
+   So the weekly re-auth is the deal. The agent knows it: from day five it
+   puts a countdown at the top of every digest, while it can still send one.
 2. **Credentials → Create credentials → OAuth client ID → Desktop app.**
    Download the JSON as `client_secret.json` into this folder.
 

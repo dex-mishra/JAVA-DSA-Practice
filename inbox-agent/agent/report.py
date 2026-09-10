@@ -14,7 +14,7 @@ from datetime import datetime
 from typing import Any, Iterable
 
 from .classify import Label
-from .gmail import Message
+from .gmail import TOKEN_LIFETIME_DAYS, Message
 
 FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"
 INK = "#1a1a1a"
@@ -65,6 +65,10 @@ class DigestData:
     dry_run: bool = True
     errors: list[str] = field(default_factory=list)
     scanned: int = 0
+    # Days until the OAuth token expires, when that is close enough to matter.
+    # Carried in the digest rather than sent separately because the digest is
+    # already arriving and a separate mail would be one more thing to ignore.
+    token_days_left: float | None = None
 
 
 def _sender_name(msg: Message) -> str:
@@ -302,6 +306,43 @@ def render_confirmation(created: list[tuple[Any, str]], skipped: int, timestamp:
     return subject, html_doc
 
 
+def _token_block(data: DigestData) -> str:
+    """The one warning that has to arrive before the thing it warns about.
+
+    Google expires this agent's refresh tokens after seven days while the
+    OAuth client sits in Testing, and publishing is not available for
+    restricted Gmail scopes without full verification. So the token dies on
+    a schedule, and the mailbox that would tell you is the one that dies --
+    which is how the last expiry went unnoticed for nineteen days. This goes
+    at the very top, while sending still works.
+    """
+    left = data.token_days_left
+    if left is None:
+        return ""
+    days = max(0, int(left))
+    when = "today" if days <= 0 else ("tomorrow" if days == 1 else f"in {days} days")
+    return f"""
+    <div style="margin:0 0 18px;padding:14px;border:2px solid {DANGER};border-radius:8px;
+                background:#fef2f2">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+                  color:{DANGER}">Re-authorise {when}</div>
+      <div style="font-size:13px;color:{INK};margin-top:6px;line-height:1.55">
+        The Gmail token this agent runs on expires {when}. Google does that
+        after {TOKEN_LIFETIME_DAYS} days to every OAuth client left in Testing,
+        and publishing needs a verification review that a personal inbox will
+        not pass. When it goes, everything stops silently &mdash; no summaries,
+        no alerts, and no way for this agent to tell you, because sending is
+        exactly what breaks.
+      </div>
+      <div style="font-size:12.5px;color:{MUTED};margin-top:8px;line-height:1.6">
+        In Cloud Shell, for each mailbox:<br>
+        <code style="color:{INK};font-size:12px">cd ~/Placement-and-MBA/inbox-agent &amp;&amp;
+        .venv/bin/python setup/authorize.py --account primary --project
+        personal-agent-505411 --secret inbox-agent-primary-token</code>
+      </div>
+    </div>"""
+
+
 def _carried_block(data: DigestData) -> str:
     """Still-open items from previous digests, one line each.
 
@@ -395,6 +436,7 @@ def render_digest(data: DigestData, policy: dict[str, Any], timestamp: datetime)
     html_doc = f"""<!doctype html>
 <html><body style="margin:0;padding:0;background:#ffffff">
   <div style="max-width:640px;margin:0 auto;padding:26px 20px;font-family:{FONT};color:{INK}">
+    {_token_block(data)}
     <div style="border-bottom:2px solid {INK};padding-bottom:12px">
       <div style="font-size:20px;font-weight:700">Inbox report</div>
       <div style="font-size:13px;color:{MUTED};margin-top:3px">

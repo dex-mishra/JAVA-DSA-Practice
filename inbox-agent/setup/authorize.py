@@ -34,6 +34,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 
 from google_auth_oauthlib.flow import InstalledAppFlow
 
@@ -178,6 +179,11 @@ def main() -> int:
             "client_secret": creds.client_secret,
             "token_uri": creds.token_uri,
             "scopes": scopes,
+            # When this was minted. An OAuth client in Testing publishing
+            # status has its refresh tokens expired by Google after seven
+            # days, so the agent uses this to warn you a couple of days out
+            # -- while it can still send the warning.
+            "created_ts": time.time(),
         },
         indent=2,
     )

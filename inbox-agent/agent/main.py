@@ -34,6 +34,7 @@ from .calendar import CalendarClient, EventSpec
 from .classify import Classifier, Label
 from . import overlay as overlay_mod
 from .config import Account, Settings, load_settings
+from . import gmail as gmail_mod
 from .gmail import GmailClient, Message
 from .state import State
 
@@ -174,6 +175,22 @@ def _connect_or_fail(settings: Settings) -> dict[str, GmailClient]:
             "no mailboxes could be opened -- " + " | ".join(failures or ["no accounts configured"])
         )
     return clients
+
+
+def _token_days_left(clients: dict[str, GmailClient]) -> float | None:
+    """Days until the soonest-expiring mailbox token dies, if that is close.
+
+    None when nothing is close, or when the tokens predate authorize.py
+    stamping them -- an unstamped token is not evidence of a healthy one, but
+    guessing a countdown from no data would be worse than saying nothing.
+    """
+    ages = [c.token_age_days for c in clients.values() if c.token_age_days is not None]
+    if not ages:
+        return None
+    left = gmail_mod.TOKEN_LIFETIME_DAYS - max(ages)
+    if max(ages) < gmail_mod.TOKEN_WARN_AFTER_DAYS:
+        return None
+    return left
 
 
 def _collect(
@@ -775,6 +792,7 @@ def run_digest(
         dry_run=settings.cleanup_dry_run,
         errors=errors,
         scanned=len(messages),
+        token_days_left=_token_days_left(clients),
     )
 
     subject, body = report_mod.render_digest(data, settings.policy, _now(settings))

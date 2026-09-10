@@ -157,13 +157,40 @@ class TokenExpired(RuntimeError):
     """
 
 
-def load_credentials(project: str, secret_name: str) -> Credentials:
-    """Pull the stored OAuth bundle out of Secret Manager and refresh it."""
+# Google expires refresh tokens for OAuth clients in Testing publishing
+# status after seven days, and publishing is not always available: it needs a
+# completed branding page, and for restricted scopes like gmail.modify it
+# needs full verification, which is a security assessment aimed at real
+# products rather than one person's inbox. So Testing -- and this expiry --
+# is the permanent state here, not a mistake to be corrected.
+#
+# Which makes the expiry a scheduled outage rather than an accident, and the
+# only useful response is to say so before it happens rather than after. The
+# last one cost nineteen days of silence, because the mailbox that would have
+# reported it is the one that stopped working.
+TOKEN_LIFETIME_DAYS = 7
+TOKEN_WARN_AFTER_DAYS = 5
+
+
+def load_bundle(project: str, secret_name: str) -> dict[str, Any]:
+    """The stored OAuth bundle exactly as setup/authorize.py wrote it."""
     client = secretmanager.SecretManagerServiceClient()
     path = f"projects/{project}/secrets/{secret_name}/versions/latest"
     payload = client.access_secret_version(request={"name": path}).payload.data.decode("utf-8")
-    info = json.loads(payload)
+    return json.loads(payload)
 
+
+def token_age_days(info: dict[str, Any]) -> float | None:
+    """How long ago this token was minted, or None for one written before
+    authorize.py started stamping them."""
+    created = float(info.get("created_ts") or 0)
+    if created <= 0:
+        return None
+    return max(0.0, (time.time() - created) / 86400.0)
+
+
+def credentials_from(info: dict[str, Any], secret_name: str = "") -> Credentials:
+    """Build and refresh credentials from an already-loaded bundle."""
     creds = Credentials(
         token=None,
         refresh_token=info["refresh_token"],
@@ -177,21 +204,31 @@ def load_credentials(project: str, secret_name: str) -> Credentials:
     except RefreshError as exc:
         if "invalid_grant" in str(exc).lower():
             raise TokenExpired(
-                f"the saved token for {secret_name} no longer works ({exc}). "
-                "Almost always this means the OAuth client is still in Testing "
-                "mode, where Google expires refresh tokens after 7 days: "
-                "publish the app (OAuth consent screen -> Audience -> Publish "
-                "app), then re-run setup/authorize.py for this mailbox."
+                f"the saved token for {secret_name or 'this mailbox'} no longer "
+                f"works ({exc}). Google expires refresh tokens after "
+                f"{TOKEN_LIFETIME_DAYS} days for OAuth clients in Testing "
+                "publishing status. Re-run setup/authorize.py for this mailbox "
+                "from Cloud Shell to mint a fresh one."
             ) from exc
         raise
     return creds
+
+
+def load_credentials(project: str, secret_name: str) -> Credentials:
+    """Pull the stored OAuth bundle out of Secret Manager and refresh it."""
+    return credentials_from(load_bundle(project, secret_name), secret_name)
 
 
 class GmailClient:
     def __init__(self, account_key: str, email: str, project: str, secret_name: str):
         self.account_key = account_key
         self.email = email
-        creds = load_credentials(project, secret_name)
+        self.secret_name = secret_name
+        info = load_bundle(project, secret_name)
+        # Kept so a run can warn that this token is nearly out of time while
+        # it still has the access needed to deliver the warning.
+        self.token_age_days = token_age_days(info)
+        creds = credentials_from(info, secret_name)
         self.service = build("gmail", "v1", credentials=creds, cache_discovery=False)
         self._thread_sent_cache: dict[str, bool] = {}
         self._label_cache: dict[str, str] | None = None

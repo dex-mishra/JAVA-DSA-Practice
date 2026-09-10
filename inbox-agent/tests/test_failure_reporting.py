@@ -206,3 +206,59 @@ class PausedStillReportsCleanly(Harness):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class ExpiryIsAnnouncedBeforeItHappens(unittest.TestCase):
+    """The token dies on a seven-day schedule and cannot be published out of
+    it, so the only thing that helps is saying so while sending still works.
+    Last time it went unnoticed for nineteen days."""
+
+    def clients(self, *ages):
+        return {
+            f"acct{i}": type("C", (), {"token_age_days": age})()
+            for i, age in enumerate(ages)
+        }
+
+    def test_a_fresh_token_says_nothing(self):
+        self.assertIsNone(main_mod._token_days_left(self.clients(0.5, 1.0)))
+
+    def test_it_starts_warning_two_days_out(self):
+        left = main_mod._token_days_left(self.clients(5.2))
+        self.assertIsNotNone(left)
+        self.assertAlmostEqual(left, 1.8, places=1)
+
+    def test_the_soonest_to_die_is_the_one_that_counts(self):
+        """Two mailboxes, minted days apart: the warning has to track the
+        older one, since that is what stops first."""
+        left = main_mod._token_days_left(self.clients(1.0, 6.0))
+        self.assertAlmostEqual(left, 1.0, places=1)
+
+    def test_unstamped_tokens_produce_no_countdown(self):
+        """Written before authorize.py stamped them. Silence beats inventing
+        a deadline out of no data."""
+        self.assertIsNone(main_mod._token_days_left(self.clients(None, None)))
+
+    def test_an_expired_token_still_reports_rather_than_going_negative_in_the_copy(self):
+        from agent import report as report_mod
+
+        _, html = report_mod.render_digest(
+            report_mod.DigestData(scanned=0, token_days_left=-0.4),
+            {"report": {}},
+            __import__("datetime").datetime(2026, 9, 10),
+        )
+        self.assertIn("Re-authorise today", html)
+
+    def test_the_banner_names_the_command_and_is_absent_when_not_due(self):
+        from agent import report as report_mod
+
+        when = __import__("datetime").datetime(2026, 9, 10)
+        warned = report_mod.render_digest(
+            report_mod.DigestData(scanned=0, token_days_left=2), {"report": {}}, when
+        )[1]
+        self.assertIn("authorize.py", warned)
+        self.assertIn("in 2 days", warned)
+
+        quiet = report_mod.render_digest(
+            report_mod.DigestData(scanned=0, token_days_left=None), {"report": {}}, when
+        )[1]
+        self.assertNotIn("Re-authorise", quiet)
