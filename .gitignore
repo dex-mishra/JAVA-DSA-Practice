@@ -21,3 +21,8 @@ console/_agent/rules.py
 
 # Copied in at image build time from data/ at the repo root.
 console/data/
+
+# The DSA drop zone. The JSON is the input tools/import-dsa.mjs reads and is
+# committed; the browser saves next to it are 22 MB of scraped LeetCode and
+# YouTube pages that nothing reads.
+dsa material/*.html

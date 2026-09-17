@@ -1,0 +1,297 @@
+{
+ "pool_size": 600,
+ "total_days": 40,
+ "phases": [
+  {
+   "key": "P0",
+   "slug": "phase-0-foundations",
+   "title": "Foundations",
+   "days": [
+    1,
+    3
+   ],
+   "quota": 24,
+   "goal": "Reference layer. Complexity, STL, sorting, hashing, recursion, bit basics, maths. Reread whenever you open the sheet."
+  },
+  {
+   "key": "P1",
+   "slug": "phase-1-breadth",
+   "title": "Breadth Pass",
+   "days": [
+    4,
+    13
+   ],
+   "quota": 155,
+   "goal": "Full theory plus the pattern-defining core of every non-core topic. Enough to sit an OA without freezing."
+  },
+  {
+   "key": "P2A",
+   "slug": "phase-2a-trees",
+   "title": "Core I - Trees & BST",
+   "days": [
+    14,
+    19
+   ],
+   "quota": 93,
+   "goal": "Binary trees and BSTs at full depth. Every traversal, every medium, every hard."
+  },
+  {
+   "key": "P2B",
+   "slug": "phase-2b-graphs-dp",
+   "title": "Core II - Graphs & DP",
+   "days": [
+    20,
+    32
+   ],
+   "quota": 202,
+   "goal": "Graphs and dynamic programming at full depth. Heaviest phase, highest interview yield."
+  },
+  {
+   "key": "P3",
+   "slug": "phase-3-depth",
+   "title": "Depth Return",
+   "days": [
+    33,
+    38
+   ],
+   "quota": 93,
+   "goal": "Back to the Phase 1 topics for everything held back. Breadth turns into fluency here."
+  },
+  {
+   "key": "P4",
+   "slug": "phase-4-advanced",
+   "title": "Advanced & Revision",
+   "days": [
+    39,
+    40
+   ],
+   "quota": 33,
+   "goal": "Tries, hard strings, and the revision queue that keeps all of it warm."
+  }
+ ],
+ "topic_quota": {
+  "math": [
+   "P0",
+   false,
+   8
+  ],
+  "sorting": [
+   "P0",
+   false,
+   8
+  ],
+  "hashing": [
+   "P0",
+   false,
+   8
+  ],
+  "arrays": [
+   "P1",
+   true,
+   70
+  ],
+  "binary-search": [
+   "P1",
+   true,
+   35
+  ],
+  "strings": [
+   "P1",
+   true,
+   45
+  ],
+  "linked-list": [
+   "P1",
+   true,
+   30
+  ],
+  "recursion": [
+   "P1",
+   true,
+   30
+  ],
+  "bit-manipulation": [
+   "P1",
+   true,
+   20
+  ],
+  "stack-queue": [
+   "P1",
+   true,
+   35
+  ],
+  "sliding-window": [
+   "P1",
+   true,
+   35
+  ],
+  "heaps": [
+   "P1",
+   true,
+   25
+  ],
+  "greedy": [
+   "P1",
+   true,
+   30
+  ],
+  "binary-trees": [
+   "P2A",
+   false,
+   55
+  ],
+  "bst": [
+   "P2A",
+   false,
+   25
+  ],
+  "graphs": [
+   "P2B",
+   false,
+   65
+  ],
+  "dp": [
+   "P2B",
+   false,
+   80
+  ],
+  "tries": [
+   "P4",
+   false,
+   12
+  ]
+ },
+ "tiers": {
+  "CORE": "Code it fully. No shortcuts, no editorial. The pattern lives here.",
+  "DRILL": "A variation on a CORE you already did. Under 10 minutes. If it takes 30, the CORE did not land.",
+  "SKIM": "Read the learnings dropdown, write 3 lines of pseudocode, move on. Code it only if the day ran short."
+ },
+ "tier_mix": {
+  "CORE": 0.4,
+  "DRILL": 0.35,
+  "SKIM": 0.25
+ },
+ "user_field_schema": {
+  "status": {
+   "type": "enum",
+   "values": [
+    "todo",
+    "solved",
+    "revisit"
+   ],
+   "default": "todo"
+  },
+  "revision": {
+   "type": "boolean",
+   "default": false,
+   "note": "the Striver star - flag anything you want resurfaced"
+  },
+  "notes": {
+   "type": "text",
+   "default": "",
+   "note": "free text, markdown allowed"
+  },
+  "tags": {
+   "type": "string[]",
+   "default": [],
+   "seed": [
+    "stuck",
+    "off-by-one",
+    "wrong-complexity",
+    "misread-constraints",
+    "slow-implementation",
+    "ask-in-mock",
+    "elegant",
+    "redo-cold",
+    "template-drilled",
+    "interview-asked"
+   ]
+  },
+  "confidence": {
+   "type": "int",
+   "range": [
+    1,
+    5
+   ],
+   "default": null,
+   "note": "rate after solving. 1 = needed the editorial, 5 = could teach it"
+  },
+  "last_revised": {
+   "type": "date",
+   "default": null
+  },
+  "goodnotes_ref": {
+   "type": "text",
+   "default": "",
+   "note": "free-text pointer to the GoodNotes page (e.g. 'DSA nb2 p.41'). Opaque to the system - never parsed."
+  },
+  "my_approach": {
+   "type": "text",
+   "default": "",
+   "note": "optional one-liner typed into the tracker on how he solved it. If it differs from the optimal, that gap is the revision signal."
+  }
+ },
+ "revision_queue_rule": "ORDER BY confidence ASC NULLS LAST, last_revised ASC NULLS FIRST WHERE status != 'todo' AND (revision = true OR confidence <= 3)",
+ "stuck_ladder": [
+  {
+   "from_min": 0,
+   "to_min": 10,
+   "do": "Brute force on paper, not the keyboard. Write the dumbest correct solution. Most 'stuck' is a skipped brute force."
+  },
+  {
+   "from_min": 10,
+   "to_min": 20,
+   "do": "Read the constraints. n tells you the target complexity: n<=20 bitmask or backtracking, n<=500 O(n^3), n<=5000 O(n^2), n<=1e5 O(n log n), n<=1e9 O(log n) or math."
+  },
+  {
+   "from_min": 20,
+   "to_min": 30,
+   "do": "Open the learnings dropdown. Read ONLY the insight line. Close it. Try again."
+  },
+  {
+   "from_min": 30,
+   "to_min": 40,
+   "do": "Read the trick line. Try again."
+  },
+  {
+   "from_min": 40,
+   "to_min": 999,
+   "do": "Striver video or TUF article, both linked inline. Then close every tab and reimplement from an empty file."
+  }
+ ],
+ "ai_protocol": [
+  "Never before the 20 minute mark. The struggle is what encodes it.",
+  "Never paste the problem and ask for a solution.",
+  "Ask: 'Here is my approach: X. Where does it break?'",
+  "Ask: 'What invariant should I be maintaining here?'",
+  "Ask: 'I have an O(n^2). What property of the input am I not exploiting?'",
+  "After solving: 'Here is my code, review it like a FAANG interviewer.' Most valuable, least used.",
+  "Separate session, always. Keeps you from asking earlier and earlier.",
+  "Anything that needed a hint is not done, it is scheduled. Set confidence <= 3 and redo it cold in 48 hrs."
+ ],
+ "theory_parts": [
+  {
+   "key": "breadth",
+   "heading": "Part 1 \u2014 The topic, in breadth",
+   "brief": "What the topic is, how it works, how to implement it, what it costs. The answer you would get if you simply asked 'what is X'. Textbook register."
+  },
+  {
+   "key": "depth",
+   "heading": "Part 2 \u2014 Interview depth",
+   "brief": "The deeper technical layer: only what gets probed in a technical round or as a follow-up. Trade-offs, worst cases, proofs, the grilling chain. Textbook register, heavier."
+  },
+  {
+   "key": "analogy",
+   "heading": "Part 3 \u2014 If something above did not land",
+   "brief": "A short, plain real-world analogy for the hard ideas in Parts 1 and 2. Warm, brief, and strictly a fallback."
+  }
+ ],
+ "checkpoint_scope": "day",
+ "decay": {
+  "0": "full",
+  "1": "detail",
+  "2": "where",
+  "3": "headline"
+ },
+ "closed_topic_rollup": "Once a topic is finished, every learning in it is carried forward as a single consolidated line for the rest of the sheet. Arrays never vanishes - by the time you reach DP it is one dense paragraph instead of forty lines."
+}

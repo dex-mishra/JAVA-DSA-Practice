@@ -675,3 +675,428 @@ ul.reports li { gap: 10px; }
   margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--line-soft);
   color: var(--ink-3); font-style: italic;
 }
+
+/* ============================================================
+   DSA SHEET
+
+   A section of its own, and it looks like one. The placement and MBA tabs
+   are checklists: a row is a label and a box. A DSA row is a problem with
+   six pieces of metadata, four controls and a teaching panel folded
+   underneath it, so it gets denser type, a mono register for everything
+   that is a code or a count, and colour that means something specific:
+
+     tier        the only colour that implies effort. CORE is the accent,
+                 DRILL is neutral, SKIM is quiet. They are not a difficulty
+                 scale and must not read as one.
+     difficulty  LeetCode's own three, in LeetCode's own colours, because
+                 that is the scale everyone already has in their head.
+     status      the row's left border. todo is invisible by design -- the
+                 default state should not decorate itself.
+
+   The section accent is teal rather than the rank colour: the rank accent
+   moves as you climb, and a sheet you use for forty days straight should
+   not change colour underneath you.
+   ============================================================ */
+
+body.domain-dsa::before { background: linear-gradient(rgba(13, 148, 136, .09), transparent 220px); }
+.tab[aria-selected="true"][data-domain="dsa"] { border-bottom-color: var(--dsa); }
+
+:root {
+  --dsa: #0d9488;
+  --dsa-soft: rgba(13, 148, 136, .10);
+  --easy: #15803d;
+  --medium: #b45309;
+  --hard: #b91c1c;
+}
+
+/* ---------------------------------------------------------- phase strip */
+
+.dsa-phases {
+  display: grid; gap: 10px; margin-bottom: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+.dsa-phase {
+  border: 1px solid var(--line-soft); background: var(--surface);
+  border-radius: var(--r); padding: 11px 13px;
+}
+.dsa-phase.pending { background: var(--raise); border-style: dashed; }
+.dsa-pkey {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .16em;
+  color: var(--dsa); font-weight: 700;
+}
+.dsa-ptitle { font-size: 13px; font-weight: 600; margin-top: 2px; }
+.dsa-pdays { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); margin-top: 1px; }
+.dsa-pbar {
+  height: 4px; background: var(--raise); border-radius: 2px;
+  overflow: hidden; margin-top: 8px;
+}
+.dsa-pbar i { display: block; height: 100%; background: var(--dsa); }
+.dsa-pcount { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); margin-top: 5px; }
+.dsa-pcount.pending { color: var(--ink-3); font-style: italic; }
+
+/* ---------------------------------------------------------- day nav */
+
+.dsa-daynav { display: flex; align-items: center; gap: 14px; }
+.dsa-dayhd { flex: 1; min-width: 0; }
+.dsa-dayhd h2 { margin: 0; }
+.dsa-goal { color: var(--ink-2); font-size: 13px; margin: 10px 0 0; }
+
+/* Forty days at a glance. Deliberately small: this is an index, and the day
+   you want is almost always within two of the one you are on. */
+.dsa-rail { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 14px; }
+.dsa-daycell {
+  width: 26px; height: 26px; padding: 0; cursor: pointer;
+  font-family: var(--mono); font-size: 10.5px;
+  border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink-3); border-radius: 3px;
+}
+.dsa-daycell:hover:not(:disabled) { border-color: var(--dsa); color: var(--ink); }
+.dsa-daycell.part { background: var(--dsa-soft); color: var(--ink-2); }
+.dsa-daycell.done { background: var(--dsa); border-color: var(--dsa); color: #fff; }
+.dsa-daycell.on { outline: 2px solid var(--ink); outline-offset: 1px; color: var(--ink); font-weight: 700; }
+.dsa-daycell.empty, .dsa-daycell:disabled {
+  background: var(--raise); color: #b6bec9; cursor: default; border-style: dashed;
+}
+
+/* ---------------------------------------------------------- rows */
+
+.dsa-rows { display: flex; flex-direction: column; }
+.dsa-row {
+  border-bottom: 1px solid var(--line-soft);
+  border-left: 3px solid transparent;
+  padding: 10px 0 10px 11px;
+}
+.dsa-row:last-child { border-bottom: 0; }
+.dsa-row.st-solved { border-left-color: var(--ok); }
+.dsa-row.st-revisit { border-left-color: var(--warn); }
+.dsa-row.open { background: var(--raise); }
+.dsa-row.st-solved .dsa-title { color: var(--ink-3); }
+
+.dsa-rhead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dsa-title {
+  font-size: 14px; font-weight: 600; color: var(--ink); text-decoration: none;
+}
+.dsa-title:hover { color: var(--dsa); text-decoration: underline; }
+
+.dsa-tier {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em; font-weight: 700;
+  padding: 3px 6px; border-radius: 3px; cursor: help; flex: none;
+}
+.dsa-tier.t-CORE { background: var(--dsa); color: #fff; }
+.dsa-tier.t-DRILL { background: var(--raise); color: var(--ink-2); border: 1px solid var(--line); }
+.dsa-tier.t-SKIM { background: transparent; color: var(--ink-3); border: 1px dashed var(--line); }
+
+.dsa-diff { font-family: var(--mono); font-size: 10px; font-weight: 600; }
+.dsa-diff.d-easy { color: var(--easy); }
+.dsa-diff.d-medium { color: var(--medium); }
+.dsa-diff.d-hard { color: var(--hard); }
+
+.dsa-oa {
+  font-family: var(--mono); font-size: 9px; letter-spacing: .08em; font-weight: 700;
+  color: #fff; background: var(--crit); padding: 2px 5px; border-radius: 3px; cursor: help;
+}
+.dsa-hasnote { color: var(--dsa); font-size: 12px; cursor: help; }
+
+.dsa-co-wrap { display: flex; gap: 4px; flex-wrap: wrap; }
+.dsa-co {
+  font-family: var(--mono); font-size: 9.5px; color: var(--ink-3);
+  border: 1px solid var(--line-soft); border-radius: 3px; padding: 1px 5px;
+}
+.dsa-co.more { border-style: dashed; }
+
+.dsa-actions { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+
+.dsa-status {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .06em;
+  padding: 4px 9px; border-radius: 3px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink-3);
+  min-width: 62px;
+}
+.dsa-status.s-solved { background: var(--ok); border-color: var(--ok); color: #fff; }
+.dsa-status.s-revisit { background: var(--warn); border-color: var(--warn); color: #fff; }
+.dsa-status:hover { border-color: var(--ink-2); }
+
+.dsa-star {
+  border: 0; background: none; cursor: pointer; font-size: 15px;
+  color: var(--ink-3); padding: 0 2px; line-height: 1;
+}
+.dsa-star.on { color: var(--medium); }
+
+.dsa-conf { display: inline-flex; gap: 1px; }
+.dsa-conf button {
+  width: 18px; height: 20px; padding: 0; cursor: pointer;
+  font-family: var(--mono); font-size: 9.5px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink-3);
+}
+.dsa-conf button:first-child { border-radius: 3px 0 0 3px; }
+.dsa-conf button:last-child { border-radius: 0 3px 3px 0; }
+.dsa-conf button.on { background: var(--ink-2); border-color: var(--ink-2); color: #fff; }
+
+.dsa-expand {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .05em;
+  padding: 4px 8px; cursor: pointer; border-radius: 3px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink-2);
+}
+.dsa-expand:hover { border-color: var(--dsa); color: var(--dsa); }
+
+.dsa-rmeta {
+  font-family: var(--mono); font-size: 10.5px; color: var(--ink-3);
+  margin-top: 5px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
+}
+.dsa-pattern { color: var(--ink-2); }
+.dsa-tlink { color: var(--dsa); text-decoration: none; }
+.dsa-tlink:hover { text-decoration: underline; }
+.dsa-tuf { color: var(--medium); }
+.dsa-tag {
+  background: var(--dsa-soft); color: var(--dsa); border-radius: 3px;
+  padding: 1px 5px; margin-right: 3px;
+}
+
+/* ---------------------------------------------------------- detail */
+
+.dsa-detail { margin: 12px 0 4px; padding: 14px 16px; background: var(--surface);
+  border: 1px solid var(--line-soft); border-radius: var(--r); }
+.dsa-loading { color: var(--ink-3); font-family: var(--mono); font-size: 11px; padding: 6px 0; }
+
+.dsa-lblock + .dsa-lblock { margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--line-soft); }
+.dsa-lblock h4 {
+  margin: 0 0 7px; font-family: var(--mono); font-size: 10px; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ink-3); font-weight: 700;
+}
+.dsa-lblock p { margin: 0 0 8px; font-size: 13.5px; line-height: 1.65; color: var(--ink); }
+.dsa-lblock p:last-child { margin-bottom: 0; }
+.dsa-lblock ul, .dsa-lblock ol { margin: 0 0 8px; padding-left: 20px; font-size: 13.5px; line-height: 1.6; }
+.dsa-lblock li { margin: 3px 0; }
+.dsa-edges li { color: var(--ink-2); }
+
+.dsa-cx { display: flex; gap: 16px; margin-bottom: 7px; }
+.dsa-cxv { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.dsa-cxv b { color: var(--ink); font-size: 12.5px; }
+
+.dsa-sibs { display: flex; flex-wrap: wrap; gap: 6px; }
+.dsa-sib {
+  font-size: 12px; text-decoration: none; padding: 4px 9px; border-radius: 3px;
+  border: 1px solid var(--line); color: var(--ink-2); background: var(--surface);
+}
+.dsa-sib.in:hover { border-color: var(--dsa); color: var(--dsa); }
+/* A sibling outside the 600 leaves the sheet, and says so before you click. */
+.dsa-sib.out { border-style: dashed; color: var(--ink-3); }
+.dsa-sib.out::after { content: " ↗"; font-size: 9px; }
+
+.dsa-fu { margin: 0; font-size: 13px; }
+.dsa-fu dt { font-weight: 600; color: var(--ink); margin-top: 9px; }
+.dsa-fu dt:first-child { margin-top: 0; }
+.dsa-fu dd { margin: 3px 0 0; padding-left: 14px; color: var(--ink-2); line-height: 1.6;
+  border-left: 2px solid var(--line-soft); }
+
+/* ---------------------------------------------------------- code */
+
+.dsa-code { position: relative; margin: 10px 0; }
+.dsa-code pre {
+  margin: 0; padding: 12px 14px; overflow-x: auto;
+  background: #0f172a; color: #e2e8f0; border-radius: var(--r);
+  font-family: var(--mono); font-size: 12px; line-height: 1.6;
+}
+.dsa-code code { font-family: inherit; }
+.dsa-copy {
+  position: absolute; top: 7px; right: 7px; z-index: 1;
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .06em;
+  padding: 3px 7px; cursor: pointer; border-radius: 3px;
+  border: 1px solid #334155; background: #1e293b; color: #94a3b8;
+}
+.dsa-copy:hover { color: #e2e8f0; border-color: #64748b; }
+.c-kw { color: #c084fc; }
+.c-str { color: #86efac; }
+.c-com { color: #64748b; font-style: italic; }
+.c-num { color: #fbbf24; }
+.c-pre { color: #38bdf8; }
+
+/* An inline code span in prose, as opposed to a block. */
+.dsa-lblock code, .dsa-partbody code, .dsa-learnitem code, .dsa-table code {
+  font-family: var(--mono); font-size: 11.5px; background: var(--raise);
+  padding: 1px 4px; border-radius: 3px; color: var(--ink);
+}
+.dsa-code pre code { background: none; padding: 0; color: inherit; }
+
+.dsa-tablewrap { overflow-x: auto; margin: 10px 0; }
+.dsa-table { border-collapse: collapse; font-size: 12.5px; width: 100%; }
+.dsa-table th, .dsa-table td {
+  border: 1px solid var(--line-soft); padding: 6px 10px; text-align: left; vertical-align: top;
+}
+.dsa-table th { background: var(--raise); font-family: var(--mono); font-size: 10.5px;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+
+/* ---------------------------------------------------------- stuck ladder */
+
+.dsa-stuck {
+  margin-top: 15px; padding: 13px 15px; border-radius: var(--r);
+  background: var(--raise); border: 1px solid var(--line-soft);
+}
+.dsa-stuck-hd { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+.dsa-stuck-hd h4 {
+  margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.dsa-timer { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
+
+.dsa-ladder { margin: 0; padding: 0; list-style: none; counter-reset: rung; }
+.dsa-ladder li {
+  display: flex; gap: 11px; font-size: 12.5px; line-height: 1.55;
+  padding: 6px 0; border-top: 1px solid var(--line-soft); color: var(--ink-3);
+}
+.dsa-ladder li:first-child { border-top: 0; }
+/* Only the rung you are actually on is legible. The whole point of a ladder
+   is that you do not read ahead. */
+.dsa-ladder li.now { color: var(--ink); background: var(--surface);
+  margin: 0 -8px; padding: 8px; border-radius: var(--r); border-top: 0; }
+.dsa-ladder li.past { opacity: .5; }
+.dsa-rung {
+  font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+  min-width: 62px; flex: none; padding-top: 1px;
+}
+.dsa-ladder li.now .dsa-rung { color: var(--dsa); font-weight: 700; }
+
+.dsa-ai { margin-top: 10px; font-size: 12.5px; }
+.dsa-ai summary {
+  cursor: pointer; font-family: var(--mono); font-size: 10px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.dsa-ai ul { margin: 8px 0 0; padding-left: 18px; color: var(--ink-2); line-height: 1.6; }
+.dsa-ai li { margin: 4px 0; }
+
+/* ---------------------------------------------------------- user fields */
+
+.dsa-user {
+  margin-top: 15px; padding-top: 14px; border-top: 1px solid var(--line-soft);
+  display: grid; gap: 11px; grid-template-columns: 1fr 1fr;
+}
+.dsa-field { display: flex; flex-direction: column; gap: 4px; }
+.dsa-field.wide { grid-column: 1 / -1; }
+.dsa-field > span {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.dsa-field > span i { text-transform: none; letter-spacing: 0; font-style: italic; }
+.dsa-field input, .dsa-field textarea {
+  font-family: var(--display); font-size: 13px; color: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--r);
+  padding: 7px 9px; background: var(--surface); width: 100%;
+}
+.dsa-field textarea { font-family: var(--mono); font-size: 12px; resize: vertical; }
+.dsa-field input:focus, .dsa-field textarea:focus { outline: none; border-color: var(--dsa); }
+
+.dsa-tagpick { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.dsa-tagb {
+  font-family: var(--mono); font-size: 10px; padding: 3px 8px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink-3); border-radius: 12px;
+}
+.dsa-tagb:hover { border-color: var(--dsa); }
+.dsa-tagb.on { background: var(--dsa); border-color: var(--dsa); color: #fff; }
+.dsa-tagnew {
+  font-family: var(--mono); font-size: 10px; padding: 3px 8px; width: 90px;
+  border: 1px dashed var(--line); border-radius: 12px; background: transparent;
+}
+.dsa-tagnew:focus { outline: none; border-color: var(--dsa); border-style: solid; }
+
+/* ---------------------------------------------------------- checkpoint */
+
+.dsa-check { margin-top: 16px; border-left: 3px solid var(--dsa); }
+.dsa-check h3 { margin-top: 0; }
+.dsa-cgroup + .dsa-cgroup { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line-soft); }
+.dsa-cgroup h4 {
+  margin: 0 0 9px; font-family: var(--mono); font-size: 10px; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--dsa); font-weight: 700;
+}
+.dsa-learnitem + .dsa-learnitem { margin-top: 13px; }
+.dsa-lhead { font-size: 14px; font-weight: 600; color: var(--ink); }
+.dsa-learnitem p { margin: 5px 0 0; font-size: 13.5px; line-height: 1.65; color: var(--ink-2); }
+.dsa-learnitem.dense p { font-size: 12.5px; }
+.dsa-cites { margin: 6px 0 0; padding-left: 18px; font-size: 12px; color: var(--ink-3); }
+.dsa-cites.one { padding-left: 0; margin-top: 4px; }
+.dsa-cites a { color: var(--dsa); text-decoration: none; }
+.dsa-cites a:hover { text-decoration: underline; }
+.dsa-terse { margin: 0; padding-left: 18px; font-size: 12.5px; color: var(--ink-2); line-height: 1.7; }
+/* The oldest material. Dense on purpose -- it is here so nothing is lost,
+   not so it is read again in full. */
+.dsa-joined { margin: 0 0 6px; font-size: 12px; color: var(--ink-3); line-height: 1.7; }
+.dsa-joined b { color: var(--ink-2); }
+
+/* ---------------------------------------------------------- theory */
+
+.dsa-theorylist {
+  display: grid; gap: 9px; margin-top: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+.dsa-theorycard {
+  display: flex; flex-direction: column; gap: 3px; align-items: flex-start;
+  text-align: left; cursor: pointer; padding: 12px 14px;
+  border: 1px solid var(--line-soft); border-radius: var(--r); background: var(--surface);
+}
+.dsa-theorycard:hover { border-color: var(--dsa); }
+.dsa-theorycard b { font-size: 13.5px; }
+
+.dsa-part { border-top: 1px solid var(--line-soft); }
+.dsa-parthd {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 0; cursor: pointer; background: none; border: 0;
+  font-family: var(--display); font-size: 14px; font-weight: 600; color: var(--ink);
+  text-align: left;
+}
+.dsa-parthd i { font-family: var(--mono); font-size: 15px; color: var(--ink-3); font-style: normal; }
+.dsa-part.open .dsa-parthd { color: var(--dsa); }
+.dsa-partbody { font-size: 13.5px; line-height: 1.7; color: var(--ink); padding-bottom: 6px; }
+.dsa-partbody p { margin: 0 0 11px; }
+.dsa-partbody h3, .dsa-partbody h4, .dsa-partbody h5, .dsa-partbody h6 {
+  margin: 16px 0 7px; font-size: 13.5px;
+}
+.dsa-partbody ul, .dsa-partbody ol { padding-left: 21px; margin: 0 0 11px; }
+.dsa-partbody li { margin: 4px 0; }
+.dsa-analogy + .dsa-analogy { margin-top: 15px; padding-top: 13px; border-top: 1px dashed var(--line-soft); }
+.dsa-analogy h4 { margin: 0 0 6px; font-size: 13px; color: var(--ink-2); }
+
+/* ---------------------------------------------------------- templates */
+
+.dsa-tgroup { margin-top: 18px; }
+.dsa-tgroup h4 {
+  margin: 0 0 9px; font-family: var(--mono); font-size: 10px; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.dsa-tcard {
+  display: grid; gap: 3px; width: 100%; text-align: left; cursor: pointer;
+  padding: 11px 13px; margin-bottom: 7px; background: var(--surface);
+  border: 1px solid var(--line-soft); border-radius: var(--r);
+  grid-template-columns: 82px 1fr auto;
+  grid-template-areas: "id name used" "id when used";
+  align-items: center;
+}
+.dsa-tcard:hover { border-color: var(--dsa); }
+.dsa-tid { grid-area: id; font-family: var(--mono); font-size: 10.5px; color: var(--dsa); font-weight: 700; }
+.dsa-tcard b { grid-area: name; font-size: 13px; }
+.dsa-tcard .muted { grid-area: when; }
+.dsa-tused { grid-area: used; font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+
+/* ---------------------------------------------------------- filters */
+
+.dsa-filters {
+  display: flex; flex-wrap: wrap; gap: 9px; align-items: flex-end;
+  margin: 14px 0; padding-bottom: 14px; border-bottom: 1px solid var(--line-soft);
+}
+.dsa-filt { display: flex; flex-direction: column; gap: 3px; }
+.dsa-filt.wide { flex: 1; min-width: 180px; }
+.dsa-filt > span {
+  font-family: var(--mono); font-size: 9px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.dsa-filt select, .dsa-filt input {
+  font-family: var(--display); font-size: 12.5px; color: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--r);
+  padding: 6px 8px; background: var(--surface);
+}
+.dsa-filt select:focus, .dsa-filt input:focus { outline: none; border-color: var(--dsa); }
+
+@media (max-width: 720px) {
+  .dsa-user { grid-template-columns: 1fr; }
+  .dsa-actions { margin-left: 0; width: 100%; }
+  .dsa-tcard { grid-template-columns: 1fr; grid-template-areas: "id" "name" "when" "used"; }
+}

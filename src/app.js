@@ -846,17 +846,30 @@
 
   /* Three top-level parts. Sub-tabs live inside a part, so the placement
      track list no longer sits next to unrelated things. */
+  /* DSA sits alongside Placement, MBA and the agent rather than inside
+     Placement. It is not a track -- it has its own days, phases, theory,
+     templates and revision queue, and burying five views under the SDE tab
+     would make the thing you use every day the hardest to reach. */
   var SECTIONS = [
     { id: "placement", label: "Placement" },
+    { id: "dsa", label: "DSA Sheet" },
     { id: "mba", label: "MBA" },
     { id: "agent", label: "Email Agent" }
   ];
+  // Hidden entirely until the content has been imported, rather than showing
+  // an empty tab that looks broken.
+  if (!DSA_SPEC) SECTIONS.splice(1, 1);
 
   var TABS = [{ id: "overview", label: "Overview", domain: "placement", section: "placement" }];
   PL.tracks.forEach(function (t) {
     TABS.push({ id: t.id, label: t.label, domain: "placement", section: "placement", track: t });
   });
   TABS.push({ id: "career", label: "Opportunities", domain: "placement", section: "placement" });
+  TABS.push({ id: "dsa-sheet", label: "Sheet", domain: "dsa", section: "dsa" });
+  TABS.push({ id: "dsa-browse", label: "Browse", domain: "dsa", section: "dsa" });
+  TABS.push({ id: "dsa-revision", label: "Revision", domain: "dsa", section: "dsa" });
+  TABS.push({ id: "dsa-theory", label: "Theory", domain: "dsa", section: "dsa" });
+  TABS.push({ id: "dsa-templates", label: "Templates", domain: "dsa", section: "dsa" });
   TABS.push({ id: "mba", label: "MBA Windows", domain: "mba", section: "mba" });
   TABS.push({ id: "agent", label: "Agent", domain: "agent", section: "agent" });
 
@@ -1931,12 +1944,18 @@
     ACTIVE = tab.id;
     document.body.classList.toggle("domain-mba", tab.domain === "mba");
     document.body.classList.toggle("domain-agent", tab.domain === "agent");
+    document.body.classList.toggle("domain-dsa", tab.domain === "dsa");
 
     var panel = document.getElementById("panel");
     if (tab.id === "overview") panel.innerHTML = renderOverview();
     else if (tab.id === "mba") panel.innerHTML = renderMba();
     else if (tab.id === "career") panel.innerHTML = renderCareer();
     else if (tab.id === "agent") panel.innerHTML = renderAgent();
+    else if (tab.id === "dsa-sheet") panel.innerHTML = renderDsaSheet();
+    else if (tab.id === "dsa-browse") panel.innerHTML = renderDsaBrowse();
+    else if (tab.id === "dsa-revision") panel.innerHTML = renderDsaRevision();
+    else if (tab.id === "dsa-theory") panel.innerHTML = renderDsaTheory();
+    else if (tab.id === "dsa-templates") panel.innerHTML = renderDsaTemplates();
     else panel.innerHTML = renderTrack(tab.track);
 
     renderHeader();
@@ -1954,6 +1973,19 @@
     renderTabs();
     bind();
     if (tab.id === "agent") bindAgent();
+    if (tab.domain === "dsa") {
+      bindDsa();
+      if (tab.id === "dsa-theory" && DSAV.theory) dsaFillTheory();
+      if (tab.id === "dsa-templates") {
+        if (DSAV.template) dsaFillTemplate(); else dsaFillTemplateList();
+      }
+      /* A repaint puts an expanded row's detail div back empty, so anything
+         still open has to be refilled. Cached after the first fetch, so this
+         is a dictionary lookup rather than a request. */
+      Object.keys(DSAV.open).forEach(function (id) {
+        if (DSAV.open[id]) dsaFillDetail(id);
+      });
+    }
   }
 
   /* The streak counts days you actually moved something, so reverting the
@@ -2246,10 +2278,1164 @@
     }
   }
 
+  /* ============================================================ DSA sheet
+
+     A section of its own, not a fourth placement track. The shape is
+     different in every way that matters: problems carry links, difficulty,
+     tiers, company tags, a pattern, a C++ template and a learnings payload,
+     and the user writes notes, tags, confidence and an approach line against
+     each one. None of that fits a checkbox list, so none of it is forced
+     into one.
+
+     What it does share is the ladder: a solved problem moves the mastery
+     rating, weighted by tier. See DSA_WEIGHT.
+  ============================================================ */
+
+  var DSAV = {
+    day: 0,
+    open: {},          // problem id -> expanded
+    part: {},          // theory id + part -> expanded
+    theory: null,      // theory id being read
+    template: null,    // template id being read
+    timers: {},        // problem id -> ms timestamp the attempt started
+    tick: null,
+    filters: {
+      topic: "", tier: "", difficulty: "", company: "", campus_oa: "",
+      status: "", confidence: "", has_notes: "", tag: "", q: ""
+    }
+  };
+
+  /* Fetched content, held for the session. The files are baked into the
+     image, so a second look at the same problem costs nothing. */
+  var DSA_CACHE = { problem: {}, theory: {}, template: {}, templates: null };
+
+  function dsaGet(kind, id) {
+    var store = DSA_CACHE[kind];
+    if (store && store[id]) return Promise.resolve(store[id]);
+    return fetch("/api/dsa/" + kind + "/" + encodeURIComponent(id))
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (doc) { if (store) store[id] = doc; return doc; });
+  }
+
+  /* ------------------------------------------------------ markdown
+
+     The theory sections and the learnings are markdown, and they use most
+     of it: fenced C++ blocks, tables, nested emphasis, code spans, links.
+     A renderer is eighty lines; pulling in a library for one tab is not
+     worth a CDN dependency on a page whose whole point is that it opens
+     from disk with nothing loaded. */
+
+  /* Stash marker for text lifted out before escaping and put back after.
+     NUL, because it cannot occur in any of the source material and so can
+     never collide with something a learning or a template actually says. */
+  var SENTINEL = "\u0000";
+
+  function mdInline(s) {
+    // Code spans are stashed first, so nothing below rewrites their insides.
+    var spans = [];
+    s = String(s).replace(/`([^`]+)`/g, function (m, code) {
+      spans.push(code);
+      return SENTINEL + (spans.length - 1) + SENTINEL;
+    });
+    s = esc(s);
+    s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    s = s.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+    s = s.replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<i>$2</i>");
+    s = s.replace(new RegExp(SENTINEL + "(\\d+)" + SENTINEL, "g"), function (m, i) {
+      return "<code>" + esc(spans[+i]) + "</code>";
+    });
+    return s;
+  }
+
+  /* C++ keyword colouring. A regex pass, not a parser: it runs over already
+     escaped text and only ever wraps spans, so the worst a miss can do is
+     leave a token uncoloured. */
+  var CPP_KW = /\b(alignas|auto|bool|break|case|catch|char|class|const|constexpr|continue|default|delete|do|double|else|enum|explicit|extern|false|float|for|friend|goto|if|inline|int|long|mutable|namespace|new|noexcept|nullptr|operator|private|protected|public|return|short|signed|sizeof|static|struct|switch|template|this|throw|true|try|typedef|typename|union|unsigned|using|virtual|void|volatile|while|size_t|uint64_t|int64_t|uint32_t|string|vector|map|set|pair|queue|stack|priority_queue|unordered_map|unordered_set|deque|array|tuple|greater|less|function)\b/g;
+
+  /* Comments, strings and preprocessor lines are matched first and the
+     colouring is applied only to the gaps between them, so a keyword inside
+     a comment stays a comment.
+
+     Done by scanning rather than by stashing placeholders and putting them
+     back: a numeric placeholder gets eaten by the number rule below it,
+     which is exactly how the first version of this turned
+     `// value -> index` into a bare 1. */
+  var CPP_SKIP = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/|&quot;(?:[^&\\]|\\.)*?&quot;|&#39;(?:[^&\\]|\\.)*?&#39;|^[ \t]*#\w+[^\n]*)/gm;
+
+  function cppTokens(s) {
+    return s.replace(CPP_KW, '<span class="c-kw">$1</span>')
+      .replace(/\b(\d[\w.']*)\b/g, '<span class="c-num">$1</span>');
+  }
+
+  function highlightCpp(code) {
+    var src = esc(code);
+    var out = "";
+    var last = 0;
+    var m;
+    CPP_SKIP.lastIndex = 0;
+    while ((m = CPP_SKIP.exec(src)) !== null) {
+      out += cppTokens(src.slice(last, m.index));
+      var tok = m[0];
+      var cls = tok.charAt(0) === "/" ? "c-com" : tok.charAt(0) === "&" ? "c-str" : "c-pre";
+      out += '<span class="' + cls + '">' + tok + "</span>";
+      last = m.index + tok.length;
+      // A zero-width match would spin here; the alternation cannot produce
+      // one, but the guard costs nothing next to a hung tab.
+      if (m.index === CPP_SKIP.lastIndex) CPP_SKIP.lastIndex++;
+    }
+    return out + cppTokens(src.slice(last));
+  }
+
+  var dsaCodeSeq = 0;
+
+  function mdCode(code, lang) {
+    var id = "dsacode" + (++dsaCodeSeq);
+    var body = !lang || /^(cpp|c\+\+|c)$/i.test(lang) ? highlightCpp(code) : esc(code);
+    return '<div class="dsa-code"><button class="dsa-copy" data-copy="' + id +
+      '" type="button">copy</button><pre id="' + id + '"><code>' + body + "</code></pre></div>";
+  }
+
+  function md(text) {
+    var lines = String(text == null ? "" : text).replace(/\r/g, "").split("\n");
+    var out = [];
+    var para = [];
+    var list = null;   // 'ul' | 'ol'
+    var items = [];
+
+    function flushPara() {
+      if (!para.length) return;
+      out.push("<p>" + mdInline(para.join(" ")) + "</p>");
+      para = [];
+    }
+    function flushList() {
+      if (!list) return;
+      out.push("<" + list + ">" + items.map(function (i) {
+        return "<li>" + mdInline(i) + "</li>";
+      }).join("") + "</" + list + ">");
+      list = null;
+      items = [];
+    }
+    function flush() { flushPara(); flushList(); }
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+
+      var fence = line.match(/^\s*```(\w*)\s*$/);
+      if (fence) {
+        flush();
+        var buf = [];
+        i++;
+        while (i < lines.length && !/^\s*```\s*$/.test(lines[i])) buf.push(lines[i++]);
+        out.push(mdCode(buf.join("\n"), fence[1]));
+        continue;
+      }
+
+      // A table is a header row followed by a |---|---| separator.
+      if (/^\s*\|/.test(line) && i + 1 < lines.length && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1])) {
+        flush();
+        var cells = function (row) {
+          return row.trim().replace(/^\||\|$/g, "").split("|").map(function (c) { return c.trim(); });
+        };
+        var head = cells(line);
+        i += 2;
+        var rows = [];
+        while (i < lines.length && /^\s*\|/.test(lines[i])) rows.push(cells(lines[i++]));
+        i--;
+        out.push('<div class="dsa-tablewrap"><table class="dsa-table"><thead><tr>' +
+          head.map(function (h) { return "<th>" + mdInline(h) + "</th>"; }).join("") +
+          "</tr></thead><tbody>" +
+          rows.map(function (r) {
+            return "<tr>" + r.map(function (c) { return "<td>" + mdInline(c) + "</td>"; }).join("") + "</tr>";
+          }).join("") + "</tbody></table></div>");
+        continue;
+      }
+
+      var heading = line.match(/^\s*(#{1,4})\s+(.*)$/);
+      if (heading) {
+        flush();
+        var lvl = Math.min(6, heading[1].length + 2);
+        out.push("<h" + lvl + ">" + mdInline(heading[2]) + "</h" + lvl + ">");
+        continue;
+      }
+
+      var ul = line.match(/^\s*[-*]\s+(.*)$/);
+      var ol = line.match(/^\s*\d+[.)]\s+(.*)$/);
+      if (ul || ol) {
+        flushPara();
+        var want = ul ? "ul" : "ol";
+        if (list && list !== want) flushList();
+        list = want;
+        items.push((ul || ol)[1]);
+        continue;
+      }
+
+      if (!line.trim()) { flush(); continue; }
+
+      // A continuation line inside a list item. The source is hard-wrapped at
+      // about 95 columns, so this is common and must not start a new item.
+      if (list && /^\s{2,}\S/.test(line)) {
+        items[items.length - 1] += " " + line.trim();
+        continue;
+      }
+      flushList();
+      para.push(line.trim());
+    }
+    flush();
+    return out.join("");
+  }
+
+  /* ------------------------------------------------------ derived */
+
+  var DSA_DAY_COUNT = (function () {
+    var seen = {};
+    DSA_PROBLEMS.forEach(function (p) { seen[p.day] = (seen[p.day] || 0) + 1; });
+    return seen;
+  })();
+
+  function dsaDayList() {
+    return Object.keys(DSA_DAY_COUNT).map(Number).sort(function (a, b) { return a - b; });
+  }
+
+  var DSA_TIER_RANK = { CORE: 0, DRILL: 1, SKIM: 2 };
+
+  function dsaProblemsOn(day) {
+    return DSA_PROBLEMS.filter(function (p) { return p.day === day; })
+      .sort(function (a, b) {
+        return (DSA_TIER_RANK[a.tier] - DSA_TIER_RANK[b.tier]) || (a.ord - b.ord);
+      });
+  }
+
+  /* Where you actually are: the first day with anything still unsolved.
+     Opening on day 1 every time would mean scrolling past three weeks of
+     finished work to reach today's fourteen problems. */
+  function dsaCurrentDay() {
+    var days = dsaDayList();
+    for (var i = 0; i < days.length; i++) {
+      var rows = dsaProblemsOn(days[i]);
+      var allDone = rows.every(function (p) { return dsaRow(p.id).status === "solved"; });
+      if (!allDone) return days[i];
+    }
+    return days[days.length - 1] || 0;
+  }
+
+  function dsaPhase(key) {
+    var phases = (DSA_SPEC && DSA_SPEC.phases) || [];
+    for (var i = 0; i < phases.length; i++) if (phases[i].key === key) return phases[i];
+    return null;
+  }
+
+  function dsaTopicOf(day) {
+    var rows = dsaProblemsOn(day);
+    if (!rows.length) return "";
+    var counts = {};
+    rows.forEach(function (p) { counts[p.topic] = (counts[p.topic] || 0) + 1; });
+    var best = 0, topic = "";
+    rows.forEach(function (p) {
+      if (counts[p.topic] > best) { best = counts[p.topic]; topic = p.topic; }
+    });
+    return topic;
+  }
+
+  function dsaStats(rows) {
+    var out = { total: rows.length, solved: 0, revisit: 0, todo: 0, starred: 0, weight: 0, earned: 0 };
+    rows.forEach(function (p) {
+      var g = dsaRow(p.id);
+      out[g.status === "solved" ? "solved" : g.status === "revisit" ? "revisit" : "todo"]++;
+      if (g.revision) out.starred++;
+      var w = DSA_WEIGHT[p.tier] || 1;
+      out.weight += w;
+      if (g.status === "solved") out.earned += w;
+    });
+    return out;
+  }
+
+  /* Topic slugs are kebab-case and mostly title-case cleanly. The ones that
+     do not are acronyms, and "Bst" or "Dp" on a heading looks like a typo. */
+  var DSA_ACRONYM = { bst: "BST", dp: "DP", stl: "STL", oa: "OA" };
+
+  function titleCase(s) {
+    return String(s || "").split("-").map(function (w) {
+      return DSA_ACRONYM[w] || (w.charAt(0).toUpperCase() + w.slice(1));
+    }).join(" ");
+  }
+
+  /* ------------------------------------------------------ row pieces */
+
+  function dsaTierBadge(tier) {
+    return '<span class="dsa-tier t-' + tier + '" title="' +
+      esc((DSA_SPEC && DSA_SPEC.tiers && DSA_SPEC.tiers[tier]) || "") + '">' + tier + "</span>";
+  }
+
+  function dsaDiffBadge(d) {
+    return '<span class="dsa-diff d-' + d.toLowerCase() + '">' + esc(d) + "</span>";
+  }
+
+  function dsaStatusButton(id) {
+    var g = dsaRow(id);
+    return '<button class="dsa-status s-' + g.status + '" data-dsa-status="' + esc(id) +
+      '" type="button" title="Cycle: todo, solved, revisit">' + g.status + "</button>";
+  }
+
+  function dsaStar(id) {
+    var on = dsaRow(id).revision;
+    return '<button class="dsa-star' + (on ? " on" : "") + '" data-dsa-star="' + esc(id) +
+      '" type="button" title="Flag for the revision queue">' + (on ? "★" : "☆") + "</button>";
+  }
+
+  function dsaConfidence(id) {
+    var g = dsaRow(id);
+    var out = '<span class="dsa-conf" title="Confidence. 1 = needed the editorial, 5 = could teach it">';
+    for (var n = 1; n <= 5; n++) {
+      out += '<button type="button" data-dsa-conf="' + esc(id) + '" data-n="' + n + '"' +
+        (g.confidence !== null && n <= g.confidence ? ' class="on"' : "") + ">" + n + "</button>";
+    }
+    return out + "</span>";
+  }
+
+  function dsaRowEl(p) {
+    var g = dsaRow(p.id);
+    var open = !!DSAV.open[p.id];
+    var all = p.companies || [];
+    var companies = all.slice(0, 4).map(function (c) {
+      return '<span class="dsa-co">' + esc(c) + "</span>";
+    }).join("") + (all.length > 4 ? '<span class="dsa-co more">+' + (all.length - 4) + "</span>" : "");
+
+    return '<div class="dsa-row st-' + g.status + (open ? " open" : "") + '" data-dsa-row="' + esc(p.id) + '">' +
+      '<div class="dsa-rhead">' +
+        dsaTierBadge(p.tier) +
+        '<a class="dsa-title" href="' + esc(p.url) + '" target="_blank" rel="noopener" title="Open on LeetCode">' +
+          esc(p.title) + "</a>" +
+        dsaDiffBadge(p.difficulty) +
+        (p.campus_oa === "HIGH" ? '<span class="dsa-oa" title="Frequent in campus online assessments">OA</span>' : "") +
+        (g.notes ? '<span class="dsa-hasnote" title="You have notes on this">✎</span>' : "") +
+        '<span class="dsa-co-wrap">' + companies + "</span>" +
+        '<span class="dsa-actions">' + dsaStatusButton(p.id) + dsaStar(p.id) + dsaConfidence(p.id) +
+          '<button class="dsa-expand" data-dsa-open="' + esc(p.id) + '" type="button">' +
+          (open ? "hide" : "what this teaches you") + "</button></span>" +
+      "</div>" +
+      '<div class="dsa-rmeta">' +
+        '<span class="dsa-pattern">' + esc(p.pattern || "—") + "</span>" +
+        (p.template ? ' · <a class="dsa-tlink" href="#" data-dsa-template="' + esc(p.template) + '">' + esc(p.template) + "</a>" : "") +
+        (p.lc_id ? " · LC " + esc(p.lc_id) : "") +
+        (p.ac_rate != null ? " · " + p.ac_rate + "% accepted" : "") +
+        (p.tuf ? ' · <span class="dsa-tuf">TUF</span>' : "") +
+        (g.tags.length ? " · " + g.tags.map(function (t) {
+          return '<span class="dsa-tag">' + esc(t) + "</span>";
+        }).join("") : "") +
+      "</div>" +
+      (open ? '<div class="dsa-detail" data-dsa-detail="' + esc(p.id) + '">' +
+        '<div class="dsa-loading">Loading…</div></div>' : "") +
+      "</div>";
+  }
+
+  /* ------------------------------------------------------ problem detail */
+
+  function dsaLearnings(doc) {
+    var l = doc.learnings || {};
+    var out = '<div class="dsa-learn">';
+
+    out += '<div class="dsa-lblock"><h4>The insight</h4>' + md(l.insight || "") + "</div>";
+    if (l.trick) out += '<div class="dsa-lblock"><h4>The trick</h4>' + md(l.trick) + "</div>";
+
+    if ((l.edge_cases || []).length) {
+      out += '<div class="dsa-lblock"><h4>Edge cases</h4><ul class="dsa-edges">' +
+        l.edge_cases.map(function (e) { return "<li>" + mdInline(e) + "</li>"; }).join("") +
+        "</ul></div>";
+    }
+
+    if (l.complexity) {
+      out += '<div class="dsa-lblock"><h4>Complexity</h4><div class="dsa-cx">' +
+        '<span class="dsa-cxv">time <b>' + esc(l.complexity.time || "?") + "</b></span>" +
+        '<span class="dsa-cxv">space <b>' + esc(l.complexity.space || "?") + "</b></span></div>" +
+        (l.complexity.why ? md(l.complexity.why) : "") + "</div>";
+    }
+
+    if ((doc.siblings_resolved || []).length) {
+      out += '<div class="dsa-lblock"><h4>Siblings</h4><div class="dsa-sibs">' +
+        doc.siblings_resolved.map(function (s) {
+          return s.in_sheet
+            ? '<a href="#" class="dsa-sib in" data-dsa-goto="' + esc(s.id) + '">' + esc(s.title) + "</a>"
+            : '<a href="' + esc(s.url) + '" target="_blank" rel="noopener" class="dsa-sib out" ' +
+              'title="Not in the 600 — opens on LeetCode">' + esc(s.title) + "</a>";
+        }).join("") + "</div></div>";
+    }
+
+    if ((l.followups || []).length) {
+      out += '<div class="dsa-lblock"><h4>Interview follow-ups</h4><dl class="dsa-fu">' +
+        l.followups.map(function (f) {
+          return "<dt>" + mdInline(f.q) + "</dt><dd>" + mdInline(f.a) + "</dd>";
+        }).join("") + "</dl></div>";
+    }
+
+    return out + "</div>";
+  }
+
+  function dsaStuckPanel(id) {
+    var ladder = (DSA_SPEC && DSA_SPEC.stuck_ladder) || [];
+    var started = DSAV.timers[id];
+    var mins = started ? Math.floor((Date.now() - started) / 60000) : -1;
+
+    var rungs = ladder.map(function (r) {
+      var active = mins >= r.from_min && mins < r.to_min;
+      return '<li class="' + (active ? "now" : mins >= r.to_min ? "past" : "") + '">' +
+        '<span class="dsa-rung">' + r.from_min + (r.to_min > 900 ? "+" : "–" + r.to_min) + " min</span>" +
+        "<span>" + mdInline(r.do) + "</span></li>";
+    }).join("");
+
+    return '<div class="dsa-stuck">' +
+      '<div class="dsa-stuck-hd"><h4>Stuck ladder</h4>' +
+        '<span class="dsa-timer" data-dsa-timer="' + esc(id) + '">' +
+          (started ? mins + " min elapsed" : "not started") + "</span>" +
+        '<button class="btn tiny" type="button" data-dsa-start="' + esc(id) + '">' +
+          (started ? "reset" : "start timer") + "</button></div>" +
+      '<ol class="dsa-ladder">' + rungs + "</ol>" +
+      '<details class="dsa-ai"><summary>Using AI on this problem</summary><ul>' +
+        ((DSA_SPEC && DSA_SPEC.ai_protocol) || []).map(function (a) {
+          return "<li>" + mdInline(a) + "</li>";
+        }).join("") +
+      "</ul></details></div>";
+  }
+
+  function dsaUserPanel(id) {
+    var g = dsaRow(id);
+    // The seed vocabulary plus anything already typed anywhere -- a tag used
+    // once should be one click away the second time.
+    var known = {};
+    ((DSA_SPEC && DSA_SPEC.tag_seed) || []).forEach(function (t) { known[t] = 1; });
+    for (var pid in DSA_S.problems) {
+      ((DSA_S.problems[pid] || {}).tags || []).forEach(function (t) { known[t] = 1; });
+    }
+
+    return '<div class="dsa-user">' +
+      '<label class="dsa-field"><span>My approach</span>' +
+        '<input type="text" data-dsa-approach="' + esc(id) + '" value="' + esc(g.my_approach) +
+        '" placeholder="one line on how you actually solved it"></label>' +
+      '<label class="dsa-field"><span>GoodNotes</span>' +
+        '<input type="text" data-dsa-goodnotes="' + esc(id) + '" value="' + esc(g.goodnotes_ref) +
+        '" placeholder="e.g. DSA nb2 p.41"></label>' +
+      '<label class="dsa-field wide"><span>Notes <i>markdown</i></span>' +
+        '<textarea data-dsa-notes="' + esc(id) + '" rows="4" ' +
+        'placeholder="what you want to see when this comes back around">' + esc(g.notes) + "</textarea></label>" +
+      '<div class="dsa-field wide"><span>Tags</span><div class="dsa-tagpick">' +
+        Object.keys(known).sort().map(function (t) {
+          return '<button type="button" class="dsa-tagb' + (g.tags.indexOf(t) !== -1 ? " on" : "") +
+            '" data-dsa-tag="' + esc(id) + '" data-tag="' + esc(t) + '">' + esc(t) + "</button>";
+        }).join("") +
+        '<input type="text" class="dsa-tagnew" data-dsa-newtag="' + esc(id) + '" placeholder="+ new tag">' +
+      "</div></div>" +
+      (g.last_revised ? '<div class="muted tiny">last revised ' + esc(g.last_revised) + "</div>" : "") +
+      "</div>";
+  }
+
+  function dsaFillDetail(id) {
+    var host = document.querySelector('[data-dsa-detail="' + cssEsc(id) + '"]');
+    if (!host) return;
+
+    dsaGet("problem", id).then(function (doc) {
+      var tmpl = doc.template_resolved;
+      host.innerHTML =
+        dsaLearnings(doc) +
+        (tmpl
+          ? '<div class="dsa-lblock"><h4>Template · ' + esc(tmpl.id) + " " + esc(tmpl.name) + "</h4>" +
+            '<p class="muted">' + esc(tmpl.when || "") + "</p>" + mdCode(tmpl.code, "cpp") +
+            ((tmpl.notes || []).length ? "<ul>" + tmpl.notes.map(function (n) {
+              return "<li>" + mdInline(n) + "</li>";
+            }).join("") + "</ul>" : "") + "</div>"
+          : doc.template_missing
+            ? '<div class="dsa-lblock"><h4>Template</h4><p class="muted">' + esc(doc.template) +
+              " is referenced by this problem but has not been written yet.</p></div>"
+            : "") +
+        ((doc.tuf && (doc.tuf.article || doc.tuf.youtube))
+          ? '<div class="dsa-lblock"><h4>Striver</h4><div class="dsa-sibs">' +
+            (doc.tuf.article ? '<a class="dsa-sib out" target="_blank" rel="noopener" href="' +
+              esc(doc.tuf.article) + '">TUF article</a>' : "") +
+            (doc.tuf.youtube ? '<a class="dsa-sib out" target="_blank" rel="noopener" href="' +
+              esc(doc.tuf.youtube) + '">video</a>' : "") + "</div></div>"
+          : "") +
+        (doc.theory_id ? '<div class="dsa-lblock"><a class="linkish" href="#" data-dsa-theory="' +
+          esc(doc.theory_id) + '">Read the ' + esc(titleCase(doc.topic)) + " theory →</a></div>" : "") +
+        dsaStuckPanel(id) +
+        dsaUserPanel(id);
+      bindDsa();
+    }).catch(function () {
+      // The thin index is baked in, so the row itself still works. Only the
+      // teaching material needs the API, and saying so beats a dead spinner.
+      host.innerHTML = '<div class="dsa-lblock"><p class="muted">The learnings, template and ' +
+        "theory for this problem are served by the console API, which is not reachable from " +
+        "here. Everything else on the sheet still works.</p></div>" +
+        dsaStuckPanel(id) + dsaUserPanel(id);
+      bindDsa();
+    });
+  }
+
+  /* ------------------------------------------------------ checkpoint
+
+     Computed, never stored, per the decay rule in SPEC. Nothing is dropped:
+     today's learnings arrive whole, yesterday's keep one citation and the
+     first sentence of the detail, the day before keeps a problem title,
+     everything earlier in the same topic collapses to headlines, and a topic
+     you have finished becomes one consolidated line for the rest of the
+     sheet. Arrays never vanishes -- by DP it is a dense paragraph. */
+
+  var DSA_LEARNINGS = null;
+
+  function dsaLoadLearnings() {
+    if (DSA_LEARNINGS) return Promise.resolve(DSA_LEARNINGS);
+    return fetch("/api/dsa/learnings")
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (doc) { DSA_LEARNINGS = doc.learnings || []; return DSA_LEARNINGS; })
+      .catch(function () { return null; });
+  }
+
+  function dsaCheckpoint(day) {
+    if (!DSA_LEARNINGS) return "";
+    var topic = dsaTopicOf(day);
+
+    function cite(applied) {
+      return (applied || []).map(function (a) {
+        var pid = (DSA_INDEX.by_slug || {})[a[0]];
+        var row = DSA_BY_ID[pid];
+        return { id: pid || "", title: row ? row.title : titleCase(a[0]), where: a[1] || "" };
+      });
+    }
+    function firstSentence(t) {
+      var m = String(t || "").match(/^[\s\S]*?[.!?](?=\s|$)/);
+      return m ? m[0] : String(t || "");
+    }
+    function link(c) {
+      return c.id ? '<a href="#" data-dsa-goto="' + esc(c.id) + '">' + esc(c.title) + "</a>" : esc(c.title);
+    }
+
+    var now = [], yest = [], back = [], earlier = [];
+    DSA_LEARNINGS.forEach(function (l) {
+      if (l.day === day) now.push(l);
+      else if (l.topic === topic && l.day === day - 1) yest.push(l);
+      else if (l.topic === topic && l.day === day - 2) back.push(l);
+      else if (l.topic === topic && l.day <= day - 3) earlier.push(l);
+    });
+
+    var lastDay = {};
+    DSA_PROBLEMS.forEach(function (p) {
+      lastDay[p.topic] = Math.max(lastDay[p.topic] || 0, p.day);
+    });
+    var carried = [];
+    Object.keys(lastDay).sort(function (a, b) { return lastDay[a] - lastDay[b]; }).forEach(function (t) {
+      if (lastDay[t] >= day || t === topic) return;
+      var heads = DSA_LEARNINGS.filter(function (l) { return l.topic === t; })
+        .map(function (l) { return l.headline; });
+      if (heads.length) carried.push({ topic: t, heads: heads });
+    });
+
+    if (!now.length && !yest.length && !back.length && !earlier.length && !carried.length) return "";
+
+    var out = '<section class="card dsa-check"><h3>Learning checkpoint · day ' + day + "</h3>";
+
+    if (now.length) {
+      out += '<div class="dsa-cgroup"><h4>New today</h4>' + now.map(function (l) {
+        return '<div class="dsa-learnitem"><div class="dsa-lhead">' + esc(l.headline) + "</div>" +
+          md(l.detail) + '<ul class="dsa-cites">' + cite(l.applied).map(function (c) {
+            return "<li>" + link(c) + (c.where ? " — " + esc(c.where) : "") + "</li>";
+          }).join("") + "</ul></div>";
+      }).join("") + "</div>";
+    }
+
+    if (yest.length) {
+      out += '<div class="dsa-cgroup"><h4>From yesterday</h4>' + yest.map(function (l) {
+        var c = cite(l.applied)[0];
+        return '<div class="dsa-learnitem dense"><div class="dsa-lhead">' + esc(l.headline) + "</div>" +
+          "<p>" + mdInline(firstSentence(l.detail)) + "</p>" +
+          (c ? '<div class="dsa-cites one">' + link(c) + "</div>" : "") + "</div>";
+      }).join("") + "</div>";
+    }
+
+    if (back.length) {
+      out += '<div class="dsa-cgroup"><h4>Two days back</h4><ul class="dsa-terse">' +
+        back.map(function (l) {
+          var c = cite(l.applied)[0];
+          return "<li><b>" + esc(l.headline) + "</b>" + (c ? " · " + esc(c.title) : "") + "</li>";
+        }).join("") + "</ul></div>";
+    }
+
+    if (earlier.length) {
+      out += '<div class="dsa-cgroup"><h4>Earlier in ' + esc(titleCase(topic)) + "</h4>" +
+        '<p class="dsa-joined">' + earlier.map(function (l) { return esc(l.headline); }).join(" · ") +
+        "</p></div>";
+    }
+
+    if (carried.length) {
+      out += '<div class="dsa-cgroup"><h4>Carried forward</h4>' + carried.map(function (c) {
+        return '<p class="dsa-joined"><b>' + esc(titleCase(c.topic)) + ".</b> " +
+          c.heads.map(esc).join(" · ") + "</p>";
+      }).join("") + "</div>";
+    }
+
+    return out + '<p class="muted fineprint">Nothing here is ever dropped. Older material only ' +
+      "gets denser.</p></section>";
+  }
+
+  /* ------------------------------------------------------ views */
+
+  function dsaPhaseStrip() {
+    return '<div class="dsa-phases">' + ((DSA_SPEC && DSA_SPEC.phases) || []).map(function (ph) {
+      var rows = DSA_PROBLEMS.filter(function (p) { return p.phase === ph.key; });
+      var st = dsaStats(rows);
+      var pct = st.total ? Math.round((st.solved / st.total) * 100) : 0;
+      return '<div class="dsa-phase' + (ph.loaded ? "" : " pending") + '" title="' + esc(ph.goal) + '">' +
+        '<div class="dsa-pkey">' + esc(ph.key) + "</div>" +
+        '<div class="dsa-ptitle">' + esc(ph.title) + "</div>" +
+        '<div class="dsa-pdays">days ' + ph.day_start + "–" + ph.day_end + "</div>" +
+        (ph.loaded
+          ? '<div class="dsa-pbar"><i style="width:' + pct + '%"></i></div>' +
+            '<div class="dsa-pcount">' + st.solved + " / " + st.total + "</div>"
+          : '<div class="dsa-pcount pending">not imported · ' + ph.quota + " planned</div>") +
+        "</div>";
+    }).join("") + "</div>";
+  }
+
+  function dsaDayRail(current) {
+    var total = (DSA_SPEC && DSA_SPEC.total_days) || 40;
+    var cells = [];
+    for (var d = 1; d <= total; d++) {
+      var rows = dsaProblemsOn(d);
+      var cls = "dsa-daycell";
+      if (!rows.length) cls += " empty";
+      else {
+        var st = dsaStats(rows);
+        if (st.solved === st.total) cls += " done";
+        else if (st.solved > 0) cls += " part";
+      }
+      if (d === current) cls += " on";
+      cells.push('<button type="button" class="' + cls + '" data-dsa-day="' + d + '"' +
+        (rows.length ? "" : " disabled") + ' title="Day ' + d +
+        (rows.length ? " · " + rows.length + " problems" : " · not imported") + '">' + d + "</button>");
+    }
+    return '<div class="dsa-rail">' + cells.join("") + "</div>";
+  }
+
+  function renderDsaSheet() {
+    if (!DSA_SPEC) {
+      return '<section class="card"><h2>DSA sheet</h2><p class="muted">' +
+        "No DSA content has been imported. Run <code>node tools/import-dsa.mjs</code>, " +
+        "then <code>node tools/build.mjs</code>.</p></section>";
+    }
+
+    var day = DSAV.day || (DSAV.day = dsaCurrentDay());
+    var rows = dsaProblemsOn(day);
+    var st = dsaStats(rows);
+    var topic = dsaTopicOf(day);
+    var phase = rows.length ? dsaPhase(rows[0].phase) : null;
+    var theoryId = (DSA_INDEX.theory_for_topic || {})[topic];
+    var days = dsaDayList();
+    var at = days.indexOf(day);
+
+    return dsaPhaseStrip() +
+      '<section class="card dsa-daycard">' +
+        '<div class="dsa-daynav">' +
+          '<button class="btn tiny" type="button" data-dsa-day="' + (days[at - 1] || day) + '"' +
+            (at <= 0 ? " disabled" : "") + ">‹ prev</button>" +
+          '<div class="dsa-dayhd"><h2>Day ' + day + " · " + esc(titleCase(topic)) + "</h2>" +
+            '<div class="muted">' + (phase ? esc(phase.key) + " · " + esc(phase.title) : "") +
+              " · " + st.total + " problems · " + st.solved + " solved" +
+              (st.revisit ? " · " + st.revisit + " to revisit" : "") + "</div></div>" +
+          '<button class="btn tiny" type="button" data-dsa-day="' + (days[at + 1] || day) + '"' +
+            (at >= days.length - 1 ? " disabled" : "") + ">next ›</button>" +
+        "</div>" +
+        (phase ? '<p class="dsa-goal">' + esc(phase.goal) + "</p>" : "") +
+        (theoryId ? '<p><a class="linkish" href="#" data-dsa-theory="' + esc(theoryId) + '">' +
+          "Read the " + esc(titleCase(topic)) + " theory first →</a></p>" : "") +
+        dsaDayRail(day) +
+      "</section>" +
+      '<section class="card"><div class="dsa-rows">' +
+        (rows.length ? rows.map(dsaRowEl).join("")
+          : '<div class="empty">Nothing scheduled on this day yet.</div>') +
+      "</div></section>" +
+      '<div id="dsaCheckpoint">' + dsaCheckpoint(day) + "</div>";
+  }
+
+  function renderDsaTheory() {
+    if (DSAV.theory) {
+      return '<section class="card"><button class="btn tiny" type="button" ' +
+        'data-dsa-theory-back="1">‹ all theory</button>' +
+        '<div id="dsaTheoryBody"><div class="dsa-loading">Loading…</div></div></section>';
+    }
+
+    var parts = (DSA_SPEC && DSA_SPEC.theory_parts) || [];
+    var byTopic = (DSA_INDEX && DSA_INDEX.theory_for_topic) || {};
+
+    return '<section class="card"><h2>Theory</h2><p class="muted">' +
+      parts.map(function (p) { return "<b>" + esc(p.heading) + ".</b> " + esc(p.brief); }).join("<br>") +
+      "</p>" +
+      '<div class="dsa-theorylist">' + Object.keys(byTopic).map(function (topic) {
+        var rows = DSA_PROBLEMS.filter(function (p) { return p.topic === topic; });
+        var st = dsaStats(rows);
+        return '<button type="button" class="dsa-theorycard" data-dsa-theory="' + esc(byTopic[topic]) + '">' +
+          "<b>" + esc(titleCase(topic)) + "</b>" +
+          '<span class="muted tiny">' + st.solved + " / " + st.total + " problems solved</span></button>";
+      }).join("") + "</div></section>";
+  }
+
+  function dsaFillTheory() {
+    var host = document.getElementById("dsaTheoryBody");
+    if (!host || !DSAV.theory) return;
+
+    dsaGet("theory", DSAV.theory).then(function (doc) {
+      var meta = doc.parts_meta || (DSA_SPEC && DSA_SPEC.theory_parts) || [];
+      var links = (doc.links || []).map(function (l) { return mdInline(l); }).join(" · ");
+
+      host.innerHTML = "<h2>" + esc(doc.title) + "</h2>" +
+        (links ? '<p class="muted">' + links + "</p>" : "") +
+        meta.map(function (part, i) {
+          var body = (doc.parts || {})[part.key];
+          if (!body) return "";
+          var key = DSAV.theory + "|" + part.key;
+          // Breadth open by default, depth and analogy collapsed, per SPEC.
+          var open = DSAV.part[key] === undefined ? i === 0 : DSAV.part[key];
+          var inner = typeof body === "string" ? md(body)
+            : Object.keys(body).map(function (h) {
+                return '<div class="dsa-analogy"><h4>' + esc(h) + "</h4>" + md(body[h]) + "</div>";
+              }).join("");
+          return '<div class="dsa-part' + (open ? " open" : "") + '">' +
+            '<button type="button" class="dsa-parthd" data-dsa-part="' + esc(key) + '">' +
+              "<span>" + esc(part.heading) + "</span><i>" + (open ? "−" : "+") + "</i></button>" +
+            '<div class="dsa-partbody">' + (open ? inner : "") + "</div></div>";
+        }).join("");
+      bindDsa();
+    }).catch(function () {
+      host.innerHTML = '<p class="muted">Theory is served by the console API, which is not ' +
+        "reachable from here.</p>";
+    });
+  }
+
+  function renderDsaTemplates() {
+    if (DSAV.template) {
+      return '<section class="card"><button class="btn tiny" type="button" ' +
+        'data-dsa-template-back="1">‹ all templates</button>' +
+        '<div id="dsaTemplateBody"><div class="dsa-loading">Loading…</div></div></section>';
+    }
+    return '<section class="card"><h2>C++ pattern templates</h2><p class="muted">' +
+      "The shape you should be able to type from memory. Every problem that uses one links " +
+      "straight here.</p>" +
+      '<div id="dsaTemplateList"><div class="dsa-loading">Loading…</div></div></section>';
+  }
+
+  function dsaFillTemplateList() {
+    var host = document.getElementById("dsaTemplateList");
+    if (!host) return;
+
+    var go = DSA_CACHE.templates
+      ? Promise.resolve(DSA_CACHE.templates)
+      : fetch("/api/dsa/templates")
+          .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+          .then(function (d) { DSA_CACHE.templates = d; return d; });
+
+    go.then(function (doc) {
+      var byTopic = {};
+      (doc.templates || []).forEach(function (t) {
+        (byTopic[t.topic] = byTopic[t.topic] || []).push(t);
+      });
+      host.innerHTML = Object.keys(byTopic).map(function (topic) {
+        return '<div class="dsa-tgroup"><h4>' + esc(titleCase(topic)) + "</h4>" +
+          byTopic[topic].map(function (t) {
+            return '<button type="button" class="dsa-tcard" data-dsa-template="' + esc(t.id) + '">' +
+              '<span class="dsa-tid">' + esc(t.id) + "</span><b>" + esc(t.name) + "</b>" +
+              '<span class="muted tiny">' + esc(t.when || "") + "</span>" +
+              '<span class="dsa-tused">' + t.used_by + " problem" + (t.used_by === 1 ? "" : "s") +
+              "</span></button>";
+          }).join("") + "</div>";
+      }).join("");
+      bindDsa();
+    }).catch(function () {
+      host.innerHTML = '<p class="muted">The template library is served by the console API, ' +
+        "which is not reachable from here.</p>";
+    });
+  }
+
+  function dsaFillTemplate() {
+    var host = document.getElementById("dsaTemplateBody");
+    if (!host || !DSAV.template) return;
+
+    dsaGet("template", DSAV.template).then(function (t) {
+      host.innerHTML = "<h2>" + esc(t.id) + " · " + esc(t.name) + "</h2>" +
+        '<p class="muted">' + esc(t.when || "") + "</p>" +
+        mdCode(t.code, "cpp") +
+        ((t.notes || []).length ? "<ul>" + t.notes.map(function (n) {
+          return "<li>" + mdInline(n) + "</li>";
+        }).join("") + "</ul>" : "") +
+        ((t.used_by || []).length
+          ? '<h4>Used by</h4><div class="dsa-sibs">' + t.used_by.map(function (u) {
+              return '<a href="#" class="dsa-sib in" data-dsa-goto="' + esc(u.id) + '">' +
+                esc(u.title) + ' <span class="muted tiny">day ' + u.day + "</span></a>";
+            }).join("") + "</div>"
+          : "");
+      bindDsa();
+    }).catch(function () {
+      host.innerHTML = '<p class="muted">Not reachable without the console API.</p>';
+    });
+  }
+
+  function renderDsaRevision() {
+    /* SPEC's rule, computed locally so it works offline: anything started
+       that is either starred or rated 3 or below, weakest first, then least
+       recently revised. */
+    var picked = DSA_PROBLEMS.filter(function (p) {
+      var g = dsaRow(p.id);
+      if (g.status === "todo") return false;
+      return g.revision || (g.confidence !== null && g.confidence <= 3);
+    }).sort(function (a, b) {
+      var ga = dsaRow(a.id), gb = dsaRow(b.id);
+      var ca = ga.confidence === null ? 99 : ga.confidence;
+      var cb = gb.confidence === null ? 99 : gb.confidence;
+      if (ca !== cb) return ca - cb;
+      return (ga.last_revised || "").localeCompare(gb.last_revised || "");
+    });
+
+    return '<section class="card"><h2>Revision queue</h2><p class="muted">' +
+      "Everything you have started that is either starred or rated 3 or below, weakest first, " +
+      "then least recently revised. Pulled on demand — no revision days are scheduled " +
+      "anywhere in the sheet, by design.</p>" +
+      (picked.length
+        ? '<div class="dsa-rows">' + picked.map(dsaRowEl).join("") + "</div>"
+        : '<div class="empty">Nothing queued. Star a problem, or rate one 3 or below.</div>') +
+      "</section>";
+  }
+
+  function dsaFilterBar() {
+    var f = DSAV.filters;
+
+    function opts(name, values, label) {
+      return '<label class="dsa-filt"><span>' + label + '</span><select data-dsa-filter="' + name + '">' +
+        '<option value="">any</option>' +
+        values.map(function (v) {
+          return '<option value="' + esc(v) + '"' + (f[name] === String(v) ? " selected" : "") + ">" +
+            esc(typeof v === "string" ? titleCase(v) : v) + "</option>";
+        }).join("") + "</select></label>";
+    }
+
+    var topics = {}, companies = {}, tags = {};
+    DSA_PROBLEMS.forEach(function (p) {
+      topics[p.topic] = 1;
+      (p.companies || []).forEach(function (c) { companies[c] = 1; });
+    });
+    ((DSA_SPEC && DSA_SPEC.tag_seed) || []).forEach(function (t) { tags[t] = 1; });
+    for (var pid in DSA_S.problems) {
+      ((DSA_S.problems[pid] || {}).tags || []).forEach(function (t) { tags[t] = 1; });
+    }
+
+    return '<div class="dsa-filters">' +
+      '<label class="dsa-filt wide"><span>Search</span><input type="text" id="dsaQ" value="' +
+        esc(f.q) + '" placeholder="title, topic or pattern"></label>' +
+      opts("topic", Object.keys(topics).sort(), "Topic") +
+      opts("tier", ["CORE", "DRILL", "SKIM"], "Tier") +
+      opts("difficulty", ["Easy", "Medium", "Hard"], "Difficulty") +
+      opts("company", Object.keys(companies).sort(), "Company") +
+      opts("campus_oa", ["HIGH", "MEDIUM", "LOW"], "Campus OA") +
+      opts("status", ["todo", "solved", "revisit"], "Status") +
+      opts("confidence", [1, 2, 3, 4, 5], "Confidence") +
+      opts("tag", Object.keys(tags).sort(), "Tag") +
+      '<label class="dsa-filt"><span>Notes</span><select data-dsa-filter="has_notes">' +
+        '<option value="">any</option><option value="1"' +
+        (f.has_notes === "1" ? " selected" : "") + ">has notes</option></select></label>" +
+      '<button class="btn tiny" type="button" data-dsa-clear="1">clear</button></div>';
+  }
+
+  function dsaFiltered() {
+    var f = DSAV.filters;
+    var q = f.q.trim().toLowerCase();
+    return DSA_PROBLEMS.filter(function (p) {
+      var g = dsaRow(p.id);
+      if (f.topic && p.topic !== f.topic) return false;
+      if (f.tier && p.tier !== f.tier) return false;
+      if (f.difficulty && p.difficulty !== f.difficulty) return false;
+      if (f.campus_oa && p.campus_oa !== f.campus_oa) return false;
+      if (f.status && g.status !== f.status) return false;
+      if (f.company && (p.companies || []).indexOf(f.company) === -1) return false;
+      if (f.tag && g.tags.indexOf(f.tag) === -1) return false;
+      if (f.has_notes === "1" && !g.notes.trim()) return false;
+      if (f.confidence && String(g.confidence) !== f.confidence) return false;
+      if (q && p.title.toLowerCase().indexOf(q) === -1 &&
+        p.topic.indexOf(q) === -1 && (p.pattern || "").indexOf(q) === -1) return false;
+      return true;
+    });
+  }
+
+  function dsaBrowseCount(rows) {
+    var st = dsaStats(rows);
+    return rows.length + " matching · " + st.solved + " solved · " + st.starred + " starred";
+  }
+
+  function renderDsaBrowse() {
+    var rows = dsaFiltered();
+    return '<section class="card"><h2>Browse all ' + DSA_PROBLEMS.length + " problems</h2>" +
+      dsaFilterBar() +
+      '<div class="muted" id="dsaCount">' + dsaBrowseCount(rows) + "</div>" +
+      '<div class="dsa-rows" id="dsaBrowseRows">' +
+        (rows.length ? rows.slice(0, 300).map(dsaRowEl).join("")
+          : '<div class="empty">Nothing matches those filters.</div>') +
+        (rows.length > 300 ? '<div class="muted fineprint">Showing the first 300 of ' + rows.length +
+          ". Narrow the filters to see the rest.</div>" : "") +
+      "</div></section>";
+  }
+
+  /* ------------------------------------------------------ binding */
+
+  /* CSS.escape is not in older Safari, and these ids are known to be
+     [a-z0-9-] from the importer, so a conservative fallback is enough. */
+  function cssEsc(s) {
+    return window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/[^\w-]/g, "\\$&");
+  }
+
+  function bindDsa() {
+    document.querySelectorAll("[data-dsa-day]").forEach(function (b) {
+      b.onclick = function () {
+        DSAV.day = +b.dataset.dsaDay;
+        DSAV.open = {};
+        render();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      };
+    });
+
+    document.querySelectorAll("[data-dsa-open]").forEach(function (b) {
+      b.onclick = function () {
+        var id = b.dataset.dsaOpen;
+        DSAV.open[id] = !DSAV.open[id];
+        render();
+        if (DSAV.open[id]) dsaFillDetail(id);
+      };
+    });
+
+    document.querySelectorAll("[data-dsa-status]").forEach(function (b) {
+      b.onclick = function () {
+        var id = b.dataset.dsaStatus;
+        var order = ["todo", "solved", "revisit"];
+        var was = dsaRow(id).status;
+        var next = order[(order.indexOf(was) + 1) % 3];
+        dsaPatch(id, { status: next });
+        // The streak counts days you moved something, and reverting the last
+        // move of the day gives the day back -- same rule as a topic tick.
+        if (was === "todo" && next !== "todo") markToday(1);
+        if (was !== "todo" && next === "todo") markToday(-1);
+        save();
+        refreshBadges(stats());
+        render();
+      };
+    });
+
+    document.querySelectorAll("[data-dsa-star]").forEach(function (b) {
+      b.onclick = function () {
+        var id = b.dataset.dsaStar;
+        dsaPatch(id, { revision: !dsaRow(id).revision });
+        render();
+      };
+    });
+
+    document.querySelectorAll("[data-dsa-conf]").forEach(function (b) {
+      b.onclick = function () {
+        var id = b.dataset.dsaConf;
+        var n = +b.dataset.n;
+        // Clicking the rating you already have clears it, so a misclick costs
+        // one click rather than leaving you stuck with a number.
+        dsaPatch(id, { confidence: dsaRow(id).confidence === n ? null : n });
+        render();
+      };
+    });
+
+    document.querySelectorAll("[data-dsa-goto]").forEach(function (a) {
+      a.onclick = function (e) {
+        e.preventDefault();
+        var id = a.dataset.dsaGoto;
+        var p = DSA_BY_ID[id];
+        if (!p) return;
+        SECTION = "dsa";
+        ACTIVE = "dsa-sheet";
+        DSAV.day = p.day;
+        DSAV.open = {};
+        DSAV.open[id] = true;
+        render();
+        dsaFillDetail(id);
+        var el = document.querySelector('[data-dsa-row="' + cssEsc(id) + '"]');
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      };
+    });
+
+    document.querySelectorAll("[data-dsa-template]").forEach(function (a) {
+      a.onclick = function (e) {
+        e.preventDefault();
+        DSAV.template = a.dataset.dsaTemplate;
+        SECTION = "dsa";
+        ACTIVE = "dsa-templates";
+        render();
+      };
+    });
+    document.querySelectorAll("[data-dsa-template-back]").forEach(function (b) {
+      b.onclick = function () { DSAV.template = null; render(); };
+    });
+
+    document.querySelectorAll("[data-dsa-theory]").forEach(function (a) {
+      a.onclick = function (e) {
+        e.preventDefault();
+        DSAV.theory = a.dataset.dsaTheory;
+        SECTION = "dsa";
+        ACTIVE = "dsa-theory";
+        render();
+      };
+    });
+    document.querySelectorAll("[data-dsa-theory-back]").forEach(function (b) {
+      b.onclick = function () { DSAV.theory = null; render(); };
+    });
+
+    document.querySelectorAll("[data-dsa-part]").forEach(function (b) {
+      b.onclick = function () {
+        var key = b.dataset.dsaPart;
+        var cur = DSAV.part[key];
+        var isBreadth = key.slice(-8) === "|breadth";
+        DSAV.part[key] = cur === undefined ? !isBreadth : !cur;
+        dsaFillTheory();
+      };
+    });
+
+    document.querySelectorAll("[data-copy]").forEach(function (b) {
+      b.onclick = function () {
+        var pre = document.getElementById(b.dataset.copy);
+        if (!pre) return;
+        var done = function () {
+          b.textContent = "copied";
+          setTimeout(function () { b.textContent = "copy"; }, 1400);
+        };
+        if (navigator.clipboard) navigator.clipboard.writeText(pre.innerText).then(done, done);
+        else {
+          // Opened from disk over file://, the clipboard API is unavailable.
+          var ta = document.createElement("textarea");
+          ta.value = pre.innerText;
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand("copy"); } catch (e) { /* nothing else to try */ }
+          document.body.removeChild(ta);
+          done();
+        }
+      };
+    });
+
+    document.querySelectorAll("[data-dsa-start]").forEach(function (b) {
+      b.onclick = function () {
+        var id = b.dataset.dsaStart;
+        if (DSAV.timers[id]) delete DSAV.timers[id];
+        else DSAV.timers[id] = Date.now();
+        dsaFillDetail(id);
+        dsaStartTick();
+      };
+    });
+
+    /* Free text saves on blur, not per keystroke. A PATCH per character
+       would be a write storm for no benefit, and these are paragraphs. */
+    function textField(selector, prop, field) {
+      document.querySelectorAll(selector).forEach(function (el) {
+        el.onblur = function () {
+          var id = el.dataset[prop];
+          if (dsaRow(id)[field] === el.value) return;
+          var patch = {};
+          patch[field] = el.value;
+          dsaPatch(id, patch);
+        };
+      });
+    }
+    textField("[data-dsa-notes]", "dsaNotes", "notes");
+    textField("[data-dsa-approach]", "dsaApproach", "my_approach");
+    textField("[data-dsa-goodnotes]", "dsaGoodnotes", "goodnotes_ref");
+
+    document.querySelectorAll("[data-dsa-tag]").forEach(function (b) {
+      b.onclick = function () {
+        var id = b.dataset.dsaTag;
+        var tag = b.dataset.tag;
+        var tags = dsaRow(id).tags;
+        var at = tags.indexOf(tag);
+        if (at === -1) tags.push(tag); else tags.splice(at, 1);
+        dsaPatch(id, { tags: tags });
+        b.classList.toggle("on", at === -1);
+      };
+    });
+
+    document.querySelectorAll("[data-dsa-newtag]").forEach(function (el) {
+      el.onkeydown = function (e) {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        var id = el.dataset.dsaNewtag;
+        var tag = el.value.trim().toLowerCase();
+        if (!tag) return;
+        var tags = dsaRow(id).tags;
+        if (tags.indexOf(tag) === -1) tags.push(tag);
+        el.value = "";
+        dsaPatch(id, { tags: tags }).then(function () { dsaFillDetail(id); });
+      };
+    });
+
+    document.querySelectorAll("[data-dsa-filter]").forEach(function (sel) {
+      sel.onchange = function () {
+        DSAV.filters[sel.dataset.dsaFilter] = sel.value;
+        render();
+      };
+    });
+
+    var q = document.getElementById("dsaQ");
+    if (q) {
+      q.oninput = function () {
+        DSAV.filters.q = q.value;
+        var host = document.getElementById("dsaBrowseRows");
+        if (!host) return;
+        // Repaint the list alone rather than the panel, so the caret stays
+        // where it is while you type.
+        var rows = dsaFiltered();
+        var count = document.getElementById("dsaCount");
+        if (count) count.textContent = dsaBrowseCount(rows);
+        host.innerHTML = rows.length
+          ? rows.slice(0, 300).map(dsaRowEl).join("")
+          : '<div class="empty">Nothing matches those filters.</div>';
+        bindDsa();
+        var q2 = document.getElementById("dsaQ");
+        if (q2) { q2.focus(); q2.setSelectionRange(q2.value.length, q2.value.length); }
+      };
+    }
+
+    document.querySelectorAll("[data-dsa-clear]").forEach(function (b) {
+      b.onclick = function () {
+        for (var k in DSAV.filters) DSAV.filters[k] = "";
+        render();
+      };
+    });
+  }
+
+  /* One interval for every running timer, started on demand and stopped once
+     the last one is cleared. The active rung changes as minutes pass, and
+     repainting the whole detail would steal focus from the notes box, so
+     only the ladder's classes move. */
+  function dsaStartTick() {
+    if (DSAV.tick) return;
+    DSAV.tick = setInterval(function () {
+      var any = false;
+      document.querySelectorAll("[data-dsa-timer]").forEach(function (el) {
+        var started = DSAV.timers[el.dataset.dsaTimer];
+        if (!started) return;
+        any = true;
+        var mins = Math.floor((Date.now() - started) / 60000);
+        el.textContent = mins + " min elapsed";
+        var panel = el.parentNode && el.parentNode.parentNode;
+        if (!panel) return;
+        var ladder = (DSA_SPEC && DSA_SPEC.stuck_ladder) || [];
+        panel.querySelectorAll(".dsa-ladder li").forEach(function (li, i) {
+          var r = ladder[i];
+          if (!r) return;
+          li.className = mins >= r.from_min && mins < r.to_min ? "now" : mins >= r.to_min ? "past" : "";
+        });
+      });
+      if (!any) { clearInterval(DSAV.tick); DSAV.tick = null; }
+    }, 20000);
+  }
+
   /* ---------------------------------------------------------- boot */
 
   function boot() {
     load();
+    dsaLoad();
     refreshBadges(stats());
     // The OAuth round trip comes back to /#agent, so honour the hash.
     var wanted = (location.hash || "").replace("#", "");
@@ -2268,6 +3454,22 @@
       refreshBadges(stats());
       render();
     });
+
+    /* DSA progress is its own blob and its own round trip. It has to land
+       before the rating is right -- solved problems are most of the ladder
+       once the sheet fills up -- so the header repaints when it arrives. */
+    if (DSA_SPEC) {
+      dsaSyncFromServer().then(function () {
+        refreshBadges(stats());
+        render();
+      });
+      /* Every learning in every phase, for the checkpoint. One request, and
+         the checkpoint simply does not render without it rather than
+         half-rendering from the thin index. */
+      dsaLoadLearnings().then(function (got) {
+        if (got) render();
+      });
+    }
 
     fetch("/api/opportunities")
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })

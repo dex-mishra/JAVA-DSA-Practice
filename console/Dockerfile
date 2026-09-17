@@ -13,7 +13,7 @@ WORKDIR /app
 COPY console/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY console/main.py console/mcp_http.py console/codeforces.py ./
+COPY console/main.py console/mcp_http.py console/codeforces.py console/dsa.py ./
 
 # The overlay schema is shared with the agent rather than reimplemented, so
 # the console validates a saved setting exactly as the job will read it.

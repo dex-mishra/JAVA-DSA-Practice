@@ -26,7 +26,7 @@
          and can only be lost. -->
     <div class="instruments">
       <div>
-        <div class="instr-hd">Mastery rating &middot; 1,328 topics</div>
+        <div class="instr-hd" id="ratingScope">Mastery rating</div>
         <div class="instr-main">
           <span class="instr-val rank" id="ratingVal">800</span>
           <span class="instr-tag rank" id="rankTag">Newbie</span>
@@ -83,8 +83,12 @@
   <main id="panel" class="hide"></main>
 
   <div class="foot">
-    Mastery rating is computed only from rated topics. Calendar and application
-    items never move it &mdash; finishing a week is not the same as mastering a topic.<br>
+    Mastery rating is computed from rated topics and solved DSA problems, the
+    latter weighted by tier &mdash; a CORE problem is worth three topic ticks, a
+    DRILL two, a SKIM one. A problem marked <i>revisit</i> scores nothing: the
+    rating is what you can do now, not what you once got working. Calendar and
+    application items never move it &mdash; finishing a week is not the same as
+    mastering a topic.<br>
     Window integrity starts at 100% and falls as dated commitments pass unchecked. It does not recover.<br>
     Progress: <span class="sync local" id="syncNote">this browser only</span>. Built <span id="builtAt">—</span>.
   </div>

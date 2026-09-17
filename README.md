@@ -14,8 +14,8 @@ They are measured separately and never averaged.
 | | Mastery rating | Window integrity |
 |---|---|---|
 | Range | 800 – 3200, Codeforces ladder | 100% downward only |
-| Source | the 1,328 rated topics | the 56 dated commitments |
-| Moves when | you clear a topic | a date passes unchecked |
+| Source | 1,328 rated topics + 600 DSA problems | the 56 dated commitments |
+| Moves when | you clear a topic or solve a problem | a date passes unchecked |
 | Recovers? | yes, it climbs | **no** |
 
 Folding the MBA items into the rating was the obvious merge and the wrong one.
@@ -30,6 +30,58 @@ closed, and a score that healed itself would be lying.
 The one place the systems meet is the **countdown spine** — the next four open
 dated commitments from either domain. They share time, nothing else.
 
+## The DSA sheet
+
+A fourth section, alongside Placement, MBA and the agent — not a fifth
+placement track. A problem carries a LeetCode link, a difficulty, a tier, a
+pattern, company tags, a C++ template and a learnings payload, and you write
+notes, tags, confidence, an approach line and a GoodNotes reference against
+it. None of that is a checkbox, so none of it was forced into the topics
+table.
+
+**It does move the rating**, weighted by tier: a solved CORE problem is worth
+three topic ticks, a DRILL two, a SKIM one. That is roughly half the ladder
+at the full 600, which is the weight the sheet earns — a CORE problem is
+forty-five minutes against an empty file, a topic line is ten minutes of
+reading, and scoring them equally would have undervalued the harder one.
+`DSA_WEIGHT` in `src/app.js` is the single constant; set all three to 1 for
+flat scoring.
+
+Two decisions worth knowing:
+
+- **The denominator is the 600-problem pool, not the problems imported so
+  far.** Three of six phases are in. Using the imported count would drop the
+  rating every time a phase landed, purely because the target moved.
+- **`revisit` scores nothing.** It is the status for *I got there but could
+  not do it again cold*, and a rating that counted it would be lying in the
+  way window integrity refuses to.
+
+Content arrives as JSON in `dsa material/` and is imported, never edited in
+place:
+
+```bash
+node tools/import-dsa.mjs        # validate, normalise, report what moved
+node tools/build.mjs
+```
+
+The importer is idempotent — it upserts by problem id and reports
+added/changed/unchanged per phase. `--check` validates and writes nothing.
+Problem ids are `{topic}-{lc-slug}` and survive a problem moving day or tier,
+which is what lets progress key on them. **Re-importing never touches
+progress**: content lives in `data/dsa/`, progress lives in its own bucket
+blob that the importer cannot reach.
+
+That blob is separate from the tracker's on purpose. `console/progress.json`
+is capped at 512 KB because a tick is an id and a boolean; a sheet where
+every problem carries free-text notes would eventually push a placement tick
+over that cap and start failing saves that had nothing to do with DSA.
+
+The page bakes in a thin index — everything a problem row needs, ~140 KB — and
+fetches the learnings, theory and templates per problem from `/api/dsa/*`.
+Baking all of it would be a 2 MB parse to show one day's fourteen rows.
+Opened from disk with no server the sheet still lists, filters and ticks;
+only the teaching material needs the API, and it says so when it is missing.
+
 ## Layout
 
 ```
@@ -37,12 +89,22 @@ data/              content only. Safe for an updater to rewrite.
   placement.json     ranks, tracks, badge display text
   mba.json           phases, schools, excluded options
   opportunities.json written by the inbox agent (optional)
+  dsa/               written by tools/import-dsa.mjs, never by hand
+    spec.json          phases, tiers, stuck ladder, AI protocol, tag seeds
+    index.json         thin problem index — the part that gets baked in
+    phase-*.json       theory, learnings and full problems, served by the API
+    templates.json     the 73 C++ pattern templates
+dsa material/      drop zone for uploaded phases. Input, not state.
 src/               rendering and logic. Not machine-edited.
   shell.html         page skeleton
   styles.css         unified design system
   app.js             scoring, badge rules, rendering
+console/
+  main.py            the Flask service
+  dsa.py             the DSA blueprint — content routes and progress writes
 tools/
   extract.mjs        one-time migration out of the original HTML files
+  import-dsa.mjs     idempotent DSA import, with an added/changed report
   build.mjs          inlines data/ + src/ into index.html
 index.html         the built artifact. Self-contained, opens from disk.
 inbox-agent/       the email agent that feeds data/opportunities.json
@@ -62,8 +124,9 @@ Output is a single self-contained `index.html` — no server, no dependencies
 beyond Google Fonts, opens straight from disk. Both original briefs asked for
 that property and it survives.
 
-The build refuses to emit a file with zero topics or zero MBA items, so a broken
-data edit fails loudly instead of shipping a blank tracker.
+The build refuses to emit a file with zero topics, zero MBA items, or a
+`data/dsa/` that exists but carries no problems — so a broken data edit fails
+loudly instead of shipping a blank tracker.
 
 To re-derive `data/` from the original HTML files:
 
@@ -76,7 +139,14 @@ build briefs (1,328 rated topics, 56 MBA items) and exits non-zero on drift.
 
 ## Storage
 
-Progress is in `localStorage` under `launch-console-v1`.
+Progress is in `localStorage` under `launch-console-v1`, and DSA progress
+under `launch-console-dsa-v1`. Both are caches; the bucket is the record.
+
+Two keys and two blobs, not one of each: the tracker's document is PUT whole
+on every tick and capped at 512 KB, while a DSA row holds notes, an approach
+line and a GoodNotes reference. Sharing a store would mean writing too much
+about a graph problem eventually broke saving a placement tick. DSA writes
+PATCH one problem at a time instead of re-uploading the sheet.
 
 The originals persisted through `window.storage`, the Claude Artifacts API. That
 was correct inside an Artifact and fatal anywhere else: served from GitHub Pages
