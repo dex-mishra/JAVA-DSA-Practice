@@ -216,8 +216,19 @@ function thin(p) {
     template: p.template || "",
     companies: p.companies || [],
     campus_oa: p.campus_oa,
-    // Cheap flags so a row can advertise what opening it will show.
-    tuf: !!(p.tuf && (p.tuf.article || p.tuf.youtube)),
+    /* Striver's article and video sit on the row next to the LeetCode link,
+       so the three places you might start a problem are all one click away
+       without expanding anything.
+       Carried in full rather than as a "has TUF" flag: a flag means the row
+       can only say the link exists and still has to fetch to hand it over,
+       which is a request to show a hyperlink. ~65 KB across the full 600.
+       Null where Striver does not cover the problem -- 104 of 261 so far
+       have neither, so the row must read correctly with both missing. */
+    tuf_article: (p.tuf && p.tuf.article) || null,
+    tuf_youtube: (p.tuf && p.tuf.youtube) || null,
+    // Striver's name for it, which is often not LeetCode's. Worth a tooltip
+    // so a link that looks wrong can be recognised as the same problem.
+    striver_title: (p.tuf && p.tuf.striver_title) || "",
     followups: ((p.learnings && p.learnings.followups) || []).length
   };
 }

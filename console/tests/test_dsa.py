@@ -86,6 +86,34 @@ class ImportContract(unittest.TestCase):
             self.assertIn(p["difficulty"], {"Easy", "Medium", "Hard"})
             self.assertIn(p["campus_oa"], {"HIGH", "MEDIUM", "LOW"})
 
+    def test_striver_links_reach_the_index_intact(self):
+        """The row links straight to TUF and the video, so the URLs have to
+        be in the baked index rather than behind a fetch. A silent drop here
+        would look exactly like Striver not covering the problem."""
+        full = {}
+        for phase in self.spec["phases"]:
+            if not phase["loaded"]:
+                continue
+            payload = json.loads((DATA / "dsa" / f"phase-{phase['key']}.json").read_text())
+            for p in payload["problems"]:
+                full[p["id"]] = p.get("tuf") or {}
+
+        covered = 0
+        for row in self.index["problems"]:
+            tuf = full[row["id"]]
+            self.assertEqual(row["tuf_article"], tuf.get("article") or None)
+            self.assertEqual(row["tuf_youtube"], tuf.get("youtube") or None)
+            if row["tuf_article"] or row["tuf_youtube"]:
+                covered += 1
+        self.assertGreater(covered, 0, "no problem carries a Striver link")
+
+    def test_striver_urls_point_where_they_claim(self):
+        for p in self.index["problems"]:
+            if p["tuf_article"]:
+                self.assertTrue(p["tuf_article"].startswith("https://takeuforward.org/"), p["id"])
+            if p["tuf_youtube"]:
+                self.assertTrue(p["tuf_youtube"].startswith("https://www.youtube.com/"), p["id"])
+
     def test_content_carries_no_user_fields(self):
         """The uploads ship a default user_fields block. Keeping it next to
         the content invites something to write to it, and the real progress

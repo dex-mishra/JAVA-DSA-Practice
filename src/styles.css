@@ -846,7 +846,21 @@ body.domain-dsa::before { background: linear-gradient(rgba(13, 148, 136, .09), t
 .dsa-pattern { color: var(--ink-2); }
 .dsa-tlink { color: var(--dsa); text-decoration: none; }
 .dsa-tlink:hover { text-decoration: underline; }
-.dsa-tuf { color: var(--medium); }
+/* Striver's two links sit on the row beside LeetCode's. Underlined rather
+   than coloured alone, because they sit in a line of grey mono metadata
+   where colour on its own does not read as "clickable". */
+.dsa-tuf { color: var(--medium); text-decoration: none; border-bottom: 1px solid currentColor; }
+.dsa-tuf:hover { color: var(--ink); }
+.dsa-tuf.yt { margin-left: 5px; }
+
+/* Tier definitions, in the open above the rows they govern. */
+.dsa-legend {
+  margin-top: 14px; padding: 11px 13px; border-radius: var(--r);
+  background: var(--raise); border: 1px solid var(--line-soft);
+  display: grid; gap: 6px;
+}
+.dsa-legrow { display: flex; gap: 10px; align-items: baseline; font-size: 12.5px; color: var(--ink-2); }
+.dsa-legrow .dsa-tier { flex: none; align-self: flex-start; }
 .dsa-tag {
   background: var(--dsa-soft); color: var(--dsa); border-radius: 3px;
   padding: 1px 5px; margin-right: 3px;

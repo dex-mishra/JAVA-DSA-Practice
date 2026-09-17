@@ -2593,6 +2593,27 @@
     return out + "</span>";
   }
 
+  /* Striver's two links, on the row beside the LeetCode one.
+
+     Coverage is partial and that is the content, not a bug: of the 261
+     problems imported, 150 have an article, 131 a video, and 104 have
+     neither. So this renders nothing at all rather than a disabled chip --
+     a greyed-out link you can never click is worse than no link. */
+  function dsaStriverLinks(p) {
+    if (!p.tuf_article && !p.tuf_youtube) return "";
+    var hint = p.striver_title ? ' title="Striver: ' + esc(p.striver_title) + '"' : "";
+    return " · " +
+      (p.tuf_article
+        ? '<a class="dsa-tuf" href="' + esc(p.tuf_article) +
+          '" target="_blank" rel="noopener"' + hint + ">TUF article</a>"
+        : "") +
+      (p.tuf_article && p.tuf_youtube ? " " : "") +
+      (p.tuf_youtube
+        ? '<a class="dsa-tuf yt" href="' + esc(p.tuf_youtube) +
+          '" target="_blank" rel="noopener"' + hint + ">video</a>"
+        : "");
+  }
+
   function dsaRowEl(p) {
     var g = dsaRow(p.id);
     var open = !!DSAV.open[p.id];
@@ -2618,8 +2639,9 @@
         '<span class="dsa-pattern">' + esc(p.pattern || "—") + "</span>" +
         (p.template ? ' · <a class="dsa-tlink" href="#" data-dsa-template="' + esc(p.template) + '">' + esc(p.template) + "</a>" : "") +
         (p.lc_id ? " · LC " + esc(p.lc_id) : "") +
-        (p.ac_rate != null ? " · " + p.ac_rate + "% accepted" : "") +
-        (p.tuf ? ' · <span class="dsa-tuf">TUF</span>' : "") +
+        (p.ac_rate != null ? ' · <span title="LeetCode acceptance rate: accepted submissions over all submissions">' +
+          p.ac_rate + "% accepted</span>" : "") +
+        dsaStriverLinks(p) +
         (g.tags.length ? " · " + g.tags.map(function (t) {
           return '<span class="dsa-tag">' + esc(t) + "</span>";
         }).join("") : "") +
@@ -2747,11 +2769,16 @@
               " is referenced by this problem but has not been written yet.</p></div>"
             : "") +
         ((doc.tuf && (doc.tuf.article || doc.tuf.youtube))
-          ? '<div class="dsa-lblock"><h4>Striver</h4><div class="dsa-sibs">' +
+          ? '<div class="dsa-lblock"><h4>Striver</h4>' +
+            (doc.tuf.striver_title && doc.tuf.striver_title !== doc.title
+              ? '<p class="muted">Listed on the A2Z sheet as &ldquo;' +
+                esc(doc.tuf.striver_title) + "&rdquo;.</p>"
+              : "") +
+            '<div class="dsa-sibs">' +
             (doc.tuf.article ? '<a class="dsa-sib out" target="_blank" rel="noopener" href="' +
               esc(doc.tuf.article) + '">TUF article</a>' : "") +
             (doc.tuf.youtube ? '<a class="dsa-sib out" target="_blank" rel="noopener" href="' +
-              esc(doc.tuf.youtube) + '">video</a>' : "") + "</div></div>"
+              esc(doc.tuf.youtube) + '">Striver video</a>' : "") + "</div></div>"
           : "") +
         (doc.theory_id ? '<div class="dsa-lblock"><a class="linkish" href="#" data-dsa-theory="' +
           esc(doc.theory_id) + '">Read the ' + esc(titleCase(doc.topic)) + " theory →</a></div>" : "") +
@@ -2893,6 +2920,27 @@
     }).join("") + "</div>";
   }
 
+  /* The tier definitions, spelled out on the page.
+
+     They were tooltips on the badges to begin with, which is a fine place
+     for a reminder and a useless one for a definition -- a tooltip cannot
+     teach you what CORE means, because you have to already suspect it means
+     something before you hover. The three sentences are short; they can
+     live in the open above the rows they govern.
+
+     Straight from SPEC, not paraphrased here, so the sheet and the tracker
+     cannot drift into saying different things. */
+  function dsaTierLegend() {
+    var tiers = (DSA_SPEC && DSA_SPEC.tiers) || {};
+    var order = ["CORE", "DRILL", "SKIM"];
+    if (!order.some(function (t) { return tiers[t]; })) return "";
+    return '<div class="dsa-legend">' + order.map(function (t) {
+      return tiers[t]
+        ? '<div class="dsa-legrow">' + dsaTierBadge(t) + "<span>" + esc(tiers[t]) + "</span></div>"
+        : "";
+    }).join("") + "</div>";
+  }
+
   function dsaDayRail(current) {
     var total = (DSA_SPEC && DSA_SPEC.total_days) || 40;
     var cells = [];
@@ -2944,6 +2992,7 @@
         (phase ? '<p class="dsa-goal">' + esc(phase.goal) + "</p>" : "") +
         (theoryId ? '<p><a class="linkish" href="#" data-dsa-theory="' + esc(theoryId) + '">' +
           "Read the " + esc(titleCase(topic)) + " theory first →</a></p>" : "") +
+        dsaTierLegend() +
         dsaDayRail(day) +
       "</section>" +
       '<section class="card"><div class="dsa-rows">' +
