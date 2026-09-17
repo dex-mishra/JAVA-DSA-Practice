@@ -34,6 +34,56 @@
      appends to every time it spots an internship or placement mail. */
   var OPPS = (DATA.opportunities && DATA.opportunities.opportunities) || [];
 
+  /* The DSA sheet. Two pieces are baked in by the build -- the spec (phases,
+     tiers, stuck ladder, AI protocol, tag vocabulary) and a thin index of
+     every problem, carrying what a row needs and nothing more.
+
+     The rest -- learnings, theory, templates -- is ~2 MB at the full 600
+     problems and is fetched per problem from /api/dsa/*. Baking it would
+     make this page a multi-megabyte parse on a phone to show one day's
+     fourteen rows. Opened from disk with no server the sheet still lists,
+     filters and ticks; only the teaching material needs the API. */
+  var DSA = DATA.dsa || null;
+  var DSA_SPEC = (DSA && DSA.spec) || null;
+  var DSA_INDEX = (DSA && DSA.index) || null;
+  var DSA_PROBLEMS = (DSA_INDEX && DSA_INDEX.problems) || [];
+  var DSA_BY_ID = {};
+  DSA_PROBLEMS.forEach(function (p) { DSA_BY_ID[p.id] = p; });
+
+  /* What a solved problem is worth against a ticked topic.
+
+     Not 1:1, because they are not the same unit of work. A topic line is
+     "Integer promotion & unsigned arithmetic" -- ten minutes of reading. A
+     CORE problem is forty-five minutes with an empty file and no editorial.
+     Weighting by tier uses a number the content already carries rather than
+     one invented here, and it is what makes DSA roughly half the ladder
+     instead of a quarter of it.
+
+     To go back to flat 1:1, set all three to 1. Nothing else changes. */
+  var DSA_WEIGHT = { CORE: 3, DRILL: 2, SKIM: 1 };
+
+  /* The denominator is the SPEC pool, not the problems imported so far.
+
+     Those differ -- three phases of six are in -- and using the imported
+     count would mean the rating falls every time a phase lands, purely
+     because the target moved. The pool is the real target and it is known
+     from day one, so 600 it is, and an unimported phase simply reads as
+     work not yet done. Which it is. */
+  var DSA_POOL = (DSA_SPEC && DSA_SPEC.pool_size) || 0;
+
+  /* Weighted size of the whole sheet, assuming the unimported remainder
+     arrives at the tier mix SPEC plans for. Without this the ladder would
+     shift under you as P2B and P3 land. */
+  var DSA_TOTAL_WEIGHT = (function () {
+    if (!DSA_SPEC) return 0;
+    var known = 0;
+    DSA_PROBLEMS.forEach(function (p) { known += DSA_WEIGHT[p.tier] || 1; });
+    var mix = DSA_SPEC.tier_mix || { CORE: 0.4, DRILL: 0.35, SKIM: 0.25 };
+    var perProblem = (mix.CORE || 0) * DSA_WEIGHT.CORE +
+      (mix.DRILL || 0) * DSA_WEIGHT.DRILL + (mix.SKIM || 0) * DSA_WEIGHT.SKIM;
+    return known + Math.max(0, DSA_POOL - DSA_PROBLEMS.length) * perProblem;
+  })();
+
   var DAY1 = new Date("2026-12-01T00:00:00");
   var TODAY = new Date();
   TODAY.setHours(0, 0, 0, 0);
@@ -178,6 +228,125 @@
       .catch(function () { SYNC.on = false; setSync("local"); return false; });
   }
 
+  /* ------------------------------------------------- DSA progress store
+
+     Its own key and its own blob, deliberately not folded into S.
+
+     S is PUT whole to /api/progress on every change and that endpoint caps
+     the document at 512 KB, which is correct for what it holds: an id and a
+     boolean per tick. A DSA row holds notes in markdown, an approach line
+     and a GoodNotes reference. Six hundred of those would eventually push a
+     placement tick over the cap and start failing saves that have nothing
+     to do with DSA -- the tracker would break because you wrote too much
+     about a graph problem.
+
+     So: separate cache key, separate blob, and writes that PATCH one
+     problem instead of re-uploading the sheet. */
+
+  var DSA_KEY = "launch-console-dsa-v1";
+  var DSA_S = { problems: {} };
+  var DSA_SYNC = { on: false, ts: 0 };
+
+  var DSA_DEFAULTS = {
+    status: "todo", revision: false, notes: "", tags: [],
+    confidence: null, last_revised: null, goodnotes_ref: "", my_approach: ""
+  };
+
+  /* A problem's user fields, defaults filled in. Absent means untouched --
+     the blob only ever holds rows that have been written to. */
+  function dsaRow(id) {
+    var stored = DSA_S.problems[id] || {};
+    var out = {};
+    for (var k in DSA_DEFAULTS) {
+      out[k] = stored[k] === undefined ? DSA_DEFAULTS[k] : stored[k];
+    }
+    out.tags = (out.tags || []).slice();
+    return out;
+  }
+
+  function dsaLoad() {
+    try {
+      var raw = localStorage.getItem(DSA_KEY);
+      if (raw) {
+        var p = JSON.parse(raw);
+        if (p && typeof p.problems === "object") DSA_S = { problems: p.problems || {} };
+      }
+    } catch (e) { /* cache only; the server is the record */ }
+  }
+
+  function dsaCache() {
+    try { localStorage.setItem(DSA_KEY, JSON.stringify(DSA_S)); } catch (e) { /* full or blocked */ }
+  }
+
+  /* Write one problem's fields. Optimistic: the row updates locally and the
+     UI repaints at once, and the PATCH reconciles afterwards. A failure
+     says so rather than silently reverting -- losing a paragraph of notes
+     to a dropped connection with no warning is the bad outcome here. */
+  function dsaPatch(id, patch) {
+    var row = DSA_S.problems[id] || (DSA_S.problems[id] = {});
+    for (var k in patch) row[k] = patch[k];
+
+    // Stamping the revision date on a status change mirrors what the server
+    // does, so an offline tick and an online one agree.
+    if (patch.status && patch.status !== "todo" && patch.last_revised === undefined) {
+      row.last_revised = today();
+    }
+    dsaCache();
+
+    if (!DSA_SYNC.on) return Promise.resolve(row);
+
+    return fetch("/api/dsa/progress/" + encodeURIComponent(id), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch)
+    })
+      .then(function (r) {
+        if (!r.ok) return r.json().then(function (b) { throw new Error(b.error || r.status); });
+        return r.json();
+      })
+      .then(function (res) {
+        // The server is authoritative about the resulting row -- it applies
+        // the same defaults collapse, so a row back at every default comes
+        // back empty and should disappear here too.
+        var clean = res.progress || {};
+        var bare = true;
+        for (var k in DSA_DEFAULTS) {
+          var d = DSA_DEFAULTS[k];
+          var v = clean[k];
+          if (k === "tags" ? (v || []).length : v !== d) { bare = false; break; }
+        }
+        if (bare) delete DSA_S.problems[id]; else DSA_S.problems[id] = clean;
+        dsaCache();
+        return clean;
+      })
+      .catch(function (e) {
+        toast("Not saved to the server: " + e.message);
+        return row;
+      });
+  }
+
+  function dsaSyncFromServer() {
+    return fetch("/api/dsa/progress")
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (res) {
+        DSA_SYNC.on = true;
+        DSA_SYNC.ts = res.updated_ts || 0;
+        if (res.updated_ts && res.problems) {
+          DSA_S = { problems: res.problems };
+          dsaCache();
+          return true;
+        }
+        // Nothing server-side yet. Push this browser's rows one at a time so
+        // an existing local history becomes the shared starting point.
+        var ids = Object.keys(DSA_S.problems);
+        ids.forEach(function (id) {
+          if (DSA_BY_ID[id]) dsaPatch(id, DSA_S.problems[id]);
+        });
+        return false;
+      })
+      .catch(function () { DSA_SYNC.on = false; return false; });
+  }
+
   /* ---------------------------------------------------------- helpers */
 
   function hash(str) {
@@ -275,12 +444,39 @@
     return n;
   }
 
+  /* Solved DSA problems, weighted. `revisit` deliberately does not count:
+     it is the status for "I got there but I could not do it again cold",
+     and a rating that treats that as mastery is lying in exactly the way
+     window integrity refuses to. Marking something revisit gives the points
+     back, which is the point -- the number only ever reflects what you can
+     currently do. */
+  function dsaScore() {
+    var earned = 0;
+    var solved = 0;
+    for (var id in DSA_S.problems) {
+      var p = DSA_BY_ID[id];
+      if (!p) continue;                       // a problem removed by a re-import
+      if ((DSA_S.problems[id] || {}).status !== "solved") continue;
+      earned += DSA_WEIGHT[p.tier] || 1;
+      solved++;
+    }
+    return { earned: earned, solved: solved, weight: DSA_TOTAL_WEIGHT, pool: DSA_POOL };
+  }
+
   function stats() {
-    var done = RATED.filter(function (x) { return S.checked[x.id]; }).length;
-    var total = RATED.length;
+    var topicsDone = RATED.filter(function (x) { return S.checked[x.id]; }).length;
+    var dsa = dsaScore();
+
+    /* One ladder, two contributions. A ticked topic is one unit; a solved
+       problem is one to three depending on tier. At the full sheet DSA is
+       just under half the climb, which is the weight the sheet earns. */
+    var done = topicsDone + dsa.earned;
+    var total = RATED.length + dsa.weight;
     var pct = total ? (done / total) * 100 : 0;
     var st = {
       done: done, total: total, pct: pct,
+      topicsDone: topicsDone, topicsTotal: RATED.length,
+      dsa: dsa,
       rating: Math.round(800 + (pct / 100) * 2400),
       streak: streakCount(),
       secDone: function (track, secName) {
@@ -424,6 +620,12 @@
     document.getElementById("ratingVal").textContent = st.rating;
     document.getElementById("rankTag").textContent = rank.n;
 
+    var scopeEl = document.getElementById("ratingScope");
+    if (scopeEl) {
+      scopeEl.innerHTML = "Mastery rating &middot; " + st.topicsTotal.toLocaleString() + " topics" +
+        (DSA_POOL ? " + " + DSA_POOL + " problems" : "");
+    }
+
     // ladder
     var idx = PL.ranks.indexOf(rank);
     var trackEl = document.getElementById("ladderTrack");
@@ -440,9 +642,15 @@
 
     var noteEl = document.getElementById("rankNote");
     if (next) {
-      var perTopic = 2400 / RATED.length;
-      var need = Math.ceil((next.min - st.rating) / perTopic);
-      noteEl.innerHTML = need + " more topics to <b>" + esc(next.n) + "</b>";
+      // The ladder now has two currencies. Quoting the gap in one of them
+      // and calling the other "topics" would be wrong by a factor of three,
+      // so quote both and let the cheaper one be obvious.
+      var perUnit = 2400 / st.total;
+      var gap = next.min - st.rating;
+      var needTopics = Math.ceil(gap / perUnit);
+      var needCore = Math.ceil(gap / (perUnit * DSA_WEIGHT.CORE));
+      noteEl.innerHTML = needTopics + " topics <i>or</i> " + needCore +
+        " CORE problems to <b>" + esc(next.n) + "</b>";
     } else {
       noteEl.textContent = "Top of the ladder.";
     }
@@ -482,8 +690,15 @@
     // strip
     var dd1 = daysUntil("2026-12-01");
     document.getElementById("days").textContent = dd1 >= 0 ? dd1 : "—";
-    document.getElementById("cleared").textContent = st.done;
-    document.getElementById("clearedSub").textContent = "of " + st.total;
+    /* Counted things, not weighted units. The rating is weighted; this tile
+       is "how much of the pile is behind you", and a tile that read 171 when
+       57 things were done would just look broken. */
+    var clearedN = st.topicsDone + st.dsa.solved;
+    var clearedOf = st.topicsTotal + st.dsa.pool;
+    document.getElementById("cleared").textContent = clearedN;
+    document.getElementById("clearedSub").textContent = DSA_POOL
+      ? st.topicsDone + " topics · " + st.dsa.solved + " problems"
+      : "of " + clearedOf;
     document.getElementById("streak").textContent = st.streak;
     document.getElementById("badgeCount").textContent = S.badges.length;
     document.getElementById("badgeSub").textContent = "of " + PL.badges.length + " unlocked";
@@ -920,7 +1135,14 @@
       : '<button type="button" class="btn tiny danger" data-mba-hide="' + esc(it.id) + '">' +
         (custom ? "Delete" : "Hide") + "</button>";
 
-    return '<div class="mba-item">' +
+    /* Stamped so filtering can hide rows in place rather than re-rendering
+       the tab. Re-rendering on every keystroke would blow away the search
+       box the keystroke was typed into. */
+    var haystack = ((it.task || "") + " " + (it.note || "") + " " +
+                    (it.phase || m.phase || "")).toLowerCase();
+    return '<div class="mba-item" data-task="' + esc(haystack) +
+      '" data-tags="' + esc((it.tags || []).join("|").toLowerCase()) +
+      '" data-done="' + (on ? "1" : "0") + '">' +
       '<div class="row ' + lv + (on ? " on" : "") + '" data-mba="' + esc(it.id) + '">' +
       '<span class="box"></span><div class="rbody">' +
       '<div class="rtask">' + esc(it.task) + "</div>" +
@@ -932,12 +1154,92 @@
       '<details class="mba-edit"><summary>Edit</summary><div class="edit-body">' +
       (editTags || '<span class="muted tiny">No tags yet.</span>') +
       '<div class="edit-row">' +
-      '<input type="text" class="edit-tag-input" placeholder="add a tag" maxlength="24" data-mba-taginput="' +
+      '<input type="text" class="edit-tag-input" placeholder="add a tag" maxlength="40" data-mba-taginput="' +
         esc(it.id) + '">' +
       '<button type="button" class="btn tiny" data-mba-addtag="' + esc(it.id) + '">Add tag</button>' +
       "</div>" +
       '<div class="edit-row">' + editActions + "</div>" +
       "</div></details></div>";
+  }
+
+  /* Filter state for the MBA tab. Held here rather than in the URL or in S
+     because it is a way of looking at the list, not a change to it -- the
+     next visit should start from the whole list, the same way it always has.
+     Tags match case-insensitively, since a tag is free text and "Round 1"
+     and "round 1" are the same tag everywhere else. */
+  var MBAF = { q: "", tags: [], hideDone: false };
+
+  function mbaAllTags() {
+    var seen = {};
+    var out = [];
+    function take(it) {
+      (it.tags || []).forEach(function (t) {
+        var key = String(t).trim().toLowerCase();
+        if (!key || seen[key]) return;
+        seen[key] = 1;
+        out.push({ key: key, label: TAG_LABELS[t] ? TAG_LABELS[t][1] : t });
+      });
+    }
+    (MBA.phases || []).forEach(function (p) { (p.items || []).forEach(take); });
+    (MBA.excluded || []).forEach(take);
+    out.sort(function (a, b) { return a.label.localeCompare(b.label); });
+    return out;
+  }
+
+  function mbaFilterBar() {
+    var chips = mbaAllTags().map(function (t) {
+      var on = MBAF.tags.indexOf(t.key) !== -1;
+      return '<button type="button" class="tag mba-f' + (on ? " on" : "") +
+        '" data-mbafilter="' + esc(t.key) + '">' + esc(t.label) + "</button>";
+    }).join("");
+    if (!chips) chips = '<span class="muted tiny">No tags on anything yet.</span>';
+
+    return '<div class="card mba-filter">' +
+      '<div class="edit-row">' +
+      '<input type="search" id="mbaSearch" placeholder="Search the MBA list" ' +
+      'value="' + esc(MBAF.q) + '">' +
+      '<label class="switch"><input type="checkbox" id="mbaHideDone"' +
+      (MBAF.hideDone ? " checked" : "") + "><span>Hide done</span></label>" +
+      '<button type="button" class="btn tiny" id="mbaClearFilter">Clear</button>' +
+      "</div>" +
+      '<div class="chips mba-filter-tags">' + chips + "</div>" +
+      '<div class="muted tiny" id="mbaFilterCount"></div>' +
+      "</div>";
+  }
+
+  /* Hides rows in place. A phase whose every item is filtered out is hidden
+     too, rather than left as an empty heading -- an empty PHASE 03 reads as
+     "nothing here", which is a different claim from "nothing here matches". */
+  function applyMbaFilter() {
+    var panel = document.getElementById("panel");
+    if (!panel) return;
+    var q = MBAF.q.trim().toLowerCase();
+    var shown = 0, total = 0;
+
+    panel.querySelectorAll(".mba-item").forEach(function (row) {
+      total++;
+      var tags = (row.dataset.tags || "").split("|").filter(Boolean);
+      var ok =
+        (!q || (row.dataset.task || "").indexOf(q) !== -1 ||
+          tags.some(function (t) { return t.indexOf(q) !== -1; })) &&
+        (!MBAF.hideDone || row.dataset.done !== "1") &&
+        MBAF.tags.every(function (want) { return tags.indexOf(want) !== -1; });
+      row.hidden = !ok;
+      if (ok) shown++;
+    });
+
+    panel.querySelectorAll("section.phase").forEach(function (sec) {
+      var items = sec.querySelectorAll(".mba-item");
+      if (!items.length) return;   // the schools grid has no items to filter
+      var any = [...items].some(function (r) { return !r.hidden; });
+      sec.hidden = !any;
+    });
+
+    var note = document.getElementById("mbaFilterCount");
+    if (note) {
+      var filtering = q || MBAF.hideDone || MBAF.tags.length;
+      note.textContent = filtering ? shown + " of " + total + " shown" : "";
+    }
   }
 
   function renderMba() {
@@ -957,6 +1259,8 @@
       "the Ivy League literally would have cut Stanford GSB, MIT Sloan, Chicago Booth and " +
       "Berkeley Haas, which are four of the five strongest entrepreneurship schools in the US. " +
       "The target set is M7 plus Berkeley Haas, plus Yale and IESE for structural reasons.</p></div>";
+
+    html += mbaFilterBar();
 
     html += '<details class="card mba-add"><summary>+ Add an MBA item</summary>' +
       '<div class="edit-body">' +
@@ -1619,6 +1923,8 @@
 
   /* ---------------------------------------------------------- render */
 
+  var CF_TIMERS = false;
+
   function render() {
     var mine = sectionTabs();
     var tab = mine.find(function (t) { return t.id === ACTIVE; }) || mine[0];
@@ -1636,9 +1942,14 @@
     renderHeader();
     loadCF(false);
     /* The server caches for an hour, so asking more often than that is free
-       and just keeps the contest countdown honest. */
-    setInterval(function () { loadCF(false); }, 5 * 60 * 1000);
-    setInterval(renderCF, 60 * 1000);
+       and just keeps the contest countdown honest. Started once, not on
+       every render -- render() runs on every tab switch and every tick, so
+       this was adding two more timers each time and never clearing any. */
+    if (!CF_TIMERS) {
+      CF_TIMERS = true;
+      setInterval(function () { loadCF(false); }, 5 * 60 * 1000);
+      setInterval(renderCF, 60 * 1000);
+    }
     renderSections();
     renderTabs();
     bind();
@@ -1703,6 +2014,45 @@
       };
     });
 
+    /* --- MBA filtering ------------------------------------------------
+       Every handler here edits MBAF and calls applyMbaFilter(), never
+       render(): re-rendering the tab would replace the search box mid-word
+       and drop the caret. The chips do re-render, but only their own bar. */
+    var mbaSearch = document.getElementById("mbaSearch");
+    if (mbaSearch) {
+      mbaSearch.oninput = function () { MBAF.q = mbaSearch.value; applyMbaFilter(); };
+    }
+    var mbaHideDone = document.getElementById("mbaHideDone");
+    if (mbaHideDone) {
+      mbaHideDone.onchange = function () {
+        MBAF.hideDone = mbaHideDone.checked;
+        applyMbaFilter();
+      };
+    }
+    var mbaClear = document.getElementById("mbaClearFilter");
+    if (mbaClear) {
+      mbaClear.onclick = function () {
+        MBAF = { q: "", tags: [], hideDone: false };
+        if (mbaSearch) mbaSearch.value = "";
+        if (mbaHideDone) mbaHideDone.checked = false;
+        document.querySelectorAll("[data-mbafilter]").forEach(function (b) {
+          b.classList.remove("on");
+        });
+        applyMbaFilter();
+      };
+    }
+    document.querySelectorAll("[data-mbafilter]").forEach(function (b) {
+      b.onclick = function () {
+        var key = b.dataset.mbafilter;
+        var at = MBAF.tags.indexOf(key);
+        if (at === -1) MBAF.tags.push(key);
+        else MBAF.tags.splice(at, 1);
+        b.classList.toggle("on", at === -1);
+        applyMbaFilter();
+      };
+    });
+    if (document.querySelector(".mba-filter")) applyMbaFilter();
+
     // MBA manual editing -- add/remove tags, hide or delete an item,
     // restore one out of EXCLUDED, and the "+ Add an MBA item" form. Every
     // action here writes through the API and then refetches the delta
@@ -1711,9 +2061,15 @@
     // did in the meantime.
     document.querySelectorAll("[data-mba-tagdel]").forEach(function (b) {
       b.onclick = function () {
-        var parts = b.dataset.mbaTagdel.split("::");
+        /* Split on the FIRST separator only. A tag is free text now, so
+           splitting on every "::" would truncate one that contained it --
+           and the server refuses that character for the same reason. */
+        var packed = b.dataset.mbaTagdel;
+        var cut = packed.indexOf("::");
+        var id = packed.slice(0, cut);
+        var tag = packed.slice(cut + 2);
         b.disabled = true;
-        api("/api/mba/tags/remove", { method: "POST", body: JSON.stringify({ id: parts[0], tags: [parts[1]] }) })
+        api("/api/mba/tags/remove", { method: "POST", body: JSON.stringify({ id: id, tags: [tag] }) })
           .then(function () { refreshMbaCustom(); })
           .catch(function (e) { toast("Could not remove the tag: " + e.message); b.disabled = false; });
       };
@@ -1723,11 +2079,17 @@
       b.onclick = function () {
         var id = b.dataset.mbaAddtag;
         var input = document.querySelector('[data-mba-taginput="' + id + '"]');
-        var tag = (input.value || "").trim().toLowerCase();
+        /* Typed as typed. Lowercasing here is what made "Action Required"
+           into a tag the old validator rejected anyway, and it did not match
+           the curriculum's own "Confirmed date" either. */
+        var tag = (input.value || "").trim();
         if (!tag) return;
         b.disabled = true;
         api("/api/mba/tags", { method: "POST", body: JSON.stringify({ id: id, tags: [tag] }) })
-          .then(function () { refreshMbaCustom(); })
+          .then(function (r) {
+            if (r && r.rejected && r.rejected.length) toast("Not saved: " + r.rejected.join("; "));
+            refreshMbaCustom();
+          })
           .catch(function (e) { toast("Could not add the tag: " + e.message); b.disabled = false; });
       };
       var input = document.querySelector('[data-mba-taginput="' + b.dataset.mbaAddtag + '"]');
@@ -1773,7 +2135,7 @@
       var task = (document.getElementById("mbaNewTask").value || "").trim();
       if (!task) { toast("Say what needs doing first."); return; }
       var tags = (document.getElementById("mbaNewTags").value || "")
-        .split(",").map(function (t) { return t.trim().toLowerCase(); }).filter(Boolean);
+        .split(",").map(function (t) { return t.trim(); }).filter(Boolean);
       mbaSubmit.disabled = true;
       api("/api/mba/create", {
         method: "POST",
@@ -1784,7 +2146,12 @@
           tags: tags
         })
       })
-        .then(function () { toast("Added."); refreshMbaCustom(); })
+        .then(function (r) {
+          toast(r && r.rejected && r.rejected.length
+            ? "Added, but these tags were not saved: " + r.rejected.join("; ")
+            : "Added.");
+          refreshMbaCustom();
+        })
         .catch(function (e) { toast("Could not add it: " + e.message); mbaSubmit.disabled = false; });
     };
 
@@ -1963,14 +2330,25 @@
       return Object.assign({ tags: [] }, it, { tags: (it.tags || []).slice(), source: "custom" });
     });
 
+    /* Case-insensitive, the same way the server compares them, so "R1" on an
+       item that already has "r1" is a no-op here too rather than a second
+       pill saying the same thing. */
+    function sameTag(a, b) {
+      return String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+    }
     function resolveTags(it) {
       var extra = added[it.id];
       if (extra && extra.length) {
-        extra.forEach(function (t) { if (it.tags.indexOf(t) === -1) it.tags.push(t); });
+        extra.forEach(function (t) {
+          var have = it.tags.some(function (x) { return sameTag(x, t); });
+          if (!have) it.tags.push(t);
+        });
       }
       var drop = removed[it.id];
       if (drop && drop.length) {
-        it.tags = it.tags.filter(function (t) { return drop.indexOf(t) === -1; });
+        it.tags = it.tags.filter(function (t) {
+          return !drop.some(function (d) { return sameTag(d, t); });
+        });
       }
     }
     function finalExcluded(it) {

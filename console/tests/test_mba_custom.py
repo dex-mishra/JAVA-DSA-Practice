@@ -135,14 +135,27 @@ class CreatingItems(MbaCustomBase):
             resp = c.post("/api/mba/create", json={"task": "x", "tags": ["action", "verify"]})
         self.assertEqual(sorted(resp.get_json()["tags"]), ["action", "verify"])
 
-    def test_junk_tags_are_dropped_not_rejected(self):
-        """A slightly wrong tag should not sink the whole item. Case is
-        normalised (consistent with how sender/domain patterns are treated
-        elsewhere in this codebase) rather than rejected; a space breaks the
-        tag grammar outright and that one is dropped."""
+    def test_ordinary_tags_survive_creation_as_typed(self):
+        """Spaces and capitals are how the curriculum's own tags are written
+        ("Confirmed date"), so refusing them made it impossible to add a tag
+        in the style of the ones already on the page. Kept verbatim: they are
+        labels, and lowercasing one changes what it says."""
         with self.client() as c:
             resp = c.post("/api/mba/create", json={"task": "x", "tags": ["Has Space", "ok_one", "ALLCAPS"]})
-        self.assertEqual(resp.get_json()["tags"], ["ok_one", "allcaps"])
+        body = resp.get_json()
+        self.assertEqual(body["tags"], ["Has Space", "ok_one", "ALLCAPS"])
+        self.assertEqual(body["rejected"], [])
+
+    def test_a_tag_that_cannot_be_stored_does_not_sink_the_item(self):
+        """And it is named, rather than vanishing. The whole complaint was
+        that some tags simply were not there afterwards."""
+        with self.client() as c:
+            resp = c.post("/api/mba/create", json={"task": "x", "tags": ["fine", "!!!"]})
+        body = resp.get_json()
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(body["tags"], ["fine"])
+        self.assertEqual(len(body["rejected"]), 1)
+        self.assertIn("!!!", body["rejected"][0])
 
     def test_it_is_capped(self):
         main.MAX_CUSTOM_MBA = 2
@@ -206,9 +219,47 @@ class AddingTags(MbaCustomBase):
             resp = c.post("/api/mba/tags", json={"id": "nope-not-real", "tags": ["x"]})
         self.assertEqual(resp.status_code, 400)
 
-    def test_at_least_one_valid_tag_is_required(self):
+    def test_a_tag_with_a_space_is_stored_now(self):
         with self.client() as c:
             resp = c.post("/api/mba/tags", json={"id": self.a_real_id, "tags": ["Has Space"]})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.get_json()["added_tags"], ["Has Space"])
+
+    def test_nothing_storable_is_refused_and_says_why(self):
+        """"give at least one tag" told you nothing about the tag you had
+        just given, which is how a rejection went unnoticed."""
+        with self.client() as c:
+            resp = c.post("/api/mba/tags", json={"id": self.a_real_id, "tags": ["!!!"]})
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("!!!", resp.get_json()["error"])
+
+    def test_a_partly_valid_list_says_what_was_dropped(self):
+        """The exact shape of the bug: 200, a short list, and no hint that
+        anything had been thrown away."""
+        with self.client() as c:
+            resp = c.post(
+                "/api/mba/tags",
+                json={"id": self.a_real_id, "tags": ["Round 1", "x" * 60]},
+            )
+        body = resp.get_json()
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("Round 1", body["added_tags"])
+        self.assertEqual(len(body["rejected"]), 1)
+        self.assertIn("longer than", body["rejected"][0])
+
+    def test_tags_match_without_regard_to_case(self):
+        with self.client() as c:
+            c.post("/api/mba/tags", json={"id": self.a_real_id, "tags": ["Round1"]})
+            c.post("/api/mba/tags", json={"id": self.a_real_id, "tags": ["round1"]})
+            item = next(i for i in c.get("/api/mba").get_json()["items"]
+                        if i["id"] == self.a_real_id)
+        self.assertEqual([t for t in item["tags"] if t.lower() == "round1"], ["Round1"])
+
+    def test_the_site_separator_is_refused(self):
+        """The delete button packs an id and a tag into one attribute with
+        "::" between them."""
+        with self.client() as c:
+            resp = c.post("/api/mba/tags", json={"id": self.a_real_id, "tags": ["a::b"]})
         self.assertEqual(resp.status_code, 400)
 
 
@@ -263,10 +314,21 @@ class RemovingTags(MbaCustomBase):
             resp = c.post("/api/mba/tags/remove", json={"id": "nope", "tags": ["x"]})
         self.assertEqual(resp.status_code, 400)
 
-    def test_at_least_one_valid_tag_is_required(self):
+    def test_removing_ignores_case(self):
+        """Otherwise a tag you added as "Round 1" could not be removed by
+        clicking a pill that reads "round 1"."""
         with self.client() as c:
-            resp = c.post("/api/mba/tags/remove", json={"id": self.a_real_id, "tags": ["Has Space"]})
+            c.post("/api/mba/tags", json={"id": self.a_real_id, "tags": ["Round 1"]})
+            c.post("/api/mba/tags/remove", json={"id": self.a_real_id, "tags": ["ROUND 1"]})
+            item = next(i for i in c.get("/api/mba").get_json()["items"]
+                        if i["id"] == self.a_real_id)
+        self.assertNotIn("Round 1", item["tags"])
+
+    def test_nothing_removable_is_refused_and_says_why(self):
+        with self.client() as c:
+            resp = c.post("/api/mba/tags/remove", json={"id": self.a_real_id, "tags": ["!!!"]})
         self.assertEqual(resp.status_code, 400)
+        self.assertIn("!!!", resp.get_json()["error"])
 
 
 class DeletingItems(MbaCustomBase):

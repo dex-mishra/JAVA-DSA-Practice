@@ -153,8 +153,11 @@ def build_tools(d: dict[str, Callable]) -> dict[str, dict]:
         },
         "add_mba_tags": {
             "description": (
-                "Add tags to an MBA item, built-in or custom, by id. Lowercase "
-                "letters, digits, - and _ only. To remove a tag instead, use "
+                "Add tags to an MBA item, built-in or custom, by id. Free text: "
+                "spaces and capitals are fine, up to 40 characters, and tags match "
+                "without regard to case. The reply carries a 'rejected' list -- if "
+                "it is not empty, report that rather than a clean success, because "
+                "those tags were not saved. To remove a tag instead, use "
                 "remove_mba_tags."
             ),
             "schema": obj(

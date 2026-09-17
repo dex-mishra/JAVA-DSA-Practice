@@ -437,7 +437,22 @@ def topics_set():
 MBA_CUSTOM_BLOB = "console/mba_custom.json"
 MAX_CUSTOM_MBA = 200
 MAX_TAGS_PER_ITEM = 12
-_TAG_OK = re.compile(r"^[a-z][a-z0-9_-]{0,23}$")
+MAX_TAG_LEN = 40
+# What a tag may not contain, rather than the short list it once had to be
+# made of. The old rule was `^[a-z][a-z0-9_-]{0,23}$`, which rejected a
+# capital, a space, an ampersand and anything over 23 characters -- so
+# "Action Required", "R1/R2" and "stanford-gsb-deferred-round-one" were all
+# refused, while the tags the curriculum itself ships with read "Confirmed
+# date" and "Projected — verify". You could not add a tag in the style of
+# the ones already on the page.
+#
+# Everything a tag reaches is escaped at the point of use, so the only hard
+# requirements are that it holds no control characters, carries at least one
+# letter or digit, and does not contain the "::" the site's own delete button
+# uses to pack an id and a tag into one attribute.
+_TAG_CONTROL = re.compile(r"[\x00-\x1f\x7f]")
+_TAG_HAS_CONTENT = re.compile(r"[0-9A-Za-z]")
+_TAG_SPACE = re.compile(r"\s+")
 _DATE_OK = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
@@ -455,17 +470,64 @@ def _mba_custom() -> dict:
     }
 
 
-def _clean_tags(raw) -> list[str]:
+def _tag_fault(tag: str) -> str:
+    """Why this tag cannot be stored, or "" if it can."""
+    if not tag:
+        return "it is empty"
+    if len(tag) > MAX_TAG_LEN:
+        return f"it is longer than {MAX_TAG_LEN} characters"
+    if not _TAG_HAS_CONTENT.search(tag):
+        return "it has no letters or digits in it"
+    if "::" in tag:
+        return 'it contains "::", which the site uses as a separator'
+    return ""
+
+
+def _clean_tags(raw) -> tuple[list[str], list[str]]:
+    """Returns (kept, rejected).
+
+    Rejections used to be dropped on the floor. Sending
+    `["r1", "Action Required"]` stored the first, silently discarded the
+    second and answered 200 listing only what stuck -- so an assistant
+    reported success and half the tags never existed. Whatever cannot be
+    stored now comes back by name, and the caller says so.
+    """
     if not isinstance(raw, list):
-        return []
-    out: list[str] = []
-    for t in raw:
-        t = str(t).strip().lower()
-        if t and _TAG_OK.match(t) and t not in out:
-            out.append(t)
-        if len(out) >= MAX_TAGS_PER_ITEM:
-            break
-    return out
+        return [], []
+    kept: list[str] = []
+    rejected: list[str] = []
+    for item in raw:
+        tag = _TAG_SPACE.sub(" ", _TAG_CONTROL.sub("", str(item))).strip()
+        fault = _tag_fault(tag)
+        if fault:
+            rejected.append(f"{str(item).strip()[:60]!r} ({fault})")
+            continue
+        if any(_same_tag(tag, seen) for seen in kept):
+            continue
+        if len(kept) >= MAX_TAGS_PER_ITEM:
+            rejected.append(f"{tag!r} (over the {MAX_TAGS_PER_ITEM}-tag limit)")
+            continue
+        kept.append(tag)
+    return kept, rejected
+
+
+def _refusal(rejected: list[str], *, verb: str = "store") -> str:
+    """The message when nothing survived cleaning. Names what was wrong with
+    each one: "give at least one tag" told you nothing about the tag you had
+    just given."""
+    if not rejected:
+        return f"give at least one tag to {verb}"
+    return (
+        f"none of those tags could be {'removed' if verb == 'remove' else 'stored'}: "
+        + "; ".join(rejected)
+    )
+
+
+def _same_tag(a: str, b: str) -> bool:
+    """Tags compare without regard to case, so adding "R1" to an item that
+    already has "r1" is a no-op rather than a second pill saying the same
+    thing -- and removing either one removes it."""
+    return str(a).strip().casefold() == str(b).strip().casefold()
 
 
 def _all_mba_items() -> list[dict]:
@@ -482,11 +544,11 @@ def _all_mba_items() -> list[dict]:
         item_id = item.get("id")
         tags = list(item.get("tags") or [])
         for t in added.get(item_id, []):
-            if t not in tags:
+            if not any(_same_tag(t, have) for have in tags):
                 tags.append(t)
-        drop = set(removed.get(item_id, []))
+        drop = removed.get(item_id, [])
         if drop:
-            tags = [t for t in tags if t not in drop]
+            tags = [t for t in tags if not any(_same_tag(t, d) for d in drop)]
         excluded = item.get("excluded", False)
         if item_id in exclude_over:
             excluded = exclude_over[item_id]
@@ -563,6 +625,8 @@ def mba_create():
     if date and not _DATE_OK.match(date):
         return jsonify({"error": "date must be YYYY-MM-DD"}), 400
 
+    tags, rejected = _clean_tags(body.get("tags"))
+
     def mutate(doc):
         items = doc.get("items") if isinstance(doc.get("items"), list) else []
         if len(items) >= MAX_CUSTOM_MBA:
@@ -572,7 +636,7 @@ def mba_create():
             "task": task,
             "date": date,
             "phase": str(body.get("phase", "")).strip()[:60] or "CUSTOM",
-            "tags": _clean_tags(body.get("tags")),
+            "tags": tags,
             "excluded": bool(body.get("excluded", False)),
             "created_ts": time.time(),
         }
@@ -584,7 +648,10 @@ def mba_create():
     if isinstance(result, dict) and result.get("error"):
         return jsonify(result), 400
     log.info("Added MBA item: %s", task[:60])
-    return jsonify(result), 201
+    # The item is created either way -- a bad tag is not a reason to lose the
+    # commitment it was attached to -- but it says which tags did not make it
+    # rather than returning a short list and letting you assume.
+    return jsonify({**result, "rejected": rejected}), 201
 
 
 def _known_mba_id(item_id: str) -> bool:
@@ -600,9 +667,9 @@ def mba_add_tags():
     """Add tags to an existing item, curriculum or custom."""
     body = request.get_json(silent=True) or {}
     item_id = str(body.get("id", ""))
-    new_tags = _clean_tags(body.get("tags"))
+    new_tags, rejected = _clean_tags(body.get("tags"))
     if not new_tags:
-        return jsonify({"error": "give at least one tag (lowercase letters, digits, - or _)"}), 400
+        return jsonify({"error": _refusal(rejected)}), 400
     if not _known_mba_id(item_id):
         return jsonify({"error": f"unknown MBA item {item_id!r}"}), 400
 
@@ -612,13 +679,12 @@ def mba_add_tags():
         existing = added.get(item_id, [])
         still_removed = removed.get(item_id, [])
         for t in new_tags:
-            if t not in existing:
+            if not any(_same_tag(t, have) for have in existing):
                 existing.append(t)
             # Adding a tag undoes a previous removal of that same tag --
             # otherwise it would be added back on and immediately hidden
             # again by the leftover removal entry.
-            if t in still_removed:
-                still_removed.remove(t)
+            still_removed = [r for r in still_removed if not _same_tag(t, r)]
         added[item_id] = existing
         if still_removed:
             removed[item_id] = still_removed
@@ -629,7 +695,9 @@ def mba_add_tags():
         return existing
 
     tags = mutate_json_blob(MBA_CUSTOM_BLOB, mutate)
-    return jsonify({"id": item_id, "added_tags": tags})
+    # `rejected` is the whole point of the change: a partly-valid list used
+    # to answer 200 with no hint that anything had been thrown away.
+    return jsonify({"id": item_id, "added_tags": tags, "rejected": rejected})
 
 
 @app.post("/api/mba/tags/remove")
@@ -641,23 +709,26 @@ def mba_remove_tags():
     the effect at the page is identical either way."""
     body = request.get_json(silent=True) or {}
     item_id = str(body.get("id", ""))
-    drop_tags = _clean_tags(body.get("tags"))
+    drop_tags, rejected = _clean_tags(body.get("tags"))
     if not drop_tags:
-        return jsonify({"error": "give at least one tag to remove"}), 400
+        return jsonify({"error": _refusal(rejected, verb="remove")}), 400
     if not _known_mba_id(item_id):
         return jsonify({"error": f"unknown MBA item {item_id!r}"}), 400
 
     def mutate(doc):
         added = doc.get("tag_add") if isinstance(doc.get("tag_add"), dict) else {}
         removed = doc.get("tag_removed") if isinstance(doc.get("tag_removed"), dict) else {}
-        still_added = [t for t in added.get(item_id, []) if t not in drop_tags]
+        still_added = [
+            t for t in added.get(item_id, [])
+            if not any(_same_tag(t, d) for d in drop_tags)
+        ]
         if still_added:
             added[item_id] = still_added
         else:
             added.pop(item_id, None)
         existing = removed.get(item_id, [])
         for t in drop_tags:
-            if t not in existing:
+            if not any(_same_tag(t, have) for have in existing):
                 existing.append(t)
         removed[item_id] = existing
         doc["tag_add"] = added
@@ -665,7 +736,10 @@ def mba_remove_tags():
         return existing
 
     result = mutate_json_blob(MBA_CUSTOM_BLOB, mutate)
-    return jsonify({"id": item_id, "removed_tags": drop_tags, "now_suppressed": result})
+    return jsonify({
+        "id": item_id, "removed_tags": drop_tags,
+        "now_suppressed": result, "rejected": rejected,
+    })
 
 
 @app.post("/api/mba/exclude")
@@ -1891,6 +1965,23 @@ def _mcp_run_agent(mode):
         body, status = (result if isinstance(result, tuple) else (result, 200))
         payload = body.get_json()
         return payload if status < 400 else {"error": payload.get("error", "failed")}
+
+
+# The DSA sheet lives in its own module: its content is a different shape to
+# the topic checklists, its progress is a different blob, and main.py is
+# already long enough that adding a dozen more routes here would be unkind.
+from dsa import build_blueprint as build_dsa_blueprint  # noqa: E402
+
+app.register_blueprint(
+    build_dsa_blueprint(
+        DATA_DIR,
+        {
+            "protected": protected,
+            "read_json_blob": read_json_blob,
+            "mutate_json_blob": mutate_json_blob,
+        },
+    )
+)
 
 
 from mcp_http import build_blueprint  # noqa: E402

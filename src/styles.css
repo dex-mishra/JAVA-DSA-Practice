@@ -391,6 +391,20 @@ nav.tabs::-webkit-scrollbar { display: none; }
   padding: 2px 7px; border-radius: 100px; border: 1px solid var(--line); color: var(--ink-3);
 }
 .tag.confirmed { border-color: var(--ok); color: var(--ok); }
+/* Filter chips. Same pill as a tag so the thing you click looks like the
+   thing you are matching on, but clickable and with an on state. */
+.tag.mba-f { appearance: none; cursor: pointer; background: var(--surface); font: inherit;
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; }
+.tag.mba-f:hover { border-color: var(--accent); color: var(--accent); }
+.tag.mba-f.on { border-color: var(--accent); color: var(--surface); background: var(--accent); }
+.mba-filter .edit-row { margin-bottom: 10px; }
+.mba-filter input[type="search"] {
+  flex: 1; min-width: 160px; font-family: var(--display); font-size: 13px;
+  padding: 8px 10px; border-radius: var(--r); border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink);
+}
+.mba-filter-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.mba-filter #mbaFilterCount:not(:empty) { margin-top: 9px; }
 .tag.projected { border-color: var(--warn); color: var(--warn); }
 .tag.oneshot { border-color: var(--crit); color: var(--crit); }
 .tag.verify { border-color: var(--amber); color: var(--amber); }

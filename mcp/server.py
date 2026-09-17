@@ -190,8 +190,10 @@ def add_mba_item(task: str, date: str = "", phase: str = "", tags: list[str] | N
 def add_mba_tags(item_id: str, tags: list[str]) -> dict:
     """Add tags to an MBA item, built-in or custom, by id.
 
-    Lowercase letters, digits, - and _ only. To remove a tag instead, use
-    remove_mba_tags."""
+    Free text: spaces and capitals are fine, up to 40 characters, and tags
+    match without regard to case. The reply carries a `rejected` list -- if
+    it is not empty, say so rather than reporting a clean success, because
+    those tags were not saved."""
     return _call("POST", "/api/mba/tags", json={"id": item_id, "tags": tags})
 
 
