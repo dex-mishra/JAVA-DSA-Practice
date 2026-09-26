@@ -32,7 +32,7 @@ not_found_handling = "single-page-application"
 binding = "DB"
 database_name = "launch-console"
 # Replace with the id printed by `wrangler d1 create launch-console`.
-database_id = "PASTE_DATABASE_ID_HERE"
+database_id = "31672a8a-e16c-4c7b-989f-eb31f98273fb"
 
 [observability]
 enabled = true
