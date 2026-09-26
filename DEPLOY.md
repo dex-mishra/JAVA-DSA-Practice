@@ -1,5 +1,10 @@
 # Hosting the Launch Console
 
+> Handing this to an agent to run? Point it at
+> [DEPLOY-RUNBOOK.md](DEPLOY-RUNBOOK.md) instead — same deployment, written
+> as a procedure, with the credential steps marked as yours rather than its.
+
+
 Free, permanently, on Cloudflare. Not free-until-credits-run-out — the
 tracker's whole workload sits inside limits that do not expire.
 
