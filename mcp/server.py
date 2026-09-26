@@ -1,23 +1,22 @@
 """MCP server for the Launch Console.
 
 Lets an assistant read and change the same things you can from the website:
-your placement and MBA progress, your goals, the inbox email agent's
-instructions, and the opportunities it has found.
+your placement, MBA and DSA progress, your goals, and the opportunities you
+are tracking.
 
 It is a thin client over the console's HTTP API rather than a second way into
 the data. That is deliberate: validation, the id scheme, and the limits on
 what may be changed all live in one place, so an assistant cannot reach
 anything the page could not, and cannot corrupt state the page would reject.
 
-    CONSOLE_URL=https://launch-console-xxxx.a.run.app python mcp/server.py
+    CONSOLE_URL=https://launch-console.<subdomain>.workers.dev python mcp/server.py
 
 If the console is password-protected, also set CONSOLE_PASSWORD.
 
-Two unrelated systems live here: the placement/MBA tracker, and the inbox
-email agent (reads Gmail, sends summaries). Every email-agent tool is
-prefixed email_agent_ -- flat, similarly-named tools ("settings", "status")
-sitting next to the tracker's own is how a request to tick an MBA box got
-answered as though it were about the mail agent instead.
+The inbox email agent that used to live behind this server is retired, and
+every email_agent_ tool went with it. What remains is one system, not two,
+so the disambiguating instructions that kept "tick an MBA box" from being
+answered as a mail-agent request are no longer needed either.
 """
 
 from __future__ import annotations
@@ -35,18 +34,11 @@ TIMEOUT = float(os.environ.get("CONSOLE_TIMEOUT", "60"))
 mcp = FastMCP(
     "launch-console",
     instructions=(
-        "This server exposes TWO unrelated systems. Do not answer a request "
-        "about one as though it were about the other.\n\n"
-        "1. A placement/MBA progress tracker: get_overview, list_topics, "
-        "set_topics_done, list_mba_items, set_mba_item_done, add_mba_item, "
-        "add_mba_tags, remove_mba_tags, delete_mba_item, restore_mba_item, "
-        "list_goals, create_goal, update_goal, list_opportunities. Ticking "
-        "a box, adding or removing an MBA item or tag means one of these "
-        "-- never an email_agent_ tool.\n\n"
-        "2. An inbox email agent that reads Gmail and sends summaries -- "
-        "every tool for it is prefixed email_agent_ (settings, status, "
-        "calendar_proposals, add_calendar_event, run, set_instructions). "
-        "A request about the tracker is never answered with one of these."
+        "A placement, MBA and DSA progress tracker: get_overview, "
+        "list_topics, set_topics_done, list_mba_items, set_mba_item_done, "
+        "add_mba_item, add_mba_tags, remove_mba_tags, delete_mba_item, "
+        "restore_mba_item, list_goals, create_goal, update_goal, "
+        "list_opportunities, add_opportunity."
     ),
 )
 
@@ -132,27 +124,6 @@ def list_opportunities(limit: int = 25) -> dict:
         items = result["opportunities"]
         return {"total": len(items), "opportunities": items[:limit]}
     return result
-
-
-@mcp.tool()
-def email_agent_settings() -> dict:
-    """The INBOX EMAIL AGENT's current free-text instructions, its two
-    dry-run switches, and when the settings were last saved. Unrelated to
-    the placement/MBA tracker."""
-    return _call("GET", "/api/settings")
-
-
-@mcp.tool()
-def email_agent_status() -> dict:
-    """Email agent activity: when it last sent a summary, last urgent
-    alert, last junk sweep, which mailboxes it reads, and how many
-    calendar items are waiting on your confirmation."""
-    return _call("GET", "/api/status")
-
-
-# ---------------------------------------------------------------------------
-# Writing
-# ---------------------------------------------------------------------------
 
 
 @mcp.tool()
@@ -263,31 +234,35 @@ def update_goal(
 
 
 @mcp.tool()
-def email_agent_set_instructions(instructions: str) -> dict:
-    """Replace the inbox email agent's instructions. Plain English; it
-    reads these before every pass over your mail.
+def add_opportunity(
+    company: str = "",
+    role: str = "",
+    deadline: str = "",
+    apply_url: str = "",
+    location: str = "",
+    stipend: str = "",
+    summary: str = "",
+) -> dict:
+    """Add a placement or internship opportunity to the Opportunities tab.
 
-    This REPLACES the existing text rather than appending, so read
-    email_agent_settings first if you mean to extend it. It steers
-    judgement only — it cannot widen what the agent is permitted to do."""
-    return _call("PUT", "/api/settings", json={"instructions": instructions})
+    The inbox agent used to fill this tab by reading mail. It is retired, so
+    anything worth tracking is added by hand -- from the page, or from here
+    when an assistant is the one who spotted it.
 
-
-@mcp.tool()
-def email_agent_run(mode: str = "digest") -> dict:
-    """Start an email agent run now instead of waiting for its schedule.
-    Nothing to do with the placement/MBA tracker.
-
-    digest  — summary of the last 3 days, emailed. 3-5 minutes.
-    review  — reads the WHOLE inbox and emails one stocktake. 10-20 minutes.
-    sweep   — checks the last few hours, emails only if urgent.
-    cleanup — lists what it would bin, without binning.
-
-    Returns as soon as the run starts; the result arrives by email.
+    Give at least a company or a role. `deadline` is YYYY-MM-DD and puts the
+    posting into the countdown spine alongside the MBA dates.
     """
-    if mode not in {"digest", "review", "sweep", "cleanup", "check", "site-update"}:
-        return {"error": f"unknown mode {mode!r}"}
-    return _call("POST", "/api/run", json={"mode": mode})
+    if not company.strip() and not role.strip():
+        return {"error": "give at least a company or a role"}
+    return _call(
+        "POST",
+        "/api/opportunities",
+        json={
+            "company": company, "role": role, "deadline": deadline,
+            "apply_url": apply_url, "location": location,
+            "stipend": stipend, "summary": summary,
+        },
+    )
 
 
 if __name__ == "__main__":

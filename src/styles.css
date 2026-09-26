@@ -507,10 +507,6 @@ table.cost td.n { font-family: var(--mono); color: var(--ink); }
    The one part of this page backed by a server. Styled to sit inside the
    same shell as the trackers rather than look like a bolted-on admin panel. */
 
-body.domain-agent::before {
-  background: linear-gradient(rgba(21, 128, 61, .07), transparent 220px);
-}
-.tab[aria-selected="true"][data-domain="agent"] { border-bottom-color: var(--ok); }
 
 .agent-strip { margin-top: 16px; }
 .agent-strip .v { font-size: 17px; }

@@ -1,0 +1,39 @@
+name: Deploy to Cloudflare
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - run: npm ci
+
+      # The topic-id hash has to keep matching the one in src/app.js. If it
+      # ever drifts, every tick silently orphans -- the site keeps working
+      # and the API reports zero done -- so this runs before anything ships.
+      - name: Test
+        run: npm test
+
+      # The build refuses to emit an empty curriculum, so a bad data edit
+      # fails here rather than shipping a blank tracker.
+      - name: Build
+        run: npm run build
+
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

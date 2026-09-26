@@ -28,10 +28,13 @@
   // in place would.
   var MBA_BASE = DATA.mba || { phases: [], schools: [], excluded: [] };
   var MBA = MBA_BASE;
-  /* Filled from the agent's live career feed at boot. The baked value is
-     only a fallback for opening this file without a server -- the real
-     source is gs://<bucket>/career/opportunities.json, which the agent
-     appends to every time it spots an internship or placement mail. */
+  /* Postings you have added yourself, fetched at boot.
+
+     These used to arrive from the inbox agent, which read your mail and
+     appended anything that looked like an internship or a placement. The
+     agent is retired, so the tab is yours to fill: a notice on a board, a
+     WhatsApp forward, a mail you read yourself. The baked value is only a
+     fallback for opening this file with no API behind it. */
   var OPPS = (DATA.opportunities && DATA.opportunities.opportunities) || [];
 
   /* The DSA sheet. Two pieces are baked in by the build -- the spec (phases,
@@ -348,6 +351,36 @@
   }
 
   /* ---------------------------------------------------------- helpers */
+
+  /* One place every write goes through.
+
+     This used to live in the Agent tab, which was the only part of the page
+     that talked to a server. Now that progress, the MBA overlay, goals and
+     opportunities all do, it belongs with the rest of the helpers.
+
+     Two things it is responsible for. It carries the console password when
+     one is set -- optional, exactly as before: unset means the URL is the
+     only key. And it turns a failed response into an Error carrying the
+     server's own message, because every /api route answers in JSON even
+     when it crashes, and "500" in a toast tells you nothing that the actual
+     reason would not tell you better. */
+  var API = { password: "", locked: false };
+
+  function api(path, opts) {
+    var o = opts || {};
+    o.headers = Object.assign({ "Content-Type": "application/json" }, o.headers || {});
+    if (API.password) o.headers["X-Console-Password"] = API.password;
+    return fetch(path, o).then(function (r) {
+      if (r.status === 401) { API.locked = true; throw new Error("password required"); }
+      if (!r.ok) {
+        return r.json().catch(function () { return {}; }).then(function (j) {
+          throw new Error(String(j.error || r.status).slice(0, 240));
+        });
+      }
+      return r.json();
+    });
+  }
+
 
   function hash(str) {
     var h = 5381;
@@ -817,19 +850,22 @@
     s.title = c.name + " · " + new Date(c.start_ts * 1000).toLocaleString();
   }
 
+  /* The handle used to be stored in the agent's settings overlay, which was
+     the only server-side settings store there was. It now belongs to the
+     Codeforces endpoint itself -- which is where it was always used, and
+     means the tiles read the same on every device without a settings tab
+     existing at all. */
   function askHandle() {
-    var current = (AGENT.settings && AGENT.settings.cf_handle) ||
-      (CF.data && CF.data.handle) || "";
+    var current = (CF.data && CF.data.handle) || "";
     var handle = window.prompt("Your Codeforces handle", current);
     if (handle === null) return;
     handle = handle.trim();
-    api("/api/settings", { method: "PUT", body: JSON.stringify({ cf_handle: handle }) })
+    api("/api/codeforces?handle=" + encodeURIComponent(handle))
       .then(function (r) {
-        if (handle && !r.cf_handle) {
-          toast("That does not look like a Codeforces handle.");
+        if (handle && r.error) {
+          toast(r.error);
           return;
         }
-        if (AGENT.settings) AGENT.settings.cf_handle = r.cf_handle;
         toast(r.cf_handle ? "Handle set. Fetching…" : "Handle cleared.");
         loadCF(true);
       })
@@ -846,15 +882,14 @@
 
   /* Three top-level parts. Sub-tabs live inside a part, so the placement
      track list no longer sits next to unrelated things. */
-  /* DSA sits alongside Placement, MBA and the agent rather than inside
+  /* DSA sits alongside Placement and MBA rather than inside
      Placement. It is not a track -- it has its own days, phases, theory,
      templates and revision queue, and burying five views under the SDE tab
      would make the thing you use every day the hardest to reach. */
   var SECTIONS = [
     { id: "placement", label: "Placement" },
     { id: "dsa", label: "DSA Sheet" },
-    { id: "mba", label: "MBA" },
-    { id: "agent", label: "Email Agent" }
+    { id: "mba", label: "MBA" }
   ];
   // Hidden entirely until the content has been imported, rather than showing
   // an empty tab that looks broken.
@@ -871,7 +906,6 @@
   TABS.push({ id: "dsa-theory", label: "Theory", domain: "dsa", section: "dsa" });
   TABS.push({ id: "dsa-templates", label: "Templates", domain: "dsa", section: "dsa" });
   TABS.push({ id: "mba", label: "MBA Windows", domain: "mba", section: "mba" });
-  TABS.push({ id: "agent", label: "Agent", domain: "agent", section: "agent" });
 
   var SECTION = "placement";
   var ACTIVE = "overview";
@@ -1335,12 +1369,39 @@
     return OPPS.filter(function (o) { return OPP_CLOSED.indexOf(oppStatus(o)) === -1; });
   }
 
+  /* The add form. Same idiom as the MBA tab's manual editor, and the same
+     reasoning: a tab that can only be filled by something else is a tab
+     that goes stale the moment that something else stops running -- which
+     is exactly what happened when the inbox agent was retired. */
+  function careerEditor() {
+    return '<section class="card prop-manual"><h3>Add an opportunity</h3>' +
+      '<p class="muted">Anything you spot yourself: a notice on a board, a forward, ' +
+      "a mail you read before the agent ever would have.</p>" +
+      '<div class="edit-body">' +
+        '<div class="edit-row">' +
+          '<input type="text" id="oppCompany" placeholder="Company" maxlength="120">' +
+          '<input type="text" id="oppRole" placeholder="Role" maxlength="160">' +
+        "</div>" +
+        '<div class="edit-row">' +
+          '<input type="date" id="oppDeadline">' +
+          '<input type="text" id="oppLocation" placeholder="Location" maxlength="80">' +
+          '<input type="text" id="oppStipend" placeholder="Stipend" maxlength="80">' +
+        "</div>" +
+        '<input type="url" id="oppUrl" placeholder="Application link (optional)" maxlength="500">' +
+        '<input type="text" id="oppSummary" placeholder="Anything worth remembering (optional)" maxlength="600">' +
+        '<div class="agent-actions">' +
+          '<button class="btn primary" id="oppAdd" type="button">Add opportunity</button>' +
+          '<span class="muted" id="oppMsg"></span>' +
+        "</div>" +
+      "</div></section>";
+  }
+
   function renderCareer() {
     if (!OPPS.length) {
-      return '<div class="empty">No opportunities yet.<br><br>' +
-        "This tab is fed by the inbox agent: every internship and placement mail it sees " +
-        "is extracted into <span class=\"mono\">data/opportunities.json</span> and appears here. " +
-        "Deploy the agent, or drop a feed file in place, and this fills itself.</div>";
+      return '<div class="empty">Nothing here yet.<br><br>' +
+        "This tab used to fill itself from the inbox agent. The agent is retired, so it is " +
+        "yours to keep now — add anything worth tracking and it stays in the countdown spine " +
+        "with everything else.</div>" + careerEditor();
     }
 
     var sorted = OPPS.slice().sort(function (a, b) {
@@ -1366,572 +1427,17 @@
         (o.location ? '<span class="tag">' + esc(o.location) + "</span>" : "") +
         (o.stipend ? '<span class="tag">' + esc(o.stipend) + "</span>" : "") +
         (o.apply_url ? ' <a class="tag" href="' + esc(o.apply_url) + '" target="_blank" rel="noopener noreferrer">Apply</a>' : "") +
-        (o.deadline && !closed
-          ? ' <button class="btn tiny" data-oppcal="' + esc(o.id) + '">Add deadline to calendar</button>'
-          : "") +
         (o.source && o.source.gmail_url
           ? ' <a class="tag" href="' + esc(o.source.gmail_url) + '" target="_blank" rel="noopener noreferrer">Mail</a>'
           : "") +
-        "</div></div>";
-    }).join("");
-  }
-
-  /* ---------------------------------------------------------- agent */
-
-  /* The Agent tab is the only part of this page backed by a server. When the
-     file is opened straight from disk there is no API to talk to, so it says
-     so rather than showing controls that silently do nothing. */
-
-  var AGENT = { loading: false, loaded: false, error: "", locked: false, status: null, settings: null };
-
-  function ago(ts) {
-    if (!ts) return "never";
-    var s = Date.now() / 1000 - Number(ts);
-    if (s < 90) return "just now";
-    if (s < 5400) return Math.round(s / 60) + " min ago";
-    if (s < 172800) return Math.round(s / 3600) + " h ago";
-    return Math.round(s / 86400) + " d ago";
-  }
-
-  function api(path, opts) {
-    var o = opts || {};
-    o.headers = Object.assign({ "Content-Type": "application/json" }, o.headers || {});
-    if (AGENT.password) o.headers["X-Console-Password"] = AGENT.password;
-    return fetch(path, o).then(function (r) {
-      if (r.status === 401) { AGENT.locked = true; throw new Error("locked"); }
-      if (!r.ok) {
-        return r.json().catch(function () { return {}; }).then(function (j) {
-          throw new Error(String(j.error || r.status).slice(0, 240));
-        });
-      }
-      return r.json();
-    });
-  }
-
-  function loadAgent() {
-    if (AGENT.loading) return;
-    AGENT.loading = true;
-    Promise.all([
-      api("/api/status"),
-      api("/api/settings"),
-      // Optional extras: an older console will not have these, and the tab
-      // should degrade rather than refuse to render.
-      api("/api/proposals").catch(function () { return { batches: [], recent: [] }; }),
-      api("/api/reports").catch(function () { return { reports: [], runs: [] }; })
-    ])
-      .then(function (r) {
-        AGENT.status = r[0]; AGENT.settings = r[1];
-        AGENT.proposals = r[2]; AGENT.reports = r[3];
-        AGENT.loaded = true; AGENT.error = "";
-      })
-      .catch(function (e) { AGENT.error = e.message || String(e); })
-      .then(function () { AGENT.loading = false; repaintAgent(); });
-  }
-
-  function repaintAgent() {
-    if (ACTIVE !== "agent") return;
-    document.getElementById("panel").innerHTML = renderAgent();
-    bindAgent();
-  }
-
-  function renderAgent() {
-    if (AGENT.locked) {
-      return '<div class="card agent-gate"><h3>This console is password protected</h3>' +
-        '<input type="password" id="agPass" placeholder="Password" autocomplete="current-password">' +
-        '<button class="btn primary" id="agUnlock">Unlock</button></div>';
-    }
-    if (!AGENT.loaded) {
-      if (AGENT.error) {
-        return '<div class="card agent-off"><h3>Agent controls unavailable</h3>' +
-          "<p>Could not reach the console API. This tab only works on the deployed " +
-          "site, not on a copy opened from disk.</p>" +
-          '<p class="mono err">' + esc(AGENT.error) + "</p>" +
-          '<button class="btn" id="agRetry">Try again</button></div>';
-      }
-      return '<div class="card"><p class="muted">Loading agent…</p></div>';
-    }
-
-    var s = AGENT.status, cfg = AGENT.settings;
-    var live = cfg.dry_run === false;
-    var cleanupLive = cfg.cleanup_dry_run === false;
-    var stopped = cfg.paused === true;
-    /* Tristate: null means "no opinion, whatever config.yaml says", which is
-       on. Only an explicit false is off. */
-    var starring = cfg.star_enabled !== false;
-
-    var cards = [
-      ["Last summary", ago(s.last_digest_ts)],
-      ["Last urgent ping", ago(s.last_alert_ts)],
-      ["Last junk sweep", ago(s.last_cleanup_ts)],
-      ["Calendar items to confirm", s.open_proposals + (s.open_proposals === 1 ? " item" : " items")],
-      ["Added to calendar", String(s.events_created)],
-      ["Junk binned so far", String(s.trashed_total)]
-    ].map(function (c) {
-      return '<div class="stat"><div class="k">' + esc(c[0]) + '</div><div class="v">' + esc(c[1]) + "</div></div>";
-    }).join("");
-
-    var accounts = s.accounts.map(function (a) {
-      return '<li><span class="mono">' + esc(a.email) + "</span>" +
-        '<span class="pill' + (a.can_send ? " send" : "") + '">' + esc(a.role) + "</span>" +
-        (a.removable
-          ? '<button class="btn tiny danger" data-remove="' + esc(a.key) + '">Disconnect</button>'
-          : '<span class="muted tiny">fixed at deploy</span>') + "</li>";
-    }).join("");
-
-    return "" +
-      '<div class="strip agent-strip">' + cards + "</div>" +
-
-      '<div class="card">' +
-        "<h3>Tell it what matters</h3>" +
-        /* An unreadable settings file and an empty one look identical here,
-           and mean opposite things -- the second is honest, the first shows
-           you switches that are not what the agent is using. */
-        (cfg.read_error
-          ? '<p class="err">Your saved settings could not be read, so this box ' +
-            "is showing defaults rather than what is stored — and saving is " +
-            "blocked until it is fixed, because it would overwrite them. " +
-            '<span class="mono">' + esc(cfg.read_error) + "</span></p>"
+        // Only what you added by hand can be deleted. The agent's archived
+        // finds stay: they are a record of what was going on at the time,
+        // and nothing will ever write them again.
+        (o.origin === "manual"
+          ? ' <button class="btn tiny danger" data-oppdel="' + esc(o.id) + '">Delete</button>'
           : "") +
-        '<p class="muted">Write here like you are briefing a person. It reads this ' +
-        "before going through your mail, every single time.</p>" +
-        '<textarea id="agInstr" rows="14" maxlength="' + (cfg.max_instructions || 8000) + '" ' +
-        'placeholder="Examples:&#10;&#10;Anything from Prof. Sharma or the CDC office is always important.&#10;' +
-        'Placement and internship mail outranks everything else this semester.&#10;' +
-        'Treat coding-contest invitations as opportunities, not newsletters.&#10;' +
-        'I am tracking deferred MBA programmes — flag anything mentioning ISB YLP or Harvard 2+2.&#10;' +
-        'Newsletters from Unstop and Naukri are noise unless they name a real deadline.">' +
-        esc(cfg.instructions || "") + "</textarea>" +
-        '<div class="agent-actions">' +
-          '<button class="btn primary" id="agSave">Save instructions</button>' +
-          '<span class="muted" id="agSaved">Last saved ' + ago(cfg.updated_ts) + "</span>" +
-          '<span class="muted count" id="agCount"></span>' +
-        "</div>" +
-        rulesBlock(cfg) +
-        '<p class="muted fineprint">This changes its <b>judgement</b> — what it treats ' +
-        "as important, ignorable, or worth flagging — and what it stars, protects and " +
-        "bins, via the rules above. Everything it does is <b>additive</b>: no wording " +
-        "here can remove a protection, shorten a list, or drop a section from your " +
-        "summary. How much may be binned in one run, the 30-day minimum age, and the " +
-        "fact that nothing is ever deleted permanently are fixed in code and cannot be " +
-        "reached from this page.</p>" +
-      "</div>" +
-
-      '<div class="card">' +
-        "<h3>Switches</h3>" +
-        /* The stop button, first, because it is the one you want when
-           something is going wrong and you do not yet know what. */
-        '<div class="switch-row' + (stopped ? " stopped" : "") + '">' +
-          '<label class="switch"><input type="checkbox" id="agStop"' + (stopped ? " checked" : "") + ">" +
-          "<span>Stop the agent</span></label>" +
-          '<span class="muted">' + (stopped
-            ? "<b>Stopped.</b> It is not reading your mail at all — no summaries, " +
-              "no urgent pings, no starring, no binning. The scheduled runs still " +
-              "start every 15 minutes, see this switch, and exit in about a second. " +
-              "Nothing is lost; turn it back on and it picks up where it left off."
-            : "<b>Running.</b> Turn this on to halt everything at once — it stops " +
-              "before opening a mailbox. Use this rather than the two switches " +
-              "below if you want it to do nothing at all.") + "</span>" +
-        "</div>" +
-        '<div class="switch-row">' +
-          '<label class="switch"><input type="checkbox" id="agLive"' + (live ? " checked" : "") + ">" +
-          "<span>Let it act</span></label>" +
-          '<span class="muted">' + (live
-            ? "<b>On.</b> It stars mail and emails you for real."
-            : "<b>Off.</b> It reads and works everything out, but changes nothing " +
-              "and sends nothing. Practice mode.") + "</span>" +
-        "</div>" +
-        '<div class="switch-row">' +
-          '<label class="switch"><input type="checkbox" id="agStar"' + (starring ? " checked" : "") + ">" +
-          "<span>Let it star mail</span></label>" +
-          '<span class="muted">' + (starring
-            ? "<b>On.</b> It stars anything matching its rules and labels it " +
-              "<span class=\"mono\">Agent/Flagged</span>. Those rules are broad — " +
-              "whole categories, not a handful of senders — so this is the noisiest " +
-              "thing it does. Turn it off and everything else carries on unchanged."
-            : "<b>Off.</b> It stars nothing. Summaries, urgent pings, the calendar " +
-              "loop and the cleanup all still run. Stars it has already put on are " +
-              "left alone; unstar them yourself and it will not put them back.") + "</span>" +
-        "</div>" +
-        '<div class="switch-row">' +
-          '<label class="switch"><input type="checkbox" id="agCleanup"' + (cleanupLive ? " checked" : "") + ">" +
-          "<span>Let it bin junk</span></label>" +
-          '<span class="muted">' + (cleanupLive
-            ? "<b>On.</b> Old newsletters and promos go to Trash, where Gmail " +
-              "keeps them for 30 days. Nothing is ever deleted for good."
-            : "<b>Off.</b> It lists what it would bin so you can check its taste " +
-              "first. Bins nothing.") + "</span>" +
-        "</div>" +
-      "</div>" +
-
-      '<div class="card">' +
-        "<h3>Run something now</h3>" +
-        "<p class=\"muted\">It does all of this on a schedule anyway — these are " +
-        "for when you don't want to wait.</p>" +
-        '<div class="run-list">' +
-          '<div class="run-item"><button class="btn primary" data-run="digest">Email me a summary</button>' +
-          '<span class="muted">The last 3 days of mail: what needs you, what has a ' +
-          'deadline, any new opportunities. Happens automatically at 7am, noon, 5pm ' +
-          'and 9pm. Takes 3–5 minutes.</span></div>' +
-
-          '<div class="run-item"><button class="btn primary" data-run="review">Full inbox review</button>' +
-          '<span class="muted">Reads your <b>whole inbox</b> — old and new, opened and ' +
-          'unopened — and emails one master summary of everything still hanging over ' +
-          'you. Never stars or bins anything. Takes 10–20 minutes.</span></div>' +
-
-          '<div class="run-item"><button class="btn" data-run="sweep">Check for anything urgent</button>' +
-          '<span class="muted">Glances at the last few hours and emails you only if ' +
-          'something genuinely cannot wait. Runs by itself every 15 minutes, so this ' +
-          'is rarely needed. Usually silent.</span></div>' +
-
-          '<div class="run-item"><button class="btn" data-run="cleanup">Show me what it would bin</button>' +
-          '<span class="muted">Lists the junk it thinks could go, without touching ' +
-          'it. Use this a few times before turning on "let it bin junk".</span></div>' +
-        "</div>" +
-        '<div class="agent-actions"><span class="muted" id="agRun"></span></div>' +
-      "</div>" +
-
-      calendarCard() +
-      reportsCard() +
-      versionCard(s) +
-
-      '<div class="card">' +
-        "<h3>Mailboxes it reads</h3>" +
-        '<p class="muted">All of these are combined into the single summary sent to ' +
-        '<span class="mono">' + esc(s.report_to) + "</span>.</p>" +
-        '<ul class="accounts">' + accounts + "</ul>" +
-        (s.oauth_ready
-          ? '<a class="btn primary" href="/api/accounts/connect">Connect another mailbox</a>'
-          : '<p class="muted">Adding more mailboxes needs a one-off web OAuth client ' +
-            "(see <span class=\"mono\">console/README.md</span>). The mailboxes above " +
-            "work regardless — this is the only thing that setup unlocks.</p>") +
-        '<p class="muted fineprint">Mailboxes you add can be read and tidied, but can never send email. Only your main address sends.</p>' +
-      "</div>";
-  }
-
-  /* Calendar items the agent proposed. Previously these could only be
-     confirmed by replying to the digest email; the same batches are shown
-     here so you can decide wherever you happen to be. Confirming queues the
-     work for the agent -- this page cannot create events itself, because
-     that needs the calendar credentials that deliberately stay with the
-     job rather than with a service open to the internet. */
-  function calendarCard() {
-    var p = AGENT.proposals || {};
-    var batches = p.batches || [];
-    var queued = p.queued || [];
-
-    var body = batches.map(function (b) {
-      var rows = b.items.map(function (i) {
-        var meta = '<span class="rdate">' + esc(i.start) + (i.all_day ? "" : " (timed)") + "</span>";
-        if (i.source_url) {
-          meta += ' <a class="rlink" href="' + esc(i.source_url) +
-            '" target="_blank" rel="noopener">the email</a>';
-        }
-        return '<li><label class="switch"><input type="checkbox" data-prop="' +
-          esc(b.token) + '" value="' + i.n + '"><span></span></label>' +
-          '<div class="rbody"><div class="rtask">' + esc(i.title) + "</div>" +
-          (i.context ? '<div class="rnote">' + esc(i.context) + "</div>" : "") +
-          '<div class="rmeta">' + meta + "</div></div></li>";
-      }).join("");
-      return '<div class="prop-batch"><ul class="accounts prop-list">' + rows + "</ul>" +
-        '<div class="agent-actions">' +
-        '<button class="btn primary" data-propgo="' + esc(b.token) + '">Add ticked to calendar</button>' +
-        '<button class="btn" data-propnone="' + esc(b.token) + '">Dismiss all</button>' +
         "</div></div>";
-    }).join("");
-
-    var pending = queued.length
-      ? '<p class="muted fineprint">' + queued.length +
-        " queued — the agent adds these on its next run, within 15 minutes.</p>"
-      : "";
-
-    var intro = batches.length
-      ? '<p class="muted">Nothing below is on your calendar yet.</p>'
-      : '<p class="muted">Nothing waiting. When the agent spots a date in your ' +
-        "mail, the proposal appears here and in your digest.</p>";
-
-    /* The agent misses things -- a date buried in a paragraph, a mail that
-       arrived before it was watching, a proposal you dismissed and then
-       changed your mind about. Without this the only way onto the calendar
-       was to wait for it to offer, so a date you could see in front of you
-       was one you could not act on. Goes through the same queue as a
-       confirmed proposal: the page still cannot write to a calendar. */
-    var manual = '<div class="prop-manual">' +
-      '<div class="rtask">Add one yourself</div>' +
-      '<p class="muted fineprint">For anything it missed — a date buried in a ' +
-      "paragraph, or mail that arrived before it was watching. The agent puts it " +
-      'on the "Inbox Agent" calendar on its next run, within 15 minutes.</p>' +
-      '<div class="edit-body">' +
-        '<input id="calTitle" type="text" maxlength="200" ' +
-          'placeholder="What is it? e.g. Meesho DICE challenge closes">' +
-        '<div class="edit-row">' +
-          '<input id="calDate" type="date">' +
-          '<button type="button" class="btn primary tiny" id="calAdd">Add to calendar</button>' +
-        "</div>" +
-      "</div></div>";
-
-    return '<div class="card"><h3>Calendar — waiting on you</h3>' +
-      intro + body + pending + manual + "</div>";
-  }
-
-  /* Every report the agent sends is archived, so "did my full inbox review
-     work?" is answerable here rather than only from the cloud logs -- and a
-     run that failed before sending still shows up, which is exactly the case
-     that is otherwise invisible. */
-  function reportsCard() {
-    var r = AGENT.reports || {};
-    var reports = r.reports || [];
-    var runs = r.runs || [];
-
-    var failed = runs.filter(function (x) { return !x.ok; }).slice(0, 3);
-    var failedHtml = failed.length
-      ? '<div class="run-fail">' + failed.map(function (x) {
-          return "<div><b>" + esc(x.mode) + "</b> failed " + ago(x.finished_ts) +
-            (x.detail ? " — " + esc(x.detail) : "") + "</div>";
-        }).join("") + "</div>"
-      : "";
-
-    if (!reports.length) {
-      return '<div class="card"><h3>Sent reports</h3>' + failedHtml +
-        '<p class="muted">Nothing archived yet. Reports appear here from the ' +
-        "next run onwards.</p></div>";
-    }
-
-    var list = reports.map(function (x) {
-      return '<li><button class="linkish" data-report="' + esc(x.id) + '">' +
-        esc(x.subject || x.mode) + "</button>" +
-        '<span class="pill">' + esc(x.mode) + "</span>" +
-        '<span class="muted tiny">' + ago(x.ts) + (x.sent ? "" : " · not sent") + "</span></li>";
-    }).join("");
-
-    return '<div class="card"><h3>Sent reports</h3>' + failedHtml +
-      '<ul class="accounts reports">' + list + "</ul>" +
-      '<div id="reportView"></div></div>';
-  }
-
-  /* The website and the agent are two separate deployments made from one
-     build. A build that fails halfway updates the page and leaves the agent
-     on older code -- which looks exactly like a fix that did not work, and
-     costs a day of chasing the wrong thing. So both versions are on screen. */
-  function versionCard(s) {
-    if (!s.console_version && !s.agent_version) return "";
-    var mismatch = s.console_version && s.agent_version && !s.versions_match;
-    return '<div class="card' + (mismatch ? " warn" : "") + '">' +
-      "<h3>Deployed version</h3>" +
-      (mismatch
-        ? '<p class="err">These do not match. The last deploy only finished ' +
-          "half way, so the agent is still running older code — anything you " +
-          "changed recently is not live yet. Re-run <span class=\"mono\">" +
-          "./deploy-all.sh</span>.</p>"
-        : "") +
-      '<ul class="accounts"><li><span>This website</span>' +
-      '<span class="mono">' + esc(s.console_version || "unknown") + "</span></li>" +
-      "<li><span>Email agent</span>" +
-      '<span class="mono">' + esc(s.agent_version || "not reported yet") + "</span></li></ul>" +
-      (s.agent_version ? "" : '<p class="muted fineprint">The agent reports its ' +
-        "version on its next run, within 15 minutes of a deploy.</p>") +
-      "</div>";
-  }
-
-  /* What your prose compiled to. Shown because a rule that changes what gets
-     binned should be visible as a rule, not inferred from a paragraph. */
-  function rulesBlock(cfg) {
-    if (cfg.compile_pending) {
-      return '<div class="rules pending">Working out the rules from what you ' +
-        "wrote — they appear here after the next run, within 15 minutes.</div>";
-    }
-    var lines = cfg.rules || [];
-    if (!lines.length) {
-      return cfg.instructions
-        ? '<div class="rules">No concrete rules came out of this yet — it still ' +
-          "guides how mail is judged.</div>"
-        : "";
-    }
-    return '<div class="rules"><div class="rules-hd">Rules in force</div>' +
-      "<ul>" + lines.map(function (l) { return "<li>" + esc(l) + "</li>"; }).join("") + "</ul>" +
-      (cfg.rules_note ? '<div class="rules-note">' + esc(cfg.rules_note) + "</div>" : "") +
-      "</div>";
-  }
-
-  function bindAgent() {
-    if (AGENT.locked) {
-      var unlock = document.getElementById("agUnlock");
-      if (unlock) unlock.onclick = function () {
-        AGENT.password = document.getElementById("agPass").value;
-        AGENT.locked = false; AGENT.loaded = false;
-        repaintAgent(); loadAgent();
-      };
-      return;
-    }
-    if (!AGENT.loaded) {
-      var retry = document.getElementById("agRetry");
-      if (retry) retry.onclick = function () { AGENT.error = ""; repaintAgent(); loadAgent(); };
-      if (!AGENT.error) loadAgent();
-      return;
-    }
-
-    var box = document.getElementById("agInstr");
-    var count = document.getElementById("agCount");
-    function updateCount() {
-      if (count && box) count.textContent = box.value.length + " / " + (AGENT.settings.max_instructions || 8000);
-    }
-    if (box) { box.oninput = updateCount; updateCount(); }
-
-    var save = document.getElementById("agSave");
-    if (save) save.onclick = function () {
-      save.disabled = true;
-      api("/api/settings", { method: "PUT", body: JSON.stringify({ instructions: box.value }) })
-        .then(function (r) {
-          AGENT.settings = Object.assign(AGENT.settings, r);
-          document.getElementById("agSaved").textContent = "Last saved just now";
-          toast("Saved. The rules are worked out on the next run.");
-          repaintAgent();
-        })
-        .catch(function (e) { toast("Could not save: " + e.message); })
-        .then(function () { save.disabled = false; });
-    };
-
-    function toggle(id, field, label) {
-      var el = document.getElementById(id);
-      if (!el) return;
-      el.onchange = function () {
-        var body = {}; body[field] = !el.checked;   // checkbox is "act", field is "dry run"
-        api("/api/settings", { method: "PUT", body: JSON.stringify(body) })
-          .then(function (r) {
-            AGENT.settings = Object.assign(AGENT.settings, r);
-            toast(label + (el.checked ? " is live." : " is in dry run."));
-            repaintAgent();
-          })
-          .catch(function (e) { el.checked = !el.checked; toast("Could not change: " + e.message); });
-      };
-    }
-    toggle("agLive", "dry_run", "Acting on mail");
-    toggle("agCleanup", "cleanup_dry_run", "Cleanup");
-
-    /* Not a dry-run switch either: ticked means "do star", so the value goes
-       through as-is. Sent as a real boolean rather than left null, because
-       null means "defer to the deployed config" and the point of touching
-       this switch is to stop deferring. */
-    var star = document.getElementById("agStar");
-    if (star) star.onchange = function () {
-      var want = star.checked;
-      api("/api/settings", { method: "PUT", body: JSON.stringify({ star_enabled: want }) })
-        .then(function (r) {
-          AGENT.settings = Object.assign(AGENT.settings, r);
-          toast(want ? "Starring is on." : "Starring is off.");
-          repaintAgent();
-        })
-        .catch(function (e) { star.checked = !want; toast("Could not change: " + e.message); });
-    };
-
-    /* Not a dry-run switch: ticked means stopped, so the value goes through
-       as-is rather than inverted. */
-    var stop = document.getElementById("agStop");
-    if (stop) stop.onchange = function () {
-      var want = stop.checked;
-      api("/api/settings", { method: "PUT", body: JSON.stringify({ paused: want }) })
-        .then(function (r) {
-          AGENT.settings = Object.assign(AGENT.settings, r);
-          toast(want ? "Stopped. It will not read your mail." : "Running again.");
-          repaintAgent();
-        })
-        .catch(function (e) { stop.checked = !want; toast("Could not change: " + e.message); });
-    };
-
-    document.querySelectorAll("[data-run]").forEach(function (b) {
-      b.onclick = function () {
-        var note = document.getElementById("agRun");
-        var slow = b.dataset.run === "review";
-        b.disabled = true; if (note) note.textContent = "starting…";
-        api("/api/run", { method: "POST", body: JSON.stringify({ mode: b.dataset.run }) })
-          .then(function () {
-            if (!note) return;
-            note.textContent = slow
-              ? "started — it is reading your whole inbox, so give it 10–20 minutes"
-              : "started — check your inbox in a few minutes";
-          })
-          .catch(function (e) { if (note) note.textContent = "failed: " + e.message; })
-          .then(function () { b.disabled = false; });
-      };
-    });
-
-    var calAdd = document.getElementById("calAdd");
-    if (calAdd) calAdd.onclick = function () {
-      var title = (document.getElementById("calTitle").value || "").trim();
-      var when = document.getElementById("calDate").value || "";
-      if (!title) { toast("Give it a title first."); return; }
-      if (!when) { toast("Pick a date first."); return; }
-      calAdd.disabled = true;
-      api("/api/calendar/request", {
-        method: "POST",
-        body: JSON.stringify({ title: title, start: when, origin: "manual" })
-      })
-        .then(function () {
-          toast("Queued — on your calendar within 15 minutes.");
-          document.getElementById("calTitle").value = "";
-          AGENT.loaded = false; repaintAgent(); loadAgent();
-        })
-        .catch(function (e) { toast("Could not queue it: " + e.message); calAdd.disabled = false; });
-    };
-
-    // --- calendar proposals ------------------------------------------
-    function decide(token, numbers, label) {
-      api("/api/proposals/decide", {
-        method: "POST",
-        body: JSON.stringify({ token: token, track: numbers })
-      })
-        .then(function (r) {
-          toast(r.queued
-            ? r.queued + " queued — on your calendar within 15 minutes."
-            : label);
-          AGENT.loaded = false; repaintAgent(); loadAgent();
-        })
-        .catch(function (e) { toast("Could not save that: " + e.message); });
-    }
-
-    document.querySelectorAll("[data-propgo]").forEach(function (b) {
-      b.onclick = function () {
-        var token = b.dataset.propgo;
-        var picked = [];
-        document.querySelectorAll('[data-prop="' + token + '"]').forEach(function (cb) {
-          if (cb.checked) picked.push(Number(cb.value));
-        });
-        if (!picked.length) { toast("Tick the ones you want first."); return; }
-        b.disabled = true;
-        decide(token, picked, "");
-      };
-    });
-
-    document.querySelectorAll("[data-propnone]").forEach(function (b) {
-      b.onclick = function () {
-        b.disabled = true;
-        decide(b.dataset.propnone, [], "Dismissed. Nothing was scheduled.");
-      };
-    });
-
-    // --- archived reports ----------------------------------------------
-    document.querySelectorAll("[data-report]").forEach(function (b) {
-      b.onclick = function () {
-        var host = document.getElementById("reportView");
-        if (!host) return;
-        if (host.dataset.showing === b.dataset.report) {
-          host.innerHTML = ""; host.dataset.showing = ""; return;
-        }
-        host.dataset.showing = b.dataset.report;
-        // An iframe, not innerHTML: the body is built from email content, so
-        // it stays in its own document rather than joining this one.
-        host.innerHTML = '<iframe class="report-frame" sandbox="" src="/api/reports/' +
-          encodeURIComponent(b.dataset.report) + '"></iframe>';
-      };
-    });
-
-    document.querySelectorAll("[data-remove]").forEach(function (b) {
-      b.onclick = function () {
-        if (!confirm("Stop reading " + b.dataset.remove + "?")) return;
-        api("/api/accounts/remove", { method: "POST", body: JSON.stringify({ key: b.dataset.remove }) })
-          .then(function () { AGENT.loaded = false; repaintAgent(); loadAgent(); })
-          .catch(function (e) { toast("Could not disconnect: " + e.message); });
-      };
-    });
+    }).join("") + careerEditor();
   }
 
   /* ---------------------------------------------------------- render */
@@ -1943,14 +1449,12 @@
     var tab = mine.find(function (t) { return t.id === ACTIVE; }) || mine[0];
     ACTIVE = tab.id;
     document.body.classList.toggle("domain-mba", tab.domain === "mba");
-    document.body.classList.toggle("domain-agent", tab.domain === "agent");
     document.body.classList.toggle("domain-dsa", tab.domain === "dsa");
 
     var panel = document.getElementById("panel");
     if (tab.id === "overview") panel.innerHTML = renderOverview();
     else if (tab.id === "mba") panel.innerHTML = renderMba();
     else if (tab.id === "career") panel.innerHTML = renderCareer();
-    else if (tab.id === "agent") panel.innerHTML = renderAgent();
     else if (tab.id === "dsa-sheet") panel.innerHTML = renderDsaSheet();
     else if (tab.id === "dsa-browse") panel.innerHTML = renderDsaBrowse();
     else if (tab.id === "dsa-revision") panel.innerHTML = renderDsaRevision();
@@ -1972,7 +1476,6 @@
     renderSections();
     renderTabs();
     bind();
-    if (tab.id === "agent") bindAgent();
     if (tab.domain === "dsa") {
       bindDsa();
       if (tab.id === "dsa-theory" && DSAV.theory) dsaFillTheory();
@@ -2187,28 +1690,45 @@
         .catch(function (e) { toast("Could not add it: " + e.message); mbaSubmit.disabled = false; });
     };
 
-    document.querySelectorAll("[data-oppcal]").forEach(function (b) {
+    var oppAdd = document.getElementById("oppAdd");
+    if (oppAdd) {
+      oppAdd.onclick = function () {
+        var val = function (id) {
+          var el = document.getElementById(id);
+          return el ? el.value.trim() : "";
+        };
+        var payload = {
+          company: val("oppCompany"), role: val("oppRole"), deadline: val("oppDeadline"),
+          location: val("oppLocation"), stipend: val("oppStipend"),
+          apply_url: val("oppUrl"), summary: val("oppSummary")
+        };
+        if (!payload.company && !payload.role) {
+          toast("Give at least a company or a role.");
+          return;
+        }
+        oppAdd.disabled = true;
+        api("/api/opportunities", { method: "POST", body: JSON.stringify(payload) })
+          .then(function () {
+            toast("Added.");
+            // Re-fetch rather than splicing locally: the server is the one
+            // place the list is reconciled, so this is the only way a
+            // second tab is guaranteed to agree with this one.
+            return refreshOpportunities();
+          })
+          .catch(function (e) {
+            toast("Could not add it: " + e.message);
+            oppAdd.disabled = false;
+          });
+      };
+    }
+
+    document.querySelectorAll("[data-oppdel]").forEach(function (b) {
       b.onclick = function () {
-        var o = OPPS.find(function (x) { return x.id === b.dataset.oppcal; });
-        if (!o) return;
+        var id = b.dataset.oppdel;
         b.disabled = true;
-        fetch("/api/calendar/request", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: (o.company ? o.company + " — " : "") + (o.role || "Application deadline"),
-            start: o.deadline,
-            source_url: o.apply_url || "",
-            origin: "opportunity"
-          })
-        })
-          .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
-          .then(function (res) {
-            if (res.ok) { toast("Queued — on your calendar within 15 minutes."); b.textContent = "Queued"; }
-            else if (res.j && /already queued/.test(res.j.error || "")) { toast("Already queued."); b.textContent = "Queued"; }
-            else { toast("Could not queue: " + ((res.j && res.j.error) || "unknown")); b.disabled = false; }
-          })
-          .catch(function () { toast("Could not reach the server."); b.disabled = false; });
+        api("/api/opportunities/" + encodeURIComponent(id), { method: "DELETE" })
+          .then(function () { toast("Deleted."); return refreshOpportunities(); })
+          .catch(function (e) { toast("Could not delete: " + e.message); b.disabled = false; });
       };
     });
 
@@ -2309,10 +1829,20 @@
      image, so a second look at the same problem costs nothing. */
   var DSA_CACHE = { problem: {}, theory: {}, template: {}, templates: null };
 
+  /* DSA content is static files, not an API.
+
+     These were routes on a Flask service that read a JSON file baked into
+     the container image and handed it back -- a server doing a filesystem
+     read behind an HTTP hop. The build explodes the same material into one
+     file per problem, theory section and template, so a CDN serves them
+     straight from the edge and there is nothing to keep running.
+
+     Relative, not rooted, so the page still resolves them when it is opened
+     from a directory rather than a domain root. */
   function dsaGet(kind, id) {
     var store = DSA_CACHE[kind];
     if (store && store[id]) return Promise.resolve(store[id]);
-    return fetch("/api/dsa/" + kind + "/" + encodeURIComponent(id))
+    return fetch("data/dsa/" + kind + "/" + encodeURIComponent(id) + ".json")
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(function (doc) { if (store) store[id] = doc; return doc; });
   }
@@ -2809,7 +2339,7 @@
 
   function dsaLoadLearnings() {
     if (DSA_LEARNINGS) return Promise.resolve(DSA_LEARNINGS);
-    return fetch("/api/dsa/learnings")
+    return fetch("data/dsa/learnings.json")
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(function (doc) { DSA_LEARNINGS = doc.learnings || []; return DSA_LEARNINGS; })
       .catch(function () { return null; });
@@ -3074,7 +2604,7 @@
 
     var go = DSA_CACHE.templates
       ? Promise.resolve(DSA_CACHE.templates)
-      : fetch("/api/dsa/templates")
+      : fetch("data/dsa/templates.json")
           .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
           .then(function (d) { DSA_CACHE.templates = d; return d; });
 
@@ -3486,7 +3016,7 @@
     load();
     dsaLoad();
     refreshBadges(stats());
-    // The OAuth round trip comes back to /#agent, so honour the hash.
+    // A link straight to a section, e.g. /#dsa, opens on that section.
     var wanted = (location.hash || "").replace("#", "");
     if (SECTIONS.some(function (s) { return s.id === wanted; })) {
       SECTION = wanted;
@@ -3520,14 +3050,7 @@
       });
     }
 
-    fetch("/api/opportunities")
-      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(function (r) {
-        if (!Array.isArray(r.opportunities)) return;
-        OPPS = r.opportunities;
-        render();
-      })
-      .catch(function () { /* keep the baked fallback */ });
+    refreshOpportunities();
 
     refreshMbaCustom();
   }
@@ -3545,6 +3068,20 @@
      tag_removed and exclude_over actually get reconciled (add undoing a
      stale remove and back), so re-fetching is the only way this view is
      guaranteed to agree with what a second tab, or an assistant, sees. */
+  /* Postings, re-fetched after every edit rather than patched locally --
+     the same reasoning as refreshMbaCustom below. Fail-soft: opened from
+     disk with no API, the baked fallback stands. */
+  function refreshOpportunities() {
+    return fetch("/api/opportunities")
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (r) {
+        if (!Array.isArray(r.opportunities)) return;
+        OPPS = r.opportunities;
+        render();
+      })
+      .catch(function () { /* keep the baked fallback */ });
+  }
+
   function refreshMbaCustom() {
     return fetch("/api/mba/custom")
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })

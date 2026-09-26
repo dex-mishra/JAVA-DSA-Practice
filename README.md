@@ -32,8 +32,8 @@ dated commitments from either domain. They share time, nothing else.
 
 ## The DSA sheet
 
-A fourth section, alongside Placement, MBA and the agent — not a fifth
-placement track. A problem carries a LeetCode link, a difficulty, a tier, a
+A section of its own, alongside Placement and MBA — not a fifth placement
+track. A problem carries a LeetCode link, a difficulty, a tier, a
 pattern, company tags, a C++ template and a learnings payload, and you write
 notes, tags, confidence, an approach line and a GoodNotes reference against
 it. None of that is a checkbox, so none of it was forced into the topics
@@ -88,31 +88,24 @@ only the teaching material needs the API, and it says so when it is missing.
 data/              content only. Safe for an updater to rewrite.
   placement.json     ranks, tracks, badge display text
   mba.json           phases, schools, excluded options
-  opportunities.json written by the inbox agent (optional)
-  dsa/               written by tools/import-dsa.mjs, never by hand
-    spec.json          phases, tiers, stuck ladder, AI protocol, tag seeds
-    index.json         thin problem index — the part that gets baked in
-    phase-*.json       theory, learnings and full problems, served by the API
-    templates.json     the 73 C++ pattern templates
-dsa material/      drop zone for uploaded phases. Input, not state.
+  dsa/               the DSA sheet, written by tools/import-dsa.mjs
+dsa material/      drop zone for new phase uploads
 src/               rendering and logic. Not machine-edited.
   shell.html         page skeleton
   styles.css         unified design system
   app.js             scoring, badge rules, rendering
-console/
-  main.py            the Flask service
-  dsa.py             the DSA blueprint — content routes and progress writes
+worker/            the API: progress, MBA overlay, goals, opportunities
 tools/
-  extract.mjs        one-time migration out of the original HTML files
   import-dsa.mjs     idempotent DSA import, with an added/changed report
-  build.mjs          inlines data/ + src/ into index.html
+  build.mjs          inlines data/ + src/ into index.html, lays out public/
 index.html         the built artifact. Self-contained, opens from disk.
-inbox-agent/       the email agent that feeds data/opportunities.json
+public/            what deploys. Derived; rebuild, never edit.
+inbox-agent/       the retired email agent. Nothing deploys it.
 ```
 
-The split between `data/` and `src/` is the whole point. Content lives in JSON so
-it can be updated automatically; the rating maths, badge unlock rules and layout
-live in code where an automated edit cannot reach them.
+The split between `data/` and `src/` is the whole point. Content lives in
+JSON so it can be updated automatically; the rating maths, badge unlock rules
+and layout live in code where an automated edit cannot reach them.
 
 ## Build
 
@@ -139,30 +132,40 @@ build briefs (1,328 rated topics, 56 MBA items) and exits non-zero on drift.
 
 ## Storage
 
-Progress is in `localStorage` under `launch-console-v1`, and DSA progress
-under `launch-console-dsa-v1`. Both are caches; the bucket is the record.
+Progress lives on the server so it is the same on every device, with
+`localStorage` as a cache that makes the first paint instant and keeps the
+page usable when the API is unreachable. The server copy wins whenever it is
+newer.
 
-Two keys and two blobs, not one of each: the tracker's document is PUT whole
-on every tick and capped at 512 KB, while a DSA row holds notes, an approach
-line and a GoodNotes reference. Sharing a store would mean writing too much
-about a graph problem eventually broke saving a placement tick. DSA writes
-PATCH one problem at a time instead of re-uploading the sheet.
+Two stores, deliberately separate:
 
-The originals persisted through `window.storage`, the Claude Artifacts API. That
-was correct inside an Artifact and fatal anywhere else: served from GitHub Pages
-`window.storage` is undefined, `save()` returned early, and every tick was
-discarded on reload with no error. Since the rating derives entirely from checked
-state, the page would have read 800 / Newbie permanently.
+| | Holds | Written |
+|---|---|---|
+| `doc` | topic ticks, MBA overlay, goals, opportunities, CF cache | whole, a few times a day |
+| `dsa_progress` | one row per problem | one problem at a time |
 
-Both legacy keys (`placement-ladder-v1`, `mba-launch-windows-v1`) are migrated
-once on first load, so nothing already ticked is lost.
+The DSA table is not folded into the tick document because a DSA row carries
+notes in markdown, an approach line and a GoodNotes reference. Six hundred of
+those in one document would eventually push a placement tick over the size
+cap and start failing saves that have nothing to do with DSA — the tracker
+would break because you wrote too much about a graph problem.
 
 ## Hosting
 
-The workflow in `.github/workflows/pages.yml` builds and deploys on every push to
-`main`. It needs Pages switched on once:
+Cloudflare: static assets for the site and the DSA material, one Worker for
+the API, D1 for state. See [DEPLOY.md](DEPLOY.md).
 
-**Settings → Pages → Source → GitHub Actions**
+```bash
+npm install && npm run deploy
+```
+
+It sits inside Cloudflare's free tier permanently rather than against a
+credit balance with an expiry date on it — which matters, because Day 1 is
+December 2026 and the MBA wall is April 2027.
+
+The DSA content is the reason this is nearly free to serve: 354 static files,
+delivered from the edge, with the Worker never running. Only progress needs
+compute.
 
 ## Still open
 

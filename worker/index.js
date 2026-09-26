@@ -1,0 +1,662 @@
+/**
+ * Launch Console — the API, on Cloudflare Workers.
+ *
+ * Replaces console/main.py, minus the email agent. What that removal takes
+ * with it: the OAuth flow, the Gmail secrets, the Cloud Run job, and three
+ * of the seven stored documents. What is left is one user's progress across
+ * two trackers and a DSA sheet.
+ *
+ * The DSA *content* is not here at all. It is 350-odd static files under
+ * public/data/dsa, served from the edge without this Worker running. Only
+ * progress needs code.
+ *
+ * What this service can and cannot do is still deliberate: it holds no
+ * credentials for anything, reaches no third party except Codeforces, and
+ * the worst a request can do is change ticks belonging to the person who
+ * owns the URL.
+ */
+
+import { curriculum, ratedTopics, rankFor } from "./curriculum.js";
+import {
+  DOC, readDoc, writeDoc, mutateDoc,
+  readDsaProgress, patchDsaProgress, DSA_DEFAULTS
+} from "./store.js";
+import {
+  emptyCustom, readCustom, allItems, cleanTags, refusal, sameTag,
+  tagFault, DATE_OK, MAX_CUSTOM_MBA, MAX_TAGS_PER_ITEM
+} from "./mba.js";
+
+// A tick is an id and a boolean. Tens of thousands still fit well inside
+// this; anything larger is a bug or someone poking at the endpoint.
+const MAX_PROGRESS_BYTES = 512 * 1024;
+
+const MAX_NOTES = 20_000;
+const MAX_APPROACH = 2_000;
+const MAX_GOODNOTES = 200;
+const MAX_DSA_TAGS = 32;
+const MAX_DSA_TAG_LEN = 40;
+const STATUSES = new Set(["todo", "solved", "revisit"]);
+
+const json = (body, status = 200, headers = {}) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json; charset=utf-8", ...headers }
+  });
+
+const bad = (message, status = 400) => json({ error: message }, status);
+
+// ---------------------------------------------------------------- auth
+
+/* Optional, exactly as the Cloud Run console was: unset means open. The
+   difference now is that there is nothing here worth stealing -- no mailbox
+   access, no send scope, no third-party credentials. The cost of an open URL
+   is someone editing your ticks, not reading your mail. */
+
+async function sessionToken(secret) {
+  const key = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode("launch-console-session"));
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Constant-time compare, so a wrong password cannot be narrowed down by
+ *  timing how long the rejection took. */
+function timingSafeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+async function authorised(request, env) {
+  const password = env.CONSOLE_PASSWORD;
+  if (!password) return true;
+
+  const supplied = request.headers.get("x-console-password");
+  if (supplied && timingSafeEqual(supplied, password)) return true;
+
+  const cookie = request.headers.get("cookie") || "";
+  const match = cookie.match(/(?:^|;\s*)lc_session=([a-f0-9]+)/);
+  if (match) {
+    const expected = await sessionToken(password);
+    if (timingSafeEqual(match[1], expected)) return true;
+  }
+  return false;
+}
+
+// ---------------------------------------------------------------- helpers
+
+async function body(request) {
+  try {
+    const parsed = await request.json();
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+const progressDoc = (db) => readDoc(db, DOC.PROGRESS, {}).then((d) => d.data.data || d.data || {});
+
+// ---------------------------------------------------------------- routes
+
+const routes = [];
+const route = (method, pattern, handler) => routes.push({ method, pattern, handler });
+
+// -- session ---------------------------------------------------------------
+
+route("GET", /^\/api\/session$/, async (_m, _r, env) =>
+  json({ password_required: !!env.CONSOLE_PASSWORD }));
+
+route("POST", /^\/api\/login$/, async (_m, request, env) => {
+  if (!env.CONSOLE_PASSWORD) return json({ ok: true });
+  const { password } = await body(request);
+  if (typeof password !== "string" || !timingSafeEqual(password, env.CONSOLE_PASSWORD)) {
+    return bad("wrong password", 401);
+  }
+  const token = await sessionToken(env.CONSOLE_PASSWORD);
+  return json({ ok: true }, 200, {
+    "set-cookie": `lc_session=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${60 * 60 * 24 * 365}`
+  });
+});
+
+// -- tracker progress ------------------------------------------------------
+
+route("GET", /^\/api\/progress$/, async (_m, _r, env) => {
+  const doc = await readDoc(env.DB, DOC.PROGRESS, {});
+  return json({ data: doc.data.data || doc.data || {}, updated_ts: doc.updated_ts });
+});
+
+route("PUT", /^\/api\/progress$/, async (_m, request, env) => {
+  const payload = await body(request);
+  const data = payload.data;
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return bad("expected an object under 'data'");
+  }
+  if (new TextEncoder().encode(JSON.stringify(data)).length > MAX_PROGRESS_BYTES) {
+    return bad("progress payload too large", 413);
+  }
+  const ts = await writeDoc(env.DB, DOC.PROGRESS, { version: 1, data });
+  return json({ updated_ts: ts });
+});
+
+// -- topics (MCP) ----------------------------------------------------------
+
+route("GET", /^\/api\/topics$/, async (_m, request, env) => {
+  const url = new URL(request.url);
+  const status = url.searchParams.get("status") || "all";
+  const track = url.searchParams.get("track") || "";
+  const query = (url.searchParams.get("q") || "").trim().toLowerCase();
+  const limit = Math.max(1, Math.min(Number(url.searchParams.get("limit") || 100), 1000));
+
+  const data = await progressDoc(env.DB);
+  const checked = data.checked || {};
+
+  const rows = [];
+  for (const t of curriculum().topics) {
+    const done = !!checked[t.id];
+    if (status === "done" && !done) continue;
+    if (status === "todo" && done) continue;
+    if (track && t.track !== track) continue;
+    if (query && !t.label.toLowerCase().includes(query) && !t.section.toLowerCase().includes(query)) continue;
+    rows.push({ ...t, done });
+  }
+  return json({ total: rows.length, topics: rows.slice(0, limit) });
+});
+
+route("POST", /^\/api\/topics\/set$/, async (_m, request, env) => {
+  const { ids, done = true } = await body(request);
+  if (!Array.isArray(ids) || !ids.length) return bad("give at least one topic id");
+
+  const known = new Set(curriculum().topics.map((t) => t.id));
+  const unknown = ids.filter((id) => !known.has(id));
+  if (unknown.length) return bad(`unknown topic ids: ${unknown.slice(0, 5).join(", ")}`);
+
+  const next = await mutateDoc(env.DB, DOC.PROGRESS, {}, (doc) => {
+    const state = doc.data || (doc.data = {});
+    const checked = state.checked || (state.checked = {});
+    for (const id of ids) {
+      if (done) checked[id] = 1;
+      else delete checked[id];
+    }
+    return { ...doc, version: 1 };
+  });
+
+  const checked = (next.data || {}).checked || {};
+  const rated = ratedTopics();
+  const doneCount = rated.filter((t) => checked[t.id]).length;
+  return json({ changed: ids.length, done, mastery: mastery(doneCount, rated.length) });
+});
+
+function mastery(done, total) {
+  const pct = total ? (done / total) * 100 : 0;
+  const rating = Math.round(800 + (pct / 100) * 2400);
+  return { rating, rank: rankFor(rating).n, done, total, percent: Math.round(pct * 10) / 10 };
+}
+
+// -- MBA -------------------------------------------------------------------
+
+const loadCustom = async (db) => readCustom((await readDoc(db, DOC.MBA_CUSTOM, emptyCustom())).data);
+
+route("GET", /^\/api\/mba$/, async (_m, _r, env) => {
+  const data = await progressDoc(env.DB);
+  const checked = data.mba || {};
+  const custom = await loadCustom(env.DB);
+  const items = allItems(custom).map((i) => ({
+    id: i.id, task: i.task, date: i.date || "", phase: i.phase,
+    tags: i.tags || [], excluded: !!i.excluded,
+    source: i.source || "curriculum", overridden: !!i.overridden,
+    done: !!checked[i.id]
+  }));
+  return json({ total: items.length, items });
+});
+
+/* Just the delta from the baked-in list. What the site fetches to splice
+   onto the static data it already shipped with, so a change shows up where
+   a person actually looks rather than only where an assistant does. */
+route("GET", /^\/api\/mba\/custom$/, async (_m, _r, env) => json(await loadCustom(env.DB)));
+
+route("POST", /^\/api\/mba\/set$/, async (_m, request, env) => {
+  const { id, done = true } = await body(request);
+  const custom = await loadCustom(env.DB);
+  if (!allItems(custom).some((i) => i.id === id)) return bad(`unknown MBA item '${id}'`);
+
+  await mutateDoc(env.DB, DOC.PROGRESS, {}, (doc) => {
+    const state = doc.data || (doc.data = {});
+    const mba = state.mba || (state.mba = {});
+    if (done) mba[id] = 1;
+    else delete mba[id];
+    return { ...doc, version: 1 };
+  });
+  return json({ id, done: !!done });
+});
+
+route("POST", /^\/api\/mba\/create$/, async (_m, request, env) => {
+  const payload = await body(request);
+  const task = String(payload.task || "").trim().slice(0, 300);
+  if (!task) return bad("task is required");
+
+  const date = String(payload.date || "").trim();
+  if (date && !DATE_OK.test(date)) return bad("date must be YYYY-MM-DD");
+
+  const { kept, rejected } = cleanTags(payload.tags || []);
+  if ((payload.tags || []).length && !kept.length) return bad(refusal(rejected));
+
+  let created = null;
+  await mutateDoc(env.DB, DOC.MBA_CUSTOM, emptyCustom(), (doc) => {
+    const custom = readCustom(doc);
+    if (custom.items.length >= MAX_CUSTOM_MBA) throw new Error(`at most ${MAX_CUSTOM_MBA} custom MBA items`);
+    const id = `c${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`;
+    created = {
+      id, task, date, note: String(payload.note || "").slice(0, 600),
+      phase: String(payload.phase || "CUSTOM").slice(0, 40) || "CUSTOM",
+      tags: kept
+    };
+    custom.items.push(created);
+    return custom;
+  });
+
+  return json({ item: created, rejected });
+});
+
+route("POST", /^\/api\/mba\/tags$/, async (_m, request, env) => {
+  const { id, tags: raw } = await body(request);
+  const custom = await loadCustom(env.DB);
+  const item = allItems(custom).find((i) => i.id === id);
+  if (!item) return bad(`unknown MBA item '${id}'`);
+
+  const { kept, rejected } = cleanTags(raw || []);
+  if (!kept.length) return bad(refusal(rejected));
+
+  const next = await mutateDoc(env.DB, DOC.MBA_CUSTOM, emptyCustom(), (doc) => {
+    const c = readCustom(doc);
+    const add = c.tag_add[id] || (c.tag_add[id] = []);
+    for (const tag of kept) {
+      // Adding undoes a stale removal of the same tag, so a toggle behaves
+      // the way it looks like it should.
+      if (c.tag_removed[id]) c.tag_removed[id] = c.tag_removed[id].filter((t) => !sameTag(t, tag));
+      const onItem = (item.tags || []).some((t) => sameTag(t, tag));
+      if (!onItem && !add.some((t) => sameTag(t, tag))) add.push(tag);
+    }
+    if (!c.tag_add[id].length) delete c.tag_add[id];
+    if (c.tag_removed[id] && !c.tag_removed[id].length) delete c.tag_removed[id];
+    return c;
+  });
+
+  const after = allItems(readCustom(next)).find((i) => i.id === id);
+  return json({ id, tags: after ? after.tags : [], rejected });
+});
+
+route("POST", /^\/api\/mba\/tags\/remove$/, async (_m, request, env) => {
+  const { id, tags: raw } = await body(request);
+  const custom = await loadCustom(env.DB);
+  const item = allItems(custom).find((i) => i.id === id);
+  if (!item) return bad(`unknown MBA item '${id}'`);
+
+  const wanted = (Array.isArray(raw) ? raw : []).map((t) => String(t).trim()).filter(Boolean);
+  if (!wanted.length) return bad(refusal([], "remove"));
+
+  const next = await mutateDoc(env.DB, DOC.MBA_CUSTOM, emptyCustom(), (doc) => {
+    const c = readCustom(doc);
+    for (const tag of wanted) {
+      if (c.tag_add[id]) c.tag_add[id] = c.tag_add[id].filter((t) => !sameTag(t, tag));
+      // A curriculum item's own tag cannot be edited out of data/mba.json,
+      // so it is suppressed at read time instead.
+      const onCustom = c.items.find((i) => i.id === id);
+      if (onCustom) onCustom.tags = (onCustom.tags || []).filter((t) => !sameTag(t, tag));
+      const baked = (item.tags || []).some((t) => sameTag(t, tag));
+      if (baked) {
+        const rm = c.tag_removed[id] || (c.tag_removed[id] = []);
+        if (!rm.some((t) => sameTag(t, tag))) rm.push(tag);
+      }
+      if (c.tag_add[id] && !c.tag_add[id].length) delete c.tag_add[id];
+    }
+    return c;
+  });
+
+  const after = allItems(readCustom(next)).find((i) => i.id === id);
+  return json({ id, tags: after ? after.tags : [] });
+});
+
+route("POST", /^\/api\/mba\/exclude$/, async (_m, request, env) => {
+  const { id, excluded = true } = await body(request);
+  const custom = await loadCustom(env.DB);
+  if (!allItems(custom).some((i) => i.id === id)) return bad(`unknown MBA item '${id}'`);
+
+  await mutateDoc(env.DB, DOC.MBA_CUSTOM, emptyCustom(), (doc) => {
+    const c = readCustom(doc);
+    c.exclude_over[id] = !!excluded;
+    return c;
+  });
+  return json({ id, excluded: !!excluded });
+});
+
+route("POST", /^\/api\/mba\/delete$/, async (_m, request, env) => {
+  const { id } = await body(request);
+  const custom = await loadCustom(env.DB);
+  const item = allItems(custom).find((i) => i.id === id);
+  if (!item) return bad(`unknown MBA item '${id}'`);
+
+  const wasCustom = item.source === "custom";
+  await mutateDoc(env.DB, DOC.MBA_CUSTOM, emptyCustom(), (doc) => {
+    const c = readCustom(doc);
+    if (wasCustom) {
+      c.items = c.items.filter((i) => i.id !== id);
+      delete c.tag_add[id];
+      delete c.tag_removed[id];
+      delete c.exclude_over[id];
+    } else {
+      // A curriculum item ships with the site and returns on the next
+      // deploy, so deleting it is not on offer. Hiding it into EXCLUDED is,
+      // reversibly, which is where the "decided against" schools live.
+      c.exclude_over[id] = true;
+    }
+    return c;
+  });
+  return json({ id, deleted: wasCustom, excluded: !wasCustom });
+});
+
+// -- goals -----------------------------------------------------------------
+
+route("GET", /^\/api\/goals$/, async (_m, request, env) => {
+  const wanted = new URL(request.url).searchParams.get("status") || "";
+  const doc = await readDoc(env.DB, DOC.GOALS, { goals: [] });
+  let goals = Array.isArray(doc.data.goals) ? doc.data.goals : [];
+  if (wanted) goals = goals.filter((g) => (g.status || "open") === wanted);
+  return json({ total: goals.length, goals });
+});
+
+route("POST", /^\/api\/goals$/, async (_m, request, env) => {
+  const payload = await body(request);
+  const title = String(payload.title || "").trim().slice(0, 200);
+  if (!title) return bad("title is required");
+  const due = String(payload.due || "").trim();
+  if (due && !DATE_OK.test(due)) return bad("due must be YYYY-MM-DD");
+
+  let created = null;
+  await mutateDoc(env.DB, DOC.GOALS, { goals: [] }, (doc) => {
+    const goals = Array.isArray(doc.goals) ? doc.goals : [];
+    created = {
+      id: `g${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`,
+      title, detail: String(payload.detail || "").slice(0, 2000),
+      due, status: "open", created: new Date().toISOString().slice(0, 10)
+    };
+    goals.push(created);
+    return { goals };
+  });
+  return json({ goal: created });
+});
+
+route("PATCH", /^\/api\/goals\/([^/]+)$/, async (match, request, env) => {
+  const id = decodeURIComponent(match[1]);
+  const payload = await body(request);
+  let updated = null;
+
+  await mutateDoc(env.DB, DOC.GOALS, { goals: [] }, (doc) => {
+    const goals = Array.isArray(doc.goals) ? doc.goals : [];
+    const goal = goals.find((g) => g.id === id);
+    if (goal) {
+      for (const field of ["title", "detail", "due", "status"]) {
+        if (payload[field] !== undefined) goal[field] = String(payload[field]);
+      }
+      updated = goal;
+    }
+    return { goals };
+  });
+
+  if (!updated) return bad(`unknown goal '${id}'`, 404);
+  return json({ goal: updated });
+});
+
+route("DELETE", /^\/api\/goals\/([^/]+)$/, async (match, _r, env) => {
+  const id = decodeURIComponent(match[1]);
+  let found = false;
+  await mutateDoc(env.DB, DOC.GOALS, { goals: [] }, (doc) => {
+    const goals = Array.isArray(doc.goals) ? doc.goals : [];
+    found = goals.some((g) => g.id === id);
+    return { goals: goals.filter((g) => g.id !== id) };
+  });
+  if (!found) return bad(`unknown goal '${id}'`, 404);
+  return json({ id, deleted: true });
+});
+
+// -- overview (MCP) --------------------------------------------------------
+
+route("GET", /^\/api\/overview$/, async (_m, _r, env) => {
+  const data = await progressDoc(env.DB);
+  const checked = data.checked || {};
+  const rated = ratedTopics();
+  const doneCount = rated.filter((t) => checked[t.id]).length;
+
+  const custom = await loadCustom(env.DB);
+  const mbaChecked = data.mba || {};
+  const items = allItems(custom);
+  const dated = items.filter((i) => i.date && !i.excluded);
+  const today = new Date().toISOString().slice(0, 10);
+  const missed = dated.filter((i) => i.date < today && !mbaChecked[i.id]).length;
+
+  const dsa = await readDsaProgress(env.DB);
+  const solved = Object.values(dsa.problems).filter((p) => p.status === "solved").length;
+
+  return json({
+    mastery: mastery(doneCount, rated.length),
+    mba: {
+      total: items.length,
+      done: items.filter((i) => mbaChecked[i.id]).length,
+      dated: dated.length,
+      missed,
+      window_integrity: dated.length ? Math.round(((dated.length - missed) / dated.length) * 1000) / 10 : 100
+    },
+    dsa: { solved, touched: Object.keys(dsa.problems).length },
+    days_to_day_one: Math.round((new Date("2026-12-01") - new Date(today)) / 86400000)
+  });
+});
+
+// -- DSA progress ----------------------------------------------------------
+
+route("GET", /^\/api\/dsa\/progress$/, async (_m, _r, env) => json(await readDsaProgress(env.DB)));
+
+route("PATCH", /^\/api\/dsa\/progress\/([^/]+)$/, async (match, request, env) => {
+  const id = decodeURIComponent(match[1]);
+  const payload = await body(request);
+  const patch = {};
+
+  if ("status" in payload) {
+    if (!STATUSES.has(payload.status)) return bad("status must be one of todo, solved, revisit");
+    patch.status = payload.status;
+  }
+  if ("revision" in payload) patch.revision = !!payload.revision;
+  if ("notes" in payload) patch.notes = String(payload.notes).slice(0, MAX_NOTES);
+  if ("my_approach" in payload) patch.my_approach = String(payload.my_approach).slice(0, MAX_APPROACH);
+  // Opaque by contract: trimmed and length-capped, never parsed.
+  if ("goodnotes_ref" in payload) patch.goodnotes_ref = String(payload.goodnotes_ref).trim().slice(0, MAX_GOODNOTES);
+
+  if ("tags" in payload) {
+    if (!Array.isArray(payload.tags)) return bad("tags must be an array");
+    const seen = new Set();
+    const tags = [];
+    for (const t of payload.tags) {
+      const s = String(t).trim().toLowerCase().slice(0, MAX_DSA_TAG_LEN);
+      if (s && !seen.has(s)) { seen.add(s); tags.push(s); }
+    }
+    patch.tags = tags.slice(0, MAX_DSA_TAGS);
+  }
+
+  if ("confidence" in payload) {
+    const v = payload.confidence;
+    if (v === null || v === "") patch.confidence = null;
+    else {
+      const n = Number(v);
+      if (!Number.isInteger(n) || n < 1 || n > 5) return bad("confidence must be between 1 and 5");
+      patch.confidence = n;
+    }
+  }
+
+  if ("last_revised" in payload) {
+    const v = payload.last_revised;
+    if (v === null || v === "") patch.last_revised = null;
+    else if (typeof v === "string" && DATE_OK.test(v)) patch.last_revised = v;
+    else return bad("last_revised must be YYYY-MM-DD or null");
+  }
+
+  if (!Object.keys(patch).length) return bad("nothing to update");
+
+  const row = await patchDsaProgress(env.DB, id, patch);
+  return json({ id, progress: row });
+});
+
+// -- opportunities ---------------------------------------------------------
+
+/* The email agent used to write these. With the agent retired the tab keeps
+   its place and becomes yours to fill: a posting you spot on a noticeboard
+   or in a WhatsApp group goes in here the same way a deadline goes into the
+   MBA tab. */
+
+route("GET", /^\/api\/opportunities$/, async (_m, _r, env) => {
+  const doc = await readDoc(env.DB, DOC.OPPORTUNITIES, { opportunities: [] });
+  const items = Array.isArray(doc.data.opportunities) ? doc.data.opportunities : [];
+  return json({ opportunities: items });
+});
+
+/* The stored shape is the agent's, unchanged. The tab already renders
+   company / role / deadline / summary / apply_url, and anything the agent
+   left behind must keep rendering beside what you add by hand -- so the
+   manual path fills the same fields rather than inventing a second shape
+   the renderer would have to special-case. */
+route("POST", /^\/api\/opportunities$/, async (_m, request, env) => {
+  const payload = await body(request);
+  const company = String(payload.company || "").trim().slice(0, 120);
+  const role = String(payload.role || "").trim().slice(0, 160);
+  if (!company && !role) return bad("give at least a company or a role");
+
+  const deadline = String(payload.deadline || "").trim();
+  if (deadline && !DATE_OK.test(deadline)) return bad("deadline must be YYYY-MM-DD");
+
+  const url = String(payload.apply_url || "").trim().slice(0, 500);
+  if (url && !/^https?:\/\//i.test(url)) return bad("the apply link must start with http:// or https://");
+
+  let created = null;
+  await mutateDoc(env.DB, DOC.OPPORTUNITIES, { opportunities: [] }, (doc) => {
+    const list = Array.isArray(doc.opportunities) ? doc.opportunities : [];
+    created = {
+      id: `o${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`,
+      company, role, deadline,
+      apply_url: url,
+      summary: String(payload.summary || "").slice(0, 600),
+      location: String(payload.location || "").trim().slice(0, 80),
+      stipend: String(payload.stipend || "").trim().slice(0, 80),
+      added: new Date().toISOString().slice(0, 10),
+      // Marks it as yours rather than the agent's, which is what lets the
+      // tab offer a delete button on it and not on the archived ones.
+      origin: "manual"
+    };
+    list.unshift(created);
+    return { opportunities: list };
+  });
+  return json({ opportunity: created });
+});
+
+route("DELETE", /^\/api\/opportunities\/([^/]+)$/, async (match, _r, env) => {
+  const id = decodeURIComponent(match[1]);
+  let found = false;
+  await mutateDoc(env.DB, DOC.OPPORTUNITIES, { opportunities: [] }, (doc) => {
+    const list = Array.isArray(doc.opportunities) ? doc.opportunities : [];
+    found = list.some((o) => o.id === id);
+    return { opportunities: list.filter((o) => o.id !== id) };
+  });
+  if (!found) return bad(`unknown opportunity '${id}'`, 404);
+  return json({ id, deleted: true });
+});
+
+// -- codeforces ------------------------------------------------------------
+
+/* Proxied rather than fetched from the browser, for the same two reasons as
+   before: the response is cached so a reload does not re-ask, and the handle
+   lives server-side so the page works the same on every device. */
+
+const CF_TTL = 3600;
+
+route("GET", /^\/api\/codeforces$/, async (_m, request, env) => {
+  const url = new URL(request.url);
+  const setHandle = url.searchParams.get("handle");
+
+  const cached = await readDoc(env.DB, DOC.CODEFORCES, {});
+  let handle = cached.data.handle || env.CF_HANDLE || "";
+
+  if (setHandle !== null) {
+    handle = String(setHandle).trim().slice(0, 40);
+    await writeDoc(env.DB, DOC.CODEFORCES, { handle, fetched: 0 });
+    if (!handle) return json({ cf_handle: "", cleared: true });
+  }
+
+  if (!handle) return json({ error: "no handle set", cf_handle: "" });
+
+  const age = Date.now() / 1000 - (cached.data.fetched || 0);
+  if (cached.data.payload && cached.data.handle === handle && age < CF_TTL) {
+    return json({ ...cached.data.payload, cf_handle: handle, cached: true });
+  }
+
+  try {
+    const res = await fetch(`https://codeforces.com/api/user.info?handles=${encodeURIComponent(handle)}`, {
+      headers: { "user-agent": "launch-console" }
+    });
+    const data = await res.json();
+    if (data.status !== "OK" || !data.result || !data.result.length) {
+      return json({ error: `Codeforces did not recognise '${handle}'`, cf_handle: handle });
+    }
+    const u = data.result[0];
+    const payload = {
+      handle: u.handle,
+      rating: u.rating ?? null,
+      rank: u.rank || "unrated",
+      max_rating: u.maxRating ?? null,
+      max_rank: u.maxRank || ""
+    };
+    await writeDoc(env.DB, DOC.CODEFORCES, { handle, fetched: Date.now() / 1000, payload });
+    return json({ ...payload, cf_handle: handle });
+  } catch (err) {
+    // Stale beats empty: a Codeforces outage should not blank the tiles.
+    if (cached.data.payload) return json({ ...cached.data.payload, cf_handle: handle, stale: true });
+    return json({ error: "could not reach Codeforces", cf_handle: handle });
+  }
+});
+
+// ---------------------------------------------------------------- dispatch
+
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+
+    if (url.pathname === "/healthz") return new Response("ok", { headers: { "content-type": "text/plain" } });
+
+    if (!url.pathname.startsWith("/api/")) {
+      // Everything that is not the API is a static asset. The Worker does
+      // not touch the site itself or any of the DSA content.
+      return env.ASSETS.fetch(request);
+    }
+
+    for (const { method, pattern, handler } of routes) {
+      const match = url.pathname.match(pattern);
+      if (!match) continue;
+      if (request.method !== method) continue;
+
+      // /api/session and /api/login have to answer before you are logged in.
+      const open = url.pathname === "/api/session" || url.pathname === "/api/login";
+      if (!open && !(await authorised(request, env))) return bad("password required", 401);
+
+      try {
+        return await handler(match, request, env, ctx);
+      } catch (err) {
+        console.error(`${request.method} ${url.pathname}`, err && err.stack);
+        // Anything under /api answers in JSON, including crashes. The
+        // default HTML error page reached the front end as a wall of markup
+        // inside a toast instead of the actual reason.
+        return bad(err && err.message ? err.message : "something broke", 500);
+      }
+    }
+
+    // A path under /api that matches no route, or matches with the wrong
+    // method, is a 404 rather than falling through to the site.
+    return bad(`no route for ${request.method} ${url.pathname}`, 404);
+  }
+};

@@ -1,0 +1,21 @@
+{
+  "name": "launch-console",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Placement, MBA and DSA tracker. Static site plus a small Worker API on Cloudflare.",
+  "scripts": {
+    "import": "node tools/import-dsa.mjs",
+    "build": "node tools/build.mjs",
+    "dev": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
+    "db:create": "wrangler d1 create launch-console",
+    "db:init": "wrangler d1 execute launch-console --remote --file=./schema.sql",
+    "db:init:local": "wrangler d1 execute launch-console --local --file=./schema.sql",
+    "test": "node --test worker/*.test.mjs",
+    "check": "node --check src/app.js && node tools/import-dsa.mjs --check && npm test"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

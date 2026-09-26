@@ -1,0 +1,53 @@
+# Launch Console on Cloudflare.
+#
+# One Worker, two jobs: it serves public/ as static assets, and it answers
+# the handful of /api/ routes that genuinely need state. Everything else --
+# the site itself, and all 350-odd DSA content files -- is served from the
+# edge without the Worker ever running.
+#
+# Why this replaces Cloud Run: the email agent is retired, and what is left
+# of the tracker is four small documents and a per-problem progress table
+# for one user. That sits inside Cloudflare's free tier permanently rather
+# than against a credit balance with an expiry date on it.
+#
+#   npx wrangler d1 create launch-console        (once; paste the id below)
+#   npx wrangler d1 execute launch-console --remote --file=./schema.sql
+#   npm run deploy
+
+name = "launch-console"
+main = "worker/index.js"
+compatibility_date = "2026-09-01"
+
+# Static assets. run_worker_first is off, so a request matching a file in
+# public/ is served straight from the edge and never reaches the Worker --
+# which is what makes the DSA content free to serve.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+# A single-page app with no client-side routing: anything that is not a file
+# is the tracker itself.
+not_found_handling = "single-page-application"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "launch-console"
+# Replace with the id printed by `wrangler d1 create launch-console`.
+database_id = "PASTE_DATABASE_ID_HERE"
+
+[observability]
+enabled = true
+
+[vars]
+# Your Codeforces handle, used by the /api/codeforces proxy. Can also be set
+# on the page itself, which stores it in the database and wins over this.
+CF_HANDLE = ""
+
+# CONSOLE_PASSWORD is a secret, not a var. Unset means the console is open to
+# anyone with the URL, which is how the Cloud Run one shipped. To require a
+# password instead:
+#
+#   npx wrangler secret put CONSOLE_PASSWORD
+#
+# A domain is not a secret -- every TLS certificate issued for one is
+# published to public Certificate Transparency logs and those are scanned
+# continuously -- so if this URL is ever shared, set one.

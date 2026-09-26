@@ -26,3 +26,8 @@ console/data/
 # committed; the browser saves next to it are 22 MB of scraped LeetCode and
 # YouTube pages that nothing reads.
 dsa material/*.html
+
+# Built by tools/build.mjs. Derived from data/ and src/ — rebuild, never edit.
+public/
+node_modules/
+.wrangler/
