@@ -1110,3 +1110,71 @@ body.domain-dsa::before { background: linear-gradient(rgba(13, 148, 136, .09), t
   .dsa-actions { margin-left: 0; width: 100%; }
   .dsa-tcard { grid-template-columns: 1fr; grid-template-areas: "id" "name" "when" "used"; }
 }
+
+/* ---------------------------------------------------------- help panels
+
+   Explanations that sit above the thing they explain, open on a first
+   visit and closed once dismissed. Styled quieter than a card so they read
+   as an aside rather than as content competing with the sheet. */
+
+.dsa-help {
+  margin-bottom: 14px; border: 1px solid var(--line-soft);
+  border-left: 3px solid var(--dsa); border-radius: 0 var(--r) var(--r) 0;
+  background: var(--surface);
+}
+.dsa-help summary {
+  cursor: pointer; padding: 11px 15px; list-style: none;
+  font-family: var(--mono); font-size: 10px; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--dsa); font-weight: 700;
+}
+.dsa-help summary::-webkit-details-marker { display: none; }
+.dsa-help summary::after { content: " +"; font-size: 12px; }
+.dsa-help[open] summary::after { content: " −"; }
+.dsa-help summary:hover { color: var(--ink); }
+.dsa-helpbody {
+  padding: 0 15px 15px; font-size: 13px; line-height: 1.65; color: var(--ink-2);
+  max-width: 62rem;
+}
+.dsa-helpbody p { margin: 0 0 10px; }
+.dsa-helpbody b { color: var(--ink); }
+.dsa-helpbody h5 {
+  margin: 16px 0 8px; font-family: var(--mono); font-size: 9.5px;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3);
+}
+.dsa-helpbody code {
+  font-family: var(--mono); font-size: 11.5px; background: var(--raise);
+  padding: 1px 4px; border-radius: 3px; color: var(--ink);
+}
+
+.dsa-loop { margin: 0; padding-left: 20px; }
+.dsa-loop li { margin: 5px 0; }
+
+/* Two columns: the control on the left, what it is for on the right. The
+   left column holds live markup -- a real badge, a real star -- so the row
+   is recognisable on the page rather than described in words. */
+.dsa-dl { margin: 0; display: grid; grid-template-columns: minmax(6rem, 13rem) 1fr; gap: 7px 14px; }
+.dsa-dl dt { text-align: left; }
+.dsa-dl dd { margin: 0; }
+.dsa-dl .dsa-conf button { pointer-events: none; }
+.dsa-dl .dsa-status { pointer-events: none; min-width: 0; }
+
+/* Hints under a field, rather than a placeholder that vanishes the moment
+   you start typing -- which is exactly when you still want it. */
+.dsa-hint {
+  grid-column: 1 / -1; margin: -4px 0 4px; font-size: 11.5px; line-height: 1.55;
+  color: var(--ink-3);
+}
+.dsa-hint .dsa-tag { font-size: 9.5px; }
+.dsa-userhd {
+  grid-column: 1 / -1; font-size: 12px; color: var(--ink-3); margin-bottom: 2px;
+}
+.dsa-userhd b { color: var(--ink-2); }
+
+/* Revisit is no longer a lesser state, so the phase strip names it rather
+   than hiding it in the gap between the bar and the total. */
+.dsa-pre { color: var(--warn); }
+
+@media (max-width: 720px) {
+  .dsa-dl { grid-template-columns: 1fr; gap: 3px; }
+  .dsa-dl dd { margin-bottom: 9px; }
+}

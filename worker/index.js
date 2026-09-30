@@ -436,7 +436,11 @@ route("GET", /^\/api\/overview$/, async (_m, _r, env) => {
   const missed = dated.filter((i) => i.date < today && !mbaChecked[i.id]).length;
 
   const dsa = await readDsaProgress(env.DB);
-  const solved = Object.values(dsa.problems).filter((p) => p.status === "solved").length;
+  // Both non-todo statuses count as attempted: a problem marked revisit was
+  // still solved, the flag only says you want it again cold.
+  const rows = Object.values(dsa.problems);
+  const solved = rows.filter((p) => p.status === "solved").length;
+  const revisit = rows.filter((p) => p.status === "revisit").length;
 
   return json({
     mastery: mastery(doneCount, rated.length),
@@ -447,7 +451,7 @@ route("GET", /^\/api\/overview$/, async (_m, _r, env) => {
       missed,
       window_integrity: dated.length ? Math.round(((dated.length - missed) / dated.length) * 1000) / 10 : 100
     },
-    dsa: { solved, touched: Object.keys(dsa.problems).length },
+    dsa: { done: solved + revisit, solved, revisit, touched: rows.length },
     days_to_day_one: Math.round((new Date("2026-12-01") - new Date(today)) / 86400000)
   });
 });

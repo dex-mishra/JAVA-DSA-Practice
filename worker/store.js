@@ -8,6 +8,14 @@
 
 export const DOC = {
   PROGRESS: "progress",
+  /* When DSA progress was last written, as opposed to what it says.
+     `updated_ts` used to be the newest `updated_at` across the rows, which
+     made "the server has zero rows" and "the server has never been written
+     to" the same answer: 0. The page treats the second as permission to
+     upload its local cache, so clearing every problem on one device made
+     the next device quietly restore them. A marker that outlives the rows
+     tells the two apart. */
+  DSA_META: "dsa_meta",
   MBA_CUSTOM: "mba_custom",
   GOALS: "goals",
   CODEFORCES: "codeforces",
@@ -93,11 +101,19 @@ export function rowToProgress(row) {
 export async function readDsaProgress(db) {
   const { results } = await db.prepare("SELECT * FROM dsa_progress").all();
   const out = {};
-  let updated = 0;
+  let newestRow = 0;
   for (const row of results || []) {
     out[row.problem_id] = rowToProgress(row);
-    if (row.updated_at > updated) updated = row.updated_at;
+    if (row.updated_at > newestRow) newestRow = row.updated_at;
   }
+
+  /* The marker wins when it exists. It is written on every patch and never
+     deleted, so a non-zero value means "this account has DSA progress,
+     whatever the current rows say" -- including when the honest answer is
+     that every problem is back to todo. */
+  const meta = await readDoc(db, DOC.DSA_META, {});
+  const updated = meta.data.updated_ts || newestRow;
+
   return { problems: out, updated_ts: updated };
 }
 
@@ -127,6 +143,8 @@ export async function patchDsaProgress(db, problemId, patch) {
   const bare =
     now.status === "todo" && !now.revision && !now.notes && now.tags.length === 0 &&
     now.confidence === null && !now.goodnotes_ref && !now.my_approach;
+
+  await writeDoc(db, DOC.DSA_META, { updated_ts: Date.now() / 1000 });
 
   if (bare) {
     await db.prepare("DELETE FROM dsa_progress WHERE problem_id = ?").bind(problemId).run();

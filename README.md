@@ -52,9 +52,12 @@ Two decisions worth knowing:
 - **The denominator is the 600-problem pool, not the problems imported so
   far.** Three of six phases are in. Using the imported count would drop the
   rating every time a phase landed, purely because the target moved.
-- **`revisit` scores nothing.** It is the status for *I got there but could
-  not do it again cold*, and a rating that counted it would be lying in the
-  way window integrity refuses to.
+- **`revisit` counts the same as `solved`.** It is the status for *I got
+  there but I want it again cold*. Scoring it as zero meant that admitting
+  shaky recall cost you rating, which trains the wrong reflex — you stop
+  marking things honestly. The flag earns its keep by putting the problem in
+  the revision queue, not by docking you. The two statuses stay distinct
+  everywhere else and are always counted separately.
 
 Content arrives as JSON in `dsa material/` and is imported, never edited in
 place:

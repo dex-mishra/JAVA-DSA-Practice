@@ -483,26 +483,49 @@
      window integrity refuses to. Marking something revisit gives the points
      back, which is the point -- the number only ever reflects what you can
      currently do. */
+  /* What counts as done.
+
+     Both statuses that are not `todo`. A problem you got working and then
+     marked `revisit` was still solved -- the flag says you want it again
+     cold, not that it never happened, and the revision queue is where that
+     want gets acted on. Scoring it as zero meant being honest about your
+     own recall cost you rating, which taught exactly the wrong reflex.
+
+     The two statuses still mean different things everywhere it matters:
+     `revisit` is what puts a problem in the queue, and it is shown
+     separately in every count. It just is not worth less. */
+  function dsaIsDone(status) {
+    return status === "solved" || status === "revisit";
+  }
+
   function dsaScore() {
     var earned = 0;
+    var done = 0;
     var solved = 0;
+    var revisit = 0;
     for (var id in DSA_S.problems) {
       var p = DSA_BY_ID[id];
       if (!p) continue;                       // a problem removed by a re-import
-      if ((DSA_S.problems[id] || {}).status !== "solved") continue;
+      var status = (DSA_S.problems[id] || {}).status;
+      if (!dsaIsDone(status)) continue;
       earned += DSA_WEIGHT[p.tier] || 1;
-      solved++;
+      done++;
+      if (status === "revisit") revisit++; else solved++;
     }
-    return { earned: earned, solved: solved, weight: DSA_TOTAL_WEIGHT, pool: DSA_POOL };
+    return {
+      earned: earned, done: done, solved: solved, revisit: revisit,
+      weight: DSA_TOTAL_WEIGHT, pool: DSA_POOL
+    };
   }
 
   function stats() {
     var topicsDone = RATED.filter(function (x) { return S.checked[x.id]; }).length;
     var dsa = dsaScore();
 
-    /* One ladder, two contributions. A ticked topic is one unit; a solved
-       problem is one to three depending on tier. At the full sheet DSA is
-       just under half the climb, which is the weight the sheet earns. */
+    /* One ladder, two contributions. A ticked topic is one unit; an
+       attempted problem is one to three depending on tier. At the full
+       sheet DSA is just under half the climb, which is the weight the sheet
+       earns. */
     var done = topicsDone + dsa.earned;
     var total = RATED.length + dsa.weight;
     var pct = total ? (done / total) * 100 : 0;
@@ -726,11 +749,11 @@
     /* Counted things, not weighted units. The rating is weighted; this tile
        is "how much of the pile is behind you", and a tile that read 171 when
        57 things were done would just look broken. */
-    var clearedN = st.topicsDone + st.dsa.solved;
+    var clearedN = st.topicsDone + st.dsa.done;
     var clearedOf = st.topicsTotal + st.dsa.pool;
     document.getElementById("cleared").textContent = clearedN;
     document.getElementById("clearedSub").textContent = DSA_POOL
-      ? st.topicsDone + " topics · " + st.dsa.solved + " problems"
+      ? st.topicsDone + " topics · " + st.dsa.done + " problems"
       : "of " + clearedOf;
     document.getElementById("streak").textContent = st.streak;
     document.getElementById("badgeCount").textContent = S.badges.length;
@@ -1818,6 +1841,7 @@
     theory: null,      // theory id being read
     template: null,    // template id being read
     timers: {},        // problem id -> ms timestamp the attempt started
+    help: {},          // explainer key -> open, remembered per browser
     tick: null,
     filters: {
       topic: "", tier: "", difficulty: "", company: "", campus_oa: "",
@@ -2043,7 +2067,7 @@
     var days = dsaDayList();
     for (var i = 0; i < days.length; i++) {
       var rows = dsaProblemsOn(days[i]);
-      var allDone = rows.every(function (p) { return dsaRow(p.id).status === "solved"; });
+      var allDone = rows.every(function (p) { return dsaIsDone(dsaRow(p.id).status); });
       if (!allDone) return days[i];
     }
     return days[days.length - 1] || 0;
@@ -2067,15 +2091,18 @@
     return topic;
   }
 
+  /* `done` is solved + revisit; the two are also counted separately,
+     because "12 done, 3 of them to revisit" is a more useful sentence than
+     either number alone. */
   function dsaStats(rows) {
-    var out = { total: rows.length, solved: 0, revisit: 0, todo: 0, starred: 0, weight: 0, earned: 0 };
+    var out = { total: rows.length, done: 0, solved: 0, revisit: 0, todo: 0, starred: 0, weight: 0, earned: 0 };
     rows.forEach(function (p) {
       var g = dsaRow(p.id);
       out[g.status === "solved" ? "solved" : g.status === "revisit" ? "revisit" : "todo"]++;
       if (g.revision) out.starred++;
       var w = DSA_WEIGHT[p.tier] || 1;
       out.weight += w;
-      if (g.status === "solved") out.earned += w;
+      if (dsaIsDone(g.status)) { out.done++; out.earned += w; }
     });
     return out;
   }
@@ -2260,15 +2287,24 @@
     }
 
     return '<div class="dsa-user">' +
+      '<div class="dsa-userhd">Your record of this problem — none of it is shared, ' +
+        "all of it is searchable from <b>Browse</b>.</div>" +
       '<label class="dsa-field"><span>My approach</span>' +
         '<input type="text" data-dsa-approach="' + esc(id) + '" value="' + esc(g.my_approach) +
         '" placeholder="one line on how you actually solved it"></label>' +
+      '<p class="dsa-hint">Write it even when you got it right. Where this differs from the ' +
+        "optimal solution above is the gap worth rereading — the code itself you can always " +
+        "look up.</p>" +
       '<label class="dsa-field"><span>GoodNotes</span>' +
         '<input type="text" data-dsa-goodnotes="' + esc(id) + '" value="' + esc(g.goodnotes_ref) +
         '" placeholder="e.g. DSA nb2 p.41"></label>' +
+      '<p class="dsa-hint">A pointer to where you worked it on paper. Free text — nothing ' +
+        "reads it but you.</p>" +
       '<label class="dsa-field wide"><span>Notes <i>markdown</i></span>' +
         '<textarea data-dsa-notes="' + esc(id) + '" rows="4" ' +
         'placeholder="what you want to see when this comes back around">' + esc(g.notes) + "</textarea></label>" +
+      '<p class="dsa-hint wide">Written for the version of you who meets this again in six ' +
+        "weeks having forgotten it. What tripped you, not what the solution is.</p>" +
       '<div class="dsa-field wide"><span>Tags</span><div class="dsa-tagpick">' +
         Object.keys(known).sort().map(function (t) {
           return '<button type="button" class="dsa-tagb' + (g.tags.indexOf(t) !== -1 ? " on" : "") +
@@ -2276,6 +2312,9 @@
         }).join("") +
         '<input type="text" class="dsa-tagnew" data-dsa-newtag="' + esc(id) + '" placeholder="+ new tag">' +
       "</div></div>" +
+      '<p class="dsa-hint wide">Why <i>this</i> one was hard. Tag enough problems ' +
+        "<span class=\"dsa-tag\">off-by-one</span> and the pattern in your own mistakes shows " +
+        "up in Browse — which is more useful than any single problem.</p>" +
       (g.last_revised ? '<div class="muted tiny">last revised ' + esc(g.last_revised) + "</div>" : "") +
       "</div>";
   }
@@ -2437,14 +2476,15 @@
     return '<div class="dsa-phases">' + ((DSA_SPEC && DSA_SPEC.phases) || []).map(function (ph) {
       var rows = DSA_PROBLEMS.filter(function (p) { return p.phase === ph.key; });
       var st = dsaStats(rows);
-      var pct = st.total ? Math.round((st.solved / st.total) * 100) : 0;
+      var pct = st.total ? Math.round((st.done / st.total) * 100) : 0;
       return '<div class="dsa-phase' + (ph.loaded ? "" : " pending") + '" title="' + esc(ph.goal) + '">' +
         '<div class="dsa-pkey">' + esc(ph.key) + "</div>" +
         '<div class="dsa-ptitle">' + esc(ph.title) + "</div>" +
         '<div class="dsa-pdays">days ' + ph.day_start + "–" + ph.day_end + "</div>" +
         (ph.loaded
           ? '<div class="dsa-pbar"><i style="width:' + pct + '%"></i></div>' +
-            '<div class="dsa-pcount">' + st.solved + " / " + st.total + "</div>"
+            '<div class="dsa-pcount">' + st.done + " / " + st.total +
+              (st.revisit ? ' <span class="dsa-pre">' + st.revisit + " to revisit</span>" : "") + "</div>"
           : '<div class="dsa-pcount pending">not imported · ' + ph.quota + " planned</div>") +
         "</div>";
     }).join("") + "</div>";
@@ -2460,6 +2500,183 @@
 
      Straight from SPEC, not paraphrased here, so the sheet and the tracker
      cannot drift into saying different things. */
+  /* ------------------------------------------------------ help
+
+     Every control on this tab does something specific and almost none of it
+     is guessable from the control itself. A star could mean favourite; 1-5
+     could mean difficulty; "revisit" could mean you failed. Tooltips were
+     the first attempt and they are the wrong tool: a tooltip reminds you of
+     something you already half-know, it cannot teach you what a thing is,
+     because you have to suspect it means something before you hover it.
+
+     So the explanations are on the page, collapsed by default after the
+     first read. Open/closed is remembered per browser rather than synced --
+     "I have read this" is about this screen, not about the account. */
+
+  var DSA_UI_KEY = "launch-console-dsa-ui-v1";
+
+  function dsaUiLoad() {
+    try {
+      var raw = localStorage.getItem(DSA_UI_KEY);
+      if (raw) DSAV.help = JSON.parse(raw) || {};
+    } catch (e) { /* first run, or storage blocked */ }
+  }
+
+  function dsaUiSave() {
+    try { localStorage.setItem(DSA_UI_KEY, JSON.stringify(DSAV.help)); } catch (e) { /* cache only */ }
+  }
+
+  /* A collapsible explainer. Open the first time it is ever shown, closed
+     once dismissed -- the opposite of the usual default, because the first
+     visit is exactly when you need it and every visit after is when it is
+     in the way. */
+  function dsaHelp(key, summary, body) {
+    var seen = DSAV.help[key];
+    var open = seen === undefined ? true : !!seen;
+    return '<details class="dsa-help"' + (open ? " open" : "") + ' data-dsa-help="' + esc(key) + '">' +
+      "<summary>" + esc(summary) + "</summary>" +
+      '<div class="dsa-helpbody">' + body + "</div></details>";
+  }
+
+  function dl(rows) {
+    return '<dl class="dsa-dl">' + rows.map(function (r) {
+      return "<dt>" + r[0] + "</dt><dd>" + r[1] + "</dd>";
+    }).join("") + "</dl>";
+  }
+
+  function dsaSheetHelp() {
+    return dsaHelp("sheet", "How this sheet works",
+      "<p>Forty days, six phases, six hundred problems. Each day has one " +
+      "dominant topic and a mix of tiers. Work top to bottom — the CORE " +
+      "problems teach the pattern and the DRILLs underneath them are " +
+      "variations that only make sense once the CORE has landed.</p>" +
+
+      "<h5>The loop, per problem</h5>" +
+      '<ol class="dsa-loop">' +
+        "<li>Read the topic theory first, once per topic — the link is above.</li>" +
+        "<li>Open the problem on LeetCode and write it in an empty file. No editorial.</li>" +
+        "<li>Stuck? <b>Start the timer</b> inside <i>what this teaches you</i> and follow the " +
+          "ladder. It tells you what to do at ten, twenty, thirty and forty minutes, and it " +
+          "exists so that being stuck has a procedure rather than a mood.</li>" +
+        "<li>Got it working? Click the status to mark it <b>solved</b>.</li>" +
+        "<li><b>Rate your confidence 1–5, honestly.</b> Three or below puts it in the revision " +
+          "queue automatically. This is the single most useful thing on the page and the " +
+          "easiest to skip.</li>" +
+        "<li>Needed a hint? Mark it <b>revisit</b> or star it. Both mean <i>come back to this " +
+          "cold</i>. Neither costs you rating.</li>" +
+        "<li>Write one line in <b>my approach</b>. When it differs from the optimal solution, " +
+          "that gap is the thing worth rereading later — not the code.</li>" +
+        "<li>Read the <b>learning checkpoint</b> at the bottom of the day before you close it.</li>" +
+      "</ol>" +
+
+      "<h5>The controls on each row</h5>" +
+      dl([
+        ['<span class="dsa-status s-todo">todo</span>',
+         "Click to cycle <b>todo → solved → revisit</b>. <i>Solved</i> and <i>revisit</i> both " +
+         "count towards your mastery rating — you did the work either way."],
+        ['<span class="dsa-star on">★</span>',
+         "Flag for the revision queue by hand, whatever the confidence says. The Striver star: " +
+         "use it for anything you want resurfaced."],
+        ['<span class="dsa-conf"><button class="on">1</button><button>…</button><button>5</button></span>',
+         "How well you know it. <b>1</b> = needed the editorial, <b>5</b> = could teach it. " +
+         "Click the number you already have to clear it."],
+        ["<b>what this teaches you</b>",
+         "The learnings panel: the insight, the trick, edge cases, complexity with the reason, " +
+         "sibling problems, likely interview follow-ups, the C++ template, and the stuck ladder."]
+      ]) +
+
+      "<h5>The badges</h5>" +
+      dl([
+        ['<span class="dsa-diff d-easy">Easy</span> <span class="dsa-diff d-medium">Medium</span> ' +
+         '<span class="dsa-diff d-hard">Hard</span>',
+         "LeetCode's own difficulty. Independent of the tier beside it — a CORE can be Easy and " +
+         "a SKIM can be Hard."],
+        ['<span class="dsa-oa">OA</span>',
+         "Shows up often in campus online assessments. If you are short on time before a test, " +
+         "these first."],
+        ["<b>57.9% accepted</b>",
+         "LeetCode's acceptance rate across everyone who has ever attempted it. A second opinion " +
+         "on difficulty: an <i>Easy</i> at 35% usually has a fiddly edge case; a <i>Medium</i> at " +
+         "75% is a pattern you either know or you do not."],
+        ['<span class="dsa-tag">off-by-one</span>',
+         "Your own tags. Add them in the panel under a problem; filter by them in <b>Browse</b>."]
+      ]) +
+
+      "<h5>The strip and the rail</h5>" +
+      "<p>The cards along the top are the six <b>phases</b> — the shape of the forty days. " +
+      "Dashed ones have not been imported yet. Below the day title, the <b>rail</b> is all forty " +
+      "days at a glance: filled means every problem on that day is done, part-filled means some " +
+      "are, outlined means nothing scheduled yet. The sheet opens on the first day with " +
+      "anything left in it.</p>");
+  }
+
+  function dsaCheckpointHelp() {
+    return dsaHelp("checkpoint", "What the checkpoint is for",
+      "<p>Everything the day taught you, and everything the days before it taught you, in one " +
+      "place — built fresh each time rather than stored.</p>" +
+      "<p>It gets denser as material ages instead of dropping it. Today's learnings arrive " +
+      "whole. Yesterday's keep one citation and the first sentence. The day before keeps a " +
+      "problem title. Older material in the same topic collapses to headlines, and a topic you " +
+      "have finished becomes a single line carried for the rest of the sheet.</p>" +
+      "<p><b>Nothing is ever dropped.</b> By the time you reach dynamic programming, arrays is " +
+      "one dense paragraph you can still read in ten seconds — which is the point.</p>");
+  }
+
+  function dsaBrowseHelp() {
+    return dsaHelp("browse", "What Browse is for",
+      "<p>Every problem in the sheet at once, cut any way you need. The day view is the " +
+      "schedule; this is the index.</p>" +
+      dl([
+        ["Before an OA",
+         "Filter by <b>company</b>, or by <b>campus OA = HIGH</b>, and work down."],
+        ["Revising one pattern",
+         "Filter by <b>topic</b> or search a <b>pattern</b> name like <code>two-pointer-write</code>."],
+        ["Finding your own notes",
+         "<b>Notes = has notes</b>, or filter by a <b>tag</b> you have used."],
+        ["Auditing what is shaky",
+         "<b>Confidence = 1</b> or <b>2</b>. These are the ones that will not survive an interview."],
+        ["Cheap wins",
+         "<b>Tier = DRILL</b> plus <b>Status = todo</b>: variations on CORE problems you have " +
+         "already done, ten minutes each."]
+      ]));
+  }
+
+  function dsaRevisionHelp() {
+    return dsaHelp("revision", "How the queue is built",
+      "<p>A problem lands here when you have started it <i>and</i> either starred it or rated " +
+      "your confidence <b>3 or below</b>. Weakest first, then whichever you have gone longest " +
+      "without revisiting.</p>" +
+      "<p><b>No revision days are scheduled anywhere in the forty.</b> That is deliberate: a " +
+      "revision day you have to be in the mood for gets skipped, and then the schedule is wrong. " +
+      "This is pulled instead — when a session ends early, or the day before a test, take the " +
+      "top few.</p>" +
+      "<p>Anything that needed a hint is not finished, it is scheduled. Rate it 3 or below and " +
+      "redo it cold in about two days.</p>");
+  }
+
+  function dsaTheoryHelp() {
+    return dsaHelp("theory", "How to read the theory",
+      "<p>Three parts, written to be read in order and stopped at whenever it has landed.</p>" +
+      "<p><b>Part 1</b> is the answer to <i>what is this</i> — what it is, how it works, how to " +
+      "implement it, what it costs. Read it once before the topic's first problem.</p>" +
+      "<p><b>Part 2</b> is only what gets probed in an interview: trade-offs, worst cases, the " +
+      "grilling chain. Worth a pass after you have done a few of the topic's problems, when the " +
+      "questions mean something.</p>" +
+      "<p><b>Part 3</b> is a plain analogy for the ideas in the first two, and it is strictly a " +
+      "fallback. If Parts 1 and 2 landed, skip it.</p>" +
+      "<p>Code blocks have a <b>copy</b> button. Type them out instead, at least the first time.</p>");
+  }
+
+  function dsaTemplateHelp() {
+    return dsaHelp("templates", "What the templates are for",
+      "<p>The shape of each pattern, reduced to something you should be able to type from an " +
+      "empty file without thinking. Not snippets to paste — the point is that the structure is " +
+      "in your fingers when the clock is running.</p>" +
+      "<p>Every problem that uses one links straight to it, and each template lists the problems " +
+      "it covers, so you can drill a pattern across all its problems in one sitting.</p>" +
+      "<p>A template with <b>0 problems</b> belongs to a phase that has not been imported yet.</p>");
+  }
+
   function dsaTierLegend() {
     var tiers = (DSA_SPEC && DSA_SPEC.tiers) || {};
     var order = ["CORE", "DRILL", "SKIM"];
@@ -2480,8 +2697,8 @@
       if (!rows.length) cls += " empty";
       else {
         var st = dsaStats(rows);
-        if (st.solved === st.total) cls += " done";
-        else if (st.solved > 0) cls += " part";
+        if (st.done === st.total) cls += " done";
+        else if (st.done > 0) cls += " part";
       }
       if (d === current) cls += " on";
       cells.push('<button type="button" class="' + cls + '" data-dsa-day="' + d + '"' +
@@ -2507,15 +2724,21 @@
     var days = dsaDayList();
     var at = days.indexOf(day);
 
-    return dsaPhaseStrip() +
+    // Built once: it walks every learning in every phase, and the help
+    // panel above it only makes sense when there is one to explain.
+    var built = dsaCheckpoint(day);
+    var checkpoint = built ? dsaCheckpointHelp() + built : "";
+
+    return dsaSheetHelp() +
+      dsaPhaseStrip() +
       '<section class="card dsa-daycard">' +
         '<div class="dsa-daynav">' +
           '<button class="btn tiny" type="button" data-dsa-day="' + (days[at - 1] || day) + '"' +
             (at <= 0 ? " disabled" : "") + ">‹ prev</button>" +
           '<div class="dsa-dayhd"><h2>Day ' + day + " · " + esc(titleCase(topic)) + "</h2>" +
             '<div class="muted">' + (phase ? esc(phase.key) + " · " + esc(phase.title) : "") +
-              " · " + st.total + " problems · " + st.solved + " solved" +
-              (st.revisit ? " · " + st.revisit + " to revisit" : "") + "</div></div>" +
+              " · " + st.total + " problems · " + st.done + " done" +
+              (st.revisit ? " (" + st.revisit + " to revisit)" : "") + "</div></div>" +
           '<button class="btn tiny" type="button" data-dsa-day="' + (days[at + 1] || day) + '"' +
             (at >= days.length - 1 ? " disabled" : "") + ">next ›</button>" +
         "</div>" +
@@ -2529,7 +2752,7 @@
         (rows.length ? rows.map(dsaRowEl).join("")
           : '<div class="empty">Nothing scheduled on this day yet.</div>') +
       "</div></section>" +
-      '<div id="dsaCheckpoint">' + dsaCheckpoint(day) + "</div>";
+      '<div id="dsaCheckpoint">' + checkpoint + "</div>";
   }
 
   function renderDsaTheory() {
@@ -2542,7 +2765,8 @@
     var parts = (DSA_SPEC && DSA_SPEC.theory_parts) || [];
     var byTopic = (DSA_INDEX && DSA_INDEX.theory_for_topic) || {};
 
-    return '<section class="card"><h2>Theory</h2><p class="muted">' +
+    return dsaTheoryHelp() +
+      '<section class="card"><h2>Theory</h2><p class="muted">' +
       parts.map(function (p) { return "<b>" + esc(p.heading) + ".</b> " + esc(p.brief); }).join("<br>") +
       "</p>" +
       '<div class="dsa-theorylist">' + Object.keys(byTopic).map(function (topic) {
@@ -2550,7 +2774,7 @@
         var st = dsaStats(rows);
         return '<button type="button" class="dsa-theorycard" data-dsa-theory="' + esc(byTopic[topic]) + '">' +
           "<b>" + esc(titleCase(topic)) + "</b>" +
-          '<span class="muted tiny">' + st.solved + " / " + st.total + " problems solved</span></button>";
+          '<span class="muted tiny">' + st.done + " / " + st.total + " problems attempted</span></button>";
       }).join("") + "</div></section>";
   }
 
@@ -2592,7 +2816,8 @@
         'data-dsa-template-back="1">‹ all templates</button>' +
         '<div id="dsaTemplateBody"><div class="dsa-loading">Loading…</div></div></section>';
     }
-    return '<section class="card"><h2>C++ pattern templates</h2><p class="muted">' +
+    return dsaTemplateHelp() +
+      '<section class="card"><h2>C++ pattern templates</h2><p class="muted">' +
       "The shape you should be able to type from memory. Every problem that uses one links " +
       "straight here.</p>" +
       '<div id="dsaTemplateList"><div class="dsa-loading">Loading…</div></div></section>';
@@ -2669,7 +2894,8 @@
       return (ga.last_revised || "").localeCompare(gb.last_revised || "");
     });
 
-    return '<section class="card"><h2>Revision queue</h2><p class="muted">' +
+    return dsaRevisionHelp() +
+      '<section class="card"><h2>Revision queue</h2><p class="muted">' +
       "Everything you have started that is either starred or rated 3 or below, weakest first, " +
       "then least recently revised. Pulled on demand — no revision days are scheduled " +
       "anywhere in the sheet, by design.</p>" +
@@ -2740,12 +2966,14 @@
 
   function dsaBrowseCount(rows) {
     var st = dsaStats(rows);
-    return rows.length + " matching · " + st.solved + " solved · " + st.starred + " starred";
+    return rows.length + " matching · " + st.done + " done" +
+      (st.revisit ? " (" + st.revisit + " to revisit)" : "") + " · " + st.starred + " starred";
   }
 
   function renderDsaBrowse() {
     var rows = dsaFiltered();
-    return '<section class="card"><h2>Browse all ' + DSA_PROBLEMS.length + " problems</h2>" +
+    return dsaBrowseHelp() +
+      '<section class="card"><h2>Browse all ' + DSA_PROBLEMS.length + " problems</h2>" +
       dsaFilterBar() +
       '<div class="muted" id="dsaCount">' + dsaBrowseCount(rows) + "</div>" +
       '<div class="dsa-rows" id="dsaBrowseRows">' +
@@ -2975,6 +3203,13 @@
       };
     }
 
+    document.querySelectorAll("[data-dsa-help]").forEach(function (d) {
+      d.ontoggle = function () {
+        DSAV.help[d.dataset.dsaHelp] = d.open;
+        dsaUiSave();
+      };
+    });
+
     document.querySelectorAll("[data-dsa-clear]").forEach(function (b) {
       b.onclick = function () {
         for (var k in DSAV.filters) DSAV.filters[k] = "";
@@ -3015,6 +3250,7 @@
   function boot() {
     load();
     dsaLoad();
+    dsaUiLoad();
     refreshBadges(stats());
     // A link straight to a section, e.g. /#dsa, opens on that section.
     var wanted = (location.hash || "").replace("#", "");

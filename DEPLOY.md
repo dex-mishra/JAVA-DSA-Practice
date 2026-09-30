@@ -96,6 +96,16 @@ Runs the whole thing locally at `http://localhost:8787` against a local
 database — a real one, in `.wrangler/`, so writes persist between runs and
 nothing you do locally touches production.
 
+If the API starts answering `no such table: doc`, the local database was
+re-keyed — which happens the first time you run this after `database_id`
+changes in `wrangler.toml`. Recreate the local tables:
+
+```bash
+npm run db:init:local
+```
+
+That only ever touches `.wrangler/`. Production is unaffected.
+
 ```bash
 npm run import && npm run deploy
 ```
