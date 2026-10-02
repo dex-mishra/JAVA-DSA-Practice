@@ -75,16 +75,49 @@ In the Cloudflare dashboard: **Workers & Pages → launch-console → Settings �
 Domains & Routes → Add custom domain**. The certificate is issued
 automatically.
 
-## Optional: deploy on every push
+## Deploying on every push — Workers Builds
 
-`.github/workflows/deploy.yml` builds and deploys on every push to `main`.
-It needs two repository secrets:
+Cloudflare clones the repo, builds it and deploys. The reason to prefer this
+over a GitHub Action: the **Deployments page shows the actual commit hash and
+message**. With `wrangler deploy` or an Action, that page only ever says the
+upload came from Wrangler, with no commit information at all — so "is the
+latest commit live?" is a question you cannot answer by looking.
 
-- `CLOUDFLARE_API_TOKEN` — My Profile → API Tokens → Create Token → *Edit
-  Cloudflare Workers*
-- `CLOUDFLARE_ACCOUNT_ID` — shown in the dashboard sidebar
+One-time setup, in the dashboard:
 
-Without them, `npm run deploy` from your laptop does the same job.
+**Workers & Pages → launch-console → Settings → Builds → Connect**
+
+Pick the repository and branch `main`, then set:
+
+| Field | Value |
+|---|---|
+| Build command | `npm ci && npm test && npm run build` |
+| Deploy command | `npx wrangler deploy` |
+| Root directory | *(leave blank)* |
+
+The build command runs the tests on purpose. One of them pins the topic-id
+hash against ids captured from a real browser; if it ever drifts, the API
+stops recognising every tick ever made and nothing errors. A failing build
+command fails the build, so that cannot reach production.
+
+Connecting needs you to authorise the Cloudflare GitHub App against the
+repository — that is an account-level grant, so it is yours to click.
+
+> **Do not also add `CLOUDFLARE_API_TOKEN` to GitHub.** Workers Builds and a
+> GitHub Action both deploy on push, so running both means every commit
+> deploys twice. The Action that used to live at
+> `.github/workflows/deploy.yml` was removed for exactly this reason.
+
+### Deploying by hand
+
+Always available, and unaffected by the above:
+
+```bash
+npm run deploy
+```
+
+Note that this is the *only* thing that deploys until Workers Builds is
+connected. Pushing to GitHub on its own changes nothing on Cloudflare.
 
 ## Day-to-day
 

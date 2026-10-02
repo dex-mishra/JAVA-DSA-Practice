@@ -365,9 +365,11 @@ Then remind them to add the same value as `CONSOLE_PASSWORD` in
 → Domains & Routes → Add custom domain. Only if they own a domain on this
 Cloudflare account.
 
-**Deploy on push.** `.github/workflows/deploy.yml` already exists. It needs
-two repository secrets, `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
-Both are credentials — the user adds them in GitHub settings, not you.
+**Deploy on push.** Via Workers Builds, in the dashboard — see DEPLOY.md.
+Connecting it authorises the Cloudflare GitHub App against the repository,
+which is an account-level grant and therefore the user's click, not yours.
+Do not also add GitHub secrets for a Action: both deploy on push, so having
+both means every commit deploys twice.
 
 ---
 
