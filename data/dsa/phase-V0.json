@@ -1,11 +1,11 @@
 {
- "key": "P0",
- "slug": "phase-0-foundations",
- "title": "Foundations",
- "goal": "Reference layer. Complexity, STL, sorting, hashing, recursion, bit basics, maths. Reread whenever you open the sheet.",
+ "key": "V0",
+ "slug": "v0-prerequisites",
+ "title": "Prerequisites",
+ "goal": "The smallest set that makes trees, graphs and DP tractable: hashing, sorting, recursion, and the array patterns DP is built on.",
  "day_start": 1,
  "day_end": 3,
- "problem_count": 24,
+ "problem_count": 14,
  "theory": [
   {
    "id": "t-complexity",
@@ -93,6 +93,23 @@
      "Why trailing zeros in n! are counted by fives": "\n Every trailing zero needs a pair — one 2 and one 5 — the way every pair of shoes needs a\n left and a right.\n\n In a factorial the 2s vastly outnumber the 5s: every second number contributes a 2, only\n every fifth contributes a 5. So the 5s run out first, and the number of complete pairs is\n simply the number of 5s.\n "
     }
    }
+  },
+  {
+   "id": "t-recursion",
+   "title": "Recursion and backtracking",
+   "links": [
+    "[Striver: Recursion](https://www.youtube.com/watch?v=yVdKa8dnKiE)"
+   ],
+   "parts": {
+    "breadth": "\n**What it is.** A recursive function solves a problem by calling itself on a smaller\ninstance until it reaches a case small enough to answer directly. Two components are\nmandatory: a **base case** that returns without recursing, and a **recursive step** that\nstrictly reduces the problem toward that base case. Omit either and you get infinite\nrecursion and a stack overflow.\n\n**Backtracking** is recursion with undo. You make a choice, recurse, and then reverse the\nchoice so the next branch starts from a clean state. It is how you enumerate every subset,\npermutation, or valid configuration.\n\n**The standard skeleton.**\n```cpp\nvoid backtrack(State& s, Result& res) {\n    if (isComplete(s)) { res.push_back(s); return; }\n    for (auto& choice : optionsFrom(s)) {\n        if (!isValid(choice, s)) continue;    // prune\n        apply(choice, s);\n        backtrack(s, res);\n        undo(choice, s);                      // the backtrack\n    }\n}\n```\n\n**The four patterns that cover almost everything.**\n\n*Subsets / include-exclude.* At each index, take it or leave it. 2ⁿ leaves.\n```cpp\nvoid dfs(int i, vector<int>& a, vector<int>& cur, vector<vector<int>>& res) {\n    if (i == (int)a.size()) { res.push_back(cur); return; }\n    cur.push_back(a[i]); dfs(i+1, a, cur, res); cur.pop_back();   // include\n    dfs(i+1, a, cur, res);                                        // exclude\n}\n```\n\n*Permutations.* At each position, try every unused element. n! leaves.\n\n*Combination sum.* Choose elements toward a target, with `i` in the recursive call\npermitting reuse and `i + 1` forbidding it. That one character is the entire difference\nbetween Combination Sum I and II.\n\n*Grid / constraint search.* Word Search, N-Queens, Sudoku. Mark the cell or row as used,\nrecurse, unmark.\n\n**Handling duplicates.** Sort the input first, then within a loop skip an element equal to\nits predecessor: `if (i > start && a[i] == a[i-1]) continue;`. The condition is `i > start`\nand not `i > 0` — duplicates are skipped among *siblings* in the recursion tree, never\nbetween an ancestor and its descendant.\n\n**Cost.** Recursive cost is (number of calls) × (work per call), and stack space is\nproportional to maximum depth.\n\n| Pattern | Calls | Typical total |\n|---|---|---|\n| subsets | 2ⁿ | O(n · 2ⁿ) with the copy |\n| permutations | n! | O(n · n!) |\n| combination sum | depends on pruning | exponential |\n| N-Queens | pruned heavily | O(n!) upper bound |\n",
+    "depth": "\n**Pruning is what makes exponential search tractable.** N-Queens has n! naive placements\nbut the constraint check eliminates branches early, so the effective tree is far smaller.\nTwo rules: validate *before* recursing rather than at the leaf, and sort the input where it\nenables an early `break` — in Combination Sum, sorting lets you stop the loop entirely once\n`a[i] > target`, which is frequently the difference between accepting and timing out.\n\n**Making validity checks O(1).** In N-Queens, rescanning the board is O(n) per check. Keep\nthree boolean arrays instead: one for columns, one for the `i + j` diagonal, and one for\nthe `i - j + n` anti-diagonal. Every cell on a diagonal shares those sums, so the check\nbecomes three array reads. The same trick gives Sudoku row, column and box bitmasks.\n\n**Passing state by reference versus by value.** Passing `cur` by value copies it at every\ncall, adding O(n) per node and turning O(2ⁿ) into O(n · 2ⁿ) in *allocation* as well as\ntime. Pass by reference and undo. The only unavoidable copy is when you push a completed\nresult.\n\n**Recursion to iteration.** Any recursion can be converted using an explicit stack, which\nis sometimes required: C++ default stack is around 1 MB, so a recursion depth of 10⁵ with a\nfew local variables per frame will overflow. Deep DFS on a 1000×1000 grid is the classic\ncase where recursion fails and BFS or an explicit stack is needed.\n\n**Tail recursion** — where the recursive call is the last operation — can in principle be\noptimised into a loop by the compiler, but C++ does not guarantee this and it is disabled at\n`-O0`. Never rely on it.\n\n**Memoisation is the bridge to DP.** When the recursion tree contains repeated identical\nsubproblems, caching results by state converts exponential to polynomial. Naive Fibonacci is\nO(2ⁿ); with a memo it is O(n). The test for applicability is *overlapping subproblems*:\nsubsets and permutations have none — every leaf is distinct — so memoisation does not help\nthere, which is why they stay exponential.\n\n**Counting versus enumerating.** If the question asks *how many* rather than *which*, you\nusually do not need backtracking at all. Count Good Numbers is answered with modular\nexponentiation in O(log n); enumerating the strings would be impossible. Reading \"count\"\nversus \"return all\" changes the entire approach.\n\n**Subsequences versus subarrays versus subsets.** A subarray is contiguous. A subsequence\npreserves order but not contiguity. A subset ignores order. Conflating them is a frequent\nmisreading — 2ⁿ subsequences but only n(n+1)/2 subarrays.\n\n**The grilling chain.**\n\n- *Complexity of generating all subsets?* — O(2ⁿ) leaves, O(n · 2ⁿ) with the copies.\n- *How do you avoid duplicate results with duplicate input?* — Sort, then skip siblings;\n  explain why the condition is `i > start`.\n- *Make the N-Queens validity check O(1).* — Column and two diagonal marker arrays.\n- *Your recursion is 10⁵ deep. What happens?* — Stack overflow; convert to an explicit\n  stack or BFS.\n- *When does memoisation help and when does it not?* — Only with overlapping subproblems;\n  enumeration problems have none.\n- *Why is passing the current path by value a problem?* — An O(n) copy at every node.\n",
+    "analogy": {
+     "Backtracking": "\nYou are finding your way through a maze with a piece of chalk. At each junction you mark\nthe path you took and walk on. If you hit a dead end you walk back, rub out the mark, and\ntake a different turn.\n\nThe rubbing out is the crucial part. Without it, the next attempt inherits a trail of\ndecisions you have already abandoned.\n",
+     "The base case": "\nRussian nesting dolls. You open one, and inside is a smaller one, and you open that. The\nwhole process only ends because eventually there is a doll that does not open.\n\nA recursion without a base case is a set of dolls that never gets smaller.\n",
+     "Pruning": "\nYou are looking for a friend's room in a hostel and you know they live on an upper floor.\nYou do not search the ground floor at all.\n\nPruning is refusing to walk down corridors you can already prove are empty — and in an\nexponential search, most corridors are.\n",
+     "Memoisation": "\nSomeone asks you to add the same long column of figures four times over. The second time,\nyou do not add it again — you read off the answer you wrote down.\n\nThat only helps because the same question came up more than once. If every question were\ndifferent, keeping notes would just be extra work.\n"
+    }
+   }
   }
  ],
  "learnings": [
@@ -106,10 +123,6 @@
     [
      "two-sum",
      "keeping a map of value→index and querying `target - x` on arrival"
-    ],
-    [
-     "contains-duplicate",
-     "keeping a set of seen values and querying before insert"
     ]
    ]
   },
@@ -123,30 +136,13 @@
     [
      "two-sum",
      "checking `target - x` before storing `x`, so `[3,3]` with target 6 still works and `x` never matches itself"
-    ],
-    [
-     "contains-duplicate",
-     "checking membership before inserting, which also lets you return on the first repeat instead of building the whole set"
-    ]
-   ]
-  },
-  {
-   "id": "L-HASH-03",
-   "topic": "hashing",
-   "day": 1,
-   "headline": "Fixed alphabet means an array, not a hash map",
-   "detail": "When keys are drawn from a small dense range, an ordinary array indexed by the key beats a hash map on both constant factor and cache behaviour, and the space is genuinely O(1) rather than O(k).",
-   "applied": [
-    [
-     "valid-anagram",
-     "`int cnt[26]`, incremented for the first string and decremented for the second, then asserted all-zero"
     ]
    ]
   },
   {
    "id": "L-SORT-01",
    "topic": "sorting",
-   "day": 2,
+   "day": 1,
    "headline": "The merge step is reusable, so learn it properly once",
    "detail": "Merge sort's combine phase walks two sorted halves with two pointers. Any quantity that can be counted while those pointers move - inversions, qualifying pairs - comes free, which is how several otherwise-hard problems are solved.",
    "applied": [
@@ -159,56 +155,13 @@
   {
    "id": "L-SORT-02",
    "topic": "sorting",
-   "day": 2,
+   "day": 1,
    "headline": "Naive quicksort dies on sorted input",
    "detail": "Choosing the first or last element as pivot degrades to O(n^2) precisely when the array is already sorted or reverse-sorted, which is a common test case. Randomising the pivot or taking a median-of-three removes the failure mode.",
    "applied": [
     [
      "sort-an-array",
      "why merge sort is the safe submission here, and why `std::sort` uses introsort rather than plain quicksort"
-    ]
-   ]
-  },
-  {
-   "id": "L-MATH-01",
-   "topic": "math",
-   "day": 3,
-   "headline": "`n % 10` reads a digit, `n /= 10` advances",
-   "detail": "Those two operations are the whole of digit manipulation. Any problem that forbids string conversion is asking you to use them, and the same pair works in any base once 10 is replaced by that base.",
-   "applied": [
-    [
-     "palindrome-number",
-     "extracting digits from the right to build the reversed half"
-    ],
-    [
-     "happy-number",
-     "extracting each digit to square and sum it"
-    ]
-   ]
-  },
-  {
-   "id": "L-MATH-02",
-   "topic": "math",
-   "day": 3,
-   "headline": "Do half the work to dodge overflow",
-   "detail": "Reversing an entire integer can exceed the type's range even when the input does not. Reversing only until the reversed part meets or exceeds the remainder avoids the overflow entirely, and is the intended solution rather than a trick.",
-   "applied": [
-    [
-     "palindrome-number",
-     "stopping once `rev >= x`, then comparing `x == rev` or `x == rev / 10` to discard the middle digit"
-    ]
-   ]
-  },
-  {
-   "id": "L-MATH-03",
-   "topic": "math",
-   "day": 3,
-   "headline": "A value that maps to exactly one successor is a linked list",
-   "detail": "If every state has exactly one next state, you are walking a chain, so it either terminates or cycles - and cycle detection has a known O(1)-space answer in Floyd's tortoise and hare. Recognising this disguise is worth more than the algorithm.",
-   "applied": [
-    [
-     "happy-number",
-     "treating digit-square-sum as the next pointer and running slow/fast pointers instead of storing a seen-set"
     ]
    ]
   },
@@ -230,680 +183,161 @@
    ]
   },
   {
-   "id": "L-HASH-05",
-   "topic": "hashing",
+   "id": "L-ARR-04",
+   "topic": "arrays",
+   "day": 3,
+   "headline": "A running extreme replaces an inner loop",
+   "detail": "If the best answer at index i depends only on some aggregate of everything before it, carry that aggregate forward in a scalar. The nested loop disappears.",
+   "applied": [
+    [
+     "best-time-to-buy-and-sell-stock",
+     "tracking the minimum price seen so far instead of trying every earlier buy day"
+    ]
+   ]
+  },
+  {
+   "id": "L-ARR-05",
+   "topic": "arrays",
+   "day": 3,
+   "headline": "Extend or restart is the whole of Kadane",
+   "detail": "The best subarray ending at i either extends the best one ending at i-1 or begins fresh at i. It can never extend a suboptimal predecessor, because swapping in the optimal one would improve it.",
+   "applied": [
+    [
+     "maximum-subarray",
+     "cur = max(a[i], cur + a[i]), with best initialised to a[0] rather than 0"
+    ],
+    [
+     "best-time-to-buy-and-sell-stock",
+     "the same recurrence applied to consecutive price differences"
+    ]
+   ]
+  },
+  {
+   "id": "L-ARR-09",
+   "topic": "arrays",
+   "day": 3,
+   "headline": "Negatives forbid a sliding window",
+   "detail": "A window needs extending to move the aggregate one way only, so that shrinking is a valid correction. Negative values break that, and prefix sums with a hash map are the replacement.",
+   "applied": [
+    [
+     "subarray-sum-equals-k",
+     "prefix sums keyed in a map, seeded with {0,1}, because the constraints permit negative values"
+    ]
+   ]
+  },
+  {
+   "id": "L-ARR-10",
+   "topic": "arrays",
+   "day": 3,
+   "headline": "Count subarrays by their right endpoint",
+   "detail": "For a valid window [l, r], every subarray ending at r and starting at or after l is also valid. Adding r - l + 1 counts them all without enumerating any.",
+   "applied": [
+    [
+     "subarray-sum-equals-k",
+     "counting prefix occurrences rather than subarrays directly"
+    ]
+   ]
+  },
+  {
+   "id": "L-REC-01",
+   "topic": "recursion",
+   "day": 2,
+   "headline": "Include or exclude gives 2^n, choose-one-of-many gives n!",
+   "detail": "The shape of the choice at each level determines the complexity class. Recognising which you are in tells you the bound before you write a line.",
+   "applied": [
+    [
+     "subsets",
+     "two branches per index, giving 2^n leaves"
+    ],
+    [
+     "permutations",
+     "n choices at the first level, n-1 at the next, giving n!"
+    ]
+   ]
+  },
+  {
+   "id": "L-REC-02",
+   "topic": "recursion",
+   "day": 2,
+   "headline": "Sort, then skip equal siblings to dedupe",
+   "detail": "Equal values at the same recursion level generate identical subtrees. Skipping them with `i > start && a[i] == a[i-1]` removes duplicates without a set. The condition is i > start, not i > 0, because equal values may legitimately appear along a single path.",
+   "applied": [
+    [
+     "subsets-ii",
+     "the sibling skip after sorting"
+    ],
+    [
+     "combination-sum-ii",
+     "the same skip, combined with i + 1 to forbid reuse"
+    ]
+   ]
+  },
+  {
+   "id": "L-REC-03",
+   "topic": "recursion",
    "day": 1,
-   "headline": "Two passes beat one clever pass",
-   "detail": "Some properties are unknowable until the whole input has been read. Establish them in a first pass and act on them in a second, walking the original order. Forcing a single pass costs time and usually correctness.",
+   "headline": "`i` versus `i + 1` is the whole reuse question",
+   "detail": "Passing the current index permits an element to be used again; passing the next forbids it. One character separates two otherwise identical problems.",
    "applied": [
     [
-     "first-unique-character-in-a-string",
-     "counting every character first, then rescanning in index order to find the first with count 1"
+     "combination-sum",
+     "recursing with i, since candidates may be reused"
     ],
     [
-     "minimum-absolute-difference",
-     "one pass to find the minimum gap, a second to collect every pair achieving it"
+     "combination-sum-ii",
+     "recursing with i + 1, since each element is used at most once"
     ]
    ]
   },
   {
-   "id": "L-HASH-06",
-   "topic": "hashing",
+   "id": "L-REC-04",
+   "topic": "recursion",
    "day": 1,
-   "headline": "The output specification picks the container",
-   "detail": "Words like 'unique', 'in order' or 'as many times as it appears' are container instructions. Reading them properly makes deduplication or ordering free instead of a separate corrective step.",
+   "headline": "Prune before recursing, not at the leaf",
+   "detail": "Validity checks placed before the recursive call eliminate entire subtrees. Sorting often enables an even stronger `break`, which is frequently the difference between accepting and timing out.",
    "applied": [
     [
-     "intersection-of-two-arrays",
-     "the word 'unique' making a set the right output container, so deduplication never needs its own pass"
-    ]
-   ]
-  },
-  {
-   "id": "L-SORT-03",
-   "topic": "sorting",
-   "day": 2,
-   "headline": "Partition is a primitive, not just a quicksort step",
-   "detail": "Splitting an array by a binary predicate with two converging pointers is O(n) and O(1) space. Any problem that separates elements into two classes is this, with the predicate swapped out.",
-   "applied": [
-    [
-     "sort-array-by-parity",
-     "advancing from both ends and swapping when both sides are misplaced, with 'is even' as the predicate"
+     "combination-sum",
+     "breaking as soon as a[i] > target, which requires the sorted input"
     ],
     [
-     "sort-array-by-parity-ii",
-     "two pointers stepping by two over even and odd index positions, one swap fixing two violations"
+     "n-queens",
+     "three marker arrays making the conflict test O(1) instead of an O(n) board scan"
     ]
    ]
   },
   {
-   "id": "L-SORT-04",
-   "topic": "sorting",
-   "day": 2,
-   "headline": "Group by an invariant, then solve each group",
-   "detail": "When elements fall into classes defined by a shared computed value, bucket them on that value and the problem reduces to solving one small independent instance per bucket.",
-   "applied": [
-    [
-     "sort-the-matrix-diagonally",
-     "every cell on a diagonal sharing `i - j`, so the matrix becomes a map of independent lists to sort"
-    ]
-   ]
-  },
-  {
-   "id": "L-SORT-05",
-   "topic": "sorting",
-   "day": 2,
-   "headline": "External ordering means a rank map plus a comparator",
-   "detail": "When the required order is defined by separate data rather than by the values, build a value→rank map and sort on the rank, with a documented fallback rank for anything absent.",
-   "applied": [
-    [
-     "relative-sort-array",
-     "mapping each arr2 value to its index, sorting arr1 on that rank, and sending unlisted values to the end ascending"
-    ]
-   ]
-  },
-  {
-   "id": "L-SORT-06",
-   "topic": "sorting",
-   "day": 2,
-   "headline": "After sorting, the answer is usually adjacent",
-   "detail": "Minimum gaps, closest pairs and duplicate detection all become adjacent-element checks once sorted, because sorting places every element next to its nearest neighbours in value. This turns O(n^2) pairwise search into a linear scan.",
-   "applied": [
-    [
-     "minimum-absolute-difference",
-     "the minimum gap being provably between consecutive sorted elements, so one scan suffices"
-    ],
-    [
-     "height-checker",
-     "comparing against the sorted copy position by position"
-    ]
-   ]
-  },
-  {
-   "id": "L-SORT-07",
-   "topic": "sorting",
-   "day": 2,
-   "headline": "A bounded value range means counting sort",
-   "detail": "When the constraints cap the values rather than just the count, a tally array indexed by value gives O(n + k) and sidesteps the comparison lower bound entirely. The bound in the statement is the hint.",
-   "applied": [
-    [
-     "relative-sort-array",
-     "values capped at 1000, making a 1001-slot tally available"
-    ],
-    [
-     "height-checker",
-     "heights capped at 100, so the sort is avoidable altogether"
-    ]
-   ]
-  },
-  {
-   "id": "L-SORT-08",
-   "topic": "sorting",
-   "day": 2,
-   "headline": "Restricted operations dictate the algorithm",
-   "detail": "When the problem removes an operation you rely on, do not adapt your favourite algorithm - ask which algorithm only needs the operations that remain.",
-   "applied": [
-    [
-     "pancake-sorting",
-     "prefix reversal being the only move, which rules out quicksort's arbitrary swaps and makes selection sort the natural fit"
-    ]
-   ]
-  },
-  {
-   "id": "L-MATH-04",
-   "topic": "math",
+   "id": "L-REC-05",
+   "topic": "recursion",
    "day": 3,
-   "headline": "Check overflow before the operation, not after",
-   "detail": "Once a signed multiply has overflowed the behaviour is undefined, so the result cannot be inspected to detect it. The test must be a division or comparison performed on the operands beforehand.",
+   "headline": "Mark in place and restore on the way out",
+   "detail": "Grid searches need no visited array - overwrite the cell with a sentinel and put it back when the branch fails. The restore is the backtrack, and omitting it corrupts every later attempt.",
    "applied": [
     [
-     "reverse-integer",
-     "testing `rev > INT_MAX / 10` before `rev = rev * 10 + d`, with the digit-7 and digit-8 boundary cases"
-    ],
-    [
-     "palindrome-number",
-     "reversing only half the number so the overflow cannot arise at all"
+     "word-search",
+     "writing '#' into the grid before recursing and restoring afterwards"
     ]
    ]
   },
   {
-   "id": "L-MATH-05",
-   "topic": "math",
+   "id": "L-TREE-11",
+   "topic": "binary-trees",
    "day": 3,
-   "headline": "Count a factor without constructing the number",
-   "detail": "Large values need not be built to be analysed. Counting occurrences of a prime across a range, or dividing out permitted factors, answers questions about numbers far beyond any integer type.",
+   "headline": "A root-to-node path is an array, so array techniques apply",
+   "detail": "Prefix sums with a hash map work on a tree path exactly as on a subarray - provided the map is unwound when the recursion backtracks.",
    "applied": [
     [
-     "factorial-trailing-zeroes",
-     "summing n/5 + n/25 + n/125 rather than computing n!"
-    ],
-    [
-     "ugly-number",
-     "dividing out 2, 3 and 5 exhaustively and testing the residue for 1"
-    ]
-   ]
-  },
-  {
-   "id": "L-MATH-06",
-   "topic": "math",
-   "day": 3,
-   "headline": "Positional weights collapse under a modulus",
-   "detail": "Because 10 ≡ 1 (mod 9), every power of ten is congruent to 1, so a number is congruent to its own digit sum mod 9. The same argument holds in base b with modulus b-1.",
-   "applied": [
-    [
-     "add-digits",
-     "replacing the repeated digit-summing loop with the closed form `1 + (n - 1) % 9`"
-    ]
-   ]
-  },
-  {
-   "id": "L-MATH-07",
-   "topic": "math",
-   "day": 3,
-   "headline": "Skip whole blocks rather than enumerating",
-   "detail": "When the index space is far too large to build, partition it into blocks whose sizes are known in closed form, subtract whole blocks until the target lands inside one, then solve locally.",
-   "applied": [
-    [
-     "nth-digit",
-     "subtracting 9, 180, 2700... digits per length class until n falls inside, then locating the number and the digit within it"
-    ]
-   ]
-  },
-  {
-   "id": "L-MATH-08",
-   "topic": "math",
-   "day": 3,
-   "headline": "Clamping encodes a case instead of branching on it",
-   "detail": "A negative intermediate often means 'this case does not occur'. Clamping it to zero collapses the special case into the general formula, which is shorter and harder to get wrong than an explicit branch.",
-   "applied": [
-    [
-     "rectangle-area",
-     "`max(0, min(right) - max(left))` making disjoint rectangles contribute zero overlap with no separate test"
+     "subarray-sum-equals-k",
+     "the array version of the identical idea"
     ]
    ]
   }
  ],
  "problems": [
   {
-   "id": "hashing-two-sum",
-   "order": 1,
-   "phase": "P0",
-   "day": 1,
-   "topic": "hashing",
-   "tier": "CORE",
-   "title": "Two Sum",
-   "lc": {
-    "id": "1",
-    "slug": "two-sum",
-    "url": "https://leetcode.com/problems/two-sum/",
-    "difficulty": "Easy",
-    "ac_rate": 57.9,
-    "tags": [
-     "Array",
-     "Hash Table"
-    ]
-   },
-   "tuf": {
-    "article": "https://takeuforward.org/data-structure/two-sum-check-if-a-pair-with-given-sum-exists-in-array/",
-    "youtube": "https://www.youtube.com/watch?v=UXDSeD9mN-k",
-    "striver_title": "Two Sum"
-   },
-   "pattern": "hash-complement",
-   "template": "T-HASH-01",
-   "companies": [
-    "Amazon",
-    "Google",
-    "Microsoft",
-    "Adobe",
-    "Apple"
-   ],
-   "campus_oa": "HIGH",
-   "learnings": {
-    "insight": "You are not looking for *pairs*. You are looking for one number at a time and asking 'has my partner already walked past me?' That reframing is the whole problem - it turns a two-dimensional search into a one-dimensional walk.",
-    "trick": "Store what you have SEEN, look up what you NEED. Check `target - x` in the map BEFORE inserting `x`, otherwise an element pairs with itself when target = 2x.",
-    "edge_cases": [
-     "Duplicate values - `[3,3]`, target 6. Checking before inserting handles it.",
-     "Negative numbers work fine; the complement is just arithmetic.",
-     "Exactly one valid answer is guaranteed here. Do not rely on that in variants."
-    ],
-    "complexity": {
-     "time": "O(n)",
-     "space": "O(n)",
-     "why": "one pass, one O(1) average lookup per element. Space is the map holding up to n keys. The brute force is O(n^2) time and O(1) space - this is the classic trade."
-    },
-    "siblings": [
-     "two-sum-ii-input-array-is-sorted",
-     "3sum",
-     "4sum",
-     "subarray-sum-equals-k"
-    ],
-    "followups": [
-     {
-      "q": "Now the array is sorted. Can you do it in O(1) space?",
-      "a": "Two pointers from both ends. Sum too small, move left up; too big, move right down. O(n) time, O(1) space - strictly better than hashing when sorted."
-     },
-     {
-      "q": "Return all unique pairs, not just one.",
-      "a": "Sort plus two pointers, skipping duplicates on both sides after each hit. Hashing gets messy for uniqueness; sorting makes dedup trivial."
-     },
-     {
-      "q": "What if the array is a stream you cannot store?",
-      "a": "You cannot, in general - the pair may span the whole stream. If the range of values is bounded you can keep a fixed-size seen-array instead."
-     }
-    ]
-   }
-  },
-  {
-   "id": "hashing-contains-duplicate",
-   "order": 2,
-   "phase": "P0",
-   "day": 1,
-   "topic": "hashing",
-   "tier": "DRILL",
-   "title": "Contains Duplicate",
-   "lc": {
-    "id": "217",
-    "slug": "contains-duplicate",
-    "url": "https://leetcode.com/problems/contains-duplicate/",
-    "difficulty": "Easy",
-    "ac_rate": 64.7,
-    "tags": [
-     "Array",
-     "Hash Table",
-     "Sorting"
-    ]
-   },
-   "tuf": {
-    "article": null,
-    "youtube": null,
-    "striver_title": null
-   },
-   "pattern": "seen-set",
-   "template": "T-HASH-02",
-   "companies": [
-    "Amazon",
-    "Adobe",
-    "Palantir"
-   ],
-   "campus_oa": "HIGH",
-   "learnings": {
-    "insight": "The moment a question asks 'does anything repeat', you are being asked whether you know that a set gives you membership in O(1). That is the entire test.",
-    "trick": "Short-circuit. Return true the instant you see a repeat - do not build the whole set first and compare sizes, even though `set.size() != n` also works.",
-    "edge_cases": [
-     "Empty array and single element - both false.",
-     "All identical - returns true on the second element, not the last."
-    ],
-    "complexity": {
-     "time": "O(n)",
-     "space": "O(n)",
-     "why": "one pass with O(1) average inserts. Sorting first would be O(n log n) time but O(1) extra space - name that trade if asked."
-    },
-    "siblings": [
-     "contains-duplicate-ii",
-     "single-number",
-     "find-the-duplicate-number",
-     "valid-anagram"
-    ],
-    "followups": [
-     {
-      "q": "O(1) extra space?",
-      "a": "Sort in place, then scan adjacent pairs. O(n log n) time, O(1) space - but it destroys the input order, which may not be allowed."
-     },
-     {
-      "q": "Duplicates within distance k of each other?",
-      "a": "That is LC 219 - a sliding window of a set, evicting the element that falls out of the window. Same idea, bounded memory."
-     },
-     {
-      "q": "Array of n+1 integers in range [1,n], find the duplicate without modifying it, O(1) space?",
-      "a": "Floyd's cycle detection treating values as next-pointers. That is LC 287 and it is a genuinely beautiful problem. (This is the separator.)"
-     }
-    ]
-   }
-  },
-  {
-   "id": "hashing-valid-anagram",
-   "order": 3,
-   "phase": "P0",
-   "day": 1,
-   "topic": "hashing",
-   "tier": "DRILL",
-   "title": "Valid Anagram",
-   "lc": {
-    "id": "242",
-    "slug": "valid-anagram",
-    "url": "https://leetcode.com/problems/valid-anagram/",
-    "difficulty": "Easy",
-    "ac_rate": 68.7,
-    "tags": [
-     "Hash Table",
-     "String",
-     "Sorting"
-    ]
-   },
-   "tuf": {
-    "article": "https://takeuforward.org/data-structure/check-if-two-strings-are-anagrams-of-each-other/",
-    "youtube": null,
-    "striver_title": "Check if two strings are anagram of each other"
-   },
-   "pattern": "frequency-count",
-   "template": "T-HASH-03",
-   "companies": [
-    "Amazon",
-    "Uber",
-    "Bloomberg",
-    "Goldman Sachs"
-   ],
-   "campus_oa": "HIGH",
-   "learnings": {
-    "insight": "Two words are anagrams when their letter *multisets* match. You do not need to sort to compare multisets - you just need to count, and counting is O(n) while sorting is O(n log n).",
-    "trick": "For a fixed alphabet, use `int cnt[26]` and NOT a hash map. Increment for string one, decrement for string two, then assert everything is zero. One array, one pass each, no hashing overhead at all.",
-    "edge_cases": [
-     "Different lengths - return false immediately, before counting.",
-     "Empty strings are anagrams of each other.",
-     "The `cnt[26]` trick silently breaks on Unicode. Ask about the character set."
-    ],
-    "complexity": {
-     "time": "O(n)",
-     "space": "O(1)",
-     "why": "the counter is 26 ints regardless of input size, so it is genuinely constant space - not O(k) hand-waving. Sorting-based solutions are O(n log n) time."
-    },
-    "siblings": [
-     "group-anagrams",
-     "find-all-anagrams-in-a-string",
-     "permutation-in-string",
-     "ransom-note"
-    ],
-    "followups": [
-     {
-      "q": "What if the strings contain Unicode?",
-      "a": "The 26-array collapses. Switch to `unordered_map<char32_t,int>` and accept O(1) average instead of true O(1). Always ask about the alphabet before optimising."
-     },
-     {
-      "q": "Group all anagrams in a list of words.",
-      "a": "Hash each word by its sorted form, or by its 26-length count signature. The count signature is O(n) per word versus O(n log n) for sorting - faster for long words."
-     },
-     {
-      "q": "Find every anagram of p inside s.",
-      "a": "Sliding window of size |p| carrying a rolling count. LC 438, and it is the natural next rung from here."
-     }
-    ]
-   }
-  },
-  {
-   "id": "sorting-sort-an-array",
-   "order": 4,
-   "phase": "P0",
-   "day": 2,
-   "topic": "sorting",
-   "tier": "CORE",
-   "title": "Sort an Array",
-   "lc": {
-    "id": "912",
-    "slug": "sort-an-array",
-    "url": "https://leetcode.com/problems/sort-an-array/",
-    "difficulty": "Medium",
-    "ac_rate": 55.6,
-    "tags": [
-     "Array",
-     "Divide and Conquer",
-     "Sorting",
-     "Heap (Priority Queue)",
-     "Merge Sort",
-     "Bucket Sort",
-     "Radix Sort",
-     "Counting Sort"
-    ]
-   },
-   "tuf": {
-    "article": null,
-    "youtube": null,
-    "striver_title": null
-   },
-   "pattern": "merge-sort",
-   "template": "T-SORT-01",
-   "companies": [
-    "Microsoft",
-    "Amazon",
-    "Bloomberg"
-   ],
-   "campus_oa": "MEDIUM",
-   "learnings": {
-    "insight": "LeetCode blocks `std::sort` here on purpose. This problem exists so you write merge sort or quick sort from memory, once, properly - and then reuse the merge step for Count Inversions and Reverse Pairs, which are otherwise hard.",
-    "trick": "Write merge sort, not quick sort. The test data includes adversarial input that drives naive quick sort to O(n^2) and times you out. If you insist on quick sort, randomise the pivot.",
-    "edge_cases": [
-     "Single element or empty - the `if (l >= r) return;` guard handles both.",
-     "All elements identical - fine for merge sort, worst case for Lomuto partition.",
-     "Negative numbers - no special handling, but it kills counting-sort shortcuts."
-    ],
-    "complexity": {
-     "time": "O(n log n)",
-     "space": "O(n)",
-     "why": "log n levels of recursion, O(n) merging at each level. Space is the temporary buffer plus O(log n) stack. Quick sort would be O(log n) space but risks O(n^2) time."
-    },
-    "siblings": [
-     "merge-sorted-array",
-     "sort-list",
-     "reverse-pairs",
-     "count-of-smaller-numbers-after-self"
-    ],
-    "followups": [
-     {
-      "q": "Your merge sort uses O(n) space. Make it O(1).",
-      "a": "In-place merge exists but is O(n log^2 n) and genuinely fiddly. The honest answer is heap sort: O(n log n) time, O(1) space, at the cost of stability and cache locality."
-     },
-     {
-      "q": "Same problem, but it is a linked list.",
-      "a": "Merge sort is strictly the right answer - no random access needed, and you relink rather than copy, so it is O(1) extra space. Quick sort on a list is painful."
-     },
-     {
-      "q": "Values are all between 0 and 1000.",
-      "a": "Counting sort. O(n + k) beats O(n log n) outright. Notice the constraint gave this away - that is the habit to build."
-     }
-    ]
-   }
-  },
-  {
-   "id": "math-palindrome-number",
-   "order": 5,
-   "phase": "P0",
-   "day": 3,
-   "topic": "math",
-   "tier": "DRILL",
-   "title": "Palindrome Number",
-   "lc": {
-    "id": "9",
-    "slug": "palindrome-number",
-    "url": "https://leetcode.com/problems/palindrome-number/",
-    "difficulty": "Easy",
-    "ac_rate": 61,
-    "tags": [
-     "Math"
-    ]
-   },
-   "tuf": {
-    "article": "https://takeuforward.org/data-structure/check-if-a-number-is-palindrome-or-not/",
-    "youtube": "https://www.youtube.com/watch?v=1xNbjMdbjug&t=1230",
-    "striver_title": "Palindrome Number"
-   },
-   "pattern": "digit-reversal",
-   "template": "T-MATH-01",
-   "companies": [
-    "Amazon",
-    "Adobe"
-   ],
-   "campus_oa": "MEDIUM",
-   "learnings": {
-    "insight": "The interesting version of this problem is the one where you are banned from converting to a string. Then it becomes a digit-extraction exercise, and digit extraction is `n % 10` to read and `n /= 10` to advance - the two operations behind half of all number problems.",
-    "trick": "Reverse only HALF the number and compare the halves. Stop when the reversed half becomes >= the remaining half. This avoids the overflow you get from reversing the whole thing, and it is the answer they are fishing for.",
-    "edge_cases": [
-     "Negatives are never palindromes - the minus sign. Return false immediately.",
-     "Any number ending in 0 (except 0 itself) cannot be a palindrome.",
-     "Odd digit counts leave a middle digit - discard it with `rev / 10` before comparing."
-    ],
-    "complexity": {
-     "time": "O(log n)",
-     "space": "O(1)",
-     "why": "log10(n) digits, one operation each, no extra storage. The string solution is O(log n) space for the string, which is why they ban it."
-    },
-    "siblings": [
-     "reverse-integer",
-     "add-digits",
-     "happy-number",
-     "valid-palindrome"
-    ],
-    "followups": [
-     {
-      "q": "Reverse the whole number instead. What breaks?",
-      "a": "Overflow. Reversing 1534236469 exceeds INT_MAX. Half-reversal sidesteps it entirely, which is exactly why it is the preferred solution."
-     },
-     {
-      "q": "Now do it in base k instead of base 10.",
-      "a": "Replace every 10 with k. The algorithm is unchanged - which is the point. Digit extraction was never about base 10."
-     }
-    ]
-   }
-  },
-  {
-   "id": "math-happy-number",
-   "order": 6,
-   "phase": "P0",
-   "day": 3,
-   "topic": "math",
-   "tier": "CORE",
-   "title": "Happy Number",
-   "lc": {
-    "id": "202",
-    "slug": "happy-number",
-    "url": "https://leetcode.com/problems/happy-number/",
-    "difficulty": "Easy",
-    "ac_rate": 60.3,
-    "tags": [
-     "Hash Table",
-     "Math",
-     "Two Pointers",
-     "Floyd's Cycle Finding Algorithm"
-    ]
-   },
-   "tuf": {
-    "article": null,
-    "youtube": null,
-    "striver_title": null
-   },
-   "pattern": "cycle-detection",
-   "template": "T-MATH-02",
-   "companies": [
-    "Google",
-    "Uber",
-    "Airbnb"
-   ],
-   "campus_oa": "MEDIUM",
-   "learnings": {
-    "insight": "This looks like a maths problem and is actually a **linked list** problem in disguise. Each number points to exactly one successor, so you are walking a chain. It either reaches 1 or loops forever - and 'detect a loop' has a known answer.",
-    "trick": "Floyd's tortoise and hare. Slow advances one step, fast advances two. If they meet, there is a cycle and the answer is false. O(1) space, versus a hash set's O(log n). Recognising the disguise is the whole skill here.",
-    "edge_cases": [
-     "n = 1 is happy by definition - handle before entering the loop.",
-     "Single-digit numbers other than 1 and 7 all fall into the same 4-16-37... cycle.",
-     "The chain is guaranteed finite: any number above 999 shrinks, so values are bounded."
-    ],
-    "complexity": {
-     "time": "O(log n)",
-     "space": "O(1)",
-     "why": "digit-sum collapses large numbers fast - anything above 999 drops below itself, so the walk is short and bounded. Floyd's uses two pointers and nothing else."
-    },
-    "siblings": [
-     "linked-list-cycle",
-     "linked-list-cycle-ii",
-     "find-the-duplicate-number",
-     "add-digits"
-    ],
-    "followups": [
-     {
-      "q": "Why does this terminate at all?",
-      "a": "For any n with d digits, the max digit-square-sum is 81d, which is smaller than n once d >= 4. So every number eventually falls below 1000, and there are finitely many states below 1000 - so it must cycle or hit 1."
-     },
-     {
-      "q": "Find the length of the cycle.",
-      "a": "After the pointers meet, hold one still and advance the other until they meet again, counting steps. Same trick as LC 142."
-     },
-     {
-      "q": "Where else have you seen a value-points-to-value chain?",
-      "a": "LC 287, Find the Duplicate Number. Recognising that an array of values in [1,n] IS a linked list is the single highest-leverage disguise in all of DSA."
-     }
-    ]
-   }
-  },
-  {
-   "id": "hashing-single-number",
-   "order": 7,
-   "phase": "P0",
-   "day": 1,
-   "topic": "hashing",
-   "tier": "CORE",
-   "title": "Single Number",
-   "lc": {
-    "id": "136",
-    "slug": "single-number",
-    "url": "https://leetcode.com/problems/single-number/",
-    "difficulty": "Easy",
-    "ac_rate": 78.3,
-    "tags": [
-     "Array",
-     "Bit Manipulation"
-    ]
-   },
-   "tuf": {
-    "article": "https://takeuforward.org/arrays/find-the-number-that-appears-once-and-the-other-numbers-twice/",
-    "youtube": "https://www.youtube.com/watch?v=bYWLJb3vCWY&t=1369",
-    "striver_title": "Find the number that appears once, and other numbers twice."
-   },
-   "pattern": "xor-cancellation",
-   "template": "T-BIT-01",
-   "companies": [
-    "Amazon",
-    "Google",
-    "Airbnb",
-    "Palantir"
-   ],
-   "campus_oa": "HIGH",
-   "learnings": {
-    "insight": "A hash map solves this in O(n) time and O(n) space, and that answer is rejected. The constraint 'constant extra space' is the entire problem, and it is pointing at XOR, whose two properties — x^x = 0 and x^0 = x — make duplicates annihilate each other regardless of order.",
-    "trick": "XOR the whole array. Every value appearing twice cancels to 0, leaving only the unique element. Order is irrelevant because XOR is commutative and associative.",
-    "edge_cases": [
-     "Single-element array returns that element — the XOR identity handles it.",
-     "Negative numbers work: XOR operates on the bit pattern, not the value.",
-     "This breaks the moment duplicates appear three times — that is Single Number II, which needs bit-counting mod 3 instead."
-    ],
-    "complexity": {
-     "time": "O(n)",
-     "space": "O(1)",
-     "why": "one pass, one accumulator register. The hash-map solution is also O(n) time but O(n) space, which is precisely what the problem forbids."
-    },
-    "siblings": [
-     "single-number-ii",
-     "single-number-iii",
-     "missing-number",
-     "find-the-duplicate-number"
-    ],
-    "followups": [
-     {
-      "q": "Every element appears three times except one. Now what?",
-      "a": "XOR no longer cancels. Count set bits at each of the 32 positions across all numbers; positions where the count is not divisible by 3 belong to the unique element. O(32n) time, O(1) space."
-     },
-     {
-      "q": "Two elements appear once, the rest twice.",
-      "a": "XOR everything to get a^b. Any set bit in that result is a position where a and b differ — pick the lowest with `x & -x`, partition the array on it, and XOR each half separately."
-     },
-     {
-      "q": "Same question but find the missing number in 0..n.",
-      "a": "XOR all indices with all values. Everything present cancels and the missing value survives. Same trick, different framing."
-     }
-    ]
-   }
-  },
-  {
    "id": "hashing-majority-element",
-   "order": 8,
-   "phase": "P0",
+   "order": 1,
+   "phase": "V0",
    "day": 1,
    "topic": "hashing",
    "tier": "CORE",
@@ -973,86 +407,165 @@
    }
   },
   {
-   "id": "hashing-ransom-note",
-   "order": 9,
-   "phase": "P0",
+   "id": "hashing-single-number",
+   "order": 2,
+   "phase": "V0",
    "day": 1,
    "topic": "hashing",
-   "tier": "DRILL",
-   "title": "Ransom Note",
+   "tier": "CORE",
+   "title": "Single Number",
    "lc": {
-    "id": "383",
-    "slug": "ransom-note",
-    "url": "https://leetcode.com/problems/ransom-note/",
+    "id": "136",
+    "slug": "single-number",
+    "url": "https://leetcode.com/problems/single-number/",
     "difficulty": "Easy",
-    "ac_rate": 66.4,
+    "ac_rate": 78.3,
     "tags": [
-     "Hash Table",
-     "String",
-     "Counting"
+     "Array",
+     "Bit Manipulation"
     ]
    },
    "tuf": {
-    "article": null,
-    "youtube": null,
-    "striver_title": null
+    "article": "https://takeuforward.org/arrays/find-the-number-that-appears-once-and-the-other-numbers-twice/",
+    "youtube": "https://www.youtube.com/watch?v=bYWLJb3vCWY&t=1369",
+    "striver_title": "Find the number that appears once, and other numbers twice."
    },
-   "pattern": "frequency-count",
-   "template": "T-HASH-03",
+   "pattern": "xor-cancellation",
+   "template": "T-BIT-01",
    "companies": [
     "Amazon",
+    "Google",
+    "Airbnb",
+    "Palantir"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "A hash map solves this in O(n) time and O(n) space, and that answer is rejected. The constraint 'constant extra space' is the entire problem, and it is pointing at XOR, whose two properties — x^x = 0 and x^0 = x — make duplicates annihilate each other regardless of order.",
+    "trick": "XOR the whole array. Every value appearing twice cancels to 0, leaving only the unique element. Order is irrelevant because XOR is commutative and associative.",
+    "edge_cases": [
+     "Single-element array returns that element — the XOR identity handles it.",
+     "Negative numbers work: XOR operates on the bit pattern, not the value.",
+     "This breaks the moment duplicates appear three times — that is Single Number II, which needs bit-counting mod 3 instead."
+    ],
+    "complexity": {
+     "time": "O(n)",
+     "space": "O(1)",
+     "why": "one pass, one accumulator register. The hash-map solution is also O(n) time but O(n) space, which is precisely what the problem forbids."
+    },
+    "siblings": [
+     "single-number-ii",
+     "single-number-iii",
+     "missing-number",
+     "find-the-duplicate-number"
+    ],
+    "followups": [
+     {
+      "q": "Every element appears three times except one. Now what?",
+      "a": "XOR no longer cancels. Count set bits at each of the 32 positions across all numbers; positions where the count is not divisible by 3 belong to the unique element. O(32n) time, O(1) space."
+     },
+     {
+      "q": "Two elements appear once, the rest twice.",
+      "a": "XOR everything to get a^b. Any set bit in that result is a position where a and b differ — pick the lowest with `x & -x`, partition the array on it, and XOR each half separately."
+     },
+     {
+      "q": "Same question but find the missing number in 0..n.",
+      "a": "XOR all indices with all values. Everything present cancels and the missing value survives. Same trick, different framing."
+     }
+    ]
+   }
+  },
+  {
+   "id": "hashing-two-sum",
+   "order": 3,
+   "phase": "V0",
+   "day": 1,
+   "topic": "hashing",
+   "tier": "CORE",
+   "title": "Two Sum",
+   "lc": {
+    "id": "1",
+    "slug": "two-sum",
+    "url": "https://leetcode.com/problems/two-sum/",
+    "difficulty": "Easy",
+    "ac_rate": 57.9,
+    "tags": [
+     "Array",
+     "Hash Table"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/two-sum-check-if-a-pair-with-given-sum-exists-in-array/",
+    "youtube": "https://www.youtube.com/watch?v=UXDSeD9mN-k",
+    "striver_title": "Two Sum"
+   },
+   "pattern": "hash-complement",
+   "template": "T-HASH-01",
+   "companies": [
+    "Amazon",
+    "Google",
+    "Microsoft",
+    "Adobe",
     "Apple"
    ],
-   "campus_oa": "MEDIUM",
+   "campus_oa": "HIGH",
    "learnings": {
-    "insight": "This is Valid Anagram with the equality relaxed to containment. Instead of asserting every count is zero, you assert no count goes negative. Recognising that two problems differ only in their terminating condition is the skill being built here.",
-    "trick": "Count the magazine once into `int cnt[26]`, then decrement for each ransom-note character and fail the moment a count would go below zero.",
+    "insight": "You are not looking for *pairs*. You are looking for one number at a time and asking 'has my partner already walked past me?' That reframing is the whole problem - it turns a two-dimensional search into a one-dimensional walk.",
+    "trick": "Store what you have SEEN, look up what you NEED. Check `target - x` in the map BEFORE inserting `x`, otherwise an element pairs with itself when target = 2x.",
     "edge_cases": [
-     "Empty ransom note is always constructible — return true.",
-     "Ransom note longer than the magazine can be rejected immediately on length.",
-     "Each magazine character is usable only once, which is exactly what decrementing enforces; a set instead of a counter would silently allow reuse."
+     "Duplicate values - `[3,3]`, target 6. Checking before inserting handles it.",
+     "Negative numbers work fine; the complement is just arithmetic.",
+     "Exactly one valid answer is guaranteed here. Do not rely on that in variants."
     ],
     "complexity": {
-     "time": "O(n + m)",
-     "space": "O(1)",
-     "why": "one pass over each string, with a fixed 26-slot counter. The constant space claim is genuine because the alphabet is fixed by the constraints."
+     "time": "O(n)",
+     "space": "O(n)",
+     "why": "one pass, one O(1) average lookup per element. Space is the map holding up to n keys. The brute force is O(n^2) time and O(1) space - this is the classic trade."
     },
     "siblings": [
-     "valid-anagram",
-     "find-all-anagrams-in-a-string",
-     "permutation-in-string"
+     "two-sum-ii-input-array-is-sorted",
+     "3sum",
+     "4sum",
+     "subarray-sum-equals-k"
     ],
     "followups": [
      {
-      "q": "Unicode instead of lowercase Latin?",
-      "a": "The fixed array collapses; switch to a hash map and the space becomes O(k) for k distinct characters, with O(1) average rather than guaranteed lookups."
+      "q": "Now the array is sorted. Can you do it in O(1) space?",
+      "a": "Two pointers from both ends. Sum too small, move left up; too big, move right down. O(n) time, O(1) space - strictly better than hashing when sorted."
      },
      {
-      "q": "Characters may be reused any number of times.",
-      "a": "Counting becomes unnecessary — a set of available characters suffices, and the problem degrades to a subset test."
+      "q": "Return all unique pairs, not just one.",
+      "a": "Sort plus two pointers, skipping duplicates on both sides after each hit. Hashing gets messy for uniqueness; sorting makes dedup trivial."
+     },
+     {
+      "q": "What if the array is a stream you cannot store?",
+      "a": "You cannot, in general - the pair may span the whole stream. If the range of values is bounded you can keep a fixed-size seen-array instead."
      }
     ]
    }
   },
   {
-   "id": "hashing-first-unique-character-in-a-string",
-   "order": 10,
-   "phase": "P0",
+   "id": "sorting-sort-an-array",
+   "order": 4,
+   "phase": "V0",
    "day": 1,
-   "topic": "hashing",
-   "tier": "SKIM",
-   "title": "First Unique Character in a String",
+   "topic": "sorting",
+   "tier": "CORE",
+   "title": "Sort an Array",
    "lc": {
-    "id": "387",
-    "slug": "first-unique-character-in-a-string",
-    "url": "https://leetcode.com/problems/first-unique-character-in-a-string/",
-    "difficulty": "Easy",
-    "ac_rate": 66.3,
+    "id": "912",
+    "slug": "sort-an-array",
+    "url": "https://leetcode.com/problems/sort-an-array/",
+    "difficulty": "Medium",
+    "ac_rate": 55.6,
     "tags": [
-     "Hash Table",
-     "String",
-     "Queue",
-     "Counting"
+     "Array",
+     "Divide and Conquer",
+     "Sorting",
+     "Heap (Priority Queue)",
+     "Merge Sort",
+     "Bucket Sort",
+     "Radix Sort",
+     "Counting Sort"
     ]
    },
    "tuf": {
@@ -1060,638 +573,258 @@
     "youtube": null,
     "striver_title": null
    },
-   "pattern": "frequency-count",
-   "template": "T-HASH-03",
+   "pattern": "merge-sort",
+   "template": "T-SORT-01",
    "companies": [
-    "Amazon",
     "Microsoft",
-    "Bloomberg",
-    "Goldman Sachs"
-   ],
-   "campus_oa": "MEDIUM",
-   "learnings": {
-    "insight": "Two passes beat one clever pass. The first pass establishes counts; the second walks the string in order and returns the first character whose count is 1. Trying to do it in a single pass is where people waste time, because uniqueness is not knowable until the whole string has been read.",
-    "trick": "Count, then scan in original order. The second scan is what supplies 'first' — a map alone loses positional order.",
-    "edge_cases": [
-     "No unique character exists — return -1, do not fall off the end.",
-     "Single-character string returns index 0.",
-     "The answer is an index, not the character. Easy mark to lose."
-    ],
-    "complexity": {
-     "time": "O(n)",
-     "space": "O(1)",
-     "why": "two passes, each linear, over a 26-slot counter. Storing first-seen indices in the map and taking the minimum is an alternative one-pass-plus-scan variant with the same bound."
-    },
-    "siblings": [
-     "valid-anagram",
-     "ransom-note",
-     "sort-characters-by-frequency"
-    ],
-    "followups": [
-     {
-      "q": "Now it is a stream and you must answer at any moment.",
-      "a": "Maintain a queue of candidate characters plus a count map. On each arrival, push it and then pop from the front while the front's count exceeds 1. The front is always the current first-unique."
-     },
-     {
-      "q": "Return the first character appearing exactly k times.",
-      "a": "Identical structure — only the second-pass predicate changes from `== 1` to `== k`."
-     }
-    ]
-   }
-  },
-  {
-   "id": "hashing-intersection-of-two-arrays",
-   "order": 11,
-   "phase": "P0",
-   "day": 1,
-   "topic": "hashing",
-   "tier": "SKIM",
-   "title": "Intersection of Two Arrays",
-   "lc": {
-    "id": "349",
-    "slug": "intersection-of-two-arrays",
-    "url": "https://leetcode.com/problems/intersection-of-two-arrays/",
-    "difficulty": "Easy",
-    "ac_rate": 78.4,
-    "tags": [
-     "Array",
-     "Hash Table",
-     "Two Pointers",
-     "Binary Search",
-     "Sorting"
-    ]
-   },
-   "tuf": {
-    "article": null,
-    "youtube": null,
-    "striver_title": null
-   },
-   "pattern": "seen-set",
-   "template": "T-HASH-02",
-   "companies": [
-    "Amazon",
-    "Facebook",
-    "Two Sigma"
-   ],
-   "campus_oa": "LOW",
-   "learnings": {
-    "insight": "The word 'unique' in the output specification is doing real work: it means a set, not a list, and choosing the right container makes the deduplication free rather than a separate step.",
-    "trick": "Put the smaller array into a set, scan the larger, and collect into a second set to deduplicate the output. Sizing by the smaller array minimises memory.",
-    "edge_cases": [
-     "Either array empty — result is empty.",
-     "Duplicates within an input must not produce duplicates in the output.",
-     "The result has no required ordering here, which is what allows a set."
-    ],
-    "complexity": {
-     "time": "O(n + m)",
-     "space": "O(min(n, m))",
-     "why": "both arrays are scanned once and the set holds only the smaller one. Sorting both and using two pointers is O(n log n + m log m) time but O(1) extra space."
-    },
-    "siblings": [
-     "intersection-of-two-arrays-ii",
-     "contains-duplicate",
-     "two-sum"
-    ],
-    "followups": [
-     {
-      "q": "Now duplicates must appear as many times as they occur in both.",
-      "a": "That is LC 350 — replace the set with a count map and decrement on each match."
-     },
-     {
-      "q": "Both arrays are already sorted.",
-      "a": "Two pointers, O(n + m) time and O(1) extra space. Strictly better than hashing, and the reason to always ask whether input is sorted."
-     },
-     {
-      "q": "One array is enormous and on disk, the other fits in memory.",
-      "a": "Hash the small one in memory and stream the large one past it. This is exactly how a database hash join works."
-     }
-    ]
-   }
-  },
-  {
-   "id": "sorting-sort-array-by-parity",
-   "order": 12,
-   "phase": "P0",
-   "day": 2,
-   "topic": "sorting",
-   "tier": "DRILL",
-   "title": "Sort Array By Parity",
-   "lc": {
-    "id": "905",
-    "slug": "sort-array-by-parity",
-    "url": "https://leetcode.com/problems/sort-array-by-parity/",
-    "difficulty": "Easy",
-    "ac_rate": 76.7,
-    "tags": [
-     "Array",
-     "Two Pointers",
-     "Sorting"
-    ]
-   },
-   "tuf": {
-    "article": null,
-    "youtube": null,
-    "striver_title": null
-   },
-   "pattern": "two-pointer-partition",
-   "template": "T-SORT-02",
-   "companies": [
-    "Amazon",
-    "Facebook"
-   ],
-   "campus_oa": "MEDIUM",
-   "learnings": {
-    "insight": "This is one partition step of quicksort with the predicate changed from 'less than pivot' to 'is even'. Seeing it that way turns an unfamiliar problem into a routine you already own, and generalises to any binary property.",
-    "trick": "Two pointers from both ends. Advance left while it is even, retreat right while it is odd, then swap. No comparison sort is needed because there are only two classes.",
-    "edge_cases": [
-     "All even or all odd — one pointer runs the full length, no swaps occur.",
-     "Empty array — the loop guard handles it.",
-     "Relative order within each group is not required here. If it were, the two-pointer approach would be invalid and you would need a stable partition."
-    ],
-    "complexity": {
-     "time": "O(n)",
-     "space": "O(1)",
-     "why": "each pointer moves monotonically, so together they traverse the array once. Sorting with a parity comparator is O(n log n) and strictly worse."
-    },
-    "siblings": [
-     "sort-array-by-parity-ii",
-     "sort-colors",
-     "move-zeroes",
-     "partition-list"
-    ],
-    "followups": [
-     {
-      "q": "Preserve the relative order within evens and within odds.",
-      "a": "The in-place two-pointer swap destroys order. You need a stable partition — either O(n) extra space writing evens then odds, or the O(n log n) in-place stable variant."
-     },
-     {
-      "q": "Three classes instead of two.",
-      "a": "Dutch National Flag with three pointers. That is Sort Colors, and it is the natural generalisation of this problem."
-     }
-    ]
-   }
-  },
-  {
-   "id": "sorting-pancake-sorting",
-   "order": 13,
-   "phase": "P0",
-   "day": 2,
-   "topic": "sorting",
-   "tier": "CORE",
-   "title": "Pancake Sorting",
-   "lc": {
-    "id": "969",
-    "slug": "pancake-sorting",
-    "url": "https://leetcode.com/problems/pancake-sorting/",
-    "difficulty": "Medium",
-    "ac_rate": 72,
-    "tags": [
-     "Array",
-     "Two Pointers",
-     "Greedy",
-     "Sorting"
-    ]
-   },
-   "tuf": {
-    "article": null,
-    "youtube": null,
-    "striver_title": null
-   },
-   "pattern": "selection-by-reversal",
-   "template": "T-SORT-03",
-   "companies": [
-    "Google",
-    "Microsoft"
-   ],
-   "campus_oa": "LOW",
-   "learnings": {
-    "insight": "You cannot swap, only reverse a prefix. That single restriction rules out every standard sort and forces you to think about what operations you actually have. The answer is selection sort, rebuilt from prefix reversals.",
-    "trick": "Repeatedly find the largest unplaced element, flip it to the front, then flip it into its final position at the end of the unsorted region. Two flips place one element, so at most 2n flips total.",
-    "edge_cases": [
-     "Already sorted — skip the flips when the maximum is already in position, or you waste operations.",
-     "The maximum already at the front needs only one flip, not two.",
-     "Indices in the answer are 1-based, which is an easy mark to drop."
-    ],
-    "complexity": {
-     "time": "O(n²)",
-     "space": "O(1)",
-     "why": "n iterations, each scanning for a maximum in O(n) and performing O(n) reversal work. The output length is what is being optimised here, not the runtime — at most 2n flips."
-    },
-    "siblings": [
-     "sort-an-array",
-     "reverse-string",
-     "rotate-array"
-    ],
-    "followups": [
-     {
-      "q": "Minimise the number of flips rather than achieving 2n.",
-      "a": "That is the pancake number problem and it is NP-hard in the burnt variant. The known upper bound is roughly 18n/11. Recognising a problem as NP-hard is itself the expected answer here."
-     },
-     {
-      "q": "Why does selection sort adapt here when quicksort does not?",
-      "a": "Selection sort only ever needs to move one known element to one known place, which two reversals achieve. Quicksort needs arbitrary pairwise swaps, which prefix reversal cannot express cheaply."
-     }
-    ]
-   }
-  },
-  {
-   "id": "sorting-sort-the-matrix-diagonally",
-   "order": 14,
-   "phase": "P0",
-   "day": 2,
-   "topic": "sorting",
-   "tier": "CORE",
-   "title": "Sort the Matrix Diagonally",
-   "lc": {
-    "id": "1329",
-    "slug": "sort-the-matrix-diagonally",
-    "url": "https://leetcode.com/problems/sort-the-matrix-diagonally/",
-    "difficulty": "Medium",
-    "ac_rate": 83.3,
-    "tags": [
-     "Array",
-     "Sorting",
-     "Matrix"
-    ]
-   },
-   "tuf": {
-    "article": null,
-    "youtube": null,
-    "striver_title": null
-   },
-   "pattern": "group-by-invariant",
-   "template": "T-SORT-04",
-   "companies": [
-    "Amazon",
-    "Google"
-   ],
-   "campus_oa": "MEDIUM",
-   "learnings": {
-    "insight": "Every cell on the same diagonal shares the value `i - j`. Once you notice that, the problem stops being about matrices and becomes 'group by a key, sort each group, write it back' — a pattern you will reuse constantly.",
-    "trick": "Bucket cells into `map<int, vector<int>>` keyed on `i - j`, sort each bucket, then walk the matrix again popping values back in order. The invariant does all the work.",
-    "edge_cases": [
-     "`i - j` is negative for cells above the main diagonal — a map handles it, a plain array needs an offset of `+ n`.",
-     "Single row or single column — every diagonal has length 1 and nothing changes.",
-     "Write-back must traverse in the same direction as the read, or the sorted order reverses."
-    ],
-    "complexity": {
-     "time": "O(m·n·log(min(m,n)))",
-     "space": "O(m·n)",
-     "why": "every cell is visited twice and each diagonal of length d costs O(d log d) to sort; diagonals are bounded by min(m,n). Space holds all cells across the buckets."
-    },
-    "siblings": [
-     "diagonal-traverse",
-     "transpose-matrix",
-     "spiral-matrix",
-     "group-anagrams"
-    ],
-    "followups": [
-     {
-      "q": "Use a priority queue per diagonal instead.",
-      "a": "Push during the first traversal, pop during the second. Same complexity, but it fuses the sort into the traversal and avoids materialising the vectors."
-     },
-     {
-      "q": "Sort anti-diagonals instead.",
-      "a": "The invariant becomes `i + j` rather than `i - j`. Nothing else changes, which is the point — the algorithm was never about diagonals, it was about the key."
-     }
-    ]
-   }
-  },
-  {
-   "id": "sorting-relative-sort-array",
-   "order": 15,
-   "phase": "P0",
-   "day": 2,
-   "topic": "sorting",
-   "tier": "DRILL",
-   "title": "Relative Sort Array",
-   "lc": {
-    "id": "1122",
-    "slug": "relative-sort-array",
-    "url": "https://leetcode.com/problems/relative-sort-array/",
-    "difficulty": "Easy",
-    "ac_rate": 75.4,
-    "tags": [
-     "Array",
-     "Hash Table",
-     "Sorting",
-     "Counting Sort",
-     "Quicksort",
-     "Bubble Sort"
-    ]
-   },
-   "tuf": {
-    "article": null,
-    "youtube": null,
-    "striver_title": null
-   },
-   "pattern": "custom-comparator",
-   "template": "T-SORT-05",
-   "companies": [
-    "Amazon",
-    "Adobe"
-   ],
-   "campus_oa": "MEDIUM",
-   "learnings": {
-    "insight": "When the ordering is defined by external data rather than by the values themselves, you build a rank map and sort on the rank. This is the general shape of every 'sort by a custom priority' question.",
-    "trick": "Map each value in arr2 to its position, then sort arr1 with a comparator returning that rank, falling back to the value itself for anything absent. Values not in arr2 get rank infinity so they sort last, ascending among themselves.",
-    "edge_cases": [
-     "Elements of arr1 missing from arr2 must go last in ascending order — a single comparator handles both rules.",
-     "Duplicates in arr1 are preserved; ranks are not unique.",
-     "Constraints cap values at 1000, so counting sort is available and is O(n + k)."
-    ],
-    "complexity": {
-     "time": "O(n log n)",
-     "space": "O(m)",
-     "why": "the sort dominates, with the rank map sized by arr2. The counting-sort alternative is O(n + k) because the value range is bounded — worth naming."
-    },
-    "siblings": [
-     "sort-characters-by-frequency",
-     "custom-sort-string",
-     "sort-the-people",
-     "largest-number"
-    ],
-    "followups": [
-     {
-      "q": "Do it in O(n + k) without a comparison sort.",
-      "a": "Counting sort. Tally arr1 into a 1001-slot array, emit values in arr2's order draining their counts, then emit the remaining values in ascending index order."
-     },
-     {
-      "q": "Why must the comparator be a strict weak ordering?",
-      "a": "Returning `<=` makes it non-irreflexive, which is undefined behaviour. In libstdc++ `std::sort` then reads past the range boundary and segfaults on inputs above 16 elements."
-     }
-    ]
-   }
-  },
-  {
-   "id": "sorting-minimum-absolute-difference",
-   "order": 16,
-   "phase": "P0",
-   "day": 2,
-   "topic": "sorting",
-   "tier": "DRILL",
-   "title": "Minimum Absolute Difference",
-   "lc": {
-    "id": "1200",
-    "slug": "minimum-absolute-difference",
-    "url": "https://leetcode.com/problems/minimum-absolute-difference/",
-    "difficulty": "Easy",
-    "ac_rate": 75.2,
-    "tags": [
-     "Array",
-     "Sorting"
-    ]
-   },
-   "tuf": {
-    "article": null,
-    "youtube": null,
-    "striver_title": null
-   },
-   "pattern": "sort-then-adjacent-scan",
-   "template": "T-SORT-06",
-   "companies": [
     "Amazon",
     "Bloomberg"
    ],
    "campus_oa": "MEDIUM",
    "learnings": {
-    "insight": "The minimum difference between any two elements is always between two elements that are adjacent after sorting. That one fact collapses an O(n²) pairwise search into a sort plus a linear scan, and it recurs across many problems.",
-    "trick": "Sort, make one pass computing adjacent differences to find the minimum, then a second pass collecting every pair achieving it. Two passes are cleaner than trying to collect and compare simultaneously.",
+    "insight": "LeetCode blocks `std::sort` here on purpose. This problem exists so you write merge sort or quick sort from memory, once, properly - and then reuse the merge step for Count Inversions and Reverse Pairs, which are otherwise hard.",
+    "trick": "Write merge sort, not quick sort. The test data includes adversarial input that drives naive quick sort to O(n^2) and times you out. If you insist on quick sort, randomise the pivot.",
     "edge_cases": [
-     "Multiple pairs share the minimum — all must be returned, in ascending order.",
-     "Negative values are fine; sorting normalises them.",
-     "Two elements only — one pair, difference is the answer."
+     "Single element or empty - the `if (l >= r) return;` guard handles both.",
+     "All elements identical - fine for merge sort, worst case for Lomuto partition.",
+     "Negative numbers - no special handling, but it kills counting-sort shortcuts."
     ],
     "complexity": {
      "time": "O(n log n)",
-     "space": "O(1)",
-     "why": "the sort dominates; both scans are linear and the output is not counted as working space. Without sorting, comparing all pairs is O(n²)."
-    },
-    "siblings": [
-     "minimum-absolute-difference-in-bst",
-     "k-diff-pairs-in-an-array",
-     "two-sum-ii-input-array-is-sorted"
-    ],
-    "followups": [
-     {
-      "q": "Prove the minimum difference must be between adjacent elements.",
-      "a": "If i < j are non-adjacent in sorted order, any k between them satisfies a[k] - a[i] <= a[j] - a[i], so a closer pair always exists. Therefore the minimum is attained adjacently."
-     },
-     {
-      "q": "Find the maximum absolute difference instead.",
-      "a": "Last minus first after sorting — or just max minus min in O(n) with no sort at all."
-     }
-    ]
-   }
-  },
-  {
-   "id": "sorting-height-checker",
-   "order": 17,
-   "phase": "P0",
-   "day": 2,
-   "topic": "sorting",
-   "tier": "SKIM",
-   "title": "Height Checker",
-   "lc": {
-    "id": "1051",
-    "slug": "height-checker",
-    "url": "https://leetcode.com/problems/height-checker/",
-    "difficulty": "Easy",
-    "ac_rate": 82,
-    "tags": [
-     "Array",
-     "Sorting",
-     "Counting Sort",
-     "Bubble Sort"
-    ]
-   },
-   "tuf": {
-    "article": null,
-    "youtube": null,
-    "striver_title": null
-   },
-   "pattern": "compare-against-sorted-copy",
-   "template": "T-SORT-06",
-   "companies": [
-    "Amazon"
-   ],
-   "campus_oa": "LOW",
-   "learnings": {
-    "insight": "The question is 'how far is this from sorted', and the direct way to answer it is to produce the sorted version and count positional mismatches. Do not look for something cleverer — the clever version is the counting sort, not a different idea.",
-    "trick": "Copy, sort the copy, count indices where the two disagree. With heights bounded at 100, counting sort makes it O(n).",
-    "edge_cases": [
-     "Already sorted — answer is 0.",
-     "Duplicate heights never count as mismatches when they occupy equivalent positions.",
-     "The answer counts positions, not swaps needed — a different and harder quantity."
-    ],
-    "complexity": {
-     "time": "O(n log n), or O(n + k) with counting sort",
      "space": "O(n)",
-     "why": "the copy is O(n) space regardless. The bounded height range of 1..100 is the constraint signalling that counting sort is intended."
+     "why": "log n levels of recursion, O(n) merging at each level. Space is the temporary buffer plus O(log n) stack. Quick sort would be O(log n) space but risks O(n^2) time."
     },
     "siblings": [
-     "relative-sort-array",
-     "sort-an-array",
-     "minimum-absolute-difference"
+     "merge-sorted-array",
+     "sort-list",
+     "reverse-pairs",
+     "count-of-smaller-numbers-after-self"
     ],
     "followups": [
      {
-      "q": "Count the minimum number of swaps to sort instead.",
-      "a": "A different problem entirely: decompose the permutation into cycles; a cycle of length L needs L-1 swaps. Total is n minus the number of cycles."
+      "q": "Your merge sort uses O(n) space. Make it O(1).",
+      "a": "In-place merge exists but is O(n log^2 n) and genuinely fiddly. The honest answer is heap sort: O(n log n) time, O(1) space, at the cost of stability and cache locality."
      },
      {
-      "q": "Why is counting sort applicable here?",
-      "a": "Heights are bounded by 100, so a 101-slot tally is O(1) space and one pass fills it. Bounded value ranges in the constraints are always worth checking for."
+      "q": "Same problem, but it is a linked list.",
+      "a": "Merge sort is strictly the right answer - no random access needed, and you relink rather than copy, so it is O(1) extra space. Quick sort on a list is painful."
+     },
+     {
+      "q": "Values are all between 0 and 1000.",
+      "a": "Counting sort. O(n + k) beats O(n log n) outright. Notice the constraint gave this away - that is the habit to build."
      }
     ]
    }
   },
   {
-   "id": "sorting-sort-array-by-parity-ii",
-   "order": 18,
-   "phase": "P0",
-   "day": 2,
-   "topic": "sorting",
-   "tier": "SKIM",
-   "title": "Sort Array By Parity II",
+   "id": "recursion-combination-sum",
+   "order": 5,
+   "phase": "V0",
+   "day": 1,
+   "topic": "recursion",
+   "tier": "CORE",
+   "title": "Combination Sum",
    "lc": {
-    "id": "922",
-    "slug": "sort-array-by-parity-ii",
-    "url": "https://leetcode.com/problems/sort-array-by-parity-ii/",
-    "difficulty": "Easy",
-    "ac_rate": 71.4,
+    "id": "39",
+    "slug": "combination-sum",
+    "url": "https://leetcode.com/problems/combination-sum/",
+    "difficulty": "Medium",
+    "ac_rate": 77.1,
     "tags": [
      "Array",
-     "Two Pointers",
-     "Sorting"
+     "Backtracking"
     ]
    },
    "tuf": {
-    "article": null,
-    "youtube": null,
-    "striver_title": null
+    "article": "https://takeuforward.org/data-structure/combination-sum-1/",
+    "youtube": "https://www.youtube.com/watch?v=OyZFFqQtu98",
+    "striver_title": "Combination Sum"
    },
-   "pattern": "two-pointer-partition",
-   "template": "T-SORT-02",
+   "pattern": "unbounded-combination",
+   "template": "T-BT-03",
    "companies": [
     "Amazon",
-    "Facebook"
+    "Facebook",
+    "Google",
+    "Uber"
    ],
-   "campus_oa": "LOW",
+   "campus_oa": "HIGH",
    "learnings": {
-    "insight": "The constraint is positional rather than ordinal: evens at even indices, odds at odd indices. Two independent pointers stepping by two — one over even slots, one over odd — reduce it to a single corrective swap whenever both are misplaced.",
-    "trick": "Walk `i` over even indices and `j` over odd indices, each by 2. Advance each while it is already correct; when both are wrong, one swap fixes both at once.",
+    "insight": "Elements may be reused, so the recursive call passes `i` rather than `i + 1`. That one character is the entire difference between this problem and Combination Sum II, and seeing it explicitly is worth more than either solution.",
+    "trick": "Sort the candidates so you can `break` as soon as a[i] > target. That prune is frequently the difference between accepting and timing out.",
     "edge_cases": [
-     "The input guarantees exactly half even and half odd, so the pointers can never run out of partners.",
-     "Array length is always even under the constraints.",
-     "Swapping fixes two violations simultaneously — never swap when only one side is misplaced."
+     "Passing i + 1 instead of i silently forbids reuse and produces the wrong answer.",
+     "Starting the loop at `start` rather than 0 is what prevents permuted duplicates.",
+     "All candidates are positive, which is what guarantees termination."
     ],
     "complexity": {
-     "time": "O(n)",
-     "space": "O(1)",
-     "why": "both pointers advance monotonically across disjoint index sets, so total movement is n. The two-array approach is also O(n) time but O(n) space."
+     "time": "O(n^(target/min))",
+     "space": "O(target/min) depth",
+     "why": "the branching factor is the candidate count and the depth is bounded by target divided by the smallest candidate. Sorting enables the break, which prunes heavily in practice."
     },
     "siblings": [
-     "sort-array-by-parity",
-     "sort-colors",
-     "move-zeroes"
+     "combination-sum-ii",
+     "combination-sum-iii",
+     "combination-sum-iv",
+     "coin-change"
     ],
     "followups": [
      {
-      "q": "The guarantee of equal counts is removed.",
-      "a": "Detect infeasibility first by counting parities; if they are unequal no arrangement exists and you return early. The algorithm is otherwise unchanged."
+      "q": "What if candidates could be negative?",
+      "a": "Termination is lost - you could add and subtract forever. The positivity constraint is doing real work here."
      },
      {
-      "q": "Do it with O(n) space instead.",
-      "a": "Write evens to indices 0,2,4... and odds to 1,3,5... in one pass over a new array. Simpler to reason about, worse on memory — the classic trade worth stating aloud."
+      "q": "Count the combinations rather than listing them.",
+      "a": "That is unbounded knapsack DP in O(n · target), vastly faster. LC 518 is the coin version. Reading 'count' versus 'return all' changes the entire approach."
      }
     ]
    }
   },
   {
-   "id": "math-reverse-integer",
-   "order": 19,
-   "phase": "P0",
-   "day": 3,
-   "topic": "math",
+   "id": "recursion-combination-sum-ii",
+   "order": 6,
+   "phase": "V0",
+   "day": 2,
+   "topic": "recursion",
    "tier": "CORE",
-   "title": "Reverse Integer",
+   "title": "Combination Sum II",
    "lc": {
-    "id": "7",
-    "slug": "reverse-integer",
-    "url": "https://leetcode.com/problems/reverse-integer/",
+    "id": "40",
+    "slug": "combination-sum-ii",
+    "url": "https://leetcode.com/problems/combination-sum-ii/",
     "difficulty": "Medium",
-    "ac_rate": 32.5,
+    "ac_rate": 60.2,
     "tags": [
-     "Math"
+     "Array",
+     "Backtracking"
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/maths/reverse-digits-of-a-number",
-    "youtube": "https://www.youtube.com/watch?v=1xNbjMdbjug&t=930",
-    "striver_title": "Reverse a number"
+    "article": "https://takeuforward.org/data-structure/combination-sum-ii-find-all-unique-combinations/",
+    "youtube": "https://www.youtube.com/watch?v=G1fRTGRxXU8",
+    "striver_title": "Combination Sum II"
    },
-   "pattern": "digit-reversal",
-   "template": "T-MATH-01",
+   "pattern": "bounded-combination-dedup",
+   "template": "T-BT-03",
    "companies": [
     "Amazon",
-    "Apple",
-    "Bloomberg",
+    "Facebook",
+    "Microsoft"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Each element may be used at most once, and the input contains duplicates. So you need both changes at once: `i + 1` in the recursive call to forbid reuse, and the sibling skip to suppress duplicate combinations.",
+    "trick": "Sort. Loop from start, skip when `i > start && a[i] == a[i-1]`, recurse with `i + 1`, and break when a[i] > target.",
+    "edge_cases": [
+     "Both the i + 1 and the sibling skip are required - omitting either gives wrong output.",
+     "Duplicates in the input are the entire difficulty; without them this is trivial.",
+     "The same value may appear twice in a combination if it appears twice in the input."
+    ],
+    "complexity": {
+     "time": "O(2ⁿ)",
+     "space": "O(n) depth",
+     "why": "each element is taken or skipped once, giving at most 2^n paths, heavily pruned by the sorted break."
+    },
+    "siblings": [
+     "combination-sum",
+     "subsets-ii",
+     "3sum",
+     "4sum"
+    ],
+    "followups": [
+     {
+      "q": "Why does the same skip rule work here as in Subsets II?",
+      "a": "The structure is identical - both enumerate choices at each level, and equal siblings generate identical subtrees."
+     },
+     {
+      "q": "Combination Sum III, with a fixed count.",
+      "a": "Add a depth parameter and require exactly k elements drawn from 1..9. Same skeleton, two termination conditions instead of one."
+     }
+    ]
+   }
+  },
+  {
+   "id": "recursion-n-queens",
+   "order": 7,
+   "phase": "V0",
+   "day": 2,
+   "topic": "recursion",
+   "tier": "CORE",
+   "title": "N-Queens",
+   "lc": {
+    "id": "51",
+    "slug": "n-queens",
+    "url": "https://leetcode.com/problems/n-queens/",
+    "difficulty": "Hard",
+    "ac_rate": 76.5,
+    "tags": [
+     "Array",
+     "Backtracking",
+     "Algorithm X"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/n-queen-problem-return-all-distinct-solutions-to-the-n-queens-puzzle/",
+    "youtube": "https://www.youtube.com/watch?v=i05Ju7AftcM",
+    "striver_title": "N Queen"
+   },
+   "pattern": "constraint-backtracking",
+   "template": "T-BT-05",
+   "companies": [
+    "Amazon",
+    "Google",
+    "Facebook",
     "Adobe"
    ],
    "campus_oa": "HIGH",
    "learnings": {
-    "insight": "The reversal itself is four lines. The problem is entirely about overflow: the result may exceed the 32-bit range even though the input never does, and you are forbidden from using a 64-bit type to detect it. So the check must happen BEFORE the multiply.",
-    "trick": "Before `rev = rev * 10 + d`, test whether `rev > INT_MAX / 10`, or `rev == INT_MAX / 10` with `d > 7`. Same on the negative side with INT_MIN and 8. Checking after the fact is already undefined behaviour.",
+    "insight": "Place one queen per row, so the only choice per level is the column. The real skill is making the validity test O(1) with three marker arrays instead of rescanning the board.",
+    "trick": "Keep boolean arrays for columns, for the i+j diagonal, and for the i-j+n anti-diagonal. Every cell on a diagonal shares those sums, so conflict detection is three array reads.",
     "edge_cases": [
-     "1534236469 reverses to 9646324351, which overflows — the canonical failing test.",
-     "Trailing zeros vanish: 120 becomes 21, which is correct.",
-     "INT_MIN has no positive counterpart, so negating it is undefined. Work in the negative domain or use long long internally if permitted.",
-     "0 reverses to 0."
+     "The anti-diagonal index i-j can be negative - offset by n.",
+     "Restoring all three markers on backtrack is required.",
+     "n = 2 and n = 3 have no solutions; n = 1 has one."
     ],
     "complexity": {
-     "time": "O(log n)",
-     "space": "O(1)",
-     "why": "one operation per digit, and a 32-bit integer has at most 10 of them. No storage beyond two scalars."
+     "time": "O(n!)",
+     "space": "O(n²) for the board",
+     "why": "the first row has n choices, the next at most n-1 and so on, but constraint pruning cuts the real tree far below n!. The O(1) validity check is what makes it fast in practice."
     },
     "siblings": [
-     "palindrome-number",
-     "add-digits",
-     "nth-digit",
-     "divide-two-integers"
+     "n-queens-ii",
+     "sudoku-solver",
+     "word-search",
+     "permutations"
     ],
     "followups": [
      {
-      "q": "Why 7 and 8 specifically?",
-      "a": "INT_MAX is 2147483647, whose last digit is 7; INT_MIN is -2147483648, ending in 8. When rev already equals INT_MAX/10, only a final digit at or below that last digit keeps the result in range."
+      "q": "Count solutions without building boards.",
+      "a": "LC 52 - drop the board entirely and return a count. Bitmask versions represent all three constraint sets in three integers and are dramatically faster."
      },
      {
-      "q": "Reverse the bits instead of the digits.",
-      "a": "LC 190. Shift out of the source and into the result 32 times. Same shape, base 2 instead of base 10 — which is the general lesson about digit extraction."
-     },
-     {
-      "q": "Detect overflow without any comparison at all.",
-      "a": "Reverse back and check for equality: if `newRev / 10 != rev` then the multiply overflowed. Elegant, though it relies on well-defined wraparound that C++ does not guarantee for signed types."
+      "q": "Why is placing one queen per row sufficient?",
+      "a": "Two queens in the same row always conflict, so any solution has exactly one per row. Encoding that structurally removes an entire constraint for free."
      }
     ]
    }
   },
   {
-   "id": "math-factorial-trailing-zeroes",
-   "order": 20,
-   "phase": "P0",
-   "day": 3,
-   "topic": "math",
+   "id": "recursion-permutations",
+   "order": 8,
+   "phase": "V0",
+   "day": 2,
+   "topic": "recursion",
    "tier": "CORE",
-   "title": "Factorial Trailing Zeroes",
+   "title": "Permutations",
    "lc": {
-    "id": "172",
-    "slug": "factorial-trailing-zeroes",
-    "url": "https://leetcode.com/problems/factorial-trailing-zeroes/",
+    "id": "46",
+    "slug": "permutations",
+    "url": "https://leetcode.com/problems/permutations/",
     "difficulty": "Medium",
-    "ac_rate": 47.4,
+    "ac_rate": 82.3,
     "tags": [
-     "Math"
+     "Array",
+     "Backtracking"
     ]
    },
    "tuf": {
@@ -1699,299 +832,447 @@
     "youtube": null,
     "striver_title": null
    },
-   "pattern": "prime-factor-counting",
-   "template": "T-MATH-03",
+   "pattern": "swap-permutation",
+   "template": "T-BT-02",
    "companies": [
     "Amazon",
-    "Bloomberg",
+    "Google",
+    "Facebook",
+    "Microsoft",
+    "LinkedIn"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "At each position, try every element not yet used. The swap-based formulation achieves this without a separate used[] array by exchanging the candidate into the current position and restoring it afterwards.",
+    "trick": "For index i, loop j from i to n-1, swap(a[i], a[j]), recurse on i+1, then swap back. The restoring swap is the backtrack and omitting it corrupts everything downstream.",
+    "edge_cases": [
+     "The loop must start at i, not i + 1, or the element already in place is never used.",
+     "n! grows brutally - 10! is 3.6 million, 12! is half a billion.",
+     "With duplicates, the swap formulation cannot dedupe cleanly - use used[] and sorting."
+    ],
+    "complexity": {
+     "time": "O(n · n!)",
+     "space": "O(n) depth",
+     "why": "n! leaves, each costing O(n) to copy. The swap version avoids the O(n) used-array bookkeeping per node."
+    },
+    "siblings": [
+     "permutations-ii",
+     "next-permutation",
+     "subsets",
+     "letter-combinations-of-a-phone-number"
+    ],
+    "followups": [
+     {
+      "q": "With duplicates.",
+      "a": "Sort and use a used[] array with the rule `if (used[i] || (i > 0 && a[i] == a[i-1] && !used[i-1])) continue;`. Swapping breaks the sorted order and makes the skip unsound."
+     },
+     {
+      "q": "Generate the kth permutation directly.",
+      "a": "Factorial number system - divide k by (n-1)! to pick each successive element. O(n^2) with no enumeration at all."
+     }
+    ]
+   }
+  },
+  {
+   "id": "recursion-subsets",
+   "order": 9,
+   "phase": "V0",
+   "day": 2,
+   "topic": "recursion",
+   "tier": "CORE",
+   "title": "Subsets",
+   "lc": {
+    "id": "78",
+    "slug": "subsets",
+    "url": "https://leetcode.com/problems/subsets/",
+    "difficulty": "Medium",
+    "ac_rate": 82.8,
+    "tags": [
+     "Array",
+     "Backtracking",
+     "Bit Manipulation"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/bit-manipulation/power-set-bit-manipulation",
+    "youtube": "https://www.youtube.com/watch?v=LqKaUv1G3_I",
+    "striver_title": "Power Set Bit Manipulation"
+   },
+   "pattern": "include-exclude",
+   "template": "T-BT-01",
+   "companies": [
+    "Amazon",
+    "Facebook",
+    "Google",
     "Microsoft"
    ],
-   "campus_oa": "MEDIUM",
+   "campus_oa": "HIGH",
    "learnings": {
-    "insight": "Computing n! and counting zeros is impossible past n = 20 — the value overflows everything. The problem is asking you to count a specific prime factor without ever constructing the number, which is a habit worth far more than this problem.",
-    "trick": "A trailing zero needs a factor of 10 = 2 x 5. Factors of 2 are strictly more plentiful, so the count of 5s is binding. Answer is n/5 + n/25 + n/125 + ..., each term counting numbers contributing an additional 5.",
+    "insight": "Every element is either in or out, independently. That gives 2^n subsets and a two-branch recursion whose shape you will reuse for every subsequence problem for the rest of your life.",
+    "trick": "At index i, push a[i] and recurse, then pop and recurse without it. Alternatively iterate masks 0 to 2^n - 1 and read the bits - the bitmask form is shorter and worth knowing.",
     "edge_cases": [
-     "n = 0 gives 0, since 0! = 1.",
-     "Use `n /= 5` in a loop rather than `pow(5, i)`, which overflows and introduces floating-point error.",
-     "Integer division is doing the flooring — do not add rounding."
+     "The empty subset is a valid answer and must be emitted.",
+     "Pass the current path by REFERENCE and undo, or every node copies it.",
+     "n <= 20 in the constraints is the signal that exponential is intended."
     ],
     "complexity": {
-     "time": "O(log₅ n)",
-     "space": "O(1)",
-     "why": "the loop divides n by 5 each iteration, so it runs about log₅n times. For n = 10⁹ that is 13 iterations."
+     "time": "O(n · 2ⁿ)",
+     "space": "O(n) excluding output",
+     "why": "2^n leaves, each costing O(n) to copy into the result. The recursion depth is n."
     },
     "siblings": [
-     "count-primes",
-     "ugly-number",
-     "add-digits",
-     "nth-digit"
+     "subsets-ii",
+     "combination-sum",
+     "permutations",
+     "letter-combinations-of-a-phone-number"
     ],
     "followups": [
      {
-      "q": "Why are there always more 2s than 5s?",
-      "a": "Every second integer contributes a 2 but only every fifth contributes a 5, so the count of 2s exceeds the count of 5s for all n >= 1. The pairs are therefore limited by the 5s."
+      "q": "Write the bitmask version.",
+      "a": "for (mask = 0; mask < (1<<n); mask++) collect elements where mask has bit i set. Same complexity, no recursion, and it makes the 2^n structure explicit."
      },
      {
-      "q": "Trailing zeros of n! in base 12.",
-      "a": "12 = 2² x 3. Count factors of 2 and of 3 by Legendre's formula, then the answer is min(count₂ / 2, count₃). The generalisation is what is being tested."
-     },
-     {
-      "q": "Find the smallest n whose factorial has exactly k trailing zeros.",
-      "a": "The zero count is monotonic in n, so binary search on n. Note that some k have no solution, because the count jumps by more than one at multiples of 25."
+      "q": "With duplicates in the input.",
+      "a": "Sort first, then skip a[i] == a[i-1] among siblings using `if (i > start) continue`. The condition is i > start, not i > 0."
      }
     ]
    }
   },
   {
-   "id": "math-add-digits",
-   "order": 21,
-   "phase": "P0",
-   "day": 3,
-   "topic": "math",
-   "tier": "DRILL",
-   "title": "Add Digits",
+   "id": "recursion-subsets-ii",
+   "order": 10,
+   "phase": "V0",
+   "day": 2,
+   "topic": "recursion",
+   "tier": "CORE",
+   "title": "Subsets II",
    "lc": {
-    "id": "258",
-    "slug": "add-digits",
-    "url": "https://leetcode.com/problems/add-digits/",
-    "difficulty": "Easy",
-    "ac_rate": 69.3,
+    "id": "90",
+    "slug": "subsets-ii",
+    "url": "https://leetcode.com/problems/subsets-ii/",
+    "difficulty": "Medium",
+    "ac_rate": 62,
     "tags": [
-     "Math",
-     "Simulation",
-     "Number Theory"
+     "Array",
+     "Backtracking",
+     "Bit Manipulation"
     ]
    },
    "tuf": {
-    "article": null,
-    "youtube": null,
-    "striver_title": null
+    "article": "https://takeuforward.org/data-structure/subset-ii-print-all-the-unique-subsets/",
+    "youtube": "https://www.youtube.com/watch?v=RIn3gOkbhQE",
+    "striver_title": "Subsets II"
    },
-   "pattern": "digital-root",
-   "template": "T-MATH-04",
+   "pattern": "include-exclude-dedup",
+   "template": "T-BT-01",
    "companies": [
     "Amazon",
-    "Adobe"
-   ],
-   "campus_oa": "LOW",
-   "learnings": {
-    "insight": "The loop version is trivially correct and is the right first answer. The follow-up asks for O(1), and the closed form exists because repeated digit summing preserves the value modulo 9 — a number and its digit sum are always congruent mod 9.",
-    "trick": "Digital root is `1 + (n - 1) % 9` for n > 0, and 0 for n = 0. Derive it rather than memorise it: 10 ≡ 1 (mod 9), so every positional weight collapses to 1.",
-    "edge_cases": [
-     "n = 0 returns 0 — the formula's `(n-1) % 9` would be wrong without the guard.",
-     "Multiples of 9 return 9, not 0, which is exactly what the `1 + (n-1) % 9` form produces.",
-     "Single-digit inputs return themselves."
-    ],
-    "complexity": {
-     "time": "O(1)",
-     "space": "O(1)",
-     "why": "pure arithmetic with no loop. The iterative digit-summing version is O(log n) per pass and converges in a couple of passes, which is acceptable but not what is asked."
-    },
-    "siblings": [
-     "happy-number",
-     "palindrome-number",
-     "reverse-integer"
-    ],
-    "followups": [
-     {
-      "q": "Prove the mod 9 property.",
-      "a": "A number equals Σ dᵢ·10ⁱ, and 10 ≡ 1 (mod 9), so 10ⁱ ≡ 1 for all i. Therefore the number ≡ Σ dᵢ (mod 9) — it is congruent to its own digit sum."
-     },
-     {
-      "q": "Same question in base b.",
-      "a": "The modulus becomes b - 1, by the identical argument: b ≡ 1 (mod b-1). In hexadecimal the digital root is mod 15."
-     },
-     {
-      "q": "Where is this actually used?",
-      "a": "Casting out nines, a classical hand-check for arithmetic errors, and the basis of several checksum schemes."
-     }
-    ]
-   }
-  },
-  {
-   "id": "math-ugly-number",
-   "order": 22,
-   "phase": "P0",
-   "day": 3,
-   "topic": "math",
-   "tier": "DRILL",
-   "title": "Ugly Number",
-   "lc": {
-    "id": "263",
-    "slug": "ugly-number",
-    "url": "https://leetcode.com/problems/ugly-number/",
-    "difficulty": "Easy",
-    "ac_rate": 44.2,
-    "tags": [
-     "Math"
-    ]
-   },
-   "tuf": {
-    "article": null,
-    "youtube": null,
-    "striver_title": null
-   },
-   "pattern": "trial-division",
-   "template": "T-MATH-03",
-   "companies": [
-    "Amazon",
+    "Facebook",
     "Google"
    ],
-   "campus_oa": "LOW",
+   "campus_oa": "HIGH",
    "learnings": {
-    "insight": "'Only has prime factors 2, 3 and 5' is a factorisation question in disguise. Divide out each permitted factor completely, and whatever remains decides it: 1 means the number was built entirely from allowed factors.",
-    "trick": "For each of 2, 3, 5, divide while divisible. Then check the residue equals 1. No primality testing is needed at all.",
+    "insight": "Duplicates in the input produce duplicate subsets. Sorting groups equal values together so that skipping repeated SIBLINGS in the recursion tree removes duplicates without any set or post-filtering.",
+    "trick": "Sort. In the loop from `start`, skip when `i > start && a[i] == a[i-1]`. The condition is i > start and not i > 0, because equal values are allowed along a path - just not as alternative choices at the same level.",
     "edge_cases": [
-     "n <= 0 is not ugly by definition — reject before dividing, or the loops hang.",
-     "n = 1 is ugly, being the empty product.",
-     "Dividing must be exhaustive per factor; a single division leaves residue."
+     "`i > 0` instead of `i > start` wrongly discards subsets containing repeated values.",
+     "Without sorting, equal values are not adjacent and the skip fails.",
+     "The empty subset is still required."
     ],
     "complexity": {
-     "time": "O(log n)",
-     "space": "O(1)",
-     "why": "each division at least halves n, so total iterations across all three factors are bounded by log₂n."
+     "time": "O(n · 2ⁿ)",
+     "space": "O(n) excluding output",
+     "why": "the same bound as Subsets in the worst case of all-distinct input; duplicates only reduce the output size."
     },
     "siblings": [
-     "ugly-number-ii",
-     "happy-number",
-     "count-primes",
-     "factorial-trailing-zeroes"
+     "subsets",
+     "combination-sum-ii",
+     "permutations-ii",
+     "3sum"
     ],
     "followups": [
      {
-      "q": "Find the n-th ugly number.",
-      "a": "LC 264 and a genuine step up. Three pointers into the sequence being built, each tracking the next multiple of 2, 3 and 5; take the minimum and advance every pointer that produced it, to avoid duplicates. O(n) DP."
+      "q": "Explain i > start precisely.",
+      "a": "At a given recursion level, choosing the second of two equal values produces exactly the subtree the first already produced. Along a path, however, both copies may legitimately be taken - so the skip must apply only to siblings."
      },
      {
-      "q": "Generalise to an arbitrary list of allowed primes.",
-      "a": "Super Ugly Number, LC 313. k pointers instead of three, or a min-heap when k is large. Same idea, scaled."
+      "q": "Count distinct subsets without generating them.",
+      "a": "Multiply (count of each distinct value + 1) together. Pure combinatorics, no recursion."
      }
     ]
    }
   },
   {
-   "id": "math-nth-digit",
-   "order": 23,
-   "phase": "P0",
+   "id": "recursion-word-search",
+   "order": 11,
+   "phase": "V0",
    "day": 3,
-   "topic": "math",
-   "tier": "SKIM",
-   "title": "Nth Digit",
+   "topic": "recursion",
+   "tier": "CORE",
+   "title": "Word Search",
    "lc": {
-    "id": "400",
-    "slug": "nth-digit",
-    "url": "https://leetcode.com/problems/nth-digit/",
+    "id": "79",
+    "slug": "word-search",
+    "url": "https://leetcode.com/problems/word-search/",
     "difficulty": "Medium",
-    "ac_rate": 39,
+    "ac_rate": 48.1,
     "tags": [
-     "Math",
-     "Binary Search"
+     "Array",
+     "String",
+     "Backtracking",
+     "Depth-First Search",
+     "Matrix"
     ]
    },
    "tuf": {
-    "article": null,
+    "article": "https://takeuforward.org/data-structure/word-search-leetcode/",
     "youtube": null,
-    "striver_title": null
+    "striver_title": "Word Search"
    },
-   "pattern": "digit-block-counting",
-   "template": "T-MATH-05",
+   "pattern": "grid-backtracking",
+   "template": "T-BT-04",
    "companies": [
-    "Google",
+    "Amazon",
+    "Microsoft",
+    "Facebook",
     "Bloomberg"
    ],
-   "campus_oa": "LOW",
+   "campus_oa": "HIGH",
    "learnings": {
-    "insight": "Building the sequence is impossible for n up to 2³¹. Instead, you skip whole blocks: there are 9 one-digit numbers, 90 two-digit, 900 three-digit, and so on, contributing 9, 180, 2700 digits respectively. Subtract blocks until n lands inside one.",
-    "trick": "Find the digit-length d by subtracting `9 * 10^(d-1) * d` while it fits. Then the containing number is `10^(d-1) + (n-1)/d`, and the digit within it is at index `(n-1) % d`.",
+    "insight": "DFS from every cell, marking visited cells in place and restoring them on the way out. Marking in the grid itself rather than in a separate visited array keeps the space O(1) beyond recursion.",
+    "trick": "Overwrite the cell with a sentinel such as '#' before recursing, and restore the original character afterwards. Check the character match before recursing, not after.",
     "edge_cases": [
-     "Off-by-one in the 1-based indexing — using `n-1` consistently after locating the block is what makes both the division and modulo land correctly.",
-     "`9 * 10^(d-1) * d` overflows int for large d — use long long.",
-     "n = 1 through 9 must resolve in the first block without entering the loop body."
+     "The restore on failure is mandatory - without it, later starting cells see a corrupted grid.",
+     "Bounds and character mismatch must both be checked before any recursion.",
+     "The same cell may not be reused within one path but may be reused across different starting points."
     ],
     "complexity": {
-     "time": "O(log n)",
-     "space": "O(1)",
-     "why": "one iteration per digit-length block, and there are at most 10 of them within the integer range. Constructing the string would be O(n) and infeasible."
+     "time": "O(m·n·4^L)",
+     "space": "O(L) depth",
+     "why": "every cell is a potential start, and from each the search branches up to four ways for the word length L. In practice the character check prunes almost immediately."
     },
     "siblings": [
-     "reverse-integer",
-     "palindrome-number",
-     "add-digits"
+     "word-search-ii",
+     "number-of-islands",
+     "n-queens",
+     "unique-paths-iii"
     ],
     "followups": [
      {
-      "q": "How many digits does the sequence use up to number k?",
-      "a": "Sum over each block: for lengths 1..d-1 take the full block, then partial for the last. It is the same block arithmetic run forwards instead of backwards."
+      "q": "Search for many words at once.",
+      "a": "LC 212 - build a trie of the words and DFS the grid once against it, pruning whenever the current prefix leaves the trie. Vastly better than running this once per word."
      },
      {
-      "q": "Same question but the sequence is only even numbers.",
-      "a": "Block sizes halve; the structure is identical. The lesson is that the technique is about counting blocks, not about this particular sequence."
+      "q": "Why mark in place rather than use a visited array?",
+      "a": "It is O(1) extra space and one assignment. The only cost is mutating the input, which must be restored - and in a threaded context would be unsafe."
      }
     ]
    }
   },
   {
-   "id": "math-rectangle-area",
-   "order": 24,
-   "phase": "P0",
+   "id": "arrays-best-time-to-buy-and-sell-stock",
+   "order": 12,
+   "phase": "V0",
    "day": 3,
-   "topic": "math",
-   "tier": "SKIM",
-   "title": "Rectangle Area",
+   "topic": "arrays",
+   "tier": "CORE",
+   "title": "Best Time to Buy and Sell Stock",
    "lc": {
-    "id": "223",
-    "slug": "rectangle-area",
-    "url": "https://leetcode.com/problems/rectangle-area/",
-    "difficulty": "Medium",
-    "ac_rate": 50.3,
+    "id": "121",
+    "slug": "best-time-to-buy-and-sell-stock",
+    "url": "https://leetcode.com/problems/best-time-to-buy-and-sell-stock/",
+    "difficulty": "Easy",
+    "ac_rate": 57.4,
     "tags": [
-     "Math",
-     "Geometry"
+     "Array",
+     "Dynamic Programming"
     ]
    },
    "tuf": {
-    "article": null,
-    "youtube": null,
-    "striver_title": null
+    "article": "https://takeuforward.org/data-structure/stock-buy-and-sell/",
+    "youtube": "https://www.youtube.com/watch?v=excAOvwF_Wk",
+    "striver_title": "Stock Buy and Sell"
    },
-   "pattern": "inclusion-exclusion",
-   "template": "T-MATH-06",
+   "pattern": "running-minimum",
+   "template": "T-DP-05",
    "companies": [
     "Amazon",
-    "Google"
+    "Microsoft",
+    "Google",
+    "Goldman Sachs",
+    "Morgan Stanley"
    ],
-   "campus_oa": "LOW",
+   "campus_oa": "HIGH",
    "learnings": {
-    "insight": "Total area is area A plus area B minus their overlap. That is inclusion-exclusion, and the only real work is computing the overlap correctly — including recognising when it is zero.",
-    "trick": "Overlap width is `min(right) - max(left)`, height is `min(top) - max(bottom)`. Clamp both at zero with `max(0, ...)`, which handles non-overlapping rectangles without any branching.",
+    "insight": "You do not need to consider pairs. Walking left to right, the best sale on day i is always against the cheapest day seen so far - so one running minimum replaces the entire inner loop.",
+    "trick": "Track minPrice and best simultaneously in one pass: update best with price - minPrice first, then update minPrice. Order does not actually matter here since a same-day transaction yields zero.",
     "edge_cases": [
-     "Disjoint rectangles produce a negative width or height — clamping to 0 is what makes the single formula universal.",
-     "Touching edges give zero overlap, not negative.",
-     "Coordinates reach ±10⁴, so areas reach 4×10⁸ and sums exceed int. Use long long.",
-     "Degenerate rectangles with zero width or height are valid input."
+     "Strictly decreasing prices yield 0, not a negative - you are allowed to not trade.",
+     "Single day returns 0.",
+     "Buy must precede sell, which is exactly what the left-to-right pass enforces."
     ],
     "complexity": {
-     "time": "O(1)",
+     "time": "O(n)",
      "space": "O(1)",
-     "why": "pure arithmetic on eight coordinates, no iteration."
+     "why": "one pass holding two scalars. The O(n^2) pairwise version is the brute force this replaces. Note this is also Kadane's on the array of daily differences."
     },
     "siblings": [
-     "merge-intervals",
-     "insert-interval",
-     "maximal-rectangle"
+     "best-time-to-buy-and-sell-stock-ii",
+     "maximum-subarray",
+     "best-time-to-buy-and-sell-stock-iii"
     ],
     "followups": [
      {
-      "q": "Do the rectangles overlap at all — yes or no?",
-      "a": "LC 836. They overlap when `max(left) < min(right)` and `max(bottom) < min(top)`. The strict inequality means edge-touching does not count."
+      "q": "Unlimited transactions allowed.",
+      "a": "Sum every positive daily difference. Any profitable multi-day hold decomposes into profitable single-day holds, so greedy is exact here."
      },
      {
-      "q": "Total area covered by n rectangles.",
-      "a": "Inclusion-exclusion becomes exponential, so it is the wrong tool. Use a sweep line over x-coordinates with a segment tree tracking covered y-length. That is LC 850."
+      "q": "At most k transactions.",
+      "a": "A state machine DP over (day, transactions used, holding or not). O(n*k) and it is the general form that LC 121, 122 and 123 are all special cases of."
      },
      {
-      "q": "Why does clamping at zero work rather than a special case?",
-      "a": "A negative overlap dimension means the projections are disjoint on that axis, which means the rectangles cannot intersect at all, so the correct overlap is zero. The clamp encodes that fact rather than testing for it."
+      "q": "Why is this the same as Kadane's?",
+      "a": "Maximum profit equals the maximum sum subarray of consecutive daily price differences. Seeing that equivalence is worth more than either solution alone."
+     }
+    ]
+   }
+  },
+  {
+   "id": "arrays-maximum-subarray",
+   "order": 13,
+   "phase": "V0",
+   "day": 3,
+   "topic": "arrays",
+   "tier": "CORE",
+   "title": "Maximum Subarray",
+   "lc": {
+    "id": "53",
+    "slug": "maximum-subarray",
+    "url": "https://leetcode.com/problems/maximum-subarray/",
+    "difficulty": "Medium",
+    "ac_rate": 53.9,
+    "tags": [
+     "Array",
+     "Divide and Conquer",
+     "Dynamic Programming"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/kadanes-algorithm-maximum-subarray-sum-in-an-array/",
+    "youtube": "https://www.youtube.com/watch?v=AHZpyENo7k4",
+    "striver_title": "Kadane's Algorithm"
+   },
+   "pattern": "kadane",
+   "template": "T-DP-01",
+   "companies": [
+    "Amazon",
+    "Microsoft",
+    "Google",
+    "LinkedIn",
+    "Goldman Sachs"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "At each index there are only two possibilities for the best subarray ending there: it extends the best one ending at the previous index, or it starts fresh. That binary choice is the entire algorithm, and it is 1D DP with the state rolled into one variable.",
+    "trick": "cur = max(a[i], cur + a[i]), then best = max(best, cur). Initialise BOTH to a[0], not to 0 - initialising best to 0 silently permits the empty subarray.",
+    "edge_cases": [
+     "All-negative arrays must return the largest single element. This is the test that catches a zero-initialised best.",
+     "Single element returns itself.",
+     "Overflow - sums of 1e5 values at 1e4 each fit in int, but check the constraints."
+    ],
+    "complexity": {
+     "time": "O(n)",
+     "space": "O(1)",
+     "why": "one pass, two scalars. The divide-and-conquer solution is O(n log n) and is worth knowing because it is what the follow-up asks for."
+    },
+    "siblings": [
+     "maximum-product-subarray",
+     "best-time-to-buy-and-sell-stock",
+     "subarray-sum-equals-k",
+     "maximum-sum-circular-subarray"
+    ],
+    "followups": [
+     {
+      "q": "Return the indices of the subarray, not just the sum.",
+      "a": "Record a start index that resets whenever `cur` restarts from a[i], and capture both endpoints whenever `best` improves."
+     },
+     {
+      "q": "Solve it with divide and conquer.",
+      "a": "Split in half; the answer is the best in the left, the best in the right, or the best crossing subarray computed by expanding outward from the midpoint. O(n log n) - worse, but it is the intended follow-up."
+     },
+     {
+      "q": "The array is circular.",
+      "a": "Either the answer is a normal maximum subarray, or it wraps - in which case it is the total minus the MINIMUM subarray. Guard the all-negative case, where the second branch gives an empty subarray."
+     }
+    ]
+   }
+  },
+  {
+   "id": "arrays-subarray-sum-equals-k",
+   "order": 14,
+   "phase": "V0",
+   "day": 3,
+   "topic": "arrays",
+   "tier": "CORE",
+   "title": "Subarray Sum Equals K",
+   "lc": {
+    "id": "560",
+    "slug": "subarray-sum-equals-k",
+    "url": "https://leetcode.com/problems/subarray-sum-equals-k/",
+    "difficulty": "Medium",
+    "ac_rate": 48.2,
+    "tags": [
+     "Array",
+     "Hash Table",
+     "Prefix Sum"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/arrays/count-subarray-sum-equals-k/",
+    "youtube": "https://www.youtube.com/watch?v=xvNwoz-ufXA",
+    "striver_title": "Count subarrays with given sum"
+   },
+   "pattern": "prefix-sum-hashmap",
+   "template": "T-HASH-04",
+   "companies": [
+    "Facebook",
+    "Amazon",
+    "Google",
+    "Microsoft",
+    "Goldman Sachs"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Negative values are present in the constraints, which immediately rules out a sliding window - extending the window can decrease the sum, so shrinking is not a valid correction. Prefix sums with a hash map is the technique that survives negatives.",
+    "trick": "A subarray (j, i] sums to k exactly when P(j) = P(i) - k. Keep a map from prefix value to how many times it has occurred, seeded with {0: 1} for the empty prefix, and add the lookup result to the answer at each step.",
+    "edge_cases": [
+     "Seeding the map with {0, 1} is mandatory - without it every subarray starting at index 0 is missed.",
+     "Prefix sums overflow int at 1e5 values of 1e9 - use long long.",
+     "Count occurrences, not just presence; the same prefix value can recur many times."
+    ],
+    "complexity": {
+     "time": "O(n)",
+     "space": "O(n)",
+     "why": "one pass with O(1) average map operations. The O(n^2) nested-loop version is the brute force. Space is the map holding up to n distinct prefixes."
+    },
+    "siblings": [
+     "binary-subarrays-with-sum",
+     "count-number-of-nice-subarrays",
+     "contiguous-array",
+     "subarray-sums-divisible-by-k"
+    ],
+    "followups": [
+     {
+      "q": "Why not a sliding window?",
+      "a": "Sliding windows need monotone contributions. With negatives, adding an element can lower the sum, so the shrink rule is unsound and windows miss valid answers."
+     },
+     {
+      "q": "Count subarrays with sum divisible by k.",
+      "a": "Same structure keyed on prefix sum mod k, with care to normalise negative remainders by adding k before taking the modulus."
+     },
+     {
+      "q": "Longest such subarray rather than the count.",
+      "a": "Store the FIRST index at which each prefix value occurred, not a count, and take i - j."
      }
     ]
    }

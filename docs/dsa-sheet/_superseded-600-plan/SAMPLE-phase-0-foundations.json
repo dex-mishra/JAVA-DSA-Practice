@@ -1,0 +1,585 @@
+{
+ "phase": "P0",
+ "title": "Foundations",
+ "slug": "phase-0-foundations",
+ "days": [
+  1,
+  3
+ ],
+ "goal": "Reference layer. Complexity, STL, sorting, hashing, recursion, bit basics, maths. Reread whenever you open the sheet.",
+ "problem_count": 6,
+ "user_field_schema": {
+  "status": {
+   "type": "enum",
+   "values": [
+    "todo",
+    "solved",
+    "revisit"
+   ],
+   "default": "todo"
+  },
+  "revision": {
+   "type": "boolean",
+   "default": false,
+   "note": "the Striver star - flag anything you want resurfaced"
+  },
+  "notes": {
+   "type": "text",
+   "default": "",
+   "note": "free text, markdown allowed"
+  },
+  "tags": {
+   "type": "string[]",
+   "default": [],
+   "seed": [
+    "stuck",
+    "off-by-one",
+    "wrong-complexity",
+    "misread-constraints",
+    "slow-implementation",
+    "ask-in-mock",
+    "elegant",
+    "redo-cold",
+    "template-drilled",
+    "interview-asked"
+   ]
+  },
+  "confidence": {
+   "type": "int",
+   "range": [
+    1,
+    5
+   ],
+   "default": null,
+   "note": "rate after solving. 1 = needed the editorial, 5 = could teach it"
+  },
+  "last_revised": {
+   "type": "date",
+   "default": null
+  },
+  "goodnotes_ref": {
+   "type": "text",
+   "default": "",
+   "note": "free-text pointer to the GoodNotes page (e.g. 'DSA nb2 p.41'). Opaque to the system - never parsed."
+  },
+  "my_approach": {
+   "type": "text",
+   "default": "",
+   "note": "optional one-liner typed into the tracker on how he solved it. If it differs from the optimal, that gap is the revision signal."
+  }
+ },
+ "revision_queue_rule": "ORDER BY confidence ASC NULLS LAST, last_revised ASC NULLS FIRST WHERE status != 'todo' AND (revision = true OR confidence <= 3)",
+ "tiers": {
+  "CORE": "Code it fully. No shortcuts, no editorial. The pattern lives here.",
+  "DRILL": "A variation on a CORE you already did. Under 10 minutes. If it takes 30, the CORE did not land.",
+  "SKIM": "Read the learnings dropdown, write 3 lines of pseudocode, move on. Code it only if the day ran short."
+ },
+ "theory": [
+  {
+   "id": "t-complexity",
+   "title": "Time & Space Complexity",
+   "links": [
+    "[Striver video](https://www.youtube.com/watch?v=FPu9Uld7W-E)"
+   ],
+   "rungs": {
+    "what": "\nImagine you have lost your friend's number and you have a printed phone directory.\n\n- **Method 1:** start at page one, read every name. Works. Takes forever.\n- **Method 2:** open the middle. Is the name before or after? Throw away half. Repeat.\n\nNow make the directory a **billion** names long. Method 1 is a genuine lifetime of\nflipping. Method 2 finishes in **thirty** flips.\n\nThat gap \u2014 the same problem, the same machine, the same person, thirty operations\nversus a billion \u2014 is the whole reason this chapter exists.\n\nComplexity is **not** how many seconds your code takes. Seconds depend on your laptop,\nthe compiler, and whether the judge server is having a bad day. Complexity is the\n**shape of the growth curve**: when the input gets 10x bigger, does your work get 10x\nbigger, or 100x, or barely move at all?\n",
+    "model": "\n**Count what dominates. Bin the rest.**\n\nSuppose your code does `3n\u00b2 + 500n + 9000` operations. At n = 1,000,000:\n\n- `3n\u00b2` \u2248 3,000,000,000,000\n- `500n` = 500,000,000\n- `9000` = ...nine thousand\n\nThe second term is 0.02% of the first. The third is a rounding error on a rounding\nerror. So we call the whole thing **O(n\u00b2)** and move on. The constants are real, they\njust do not decide whether you pass.\n\nNow here is the arithmetic that should genuinely worry you, and that most students\nnever actually do:\n\n> A judge executes roughly **10\u2078 operations per second**. You usually get 1-2 seconds.\n> O(n\u00b2) at n = 10\u2075 is **10\u00b9\u2070 operations**. That is **100 seconds**.\n>\n> Your solution is not \"a bit slow\". It is fifty times over budget.\n\nBurn that into your head. It is why you check constraints *before* you write code, not\nafter your submission goes red.\n",
+    "mechanics": "\nOne question, asked of every line: **how many times does this run, in terms of n?**\n\n```cpp\nfor (int i = 0; i < n; i++)          // n times\n    for (int j = 0; j < n; j++)      // n times, once per i\n        sum += a[i] * a[j];          // so: n x n\n```\n\u2192 **O(n\u00b2)**.\n\nThe two rules that cover almost everything:\n\n- **Nested loops multiply.** n inside n is n\u00b2.\n- **Sequential loops add, and the bigger one wins.** O(n) then O(m) is O(n + m), which\n  collapses to O(n) if you know m \u2264 n.\n\n**Where does `log` come from?** Halving.\n\n```cpp\nwhile (n > 0) n /= 2;\n```\n8 \u2192 4 \u2192 2 \u2192 1. Three halvings. n = 10\u2079? **Thirty.** Logarithms are so small they feel\nlike a bug. This is why binary search feels like cheating \u2014 it is just the phone\ndirectory again.\n\n**And recursion?** *(number of calls) \u00d7 (work per call).*\n\n- Naive Fibonacci: each call spawns two, so ~2\u207f calls doing O(1) each \u2192 **O(2\u207f)**.\n- Merge sort: log n levels, O(n) merging per level \u2192 **O(n log n)**.\n",
+    "scratch": "\nSit with these until the answer is instant. This is a drill, not a read.\n\n```cpp\n// A - O(n)\nfor (int i = 0; i < n; i++) work();\n\n// B - O(n^2). Yes, it is only n(n+1)/2 iterations. Constants die. Still n^2.\nfor (int i = 0; i < n; i++)\n    for (int j = i; j < n; j++) work();\n\n// C - O(n log n). Outer halves the space (log n), inner is linear each round.\nfor (int i = 1; i < n; i *= 2)\n    for (int j = 0; j < n; j++) work();\n\n// D - O(log n). i doubles, so it hits n after log n steps.\nfor (int i = 1; i < n; i *= 2) work();\n\n// E - O(sqrt n). Lives in every divisor and prime problem you will ever see.\nfor (int i = 1; i * i <= n; i++) work();\n\n// F - O(2^n). Each call branches twice. Subsets. Naive fib.\nint f(int n) { return n <= 1 ? n : f(n-1) + f(n-2); }\n```\n\n**Test yourself honestly.** If you had to pause on C or E, you are not ready for the\nproblems yet. Come back to this block tomorrow.\n",
+    "stl": "\nEvery STL call is a bill you are signing without reading. Here is the bill:\n\n| What you write | What it costs | The bit that bites |\n|---|---|---|\n| `sort(v.begin(), v.end())` | O(n log n) | introsort: quick, then heap, then insertion |\n| `v.push_back(x)` | O(1) *amortised* | one unlucky push is O(n) \u2014 it reallocates |\n| `v.insert(v.begin(), x)` | **O(n)** | shifts everything. Inside a loop this is O(n\u00b2) |\n| `map<K,V>` anything | O(log n) | red-black tree. **Sorted.** |\n| `unordered_map<K,V>` | O(1) avg, **O(n) worst** | collisions |\n| `s.substr(i, len)` | **O(len)** | it *copies*. This one is a career-long trap |\n| `priority_queue` push/pop | O(log n) | `top()` is O(1) |\n\nThat `substr` row. Look at it again:\n\n```cpp\nfor (int i = 0; i < n; i++)\n    for (int j = i; j < n; j++)\n        check(s.substr(i, j - i + 1));      // looks O(n^2). Is O(n^3).\n```\n\nTwo visible loops, one invisible copy. I have watched people stare at this for an hour.\n",
+    "complexity": "\n**Read the constraints, get told the answer.** This table is the single highest-return\nthing in Phase 0.\n\n| n up to | Target | What it is telling you to use |\n|---|---|---|\n| 10-12 | O(n!) | permutations, brute-force TSP |\n| 20-25 | O(2\u207f) | subsets, bitmask DP |\n| 100 | O(n\u2074) | four loops, Floyd-Warshall |\n| 500 | O(n\u00b3) | interval / MCM DP |\n| 5,000 | O(n\u00b2) | 2D DP |\n| 10\u2075 | O(n log n) | sort, heap, binary search, monotonic stack |\n| 10\u2076 | O(n) | one pass. Prefix sums, sliding window, counting |\n| 10\u2079 | O(log n) / O(1) | binary search **on the answer**, or maths |\n\nThe setter chose `n \u2264 20` on purpose. They are *telling* you it is exponential. Listen.\n\n**On space:**\n\n- A fixed handful of variables \u2192 O(1).\n- A `vector<int>` of size n \u2192 O(n).\n- A DP table n\u00d7m \u2192 O(n\u00b7m). At 5000\u00d75000 that is 25M ints = **100 MB**, which will blow\n  a 256 MB limit once overhead lands. That is your cue to compress to two rows.\n- **Recursion costs stack even when you allocate nothing.** Depth d is O(d) space, and\n  recursing 10\u2075 deep will stack-overflow. People forget this constantly.\n",
+    "triggers": "\nReading constraints is a *recognition* skill. These should fire automatically:\n\n- **n \u2264 20** \u2192 try every subset. Bitmask.\n- **n \u2264 10\u2075, sorted or sortable** \u2192 binary search, two pointers, or sort-then-sweep.\n- **n up to 10\u2079 but the *answer* is bounded** \u2192 binary search **on the answer**.\n  The tell is the phrasing: *\"minimum capacity such that...\"*, *\"minimum days such that...\"*\n- **\"count the subarrays/substrings where...\"** \u2192 prefix sums + hash map, or sliding\n  window if the property is monotonic.\n- **n = 10\u2076 with a tight limit** \u2192 one pass. You cannot even afford to sort.\n- **\"answer modulo 10\u2079+7\"** \u2192 the answer is astronomically large, so it is a counting\n  DP or combinatorics problem. You are not constructing anything.\n",
+    "gotchas": "\nThe five that cost real marks:\n\n- **`int` dies at ~2.1\u00d710\u2079.** `n*(n-1)/2` with n = 10\u2075 is 5\u00d710\u2079 \u2014 already wrong. Use\n  `long long`. It does not crash. It just quietly returns nonsense, which is worse.\n- **`(l + r) / 2` overflows** when both are near INT_MAX. Write `l + (r - l) / 2`.\n  Famously shipped broken in Java's standard library for nine years.\n- **Amortised \u2260 worst case.** `push_back` is O(1) amortised. If asked for a *guaranteed*\n  worst-case O(1), the honest answer is no \u2014 one push can be O(n).\n- **Average \u2260 worst.** `unordered_map` is O(1) average, O(n) worst. On Codeforces people\n  will hack you for exactly this.\n- **Dropping constants is for asymptotics, not for passing.** O(n log n) with a fat\n  constant can TLE where O(n\u00b2) with a tiny one sails through at n = 2000. Know both numbers.\n",
+    "grilling": "\nHere is how the interviewer actually walks you down. Each answer earns the next question.\n\n- **Q.** Complexity of your solution?\n  **A.** Time and space, separately, and say what n *is*. *\"O(n log n) time where n is\n  the array length, O(n) space for the sorted copy.\"* Vagueness here is a red flag.\n\n- **Q.** Why n log n and not n?\n  **A.** Because I sort, and comparison sorting has a proven \u03a9(n log n) lower bound \u2014\n  there are n! possible orderings, each comparison gives one bit, so you need log\u2082(n!)\n  \u2248 n log n comparisons.\n\n- **Q.** So sorting can never beat n log n?\n  **A.** It can, if you stop comparing. Counting sort is O(n + k) for bounded integers,\n  radix is O(d(n+k)). They dodge the bound by never doing a comparison.\n\n- **Q.** Your `unordered_map` is O(n). Always?\n  **A.** O(n) *expected*. Worst case O(n\u00b2) if everything collides \u2014 and C++'s default\n  integer hash is essentially the identity, so it is trivially attackable.\n\n- **Q.** You claimed O(1) space. But you recursed n deep.\n  **A.** Caught \u2014 that is O(n) auxiliary stack. True O(1) means converting to iteration.\n  *(Most candidates miss this entirely. Do not be most candidates.)*\n\n- **Q.** Can you beat O(n)?\n  **A.** Not if the answer depends on every element \u2014 you must read each one at least\n  once. Adversary argument: skip any element and I change it, and your answer is wrong.\n  Sub-linear needs structure: a sorted array, or a precomputed index.\n"
+   }
+  },
+  {
+   "id": "t-stl",
+   "title": "C++ STL \u2014 the containers you actually use",
+   "links": [
+    "[Striver video](https://www.youtube.com/watch?v=RRVYpIET_RU)"
+   ],
+   "rungs": {
+    "what": "\nThink about how you store things in real life. You do not use one system for everything.\n\n- **Clothes in a wardrobe** \u2014 stacked in a pile. Grabbing the top one is instant.\n  Getting the shirt at the bottom means lifting everything above it.\n- **Contacts in your phone** \u2014 sorted alphabetically. You can jump to \"R\" instantly and\n  you can also ask \"who comes after Rahul\".\n- **Hostel room keys on a board** \u2014 each key hangs on the hook with its room number.\n  Room 214? Go straight to hook 214. No searching at all.\n\nThose are a **stack**, a **map**, and a **hash table**. You already understand them.\nThe STL just gives you the C++ spelling.\n\nAnd in an interview, using the STL is not cheating \u2014 it is expected. What is *also*\nexpected is that you know what is underneath, because the follow-up is always\n*\"and how would you build that yourself?\"*\n",
+    "model": "\n**Every container trades three things: lookup speed, insertion speed, and ordering.\nThere is no container that wins all three.** Picking the container *is* the algorithm\ndesign step \u2014 very often the entire interview hinges on it.\n\nThe decision tree, honestly, is this short:\n\n- Index access, contiguous memory \u2192 **`vector`**\n- \"Have I seen this?\", order irrelevant \u2192 **`unordered_set` / `unordered_map`**\n- \"Have I seen this?\" **and** I need sorted order or range queries \u2192 **`set` / `map`**\n- \"Give me the biggest thing\", over and over \u2192 **`priority_queue`**\n- Add and remove at **both** ends \u2192 **`deque`**\n- I want LIFO/FIFO discipline enforced so I cannot cheat \u2192 **`stack` / `queue`**\n\nIf you can answer \"which container and why\" in one sentence, you are ahead of most\ncandidates.\n",
+    "mechanics": "\n```cpp\n#include <bits/stdc++.h>          // everything. Contest habit, not production habit.\nusing namespace std;\n\nvector<int> v = {3, 1, 2};\nv.push_back(4);                   // {3,1,2,4}\nsort(v.begin(), v.end());         // {1,2,3,4}\nv.erase(v.begin() + 1);           // {1,3,4} - O(n), the tail shuffles left\n\nmap<string,int> freq;             // SORTED by key\nfreq[\"apple\"]++;                  // missing key? default-constructs to 0, then ++\nfor (auto &[k, val] : freq) ...   // iterates a, b, c... in sorted order\n\nunordered_map<int,int> seen;      // hash table. No order. Do not assume one.\nif (seen.count(x)) ...            // O(1) average\n\nset<int> s = {5, 1, 3};           // {1,3,5} - unique AND sorted\ns.insert(3);                      // silently does nothing, already there\nauto it = s.lower_bound(2);       // -> 3.  Use s.lower_bound, NOT std::lower_bound\n\npriority_queue<int> maxHeap;                              // biggest on top\npriority_queue<int, vector<int>, greater<int>> minHeap;   // smallest on top\n\ndeque<int> dq;\ndq.push_front(1); dq.push_back(2);                        // O(1) at both ends\n```\n\n**Try this and watch it bite you:** insert `\"b\"`, `\"a\"`, `\"c\"` into a `map` and print.\nYou get a, b, c. Swap to `unordered_map` and the order is arbitrary garbage. Roughly\nhalf of all *\"my output is in the wrong order\"* bugs are exactly this, and the error\nmessage is no error message at all.\n",
+    "scratch": "\nYou must be able to build these blindfolded, because this is the follow-up question.\n\n```cpp\n// A dynamic array - this is what vector IS\nstruct Vec {\n    int *a = nullptr; int sz = 0, cap = 0;\n    void push_back(int x) {\n        if (sz == cap) {                       // full - time to grow\n            cap = cap ? cap * 2 : 1;           // DOUBLING. This is the whole trick.\n            int *b = new int[cap];\n            for (int i = 0; i < sz; i++) b[i] = a[i];\n            delete[] a; a = b;\n        }\n        a[sz++] = x;\n    }\n};\n```\n\n**Why doubling and not \"add 10 more\"?** Do the arithmetic.\n\n- Doubling: n pushes cost 1 + 2 + 4 + ... + n < 2n copies *total*. Average O(1). \n- Adding a constant: you reallocate every few pushes, costing O(n) each time \u2192 O(n\u00b2) total.\n\nOne line of code, an entire complexity class apart. This is the amortisation story and\nit comes up constantly.\n\n```cpp\n// A hash map with chaining - what unordered_map IS\nstruct HashMap {\n    static const int B = 100003;                        // prime bucket count\n    vector<vector<pair<int,int>>> t{B};\n    int h(int k) { return ((k % B) + B) % B; }          // the +B rescues negatives\n    void put(int k, int v) {\n        for (auto &p : t[h(k)]) if (p.first == k) { p.second = v; return; }\n        t[h(k)].push_back({k, v});\n    }\n    int get(int k) {\n        for (auto &p : t[h(k)]) if (p.first == k) return p.second;\n        return -1;\n    }\n};\n```\n",
+    "stl": "\nThe algorithms that turn ten lines into one. Learn these and your implementation speed\ndoubles overnight.\n\n```cpp\nsort(v.begin(), v.end());\nsort(v.begin(), v.end(), greater<int>());                 // descending\nsort(v.begin(), v.end(), [](auto&a, auto&b){ return a.second < b.second; });\n\nreverse(v.begin(), v.end());\n*max_element(v.begin(), v.end());\naccumulate(v.begin(), v.end(), 0LL);                      // 0LL. Not 0. Overflow.\ncount(v.begin(), v.end(), x);\n\nlower_bound(v.begin(), v.end(), x) - v.begin();           // first index with v[i] >= x\nupper_bound(v.begin(), v.end(), x) - v.begin();           // first index with v[i] >  x\n\nv.erase(unique(v.begin(), v.end()), v.end());             // dedupe a SORTED vector\nnext_permutation(v.begin(), v.end());                     // in-place next ordering\n\n__builtin_popcount(x);        // set bits in an int\n__builtin_popcountll(x);      // ... in a long long\n__gcd(a, b);\n```\n\n**`lower_bound` on unsorted input does not error.** It returns confident nonsense. That\nis a far nastier bug than a crash, because your code runs and your answer is wrong.\n",
+    "complexity": "\n| Container | Access | Insert | Erase | Search | Ordered? | What it really is |\n|---|---|---|---|---|---|---|\n| `vector` | O(1) | O(1)* back / O(n) mid | O(n) | O(n), O(log n) sorted | insertion | dynamic array |\n| `deque` | O(1) | O(1) both ends | O(n) mid | O(n) | insertion | chunked arrays |\n| `list` | O(n) | O(1) at iterator | O(1) at iterator | O(n) | insertion | doubly linked list |\n| `set` / `map` | \u2014 | O(log n) | O(log n) | O(log n) | **sorted** | red-black tree |\n| `unordered_*` | \u2014 | O(1) avg / O(n) worst | O(1) avg | O(1) avg | **no** | hash table |\n| `priority_queue` | O(1) top | O(log n) | O(log n) | \u2014 | partial | binary heap |\n| `stack` / `queue` | O(1) | O(1) | O(1) | \u2014 | \u2014 | adapter over deque |\n\n\\* amortised.\n\n**The decision rule, stated plainly:** default to `unordered_map`. Switch to `map` the\nmoment you need sorted iteration, `lower_bound` on keys, or a guaranteed worst case.\nThat is it. That is the whole rule.\n",
+    "triggers": "\nProblem statement says \u2192 reach for:\n\n- *\"Has this been seen before?\"*, *\"count occurrences\"* \u2192 `unordered_map` / `unordered_set`\n- *\"the k largest / k smallest\"* \u2192 `priority_queue` of size k\n- *\"the next greater element\"*, *\"the most recent unmatched thing\"* \u2192 `stack`\n- *\"process in arrival order\"*, *\"level by level\"* \u2192 `queue`\n- *\"smallest key \u2265 x\"*, *\"all keys between a and b\"* \u2192 `set`/`map` + `lower_bound`\n- *\"maximum in a sliding window\"* \u2192 `deque` of indices, kept monotonic\n- *\"group these by ...\"* \u2192 `unordered_map<Key, vector<T>>`\n",
+    "gotchas": "\nRead this list twice. Every single one has cost someone a submission.\n\n- **`m[k]` on a map *inserts*.** So `if (m[k] == 0)` quietly creates the key. Inside a\n  loop, your map grows to the size of your input for no reason. Use `m.count(k)`.\n- **Iterator invalidation.** A `push_back` can reallocate and invalidate every iterator\n  and pointer into the vector. Erasing while looping needs `it = v.erase(it)`.\n- **`unordered_map` with a `pair` key does not compile** \u2014 no default hash exists. Either\n  use `map`, or encode: `long long key = (long long)a * 1000000 + b;`\n- **Comparators must be a strict weak ordering.** `return a <= b;` is undefined behaviour\n  and genuinely segfaults on large inputs. It must be `<`. Never `<=`.\n- **`accumulate(..., 0)` returns an `int`.** The initial value sets the accumulator type.\n  Pass `0LL` or watch your sum wrap around.\n- **`unique()` removes only *adjacent* duplicates.** Sort first or it does nothing useful.\n- **`multiset.erase(x)` deletes every copy of x.** You almost always wanted\n  `ms.erase(ms.find(x))`, which deletes one. Classic sliding-window corruption.\n",
+    "grilling": "\n- **Q.** Why is `push_back` O(1) if it sometimes copies the entire array?\n  **A.** Amortised analysis. Doubling means n pushes cost at most 2n copies total, so\n  constant on average \u2014 even though one individual push is O(n).\n\n- **Q.** `map` or `unordered_map` here?\n  **A.** Never answer with a preference. Answer with the *requirement*: *\"`unordered_map`,\n  because I only do point lookups and n is 10\u2075 so the log factor is real overhead\"* \u2014\n  or \u2014 *\"`map`, because I need sorted output at the end, and re-sorting would cost the\n  same log factor anyway.\"*\n\n- **Q.** When does `unordered_map` become O(n)?\n  **A.** When keys collide into one bucket. C++'s default integer hash is effectively the\n  identity function, so an adversary can force it trivially. Fix: a custom hash seeded\n  from `chrono::steady_clock`, or accept `map`.\n\n- **Q.** How does `set` stay sorted *and* O(log n)?\n  **A.** Red-black tree \u2014 a self-balancing BST that recolours and rotates on insert and\n  delete to keep the longest root-to-leaf path at most twice the shortest, bounding\n  height at O(log n).\n\n- **Q.** Implement a hash map. Collision strategy?\n  **A.** Chaining (a list per bucket) \u2014 simple, degrades gracefully. Open addressing is\n  more cache-friendly but needs tombstones on delete and suffers clustering. Then\n  volunteer the load factor: rehash past ~0.75.\n\n- **Q.** Ten billion numbers streaming past. Give me the k largest.\n  **A.** They do not fit in memory, so sorting is off the table. Min-heap of size k: push\n  each element, pop when size exceeds k. O(n log k) time, O(k) space.\n  *(This is the separator. The urge to sort is strong, and it is wrong.)*\n"
+   }
+  }
+ ],
+ "problems": [
+  {
+   "id": "hashing-two-sum",
+   "order": 1,
+   "phase": "P0",
+   "day": 1,
+   "topic": "hashing",
+   "tier": "CORE",
+   "title": "Two Sum",
+   "lc": {
+    "id": "1",
+    "slug": "two-sum",
+    "url": "https://leetcode.com/problems/two-sum/",
+    "difficulty": "Easy",
+    "ac_rate": 57.9,
+    "tags": [
+     "Array",
+     "Hash Table"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/two-sum-check-if-a-pair-with-given-sum-exists-in-array/",
+    "youtube": "https://www.youtube.com/watch?v=UXDSeD9mN-k",
+    "striver_title": "Two Sum"
+   },
+   "pattern": "hash-complement",
+   "template": "T-HASH-01",
+   "companies": [
+    "Amazon",
+    "Google",
+    "Microsoft",
+    "Adobe",
+    "Apple"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "You are not looking for *pairs*. You are looking for one number at a time and asking 'has my partner already walked past me?' That reframing is the whole problem - it turns a two-dimensional search into a one-dimensional walk.",
+    "trick": "Store what you have SEEN, look up what you NEED. Check `target - x` in the map BEFORE inserting `x`, otherwise an element pairs with itself when target = 2x.",
+    "edge_cases": [
+     "Duplicate values - `[3,3]`, target 6. Checking before inserting handles it.",
+     "Negative numbers work fine; the complement is just arithmetic.",
+     "Exactly one valid answer is guaranteed here. Do not rely on that in variants."
+    ],
+    "complexity": {
+     "time": "O(n)",
+     "space": "O(n)",
+     "why": "one pass, one O(1) average lookup per element. Space is the map holding up to n keys. The brute force is O(n^2) time and O(1) space - this is the classic trade."
+    },
+    "siblings": [
+     "two-sum-ii-input-array-is-sorted",
+     "3sum",
+     "4sum",
+     "subarray-sum-equals-k"
+    ],
+    "followups": [
+     {
+      "q": "Now the array is sorted. Can you do it in O(1) space?",
+      "a": "Two pointers from both ends. Sum too small, move left up; too big, move right down. O(n) time, O(1) space - strictly better than hashing when sorted."
+     },
+     {
+      "q": "Return all unique pairs, not just one.",
+      "a": "Sort plus two pointers, skipping duplicates on both sides after each hit. Hashing gets messy for uniqueness; sorting makes dedup trivial."
+     },
+     {
+      "q": "What if the array is a stream you cannot store?",
+      "a": "You cannot, in general - the pair may span the whole stream. If the range of values is bounded you can keep a fixed-size seen-array instead."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "hashing-contains-duplicate",
+   "order": 2,
+   "phase": "P0",
+   "day": 1,
+   "topic": "hashing",
+   "tier": "DRILL",
+   "title": "Contains Duplicate",
+   "lc": {
+    "id": "217",
+    "slug": "contains-duplicate",
+    "url": "https://leetcode.com/problems/contains-duplicate/",
+    "difficulty": "Easy",
+    "ac_rate": 64.7,
+    "tags": [
+     "Array",
+     "Hash Table",
+     "Sorting"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": null,
+    "striver_title": null
+   },
+   "pattern": "seen-set",
+   "template": "T-HASH-02",
+   "companies": [
+    "Amazon",
+    "Adobe",
+    "Palantir"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "The moment a question asks 'does anything repeat', you are being asked whether you know that a set gives you membership in O(1). That is the entire test.",
+    "trick": "Short-circuit. Return true the instant you see a repeat - do not build the whole set first and compare sizes, even though `set.size() != n` also works.",
+    "edge_cases": [
+     "Empty array and single element - both false.",
+     "All identical - returns true on the second element, not the last."
+    ],
+    "complexity": {
+     "time": "O(n)",
+     "space": "O(n)",
+     "why": "one pass with O(1) average inserts. Sorting first would be O(n log n) time but O(1) extra space - name that trade if asked."
+    },
+    "siblings": [
+     "contains-duplicate-ii",
+     "single-number",
+     "find-the-duplicate-number",
+     "valid-anagram"
+    ],
+    "followups": [
+     {
+      "q": "O(1) extra space?",
+      "a": "Sort in place, then scan adjacent pairs. O(n log n) time, O(1) space - but it destroys the input order, which may not be allowed."
+     },
+     {
+      "q": "Duplicates within distance k of each other?",
+      "a": "That is LC 219 - a sliding window of a set, evicting the element that falls out of the window. Same idea, bounded memory."
+     },
+     {
+      "q": "Array of n+1 integers in range [1,n], find the duplicate without modifying it, O(1) space?",
+      "a": "Floyd's cycle detection treating values as next-pointers. That is LC 287 and it is a genuinely beautiful problem. (This is the separator.)"
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "hashing-valid-anagram",
+   "order": 3,
+   "phase": "P0",
+   "day": 1,
+   "topic": "hashing",
+   "tier": "DRILL",
+   "title": "Valid Anagram",
+   "lc": {
+    "id": "242",
+    "slug": "valid-anagram",
+    "url": "https://leetcode.com/problems/valid-anagram/",
+    "difficulty": "Easy",
+    "ac_rate": 68.7,
+    "tags": [
+     "Hash Table",
+     "String",
+     "Sorting"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/check-if-two-strings-are-anagrams-of-each-other/",
+    "youtube": null,
+    "striver_title": "Check if two strings are anagram of each other"
+   },
+   "pattern": "frequency-count",
+   "template": "T-HASH-03",
+   "companies": [
+    "Amazon",
+    "Uber",
+    "Bloomberg",
+    "Goldman Sachs"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Two words are anagrams when their letter *multisets* match. You do not need to sort to compare multisets - you just need to count, and counting is O(n) while sorting is O(n log n).",
+    "trick": "For a fixed alphabet, use `int cnt[26]` and NOT a hash map. Increment for string one, decrement for string two, then assert everything is zero. One array, one pass each, no hashing overhead at all.",
+    "edge_cases": [
+     "Different lengths - return false immediately, before counting.",
+     "Empty strings are anagrams of each other.",
+     "The `cnt[26]` trick silently breaks on Unicode. Ask about the character set."
+    ],
+    "complexity": {
+     "time": "O(n)",
+     "space": "O(1)",
+     "why": "the counter is 26 ints regardless of input size, so it is genuinely constant space - not O(k) hand-waving. Sorting-based solutions are O(n log n) time."
+    },
+    "siblings": [
+     "group-anagrams",
+     "find-all-anagrams-in-a-string",
+     "permutation-in-string",
+     "ransom-note"
+    ],
+    "followups": [
+     {
+      "q": "What if the strings contain Unicode?",
+      "a": "The 26-array collapses. Switch to `unordered_map<char32_t,int>` and accept O(1) average instead of true O(1). Always ask about the alphabet before optimising."
+     },
+     {
+      "q": "Group all anagrams in a list of words.",
+      "a": "Hash each word by its sorted form, or by its 26-length count signature. The count signature is O(n) per word versus O(n log n) for sorting - faster for long words."
+     },
+     {
+      "q": "Find every anagram of p inside s.",
+      "a": "Sliding window of size |p| carrying a rolling count. LC 438, and it is the natural next rung from here."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "sorting-sort-an-array",
+   "order": 4,
+   "phase": "P0",
+   "day": 2,
+   "topic": "sorting",
+   "tier": "CORE",
+   "title": "Sort an Array",
+   "lc": {
+    "id": "912",
+    "slug": "sort-an-array",
+    "url": "https://leetcode.com/problems/sort-an-array/",
+    "difficulty": "Medium",
+    "ac_rate": 55.6,
+    "tags": [
+     "Array",
+     "Divide and Conquer",
+     "Sorting",
+     "Heap (Priority Queue)",
+     "Merge Sort",
+     "Bucket Sort",
+     "Radix Sort",
+     "Counting Sort"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": null,
+    "striver_title": null
+   },
+   "pattern": "merge-sort",
+   "template": "T-SORT-01",
+   "companies": [
+    "Microsoft",
+    "Amazon",
+    "Bloomberg"
+   ],
+   "campus_oa": "MEDIUM",
+   "learnings": {
+    "insight": "LeetCode blocks `std::sort` here on purpose. This problem exists so you write merge sort or quick sort from memory, once, properly - and then reuse the merge step for Count Inversions and Reverse Pairs, which are otherwise hard.",
+    "trick": "Write merge sort, not quick sort. The test data includes adversarial input that drives naive quick sort to O(n^2) and times you out. If you insist on quick sort, randomise the pivot.",
+    "edge_cases": [
+     "Single element or empty - the `if (l >= r) return;` guard handles both.",
+     "All elements identical - fine for merge sort, worst case for Lomuto partition.",
+     "Negative numbers - no special handling, but it kills counting-sort shortcuts."
+    ],
+    "complexity": {
+     "time": "O(n log n)",
+     "space": "O(n)",
+     "why": "log n levels of recursion, O(n) merging at each level. Space is the temporary buffer plus O(log n) stack. Quick sort would be O(log n) space but risks O(n^2) time."
+    },
+    "siblings": [
+     "merge-sorted-array",
+     "sort-list",
+     "reverse-pairs",
+     "count-of-smaller-numbers-after-self"
+    ],
+    "followups": [
+     {
+      "q": "Your merge sort uses O(n) space. Make it O(1).",
+      "a": "In-place merge exists but is O(n log^2 n) and genuinely fiddly. The honest answer is heap sort: O(n log n) time, O(1) space, at the cost of stability and cache locality."
+     },
+     {
+      "q": "Same problem, but it is a linked list.",
+      "a": "Merge sort is strictly the right answer - no random access needed, and you relink rather than copy, so it is O(1) extra space. Quick sort on a list is painful."
+     },
+     {
+      "q": "Values are all between 0 and 1000.",
+      "a": "Counting sort. O(n + k) beats O(n log n) outright. Notice the constraint gave this away - that is the habit to build."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "math-palindrome-number",
+   "order": 5,
+   "phase": "P0",
+   "day": 3,
+   "topic": "math",
+   "tier": "DRILL",
+   "title": "Palindrome Number",
+   "lc": {
+    "id": "9",
+    "slug": "palindrome-number",
+    "url": "https://leetcode.com/problems/palindrome-number/",
+    "difficulty": "Easy",
+    "ac_rate": 61.0,
+    "tags": [
+     "Math"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/check-if-a-number-is-palindrome-or-not/",
+    "youtube": "https://www.youtube.com/watch?v=1xNbjMdbjug&t=1230",
+    "striver_title": "Palindrome Number"
+   },
+   "pattern": "digit-reversal",
+   "template": "T-MATH-01",
+   "companies": [
+    "Amazon",
+    "Adobe"
+   ],
+   "campus_oa": "MEDIUM",
+   "learnings": {
+    "insight": "The interesting version of this problem is the one where you are banned from converting to a string. Then it becomes a digit-extraction exercise, and digit extraction is `n % 10` to read and `n /= 10` to advance - the two operations behind half of all number problems.",
+    "trick": "Reverse only HALF the number and compare the halves. Stop when the reversed half becomes >= the remaining half. This avoids the overflow you get from reversing the whole thing, and it is the answer they are fishing for.",
+    "edge_cases": [
+     "Negatives are never palindromes - the minus sign. Return false immediately.",
+     "Any number ending in 0 (except 0 itself) cannot be a palindrome.",
+     "Odd digit counts leave a middle digit - discard it with `rev / 10` before comparing."
+    ],
+    "complexity": {
+     "time": "O(log n)",
+     "space": "O(1)",
+     "why": "log10(n) digits, one operation each, no extra storage. The string solution is O(log n) space for the string, which is why they ban it."
+    },
+    "siblings": [
+     "reverse-integer",
+     "add-digits",
+     "happy-number",
+     "valid-palindrome"
+    ],
+    "followups": [
+     {
+      "q": "Reverse the whole number instead. What breaks?",
+      "a": "Overflow. Reversing 1534236469 exceeds INT_MAX. Half-reversal sidesteps it entirely, which is exactly why it is the preferred solution."
+     },
+     {
+      "q": "Now do it in base k instead of base 10.",
+      "a": "Replace every 10 with k. The algorithm is unchanged - which is the point. Digit extraction was never about base 10."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "math-happy-number",
+   "order": 6,
+   "phase": "P0",
+   "day": 3,
+   "topic": "math",
+   "tier": "CORE",
+   "title": "Happy Number",
+   "lc": {
+    "id": "202",
+    "slug": "happy-number",
+    "url": "https://leetcode.com/problems/happy-number/",
+    "difficulty": "Easy",
+    "ac_rate": 60.3,
+    "tags": [
+     "Hash Table",
+     "Math",
+     "Two Pointers",
+     "Floyd's Cycle Finding Algorithm"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": null,
+    "striver_title": null
+   },
+   "pattern": "cycle-detection",
+   "template": "T-MATH-02",
+   "companies": [
+    "Google",
+    "Uber",
+    "Airbnb"
+   ],
+   "campus_oa": "MEDIUM",
+   "learnings": {
+    "insight": "This looks like a maths problem and is actually a **linked list** problem in disguise. Each number points to exactly one successor, so you are walking a chain. It either reaches 1 or loops forever - and 'detect a loop' has a known answer.",
+    "trick": "Floyd's tortoise and hare. Slow advances one step, fast advances two. If they meet, there is a cycle and the answer is false. O(1) space, versus a hash set's O(log n). Recognising the disguise is the whole skill here.",
+    "edge_cases": [
+     "n = 1 is happy by definition - handle before entering the loop.",
+     "Single-digit numbers other than 1 and 7 all fall into the same 4-16-37... cycle.",
+     "The chain is guaranteed finite: any number above 999 shrinks, so values are bounded."
+    ],
+    "complexity": {
+     "time": "O(log n)",
+     "space": "O(1)",
+     "why": "digit-sum collapses large numbers fast - anything above 999 drops below itself, so the walk is short and bounded. Floyd's uses two pointers and nothing else."
+    },
+    "siblings": [
+     "linked-list-cycle",
+     "linked-list-cycle-ii",
+     "find-the-duplicate-number",
+     "add-digits"
+    ],
+    "followups": [
+     {
+      "q": "Why does this terminate at all?",
+      "a": "For any n with d digits, the max digit-square-sum is 81d, which is smaller than n once d >= 4. So every number eventually falls below 1000, and there are finitely many states below 1000 - so it must cycle or hit 1."
+     },
+     {
+      "q": "Find the length of the cycle.",
+      "a": "After the pointers meet, hold one still and advance the other until they meet again, counting steps. Same trick as LC 142."
+     },
+     {
+      "q": "Where else have you seen a value-points-to-value chain?",
+      "a": "LC 287, Find the Duplicate Number. Recognising that an array of values in [1,n] IS a linked list is the single highest-leverage disguise in all of DSA."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  }
+ ]
+}

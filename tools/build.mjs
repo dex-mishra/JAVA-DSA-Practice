@@ -174,6 +174,39 @@ if (dsa) {
   learnings.sort((a, b) => a.day - b.day || a.id.localeCompare(b.id));
   emit("data/dsa/learnings.json", { learnings });
 
+  /* The pattern index — PRD §3.4, and the revision surface the whole sheet
+     is built around. Every problem owns a named pattern, so the list of
+     names is a list of things you should be able to explain.
+     Grouped by pattern rather than one row per problem: the PRD assumed a
+     pattern maps to exactly one problem, and 8 of them do not. `bfs-levels`
+     covers level-order and right-side-view; `bottom-up-return` covers three.
+     Collapsing those to one entry each is not a loss -- "these three are the
+     same idea" is the single most useful thing the index can tell you. */
+  const patterns = new Map();
+  for (const row of dsa.index.problems) {
+    const key = row.pattern || "(unnamed)";
+    if (!patterns.has(key)) {
+      patterns.set(key, { pattern: key, topic: row.topic, template_id: row.template || "", problems: [] });
+    }
+    const entry = patterns.get(key);
+    entry.problems.push({
+      id: row.id, title: row.title, topic: row.topic, day: row.day,
+      phase: row.phase, difficulty: row.difficulty, tier: row.tier,
+      url: row.url, template_id: row.template || ""
+    });
+    // A pattern shared across topics is filed under the first one it appears
+    // in, which is where it was taught.
+    if (row.day < entry.problems[0].day) entry.topic = row.topic;
+  }
+  for (const entry of patterns.values()) entry.problems.sort((a, b) => a.day - b.day);
+
+  emit("data/dsa/patterns.json", {
+    count: patterns.size,
+    problem_count: dsa.index.problems.length,
+    patterns: [...patterns.values()].sort((a, b) =>
+      a.problems[0].day - b.problems[0].day || a.pattern.localeCompare(b.pattern))
+  });
+
   for (const t of templates) {
     const users = (templateUsers.get(t.id) || []).sort((a, b) => a.day - b.day);
     emit(`data/dsa/template/${t.id}.json`, { ...t, used_by: users });

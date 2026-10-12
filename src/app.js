@@ -41,10 +41,9 @@
      tiers, stuck ladder, AI protocol, tag vocabulary) and a thin index of
      every problem, carrying what a row needs and nothing more.
 
-     The rest -- learnings, theory, templates -- is ~2 MB at the full 600
-     problems and is fetched per problem from /api/dsa/*. Baking it would
-     make this page a multi-megabyte parse on a phone to show one day's
-     fourteen rows. Opened from disk with no server the sheet still lists,
+     The rest -- learnings, theory, templates -- is well over a megabyte and
+     is fetched per problem as a static file. Baking it would make this page
+     a multi-megabyte parse on a phone to show one day's five rows. Opened from disk with no server the sheet still lists,
      filters and ticks; only the teaching material needs the API. */
   var DSA = DATA.dsa || null;
   var DSA_SPEC = (DSA && DSA.spec) || null;
@@ -63,28 +62,55 @@
      instead of a quarter of it.
 
      To go back to flat 1:1, set all three to 1. Nothing else changes. */
-  var DSA_WEIGHT = { CORE: 3, DRILL: 2, SKIM: 1 };
+/* What a solved problem is worth against a ticked topic.
+
+     Not 1:1, because they are not the same unit of work. A topic line is
+     "Integer promotion & unsigned arithmetic" -- ten minutes of reading.
+     The tiers are the sheet's own estimate of effort, and these numbers
+     track them: SPEC defines CORE as a full solve against an empty file
+     with no editorial, DRILL as a variation that should take under ten
+     minutes, and SKIM as read-the-learnings-and-move-on. Call that roughly
+     45 / 10 / 5 minutes and the ratio is 10 : 2 : 1.
+
+     The v1 sheet used 3 : 2 : 1 across 600 problems, which put DSA at about
+     half the ladder. v2 is 145 problems and nearly all of them CORE, so the
+     same numbers would have quietly dropped it to a quarter -- the sheet got
+     shorter and harder, and would have been worth less for it. 10 : 2 : 1
+     puts it back at 49%, which is the weight a sheet of one-problem-per-
+     transferable-concept earns.
+
+     To go back to flat 1:1, set all three to 1. Nothing else changes. */
+  var DSA_WEIGHT = { CORE: 10, DRILL: 2, SKIM: 1 };
 
   /* The denominator is the SPEC pool, not the problems imported so far.
 
-     Those differ -- three phases of six are in -- and using the imported
+     Those differ -- four phases of six are in -- and using the imported
      count would mean the rating falls every time a phase lands, purely
      because the target moved. The pool is the real target and it is known
-     from day one, so 600 it is, and an unimported phase simply reads as
+     from day one, so 145 it is, and an unimported phase simply reads as
      work not yet done. Which it is. */
   var DSA_POOL = (DSA_SPEC && DSA_SPEC.pool_size) || 0;
 
-  /* Weighted size of the whole sheet, assuming the unimported remainder
-     arrives at the tier mix SPEC plans for. Without this the ladder would
-     shift under you as P2B and P3 land. */
+  /* Weighted size of the whole sheet, projecting the undelivered phases at
+     the tier mix the delivered ones actually have.
+
+     Deliberately not SPEC's `tier_mix`: that field still reads 40/35/25 from
+     the abandoned 600-problem plan, while what shipped is 87/11/2. Trusting
+     it would value the 40 pending problems at roughly half what they will
+     actually be worth, and the ladder would lurch when V3 lands. Observed
+     beats declared when the two disagree and the observation is this direct. */
   var DSA_TOTAL_WEIGHT = (function () {
-    if (!DSA_SPEC) return 0;
+    if (!DSA_SPEC || !DSA_PROBLEMS.length) return 0;
     var known = 0;
-    DSA_PROBLEMS.forEach(function (p) { known += DSA_WEIGHT[p.tier] || 1; });
-    var mix = DSA_SPEC.tier_mix || { CORE: 0.4, DRILL: 0.35, SKIM: 0.25 };
-    var perProblem = (mix.CORE || 0) * DSA_WEIGHT.CORE +
-      (mix.DRILL || 0) * DSA_WEIGHT.DRILL + (mix.SKIM || 0) * DSA_WEIGHT.SKIM;
-    return known + Math.max(0, DSA_POOL - DSA_PROBLEMS.length) * perProblem;
+    var counts = { CORE: 0, DRILL: 0, SKIM: 0 };
+    DSA_PROBLEMS.forEach(function (p) {
+      known += DSA_WEIGHT[p.tier] || 1;
+      if (counts[p.tier] !== undefined) counts[p.tier]++;
+    });
+    var n = DSA_PROBLEMS.length;
+    var perProblem = (counts.CORE * DSA_WEIGHT.CORE + counts.DRILL * DSA_WEIGHT.DRILL +
+      counts.SKIM * DSA_WEIGHT.SKIM) / n;
+    return known + Math.max(0, DSA_POOL - n) * perProblem;
   })();
 
   var DAY1 = new Date("2026-12-01T00:00:00");
@@ -924,6 +950,7 @@
   });
   TABS.push({ id: "career", label: "Opportunities", domain: "placement", section: "placement" });
   TABS.push({ id: "dsa-sheet", label: "Sheet", domain: "dsa", section: "dsa" });
+  TABS.push({ id: "dsa-patterns", label: "Patterns", domain: "dsa", section: "dsa" });
   TABS.push({ id: "dsa-browse", label: "Browse", domain: "dsa", section: "dsa" });
   TABS.push({ id: "dsa-revision", label: "Revision", domain: "dsa", section: "dsa" });
   TABS.push({ id: "dsa-theory", label: "Theory", domain: "dsa", section: "dsa" });
@@ -1479,6 +1506,7 @@
     else if (tab.id === "mba") panel.innerHTML = renderMba();
     else if (tab.id === "career") panel.innerHTML = renderCareer();
     else if (tab.id === "dsa-sheet") panel.innerHTML = renderDsaSheet();
+    else if (tab.id === "dsa-patterns") panel.innerHTML = renderDsaPatterns();
     else if (tab.id === "dsa-browse") panel.innerHTML = renderDsaBrowse();
     else if (tab.id === "dsa-revision") panel.innerHTML = renderDsaRevision();
     else if (tab.id === "dsa-theory") panel.innerHTML = renderDsaTheory();
@@ -1501,6 +1529,7 @@
     bind();
     if (tab.domain === "dsa") {
       bindDsa();
+      if (tab.id === "dsa-patterns") dsaFillPatterns();
       if (tab.id === "dsa-theory" && DSAV.theory) dsaFillTheory();
       if (tab.id === "dsa-templates") {
         if (DSAV.template) dsaFillTemplate(); else dsaFillTemplateList();
@@ -1844,7 +1873,7 @@
     help: {},          // explainer key -> open, remembered per browser
     tick: null,
     filters: {
-      topic: "", tier: "", difficulty: "", company: "", campus_oa: "",
+      topic: "", difficulty: "", company: "", campus_oa: "",
       status: "", confidence: "", has_notes: "", tag: "", q: ""
     }
   };
@@ -2119,7 +2148,20 @@
 
   /* ------------------------------------------------------ row pieces */
 
+  /* CORE is nearly the whole sheet, so a CORE badge on a row carries no
+     information -- it is the default, and labelling the default is noise.
+     DRILL and SKIM are the exceptions and they change what the row asks of
+     you: a DRILL is a ten-minute variation on a CORE you already did, a SKIM
+     is read-and-move-on. Those still get a badge.
+
+     The PRD asked for the tier system to come out of the UI entirely on the
+     grounds that every problem is CORE. That is true of three phases; the
+     graphs phase ships 12 DRILLs and 2 SKIMs, each DRILL sharing its pattern
+     with a CORE in the same phase, which is exactly what the tier means.
+     Hiding that would tell you to fully code fourteen problems the author
+     marked as variations. */
   function dsaTierBadge(tier) {
+    if (tier === "CORE") return "";
     return '<span class="dsa-tier t-' + tier + '" title="' +
       esc((DSA_SPEC && DSA_SPEC.tiers && DSA_SPEC.tiers[tier]) || "") + '">' + tier + "</span>";
   }
@@ -2190,7 +2232,7 @@
         '<span class="dsa-co-wrap">' + companies + "</span>" +
         '<span class="dsa-actions">' + dsaStatusButton(p.id) + dsaStar(p.id) + dsaConfidence(p.id) +
           '<button class="dsa-expand" data-dsa-open="' + esc(p.id) + '" type="button">' +
-          (open ? "hide" : "what this teaches you") + "</button></span>" +
+          (open ? "collapse" : "open") + "</button></span>" +
       "</div>" +
       '<div class="dsa-rmeta">' +
         '<span class="dsa-pattern">' + esc(p.pattern || "—") + "</span>" +
@@ -2212,7 +2254,12 @@
 
   function dsaLearnings(doc) {
     var l = doc.learnings || {};
-    var out = '<div class="dsa-learn">';
+    var key = "learn:" + doc.id;
+    var open = !!DSAV.help[key];
+    var out = '<details class="dsa-learnwrap"' + (open ? " open" : "") +
+      ' data-dsa-help="' + esc(key) + '">' +
+      "<summary>What this teaches you</summary>" +
+      '<div class="dsa-learn">';
 
     out += '<div class="dsa-lblock"><h4>The insight</h4>' + md(l.insight || "") + "</div>";
     if (l.trick) out += '<div class="dsa-lblock"><h4>The trick</h4>' + md(l.trick) + "</div>";
@@ -2236,7 +2283,7 @@
           return s.in_sheet
             ? '<a href="#" class="dsa-sib in" data-dsa-goto="' + esc(s.id) + '">' + esc(s.title) + "</a>"
             : '<a href="' + esc(s.url) + '" target="_blank" rel="noopener" class="dsa-sib out" ' +
-              'title="Not in the 600 — opens on LeetCode">' + esc(s.title) + "</a>";
+              'title="Not on the sheet — opens on LeetCode">' + esc(s.title) + "</a>";
         }).join("") + "</div></div>";
     }
 
@@ -2247,7 +2294,7 @@
         }).join("") + "</dl></div>";
     }
 
-    return out + "</div>";
+    return out + "</div></details>";
   }
 
   function dsaStuckPanel(id) {
@@ -2546,10 +2593,14 @@
 
   function dsaSheetHelp() {
     return dsaHelp("sheet", "How this sheet works",
-      "<p>Forty days, six phases, six hundred problems. Each day has one " +
-      "dominant topic and a mix of tiers. Work top to bottom — the CORE " +
-      "problems teach the pattern and the DRILLs underneath them are " +
-      "variations that only make sense once the CORE has landed.</p>" +
+      "<p>Thirty days, six phases, 145 problems — about five a day. One " +
+      "problem per transferable concept, which is why the list is short and " +
+      "why none of it is skippable. Work top to bottom.</p>" +
+      "<p>Nearly every problem is to be <b>coded fully, from an empty file, " +
+      "with no editorial</b>, so there is no badge saying so. The exceptions " +
+      "are badged: a <b>DRILL</b> is a variation on a problem you did earlier " +
+      "in the same phase and should take under ten minutes, and a <b>SKIM</b> " +
+      "is read-the-learnings-and-move-on.</p>" +
 
       "<h5>The loop, per problem</h5>" +
       '<ol class="dsa-loop">' +
@@ -2580,9 +2631,10 @@
         ['<span class="dsa-conf"><button class="on">1</button><button>…</button><button>5</button></span>',
          "How well you know it. <b>1</b> = needed the editorial, <b>5</b> = could teach it. " +
          "Click the number you already have to clear it."],
-        ["<b>what this teaches you</b>",
-         "The learnings panel: the insight, the trick, edge cases, complexity with the reason, " +
-         "sibling problems, likely interview follow-ups, the C++ template, and the stuck ladder."]
+        ["<b>What this teaches you</b>",
+         "Inside each row, closed until you ask: the insight, the trick, edge cases, complexity " +
+         "with the reason, sibling problems and likely interview follow-ups. Closed on purpose — " +
+         "the insight should not be readable by accident before you have tried the problem."]
       ]) +
 
       "<h5>The badges</h5>" +
@@ -2603,7 +2655,7 @@
       ]) +
 
       "<h5>The strip and the rail</h5>" +
-      "<p>The cards along the top are the six <b>phases</b> — the shape of the forty days. " +
+      "<p>The cards along the top are the six <b>phases</b> — the shape of the thirty days. " +
       "Dashed ones have not been imported yet. Below the day title, the <b>rail</b> is all forty " +
       "days at a glance: filled means every problem on that day is done, part-filled means some " +
       "are, outlined means nothing scheduled yet. The sheet opens on the first day with " +
@@ -2679,7 +2731,10 @@
 
   function dsaTierLegend() {
     var tiers = (DSA_SPEC && DSA_SPEC.tiers) || {};
-    var order = ["CORE", "DRILL", "SKIM"];
+    // Only the tiers that appear as badges, and only if the sheet has any.
+    var present = {};
+    DSA_PROBLEMS.forEach(function (p) { present[p.tier] = 1; });
+    var order = ["DRILL", "SKIM"].filter(function (t) { return present[t]; });
     if (!order.some(function (t) { return tiers[t]; })) return "";
     return '<div class="dsa-legend">' + order.map(function (t) {
       return tiers[t]
@@ -2708,6 +2763,17 @@
     return '<div class="dsa-rail">' + cells.join("") + "</div>";
   }
 
+  /* PRD 3.3: at five problems a day the day view is a screen, not a scroll,
+     so the rows arrive open. What is behind a click is the learnings panel,
+     not the problem -- the controls and your own notes should be reachable
+     without opening anything, and the insight should not be readable by
+     accident before you have tried it. */
+  function dsaOpenDay(day) {
+    dsaProblemsOn(day).forEach(function (p) {
+      if (DSAV.open[p.id] === undefined) DSAV.open[p.id] = true;
+    });
+  }
+
   function renderDsaSheet() {
     if (!DSA_SPEC) {
       return '<section class="card"><h2>DSA sheet</h2><p class="muted">' +
@@ -2716,6 +2782,7 @@
     }
 
     var day = DSAV.day || (DSAV.day = dsaCurrentDay());
+    dsaOpenDay(day);
     var rows = dsaProblemsOn(day);
     var st = dsaStats(rows);
     var topic = dsaTopicOf(day);
@@ -2737,7 +2804,8 @@
             (at <= 0 ? " disabled" : "") + ">‹ prev</button>" +
           '<div class="dsa-dayhd"><h2>Day ' + day + " · " + esc(titleCase(topic)) + "</h2>" +
             '<div class="muted">' + (phase ? esc(phase.key) + " · " + esc(phase.title) : "") +
-              " · " + st.total + " problems · " + st.done + " done" +
+              " · " + st.total + " problem" + (st.total === 1 ? "" : "s") +
+              " · " + st.done + " done" +
               (st.revisit ? " (" + st.revisit + " to revisit)" : "") + "</div></div>" +
           '<button class="btn tiny" type="button" data-dsa-day="' + (days[at + 1] || day) + '"' +
             (at >= days.length - 1 ? " disabled" : "") + ">next ›</button>" +
@@ -2878,6 +2946,104 @@
     });
   }
 
+  /* ------------------------------------------------------ pattern index
+
+     PRD §3.4, and the highest-value screen in the tab.
+
+     The sheet is one problem per transferable concept, which makes the list
+     of pattern names a list of things you should be able to explain. Read
+     the whole page in ten minutes; anything you cannot put a sentence to is
+     a gap, and the problem that teaches it is one click away.
+
+     Grouped by pattern, not one row per problem. Seven patterns cover two
+     or three problems each, and saying so is the point -- "level-order and
+     right-side-view are the same traversal" is worth more than listing them
+     apart. */
+
+  var DSA_PATTERNS = null;
+
+  function dsaLoadPatterns() {
+    if (DSA_PATTERNS) return Promise.resolve(DSA_PATTERNS);
+    return fetch("data/dsa/patterns.json")
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (doc) { DSA_PATTERNS = doc; return doc; })
+      .catch(function () { return null; });
+  }
+
+  function renderDsaPatterns() {
+    return dsaPatternHelp() +
+      '<section class="card"><h2>Pattern index</h2>' +
+      '<div id="dsaPatternBody"><div class="dsa-loading">Loading…</div></div></section>';
+  }
+
+  function dsaFillPatterns() {
+    var host = document.getElementById("dsaPatternBody");
+    if (!host) return;
+
+    dsaLoadPatterns().then(function (doc) {
+      if (!doc) {
+        host.innerHTML = '<p class="muted">The pattern index is served as a static file, ' +
+          "which is not reachable from here.</p>";
+        return;
+      }
+
+      // Grouped by topic, topics in the order the sheet teaches them.
+      var byTopic = [];
+      var seen = {};
+      doc.patterns.forEach(function (p) {
+        if (!seen[p.topic]) { seen[p.topic] = []; byTopic.push({ topic: p.topic, rows: seen[p.topic] }); }
+        seen[p.topic].push(p);
+      });
+
+      var known = 0;
+      var total = 0;
+      doc.patterns.forEach(function (p) {
+        total++;
+        // A pattern counts as known once every problem under it is done.
+        if (p.problems.every(function (q) { return dsaIsDone(dsaRow(q.id).status); })) known++;
+      });
+
+      host.innerHTML =
+        '<div class="dsa-patsum"><b>' + known + " of " + total + "</b> patterns fully worked · " +
+          doc.problem_count + " problems</div>" +
+        byTopic.map(function (g) {
+          return '<div class="dsa-patgroup"><h4>' + esc(titleCase(g.topic)) +
+            ' <span class="muted tiny">' + g.rows.length + "</span></h4>" +
+            '<ul class="dsa-patlist">' + g.rows.map(function (p) {
+              var done = p.problems.every(function (q) { return dsaIsDone(dsaRow(q.id).status); });
+              var some = !done && p.problems.some(function (q) { return dsaIsDone(dsaRow(q.id).status); });
+              return '<li class="' + (done ? "done" : some ? "part" : "") + '">' +
+                '<code class="dsa-patname">' + esc(p.pattern) + "</code>" +
+                '<span class="dsa-patprobs">' + p.problems.map(function (q) {
+                  return '<a href="#" data-dsa-goto="' + esc(q.id) + '">' + esc(q.title) + "</a>" +
+                    (dsaIsDone(dsaRow(q.id).status) ? ' <span class="dsa-patick">✓</span>' : "");
+                }).join('<span class="dsa-patsep">·</span>') + "</span>" +
+                (p.template_id
+                  ? '<a class="dsa-tlink" href="#" data-dsa-template="' + esc(p.template_id) + '">' +
+                    esc(p.template_id) + "</a>"
+                  : '<span class="dsa-patnotmpl">—</span>') +
+                "</li>";
+            }).join("") + "</ul></div>";
+        }).join("");
+      bindDsa();
+    });
+  }
+
+  function dsaPatternHelp() {
+    return dsaHelp("patterns", "How to use the pattern index",
+      "<p>Every problem on the sheet was chosen because it teaches one transferable " +
+      "concept, and this is the list of those concepts — the names, not the problems.</p>" +
+      "<p><b>Read it cold.</b> Go down the list and say the approach out loud in a sentence. " +
+      "Anything you cannot put a sentence to is a gap, and the problem that teaches it is one " +
+      "click away. Ten minutes gets you the whole list, which is faster than any other way of " +
+      "finding out what you have forgotten.</p>" +
+      "<p>A tick means you have worked every problem under that name. Where a pattern lists two " +
+      "or three problems, they are the same idea seen from different angles — that is worth " +
+      "knowing as much as the pattern itself.</p>" +
+      "<p>The code on the right is the C++ template for the pattern. Click it to read the shape " +
+      "you should be able to type from memory.</p>");
+  }
+
   function renderDsaRevision() {
     /* SPEC's rule, computed locally so it works offline: anything started
        that is either starred or rated 3 or below, weakest first, then least
@@ -2931,7 +3097,6 @@
       '<label class="dsa-filt wide"><span>Search</span><input type="text" id="dsaQ" value="' +
         esc(f.q) + '" placeholder="title, topic or pattern"></label>' +
       opts("topic", Object.keys(topics).sort(), "Topic") +
-      opts("tier", ["CORE", "DRILL", "SKIM"], "Tier") +
       opts("difficulty", ["Easy", "Medium", "Hard"], "Difficulty") +
       opts("company", Object.keys(companies).sort(), "Company") +
       opts("campus_oa", ["HIGH", "MEDIUM", "LOW"], "Campus OA") +
@@ -2950,7 +3115,6 @@
     return DSA_PROBLEMS.filter(function (p) {
       var g = dsaRow(p.id);
       if (f.topic && p.topic !== f.topic) return false;
-      if (f.tier && p.tier !== f.tier) return false;
       if (f.difficulty && p.difficulty !== f.difficulty) return false;
       if (f.campus_oa && p.campus_oa !== f.campus_oa) return false;
       if (f.status && g.status !== f.status) return false;
@@ -2997,6 +3161,7 @@
       b.onclick = function () {
         DSAV.day = +b.dataset.dsaDay;
         DSAV.open = {};
+        dsaOpenDay(DSAV.day);
         render();
         window.scrollTo({ top: 0, behavior: "smooth" });
       };

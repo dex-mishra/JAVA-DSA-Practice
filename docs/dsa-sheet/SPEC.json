@@ -1,72 +1,72 @@
 {
- "pool_size": 600,
- "total_days": 40,
+ "pool_size": 145,
+ "total_days": 30,
  "phases": [
   {
-   "key": "P0",
-   "slug": "phase-0-foundations",
-   "title": "Foundations",
+   "key": "V0",
+   "slug": "v0-prerequisites",
+   "title": "Prerequisites",
    "days": [
     1,
     3
    ],
-   "quota": 24,
-   "goal": "Reference layer. Complexity, STL, sorting, hashing, recursion, bit basics, maths. Reread whenever you open the sheet."
+   "quota": 14,
+   "goal": "The smallest set that makes trees, graphs and DP tractable: hashing, sorting, recursion, and the array patterns DP is built on."
   },
   {
-   "key": "P1",
-   "slug": "phase-1-breadth",
-   "title": "Breadth Pass",
+   "key": "V1",
+   "slug": "v1-trees",
+   "title": "Trees & BST",
    "days": [
     4,
+    7
+   ],
+   "quota": 20,
+   "goal": "Binary trees and BSTs. Traversals, the bottom-up pattern, tree DP, and the BST invariant."
+  },
+  {
+   "key": "V2",
+   "slug": "v2-graphs",
+   "title": "Graphs",
+   "days": [
+    8,
     13
    ],
-   "quota": 155,
-   "goal": "Full theory plus the pattern-defining core of every non-core topic. Enough to sit an OA without freezing."
+   "quota": 31,
+   "goal": "Traversal, topological order, shortest paths, disjoint sets and minimum spanning trees."
   },
   {
-   "key": "P2A",
-   "slug": "phase-2a-trees",
-   "title": "Core I - Trees & BST",
+   "key": "V3",
+   "slug": "v3-dp",
+   "title": "Dynamic Programming",
    "days": [
     14,
-    19
+    21
    ],
-   "quota": 93,
-   "goal": "Binary trees and BSTs at full depth. Every traversal, every medium, every hard."
+   "quota": 38,
+   "goal": "Every DP family that appears in interviews: 1D, grids, knapsack, subsequences, strings, stocks, LIS and interval partition."
   },
   {
-   "key": "P2B",
-   "slug": "phase-2b-graphs-dp",
-   "title": "Core II - Graphs & DP",
+   "key": "V4",
+   "slug": "v4-core-patterns",
+   "title": "Core Patterns",
    "days": [
-    20,
-    32
+    22,
+    29
    ],
-   "quota": 202,
-   "goal": "Graphs and dynamic programming at full depth. Heaviest phase, highest interview yield."
+   "quota": 40,
+   "goal": "The remaining high-yield patterns across arrays, binary search, strings, linked lists, stacks, windows, heaps, greedy and bits."
   },
   {
-   "key": "P3",
-   "slug": "phase-3-depth",
-   "title": "Depth Return",
-   "days": [
-    33,
-    38
-   ],
-   "quota": 93,
-   "goal": "Back to the Phase 1 topics for everything held back. Breadth turns into fluency here."
-  },
-  {
-   "key": "P4",
-   "slug": "phase-4-advanced",
+   "key": "V5",
+   "slug": "v5-advanced",
    "title": "Advanced & Revision",
    "days": [
-    39,
-    40
+    30,
+    30
    ],
-   "quota": 33,
-   "goal": "Tries, hard strings, and the revision queue that keeps all of it warm."
+   "quota": 2,
+   "goal": "Tries, the hardest leftovers, and the revision queue."
   }
  ],
  "topic_quota": {
@@ -293,5 +293,11 @@
   "2": "where",
   "3": "headline"
  },
- "closed_topic_rollup": "Once a topic is finished, every learning in it is carried forward as a single consolidated line for the rest of the sheet. Arrays never vanishes - by the time you reach DP it is one dense paragraph instead of forty lines."
+ "closed_topic_rollup": "Once a topic is finished, every learning in it is carried forward as a single consolidated line for the rest of the sheet. Arrays never vanishes - by the time you reach DP it is one dense paragraph instead of forty lines.",
+ "note_tiers": "v2: every problem is CORE. The tier field remains for schema compatibility; hide it in the UI.",
+ "optional_appendix": {
+  "count": 31,
+  "file": "OPTIONAL-narrow-tricks.json",
+  "note": "Narrow one-off tricks. Not scheduled, not counted, not shown in the day view. Import into a separate optional list if you want them browsable."
+ }
 }

@@ -1178,3 +1178,61 @@ body.domain-dsa::before { background: linear-gradient(rgba(13, 148, 136, .09), t
   .dsa-dl { grid-template-columns: 1fr; gap: 3px; }
   .dsa-dl dd { margin-bottom: 9px; }
 }
+
+/* ---------------------------------------------------------- pattern index
+
+   The revision surface: 97 pattern names you should be able to explain.
+   Three columns so the eye runs down the names -- the name is the thing
+   being tested, the problems and the template are where you go when you
+   cannot explain one. */
+
+.dsa-patsum {
+  font-family: var(--mono); font-size: 11.5px; color: var(--ink-3);
+  padding-bottom: 12px; border-bottom: 1px solid var(--line-soft);
+}
+.dsa-patsum b { color: var(--dsa); font-size: 13px; }
+
+.dsa-patgroup { margin-top: 18px; }
+.dsa-patgroup h4 {
+  margin: 0 0 7px; font-family: var(--mono); font-size: 10px; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.dsa-patlist { list-style: none; margin: 0; padding: 0; }
+.dsa-patlist li {
+  display: grid; grid-template-columns: minmax(10rem, 15rem) 1fr auto;
+  gap: 12px; align-items: baseline;
+  padding: 6px 8px; border-bottom: 1px solid var(--line-soft); border-left: 2px solid transparent;
+}
+.dsa-patlist li:last-child { border-bottom: 0; }
+.dsa-patlist li.done { border-left-color: var(--ok); }
+.dsa-patlist li.part { border-left-color: var(--warn); }
+.dsa-patlist li.done .dsa-patname { color: var(--ink-3); }
+
+.dsa-patname {
+  font-family: var(--mono); font-size: 11.5px; color: var(--ink);
+  background: none; padding: 0;
+}
+.dsa-patprobs { font-size: 12.5px; }
+.dsa-patprobs a { color: var(--ink-2); text-decoration: none; }
+.dsa-patprobs a:hover { color: var(--dsa); text-decoration: underline; }
+.dsa-patsep { color: var(--line); margin: 0 6px; }
+.dsa-patick { color: var(--ok); font-size: 10px; }
+.dsa-patnotmpl { color: var(--line); font-family: var(--mono); font-size: 10px; }
+
+/* The learnings, now a toggle inside an already-open row rather than the
+   reason the row opens. Closed by default on purpose: the insight should
+   not be readable by accident before you have tried the problem. */
+.dsa-learnwrap { margin-bottom: 4px; }
+.dsa-learnwrap > summary {
+  cursor: pointer; list-style: none; padding: 7px 0;
+  font-family: var(--mono); font-size: 10px; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--dsa); font-weight: 700;
+}
+.dsa-learnwrap > summary::-webkit-details-marker { display: none; }
+.dsa-learnwrap > summary::after { content: " +"; font-size: 12px; }
+.dsa-learnwrap[open] > summary::after { content: " −"; }
+.dsa-learnwrap > summary:hover { color: var(--ink); }
+
+@media (max-width: 720px) {
+  .dsa-patlist li { grid-template-columns: 1fr; gap: 2px; }
+}

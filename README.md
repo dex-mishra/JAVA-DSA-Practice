@@ -14,7 +14,7 @@ They are measured separately and never averaged.
 | | Mastery rating | Window integrity |
 |---|---|---|
 | Range | 800 – 3200, Codeforces ladder | 100% downward only |
-| Source | 1,328 rated topics + 600 DSA problems | the 56 dated commitments |
+| Source | 1,328 rated topics + 145 DSA problems | the 56 dated commitments |
 | Moves when | you clear a topic or solve a problem | a date passes unchecked |
 | Recovers? | yes, it climbs | **no** |
 
@@ -33,24 +33,29 @@ dated commitments from either domain. They share time, nothing else.
 ## The DSA sheet
 
 A section of its own, alongside Placement and MBA — not a fifth placement
-track. A problem carries a LeetCode link, a difficulty, a tier, a
-pattern, company tags, a C++ template and a learnings payload, and you write
-notes, tags, confidence, an approach line and a GoodNotes reference against
-it. None of that is a checkbox, so none of it was forced into the topics
-table.
+track. **145 problems across 30 days**, one per transferable concept. A
+problem carries a LeetCode link, a difficulty, a pattern, company tags, a
+C++ template and a learnings payload, and you write notes, tags, confidence,
+an approach line and a GoodNotes reference against it. None of that is a
+checkbox, so none of it was forced into the topics table.
 
-**It does move the rating**, weighted by tier: a solved CORE problem is worth
-three topic ticks, a DRILL two, a SKIM one. That is roughly half the ladder
-at the full 600, which is the weight the sheet earns — a CORE problem is
-forty-five minutes against an empty file, a topic line is ten minutes of
-reading, and scoring them equally would have undervalued the harder one.
+This replaced a 600-problem version that optimised for coverage over
+understanding. The surviving rule from it is the one that mattered: problem
+ids are `{topic}-{slug}` and stable, so re-keying the phases from `P*` to
+`V*` and cutting 495 problems left every progress row intact.
+
+**It does move the rating**, weighted by tier: a CORE problem is worth ten
+topic ticks, a DRILL two, a SKIM one. Those track the time each asks for —
+SPEC defines CORE as a full solve against an empty file, DRILL as a
+variation under ten minutes, SKIM as read-and-move-on, so roughly 45 / 10 /
+5 minutes. At the full 145 that puts DSA at 49% of the ladder.
 `DSA_WEIGHT` in `src/app.js` is the single constant; set all three to 1 for
 flat scoring.
 
-Two decisions worth knowing:
+Three decisions worth knowing:
 
-- **The denominator is the 600-problem pool, not the problems imported so
-  far.** Three of six phases are in. Using the imported count would drop the
+- **The denominator is the 145-problem pool, not the problems imported so
+  far.** Four of six phases are in. Using the imported count would drop the
   rating every time a phase landed, purely because the target moved.
 - **`revisit` counts the same as `solved`.** It is the status for *I got
   there but I want it again cold*. Scoring it as zero meant that admitting
@@ -58,9 +63,18 @@ Two decisions worth knowing:
   marking things honestly. The flag earns its keep by putting the problem in
   the revision queue, not by docking you. The two statuses stay distinct
   everywhere else and are always counted separately.
+- **CORE carries no badge.** It is 87% of the sheet, and labelling the
+  default is noise. DRILL and SKIM do, because they change what the row asks
+  of you.
 
-Content arrives as JSON in `dsa material/` and is imported, never edited in
-place:
+The **pattern index** is the revision surface: 97 pattern names grouped by
+topic, each linking to the problem that teaches it and its C++ template.
+Read it cold and anything you cannot explain in a sentence is a gap.
+
+Content arrives as JSON in `docs/dsa-sheet/` and is imported, never edited
+in place. The importer reads exactly the phase files `SPEC.json` declares, so
+the quarantined 600-problem version and the unscheduled optional appendix
+sitting beside them cannot be picked up by accident:
 
 ```bash
 node tools/import-dsa.mjs        # validate, normalise, report what moved
@@ -92,7 +106,8 @@ data/              content only. Safe for an updater to rewrite.
   placement.json     ranks, tracks, badge display text
   mba.json           phases, schools, excluded options
   dsa/               the DSA sheet, written by tools/import-dsa.mjs
-dsa material/      drop zone for new phase uploads
+docs/dsa-sheet/    the sheet's source: specs, phase JSON, templates
+  _superseded-600-plan/  the abandoned 600-problem version, kept, never read
 src/               rendering and logic. Not machine-edited.
   shell.html         page skeleton
   styles.css         unified design system

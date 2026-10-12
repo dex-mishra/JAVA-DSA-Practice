@@ -31,3 +31,6 @@ dsa material/*.html
 public/
 node_modules/
 .wrangler/
+
+# Scraped source pages kept for reference, not inputs to anything.
+docs/dsa-sheet/_superseded-600-plan/*.html

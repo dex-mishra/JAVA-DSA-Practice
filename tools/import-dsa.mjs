@@ -29,12 +29,12 @@
  * carries everything a row needs, so the day view paints with no network.
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const SRC = join(ROOT, "dsa material");
+const SRC = join(ROOT, "docs", "dsa-sheet");
 const OUT = join(ROOT, "data", "dsa");
 
 const CHECK_ONLY = process.argv.includes("--check");
@@ -80,17 +80,32 @@ if (!spec || !templateDoc) {
 const templates = templateDoc.templates || [];
 const templateIds = new Set(templates.map((t) => t.id));
 
-const phaseFiles = readdirSync(SRC)
-  .filter((f) => /^phase-.*\.json$/.test(f))
-  .sort();
+/* Which files are content is SPEC's business, not the directory's.
+ *
+ * This used to glob `phase-*.json`, which worked only while the folder held
+ * nothing else. It now also holds the abandoned 600-problem version, an
+ * optional appendix that must never be scheduled, sample files and stray
+ * copies -- and a glob cannot tell any of those from the real thing. Reading
+ * exactly the slugs SPEC declares makes "ignore these files" a property of
+ * the code rather than a convention someone has to remember.
+ *
+ * A declared phase with no file is simply not imported yet: V3 and V5 are
+ * written but not delivered, and the sheet is expected to run without them.
+ */
+const phaseFiles = [];
+const pending = [];
+for (const phase of spec.phases) {
+  const file = `${phase.slug}.json`;
+  if (existsSync(join(SRC, file))) phaseFiles.push(file);
+  else pending.push(phase.key);
+}
 
 if (!phaseFiles.length) {
-  console.error(`no phase-*.json in ${SRC}`);
+  console.error(`none of SPEC's phase files are in ${SRC}`);
   process.exit(1);
 }
 
-// Phase order comes from SPEC, not from filename sort: P2A must precede P2B
-// and a lexical sort only happens to get that right.
+// Phase order comes from SPEC, not from filename sort.
 const phaseOrder = new Map(spec.phases.map((p, i) => [p.key, i]));
 
 // ---------------------------------------------------------------- validate
@@ -375,7 +390,22 @@ for (const { doc } of phases) {
   }
 }
 
+/* Phase files for keys SPEC no longer declares.
+ *
+ * v2 re-keyed the phases from P0/P1/P2A/... to V0...V5. Writing the new ones
+ * leaves the old ones sitting in data/dsa, where the build would happily
+ * serve them: a problem cut from the sheet would still be reachable by URL,
+ * showing content that is no longer part of the plan. Progress rows are a
+ * different matter and are never touched -- those live in the database and
+ * an orphaned one costs nothing.
+ */
+const declared = new Set(spec.phases.map((p) => `phase-${p.key}.json`));
+const stale = existsSync(OUT)
+  ? readdirSync(OUT).filter((f) => /^phase-.*\.json$/.test(f) && !declared.has(f))
+  : [];
+
 if (!CHECK_ONLY) {
+  stale.forEach((f) => rmSync(join(OUT, f)));
   writeFileSync(join(OUT, "spec.json"), JSON.stringify(specOut, null, 1));
   writeFileSync(join(OUT, "templates.json"), JSON.stringify({ count: templates.length, templates }, null, 1));
   writeFileSync(join(OUT, "index.json"), JSON.stringify(indexOut));
@@ -400,8 +430,13 @@ for (const r of reports) {
 }
 
 console.log(`\n  problems    ${index.length} of ${spec.pool_size} in the pool`);
-console.log(`  phases      ${phaseSummaries.length} of ${spec.phases.length} imported`);
+console.log(`  phases      ${phaseSummaries.length} of ${spec.phases.length} imported` +
+  (pending.length ? `  (awaiting ${pending.join(", ")})` : ""));
 console.log(`  templates   ${templates.length}`);
+if (stale.length) {
+  console.log(`  removed     ${stale.length} phase file(s) for keys SPEC no longer declares:`);
+  stale.forEach((f) => console.log(`                ${f}`));
+}
 console.log(`  index.json  ${kb(JSON.stringify(indexOut).length)}  (baked into the page)`);
 
 if (warnings.length) {

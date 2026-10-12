@@ -216,8 +216,6 @@ I cannot write repo-specific code without these:
 2. **Where the inbox-agent tracker's data actually lives** — the MCP exposes it, but is the store Postgres, SQLite, or a JSON file?
 3. **Auth model.** Single-user, or is there a users table the DSA tables must key on?
 4. **Existing UI conventions** — component library, styling approach, how the current tracker tab is built, so the DSA tab matches rather than clashes.
-5. **The mastery decision from §2** — does DSA feed the `sde` track, or become its own track?
-
 Give me those and I can write the migrations, the importer and the API layer against your actual codebase rather than describing them.
 
 ---

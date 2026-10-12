@@ -1,0 +1,1908 @@
+{
+ "phase": "V1",
+ "title": "Trees & BST",
+ "slug": "v1-trees",
+ "days": [
+  4,
+  7
+ ],
+ "goal": "Binary trees and BSTs. Traversals, the bottom-up pattern, tree DP, and the BST invariant.",
+ "problem_count": 20,
+ "user_field_schema": {
+  "status": {
+   "type": "enum",
+   "values": [
+    "todo",
+    "solved",
+    "revisit"
+   ],
+   "default": "todo"
+  },
+  "revision": {
+   "type": "boolean",
+   "default": false,
+   "note": "the Striver star - flag anything you want resurfaced"
+  },
+  "notes": {
+   "type": "text",
+   "default": "",
+   "note": "free text, markdown allowed"
+  },
+  "tags": {
+   "type": "string[]",
+   "default": [],
+   "seed": [
+    "stuck",
+    "off-by-one",
+    "wrong-complexity",
+    "misread-constraints",
+    "slow-implementation",
+    "ask-in-mock",
+    "elegant",
+    "redo-cold",
+    "template-drilled",
+    "interview-asked"
+   ]
+  },
+  "confidence": {
+   "type": "int",
+   "range": [
+    1,
+    5
+   ],
+   "default": null,
+   "note": "rate after solving. 1 = needed the editorial, 5 = could teach it"
+  },
+  "last_revised": {
+   "type": "date",
+   "default": null
+  },
+  "goodnotes_ref": {
+   "type": "text",
+   "default": "",
+   "note": "free-text pointer to the GoodNotes page (e.g. 'DSA nb2 p.41'). Opaque to the system - never parsed."
+  },
+  "my_approach": {
+   "type": "text",
+   "default": "",
+   "note": "optional one-liner typed into the tracker on how he solved it. If it differs from the optimal, that gap is the revision signal."
+  }
+ },
+ "revision_queue_rule": "ORDER BY confidence ASC NULLS LAST, last_revised ASC NULLS FIRST WHERE status != 'todo' AND (revision = true OR confidence <= 3)",
+ "tiers": {
+  "CORE": "Code it fully. No shortcuts, no editorial. The pattern lives here.",
+  "DRILL": "A variation on a CORE you already did. Under 10 minutes. If it takes 30, the CORE did not land.",
+  "SKIM": "Read the learnings dropdown, write 3 lines of pseudocode, move on. Code it only if the day ran short."
+ },
+ "theory": [
+  {
+   "id": "t-binary-trees",
+   "title": "Binary trees",
+   "links": [
+    "[Striver: Trees playlist](https://www.youtube.com/watch?v=_ANrF3FJm7I)"
+   ],
+   "parts": {
+    "breadth": "\n**What it is.** A binary tree is a hierarchical structure where each node holds a value and at\nmost two children, conventionally `left` and `right`. A node with no children is a leaf. The\n**height** of a node is the number of edges on the longest path down to a leaf; the height of\nthe tree is the height of its root. **Depth** is the reverse \u2014 edges from the root down to the\nnode.\n\n```cpp\nstruct TreeNode {\n    int val;\n    TreeNode *left, *right;\n    TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}\n};\n```\n\n**Terminology worth fixing.**\n\n- *Full* \u2014 every node has 0 or 2 children.\n- *Complete* \u2014 every level is filled except possibly the last, which fills left to right. This is\n  what permits array representation, and it is why heaps are complete trees.\n- *Perfect* \u2014 all internal nodes have two children and all leaves are at the same depth. A perfect\n  tree of height h has exactly 2^(h+1) \u2212 1 nodes.\n- *Balanced* \u2014 for every node, the heights of the two subtrees differ by at most one.\n- *Degenerate* \u2014 every node has one child. Structurally a linked list, and the worst case for\n  every tree algorithm.\n\n**The four traversals.** Three are depth-first and differ only in when the node itself is visited.\n\n```cpp\nvoid inorder(TreeNode* r, vector<int>& out) {      // Left, Node, Right\n    if (!r) return;\n    inorder(r->left, out); out.push_back(r->val); inorder(r->right, out);\n}\nvoid preorder(TreeNode* r, vector<int>& out) {     // Node, Left, Right\n    if (!r) return;\n    out.push_back(r->val); preorder(r->left, out); preorder(r->right, out);\n}\nvoid postorder(TreeNode* r, vector<int>& out) {    // Left, Right, Node\n    if (!r) return;\n    postorder(r->left, out); postorder(r->right, out); out.push_back(r->val);\n}\n```\n\nThe fourth is breadth-first \u2014 level order \u2014 and needs a queue rather than recursion:\n\n```cpp\nvector<vector<int>> levelOrder(TreeNode* root) {\n    vector<vector<int>> res;\n    if (!root) return res;\n    queue<TreeNode*> q; q.push(root);\n    while (!q.empty()) {\n        int sz = q.size();                    // FIX the size before the inner loop\n        vector<int> level;\n        for (int i = 0; i < sz; i++) {\n            TreeNode* n = q.front(); q.pop();\n            level.push_back(n->val);\n            if (n->left)  q.push(n->left);\n            if (n->right) q.push(n->right);\n        }\n        res.push_back(level);\n    }\n    return res;\n}\n```\n\nCapturing `q.size()` before the inner loop is what separates the levels. Without it, the loop\nconsumes nodes from the next level too.\n\n**Iterative inorder**, which interviewers ask for specifically:\n\n```cpp\nvector<int> inorderIterative(TreeNode* root) {\n    vector<int> out; stack<TreeNode*> st; TreeNode* cur = root;\n    while (cur || !st.empty()) {\n        while (cur) { st.push(cur); cur = cur->left; }   // dive left\n        cur = st.top(); st.pop();\n        out.push_back(cur->val);\n        cur = cur->right;\n    }\n    return out;\n}\n```\n\n**The bottom-up pattern**, which solves most medium tree problems:\n\n```cpp\nint best = INT_MIN;\nint dfs(TreeNode* r) {                        // returns the best DOWNWARD value from r\n    if (!r) return 0;\n    int l  = max(0, dfs(r->left));            // clamp: a negative branch is skipped\n    int rt = max(0, dfs(r->right));\n    best = max(best, r->val + l + rt);        // answer THROUGH r \u2014 uses both children\n    return r->val + max(l, rt);               // value UP from r \u2014 only one child can extend\n}\n```\n\nThe split between *the answer at this node* and *the value returned to the parent* is the pattern.\nDiameter, maximum path sum and the balanced check are all this skeleton with different bodies.\n\n**Complexity.** Every traversal is O(n) time. Space is O(h) for the recursion stack, which is\nO(log n) for a balanced tree and O(n) for a degenerate one. Level order is O(w) space where w is\nthe maximum width, up to n/2 for a perfect tree.\n",
+    "depth": "\n**Why level order needs the size snapshot.** The queue holds a mixture of levels at any instant.\nCapturing `q.size()` before the inner loop fixes the boundary, because exactly that many nodes\nbelong to the current level. Reading `q.size()` inside the loop sees it grow as children are\npushed and merges the levels.\n\nOnce you have level order, several problems become one-line variants: right view is the last\nelement of each level, left view the first, maximum width a comparison of first and last indices,\nand minimum depth the first level containing a leaf \u2014 which is why BFS beats DFS for minimum depth\non a skewed tree.\n\n**Iterative postorder.** Preorder and inorder have natural stack forms; postorder is awkward\nbecause the node must be emitted after both subtrees. Two routes:\n\n- *Two stacks.* Run a modified preorder visiting Node, Right, Left, pushing results onto a second\n  stack. Popping it gives Left, Right, Node.\n- *One stack.* Track the last visited node and only emit the current one when its right child is\n  absent or already visited.\n\nThe two-stack version is easier to reproduce under pressure; know that the one-stack version\nexists.\n\n**Uniqueness of reconstruction.** Preorder alone does not determine a tree. Preorder plus inorder\ndoes: preorder's first element is the root, and its position in inorder splits the remaining\nelements into left and right subtrees. Postorder plus inorder works the same way, consuming\npostorder from the end and building the right subtree before the left. **Preorder plus postorder\ndoes not** uniquely determine a general binary tree \u2014 it cannot distinguish a single left child\nfrom a single right child \u2014 though it does for full binary trees.\n\nBuilding naively costs O(n\u00b2) because each recursive call searches inorder for the root. A hash map\nfrom value to inorder index makes each lookup O(1) and the whole construction O(n). This assumes\ndistinct values, which the constraints usually guarantee.\n\n**Serialisation.** A preorder walk emitting a sentinel for null children is sufficient to\nreconstruct the tree, because the sentinels encode the shape that preorder alone lacks. Level-order\nserialisation with sentinels works equally well and is what LeetCode's own test format uses.\n\n**Lowest common ancestor.** In a general binary tree, recurse: if the current node is null or\nequals either target, return it. Recurse into both children. If both return non-null, the current\nnode is the LCA; otherwise propagate whichever is non-null. This is O(n) and assumes both nodes\nexist \u2014 if that is not guaranteed, a second verification pass is needed.\n\nFor repeated queries, preprocess with binary lifting for O(log n) per query, or Euler tour plus\nsparse table for O(1) after O(n log n) setup.\n\n**Morris traversal** achieves inorder in O(1) space by temporarily threading each node's\npredecessor's right pointer to it, then undoing the thread on the way back. It is the answer to\n\"traverse without recursion or a stack\" and it mutates the tree during traversal, which matters in\nconcurrent contexts.\n\n**Why the bottom-up clamp at zero.** In maximum path sum, a subtree contributing a negative total\nshould be excluded rather than included, and `max(0, dfs(child))` expresses exactly that. Omitting\nthe clamp forces every path through negative regions and gives wrong answers on trees with negative\nvalues.\n\n**Recursion depth is a real constraint.** A degenerate tree of 10\u2075 nodes recurses 10\u2075 deep, which\noverflows the default 1 MB stack. Where the constraints permit such a tree, an iterative traversal\nis not a stylistic preference but a correctness requirement.\n\n**The grilling chain.**\n\n- *Traverse inorder without recursion.* \u2014 Explicit stack; then Morris for O(1) space.\n- *Reconstruct a tree from traversals \u2014 which pairs suffice?* \u2014 Preorder+inorder and\n  postorder+inorder; preorder+postorder only for full trees.\n- *Why is your reconstruction O(n) and not O(n\u00b2)?* \u2014 The value-to-index hash map.\n- *Minimum depth \u2014 DFS or BFS?* \u2014 BFS, because it can stop at the first leaf instead of exploring\n  a long branch.\n- *Find the LCA with parent pointers available.* \u2014 Walk both up to equal depth, then together; or\n  use a set of one node's ancestors.\n- *Your recursion is 10\u2075 deep.* \u2014 Stack overflow; convert to iteration.\n",
+    "analogy": {
+     "The three DFS traversals": "\nYou are exploring a building where every room has two doors leading to smaller rooms. The route you\nwalk is identical in all three cases. The only difference is **when you write down the room's name**\n\u2014 on the way in, between the two doors, or on the way out.\n\nPreorder writes on entry. Inorder writes between. Postorder writes on the way out. Same walk, three\ndifferent logs.\n",
+     "Level order versus depth first": "\nDepth first is one person walking the whole building, going as deep as possible before backing up.\n\nLevel order is a search party: everyone on the ground floor reports in, then everyone on the first\nfloor, then the second. You learn about the whole of each floor before anything below it.\n\nThat is why level order finds the shallowest leaf first, and depth first might walk a very long\ncorridor before noticing a short one nearby.\n",
+     "The bottom-up return value": "\nA manager asks each team for one number \u2014 their best single result. But the manager's own report to\nthe board can combine two teams' results, which no individual team could claim.\n\nSo each node reports one thing upward and records something bigger locally. Confusing the two is\nthe most common tree bug there is.\n",
+     "Why preorder alone is not enough": "\nSomeone reads you a list of names in the order they entered a building. You cannot redraw the\nfloor plan from that alone \u2014 you do not know who went left and who went right.\n\nAdd a second list in a different order, and the two together pin down the layout exactly.\n"
+    }
+   }
+  },
+  {
+   "id": "t-bst",
+   "title": "Binary search trees",
+   "links": [
+    "[Striver: BST](https://www.youtube.com/watch?v=p7-9UvDQZ3w)"
+   ],
+   "parts": {
+    "breadth": "\n**What it is.** A binary search tree adds one invariant to a binary tree: for every node, all\nvalues in its left subtree are smaller and all values in its right subtree are larger. That single\nrule turns an unordered hierarchy into a searchable one, because at each node you can discard an\nentire subtree.\n\n**The consequence that solves most problems:** an inorder traversal of a BST yields the values in\nsorted order. Any problem phrased as \"the kth smallest\", \"the closest value\", \"validate\", \"find the\nmode\" or \"convert to a sorted list\" is an inorder traversal with a small amount of bookkeeping.\n\n**Search, insert, delete.**\n\n```cpp\nTreeNode* search(TreeNode* r, int key) {\n    while (r && r->val != key) r = key < r->val ? r->left : r->right;\n    return r;\n}\n\nTreeNode* insert(TreeNode* r, int key) {\n    if (!r) return new TreeNode(key);\n    if (key < r->val) r->left  = insert(r->left,  key);\n    else              r->right = insert(r->right, key);\n    return r;\n}\n\nTreeNode* deleteNode(TreeNode* r, int key) {\n    if (!r) return nullptr;\n    if      (key < r->val) r->left  = deleteNode(r->left,  key);\n    else if (key > r->val) r->right = deleteNode(r->right, key);\n    else {\n        if (!r->left)  return r->right;        // 0 or 1 child: splice\n        if (!r->right) return r->left;\n        TreeNode* s = r->right;                // 2 children: inorder successor\n        while (s->left) s = s->left;\n        r->val = s->val;\n        r->right = deleteNode(r->right, s->val);\n    }\n    return r;\n}\n```\n\nDeletion has three cases and the two-child case is the only interesting one: replace the node's\nvalue with its inorder successor \u2014 the smallest value in the right subtree \u2014 then delete that\nsuccessor, which by construction has at most one child.\n\n**Validation.** The common wrong answer compares each node only against its parent. That accepts\ninvalid trees, because a node deep in a left subtree must be smaller than every ancestor above it,\nnot just its immediate parent. The correct check carries a range downward:\n\n```cpp\nbool validate(TreeNode* r, long lo, long hi) {\n    if (!r) return true;\n    if (r->val <= lo || r->val >= hi) return false;\n    return validate(r->left, lo, r->val) && validate(r->right, r->val, hi);\n}\n// call with LONG_MIN, LONG_MAX \u2014 long, not int, or a node holding INT_MIN breaks it\n```\n\n**Lowest common ancestor** is far simpler than in a general binary tree. Walk down from the root:\nif both targets are smaller, go left; if both larger, go right; otherwise the current node is the\nsplit point and therefore the LCA. O(h) with no recursion needed.\n\n**Complexity.**\n\n| Operation | Balanced | Degenerate |\n|---|---|---|\n| search / insert / delete | O(log n) | O(n) |\n| inorder traversal | O(n) | O(n) |\n| kth smallest | O(h + k) | O(n) |\n| min / max | O(log n) | O(n) |\n\nEvery bound is O(h), and h is O(log n) only if the tree is balanced. A BST built by inserting\nalready-sorted data degenerates into a linked list, which is why self-balancing variants exist.\n\n**Self-balancing.** `std::set` and `std::map` are red-black trees: a BST with colour invariants\nguaranteeing that the longest root-to-leaf path is at most twice the shortest, which bounds the\nheight at O(log n). AVL trees balance more strictly \u2014 heights differ by at most one \u2014 giving faster\nlookups but more rotations on insertion.\n",
+    "depth": "\n**Why range-based validation is required.** Consider a root of 10 with left child 5 and that node's\nright child 12. A parent-only check passes at every step: 5 < 10 and 12 > 5. But 12 sits in the\nroot's left subtree and exceeds 10, so the tree is invalid. The range formulation carries the\nancestor constraint downward, which is exactly the information a parent comparison discards.\n\nUse `long` bounds, or sentinel values equal to `INT_MIN`/`INT_MAX` fail on a tree containing those\nvalues. The alternative formulation \u2014 an inorder traversal checking strict increase \u2014 avoids\nsentinels entirely and is arguably cleaner.\n\n**Kth smallest, and the follow-up.** Inorder with an early stop is O(h + k). If the tree is\nmodified frequently and this query is common, augment each node with its subtree size; then\ndescending is O(h) per query, because at each node you know how many values lie in its left\nsubtree. Augmentation is the general technique \u2014 an order-statistic tree \u2014 and it is what the\ninterviewer is fishing for.\n\n**Recover BST with two swapped nodes.** An inorder traversal of a valid BST is strictly increasing,\nso a swap creates one or two descents. If the swapped nodes are adjacent in inorder there is one\ndescent; otherwise two. Record the first element of the first descent and the second element of the\nlast descent, then swap their values. Morris traversal makes it O(1) space, which is the stated\nfollow-up.\n\n**Construct from preorder.** The first element is the root, and everything following it that is\nsmaller belongs to the left subtree. A naive split is O(n\u00b2) on a degenerate tree. Carrying an upper\nbound down the recursion makes it O(n): consume elements while they remain below the bound. The\nsame bound idea that validates a BST also constructs one.\n\n**Unique BSTs.** The number of structurally distinct BSTs on n nodes is the nth Catalan number,\nbecause choosing a root splits the remaining nodes into a left group and a right group whose counts\nmultiply, summed over every root choice. That recurrence, `C(n) = \u03a3 C(i)\u00b7C(n-1-i)`, is the Catalan\ndefinition. Counting is O(n\u00b2) DP; generating them all is exponential.\n\n**Successor and predecessor.** The inorder successor of a node with a right child is the minimum of\nthat subtree. Without a right child, it is the lowest ancestor for which the node lies in the left\nsubtree \u2014 found by walking from the root and recording the last node taken leftward. With parent\npointers it is a walk upward instead.\n\n**Why BSTs degenerate, and what the standard library does about it.** Inserting sorted data into a\nplain BST produces a chain of height n. Red-black trees fix this by recolouring and rotating on\ninsert and delete, keeping the height within 2\u00b7log(n+1). AVL trees maintain a stricter invariant,\nso lookups are faster but modifications do more work. `std::set` chooses red-black because\ninsertion-heavy workloads are more common.\n\n**When a BST is the wrong choice.** If you only need membership testing with no ordering, a hash\ntable is O(1) average against the BST's O(log n). The BST earns its keep when you need sorted\niteration, range queries, `lower_bound`, or predecessor and successor \u2014 which a hash table cannot\nprovide at any price.\n\n**The grilling chain.**\n\n- *Validate a BST.* \u2014 Range propagation; explain why parent comparison fails, with a counterexample.\n- *Kth smallest, with frequent modifications.* \u2014 Augment nodes with subtree sizes.\n- *Recover a BST with two swapped nodes in O(1) space.* \u2014 Inorder descents plus Morris traversal.\n- *Why is your BST O(n) in the worst case?* \u2014 Degeneracy on sorted input; name red-black and AVL.\n- *How many structurally distinct BSTs on n nodes?* \u2014 Catalan; derive the recurrence.\n- *BST or hash table here?* \u2014 Whether the problem needs ordering. Say which operation decides it.\n",
+    "analogy": {
+     "The BST invariant": "\nA well-organised filing cabinet. At the front drawer you decide: earlier in the alphabet, go left;\nlater, go right. You never open the other side, so half the cabinet disappears with each decision.\n\nCompare that to a drawer where papers were dropped in as they arrived. There, you check every\nsheet.\n",
+     "Why comparing against the parent is not enough": "\nA company rule says every employee earns less than their manager. You check each person against\ntheir own manager and everything looks fine.\n\nBut someone three levels down in the finance branch might still earn more than the CEO, and nobody\ncompared them directly. The rule was never just about your manager \u2014 it was about everyone above\nyou.\n",
+     "Why a BST degenerates": "\nFiling papers into the cabinet in perfect alphabetical order. Every new sheet goes after the last\none, so instead of a branching structure you build one long chain.\n\nThe cabinet still works. It has just become a single very deep drawer, and finding anything means\nwalking the whole thing.\n",
+     "Inorder gives sorted order": "\nReading a family tree by always visiting the whole left branch, then the person, then the whole\nright branch. Because everyone on the left is smaller and everyone on the right is larger, the\nnames come out in order without you ever sorting anything.\n\nThat is why so many BST problems turn out to be \"do an inorder walk and count\".\n"
+    }
+   }
+  }
+ ],
+ "learnings": [
+  {
+   "id": "L-TREE-01",
+   "topic": "binary-trees",
+   "day": 4,
+   "headline": "The three DFS traversals differ only in when the node is emitted",
+   "detail": "The walk is identical. Preorder writes on arrival, inorder between the two children, postorder on the way out. Which one a problem needs follows from when the node's answer becomes known.",
+   "applied": [
+    [
+     "binary-tree-inorder-traversal",
+     "the dive-left-then-pop-and-go-right stack loop"
+    ]
+   ]
+  },
+  {
+   "id": "L-TREE-02",
+   "topic": "binary-trees",
+   "day": 4,
+   "headline": "Capture the queue size before the level loop",
+   "detail": "The queue holds a mixture of levels at any instant. Snapshotting its size fixes the boundary; reading it inside the loop sees it grow as children are pushed and merges the levels.",
+   "applied": [
+    [
+     "binary-tree-level-order-traversal",
+     "int sz = q.size() outside the inner for-loop"
+    ]
+   ]
+  },
+  {
+   "id": "L-TREE-03",
+   "topic": "binary-trees",
+   "day": 5,
+   "headline": "Return one value upward, accumulate another locally",
+   "detail": "The answer AT a node often uses both children, but the value a parent can extend uses only one. Conflating them is the most common bug in tree problems.",
+   "applied": [
+    [
+     "diameter-of-binary-tree",
+     "best gets l + r, but the return is 1 + max(l, r)"
+    ],
+    [
+     "maximum-depth-of-binary-tree",
+     "the simplest instance, where the two happen to coincide"
+    ]
+   ]
+  },
+  {
+   "id": "L-TREE-04",
+   "topic": "binary-trees",
+   "day": 6,
+   "headline": "Parallel recursion compares or combines two trees at once",
+   "detail": "Recurse on a pair of nodes rather than one. The base cases - both null, one null, values differ - carry all the weight, and the recursive step is a single line.",
+   "applied": [
+    [
+     "symmetric-tree",
+     "the same recursion with the two recursive calls crossed over"
+    ]
+   ]
+  },
+  {
+   "id": "L-TREE-05",
+   "topic": "binary-trees",
+   "day": 5,
+   "headline": "Minimum depth is not maximum depth with min substituted",
+   "detail": "A node with one null child has no root-to-leaf path through the null side, so min would wrongly return 1. BFS sidesteps it entirely and stops at the first leaf.",
+   "applied": [
+    [
+     "maximum-depth-of-binary-tree",
+     "where max needs no such special case"
+    ]
+   ]
+  },
+  {
+   "id": "L-TREE-10",
+   "topic": "binary-trees",
+   "day": 5,
+   "headline": "Ask whether the answer depends on ancestors or descendants",
+   "detail": "Descendants means return values upward. Ancestors means pass state downward. Naming which one a problem is before writing code saves rewriting it.",
+   "applied": [
+    [
+     "diameter-of-binary-tree",
+     "the contrasting case, where heights flow upward"
+    ]
+   ]
+  },
+  {
+   "id": "L-TREE-11",
+   "topic": "binary-trees",
+   "day": 6,
+   "headline": "A root-to-node path is an array, so array techniques apply",
+   "detail": "Prefix sums with a hash map work on a tree path exactly as on a subarray - provided the map is unwound when the recursion backtracks.",
+   "applied": [
+    [
+     "path-sum-iii",
+     "a prefix-sum map seeded with {0,1} and decremented on the way back up"
+    ]
+   ]
+  },
+  {
+   "id": "L-TREE-12",
+   "topic": "binary-trees",
+   "day": 5,
+   "headline": "Two traversals pin down a tree, one does not",
+   "detail": "Preorder gives the root; inorder says how many nodes sit on each side of it. A value-to-index hash map keeps the construction linear instead of quadratic.",
+   "applied": [
+    [
+     "construct-binary-tree-from-preorder-and-inorder-traversal",
+     "the inorder index map and building left before right"
+    ]
+   ]
+  },
+  {
+   "id": "L-TREE-14",
+   "topic": "binary-trees",
+   "day": 5,
+   "headline": "Tree DP returns a tuple of states",
+   "detail": "When a node's optimum depends on a choice it makes, return one value per choice and let the parent combine them. This removes exponential recomputation without a memo table.",
+   "applied": [
+    [
+     "house-robber-iii",
+     "returning {robbed, notRobbed} per node"
+    ]
+   ]
+  },
+  {
+   "id": "L-TREE-15",
+   "topic": "binary-trees",
+   "day": 4,
+   "headline": "A tree is a graph once you add parent edges",
+   "detail": "Any problem needing upward movement becomes BFS or DFS on an undirected graph. Build a parent map first, and remember the visited set.",
+   "applied": [
+    [
+     "all-nodes-distance-k-in-binary-tree",
+     "a parent map plus BFS bounded at k levels"
+    ]
+   ]
+  },
+  {
+   "id": "L-TREE-16",
+   "topic": "binary-trees",
+   "day": 6,
+   "headline": "Null sentinels make one traversal sufficient",
+   "detail": "Preorder alone cannot rebuild a tree, but preorder with explicit nulls can - the sentinels encode exactly the shape that ordering alone omits. Delimiters are needed too.",
+   "applied": [
+    [
+     "serialize-and-deserialize-binary-tree",
+     "'#' for nulls plus a separator between tokens"
+    ]
+   ]
+  },
+  {
+   "id": "L-TREE-18",
+   "topic": "binary-trees",
+   "day": 6,
+   "headline": "A dummy head removes the first-element case in any structure",
+   "detail": "The linked-list trick works on tree levels too: append to a tail behind a dummy and the 'is this the first node' branch disappears.",
+   "applied": [
+    [
+     "populating-next-right-pointers-in-each-node-ii",
+     "a dummy per level with a tail pointer"
+    ]
+   ]
+  },
+  {
+   "id": "L-BST-01",
+   "topic": "bst",
+   "day": 7,
+   "headline": "Validate with a propagated range, never a parent comparison",
+   "detail": "A node in a left subtree must be smaller than every ancestor above it, not just its parent. [10, 5, 15, null, null, 6, 20] passes every parent check and is not a BST.",
+   "applied": [
+    [
+     "validate-binary-search-tree",
+     "carrying (lo, hi) downward with long bounds"
+    ]
+   ]
+  },
+  {
+   "id": "L-BST-02",
+   "topic": "bst",
+   "day": 7,
+   "headline": "Inorder on a BST is sorted, which solves most BST problems",
+   "detail": "Validation, kth smallest, mode finding, minimum gap and recovery are all one inorder pass with a little bookkeeping.",
+   "applied": [
+    [
+     "kth-smallest-element-in-a-bst",
+     "an inorder counter with early return"
+    ],
+    [
+     "validate-binary-search-tree",
+     "the alternative strictly-increasing formulation"
+    ]
+   ]
+  },
+  {
+   "id": "L-BST-03",
+   "topic": "bst",
+   "day": 7,
+   "headline": "The invariant lets you skip subtrees without inspecting them",
+   "detail": "If a node's value is below the range, every value in its left subtree is smaller still. That is a proof, not a heuristic, and it is what makes BST operations O(h).",
+   "applied": [
+    [
+     "lowest-common-ancestor-of-a-binary-search-tree",
+     "descending to the first node that splits the two targets"
+    ]
+   ]
+  },
+  {
+   "id": "L-BST-04",
+   "topic": "bst",
+   "day": 7,
+   "headline": "Delete by replacing with the inorder successor",
+   "detail": "Zero or one child is a splice. Two children means copying the smallest value from the right subtree, which by construction has no left child and is therefore easy to remove.",
+   "applied": [
+    [
+     "delete-node-in-a-bst",
+     "finding the leftmost node of the right subtree and recursively deleting it"
+    ]
+   ]
+  },
+  {
+   "id": "L-BST-06",
+   "topic": "bst",
+   "day": 6,
+   "headline": "Keep only the left spine to pause an inorder traversal",
+   "detail": "An iterator is a recursion whose state has been made explicit. The stack holds O(h) nodes, and each is pushed and popped once overall, giving amortised O(1) per step.",
+   "applied": [
+    [
+     "binary-search-tree-iterator",
+     "pushing the left spine in the constructor and again after each pop"
+    ]
+   ]
+  },
+  {
+   "id": "L-BST-10",
+   "topic": "bst",
+   "day": 7,
+   "headline": "Choosing a root splits the count multiplicatively",
+   "detail": "Left and right subtree arrangements are independent, so their counts multiply. Summing over every root gives the Catalan recurrence.",
+   "applied": [
+    [
+     "unique-binary-search-trees",
+     "dp[n] = sum of dp[i] * dp[n-1-i]"
+    ]
+   ]
+  }
+ ],
+ "checkpoint_scope": "day",
+ "decay": {
+  "0": "full",
+  "1": "detail",
+  "2": "where",
+  "3": "headline"
+ },
+ "problems": [
+  {
+   "id": "binary-trees-all-nodes-distance-k-in-binary-tree",
+   "order": 1,
+   "phase": "V1",
+   "day": 4,
+   "topic": "binary-trees",
+   "tier": "CORE",
+   "title": "All Nodes Distance K in Binary Tree",
+   "lc": {
+    "id": "863",
+    "slug": "all-nodes-distance-k-in-binary-tree",
+    "url": "https://leetcode.com/problems/all-nodes-distance-k-in-binary-tree/",
+    "difficulty": "Medium",
+    "ac_rate": 68.1,
+    "tags": [
+     "Hash Table",
+     "Tree",
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Binary Tree"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/print-all-the-nodes-at-a-distance-of-k-in-a-binary-tree",
+    "youtube": "https://www.youtube.com/watch?v=i9ORlEy6EsI",
+    "striver_title": "Print all nodes at a distance of K in BT"
+   },
+   "pattern": "tree-as-graph",
+   "template": "T-GRAPH-02",
+   "companies": [
+    "Amazon",
+    "Facebook",
+    "Google",
+    "Microsoft"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Distance in a tree runs in three directions - down both children and UP to the parent - but tree nodes have no parent pointer. Building a parent map converts the tree into an undirected graph, and then it is plain BFS.",
+    "trick": "One DFS to record every node's parent in a hash map, then BFS outward from the target for exactly k levels, using a visited set so you do not walk back.",
+    "edge_cases": [
+     "A visited set is mandatory - without it BFS oscillates between a node and its parent.",
+     "k = 0 returns the target itself.",
+     "k larger than the tree's reach returns empty."
+    ],
+    "complexity": {
+     "time": "O(n)",
+     "space": "O(n)",
+     "why": "one DFS to build the parent map and one BFS bounded by k levels, each visiting every node at most once."
+    },
+    "siblings": [
+     "binary-tree-level-order-traversal",
+     "cousins-in-binary-tree",
+     "time-needed-to-inform-all-employees",
+     "lowest-common-ancestor-of-a-binary-tree"
+    ],
+    "followups": [
+     {
+      "q": "Why not solve it purely recursively?",
+      "a": "You can - compute the distance from the target to each node via the LCA - but the parent-map plus BFS is shorter, and the reframing is the transferable idea."
+     },
+     {
+      "q": "Recognise the reframing.",
+      "a": "'A tree is a graph with no cycles.' The moment a problem needs upward movement, add parent edges and reach for BFS or DFS on a graph."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "binary-trees-binary-tree-inorder-traversal",
+   "order": 2,
+   "phase": "V1",
+   "day": 4,
+   "topic": "binary-trees",
+   "tier": "CORE",
+   "title": "Binary Tree Inorder Traversal",
+   "lc": {
+    "id": "94",
+    "slug": "binary-tree-inorder-traversal",
+    "url": "https://leetcode.com/problems/binary-tree-inorder-traversal/",
+    "difficulty": "Easy",
+    "ac_rate": 80.6,
+    "tags": [
+     "Stack",
+     "Tree",
+     "Depth-First Search",
+     "Binary Tree"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/inorder-traversal-of-binary-tree/",
+    "youtube": "https://www.youtube.com/watch?v=Z_NEgBgbRVI",
+    "striver_title": "Inorder Traversal of Binary Tree"
+   },
+   "pattern": "dfs-traversal",
+   "template": "T-TREE-01",
+   "companies": [
+    "Amazon",
+    "Microsoft",
+    "Google"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "The recursive version is three lines and is not what is being tested. The iterative version with an explicit stack is, because it forces you to make the recursion's hidden state visible - and inorder is the one where that state is least obvious.",
+    "trick": "Dive left pushing every node, then pop, emit, and move right. The outer loop condition is `cur || !st.empty()`, which is what lets the walk resume after a subtree is exhausted.",
+    "edge_cases": [
+     "The loop must continue while EITHER cur is non-null or the stack is non-empty.",
+     "Empty tree returns an empty list.",
+     "Morris traversal gives O(1) space and is the real follow-up."
+    ],
+    "complexity": {
+     "time": "O(n)",
+     "space": "O(h), or O(1) with Morris",
+     "why": "every node is pushed and popped once. Stack depth is the tree height, which is O(n) for a degenerate tree."
+    },
+    "siblings": [
+     "binary-tree-preorder-traversal",
+     "binary-tree-postorder-traversal",
+     "kth-smallest-element-in-a-bst",
+     "validate-binary-search-tree"
+    ],
+    "followups": [
+     {
+      "q": "Do it in O(1) space.",
+      "a": "Morris traversal: thread each node's inorder predecessor's right pointer to it, follow the thread, then undo it. The tree is temporarily mutated, which matters under concurrency."
+     },
+     {
+      "q": "Why does inorder matter more than the other two?",
+      "a": "On a BST it yields sorted order, which turns validation, kth-smallest, mode-finding and recovery into linear scans."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "binary-trees-binary-tree-level-order-traversal",
+   "order": 3,
+   "phase": "V1",
+   "day": 4,
+   "topic": "binary-trees",
+   "tier": "CORE",
+   "title": "Binary Tree Level Order Traversal",
+   "lc": {
+    "id": "102",
+    "slug": "binary-tree-level-order-traversal",
+    "url": "https://leetcode.com/problems/binary-tree-level-order-traversal/",
+    "difficulty": "Medium",
+    "ac_rate": 73.5,
+    "tags": [
+     "Tree",
+     "Breadth-First Search",
+     "Binary Tree"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/level-order-traversal-of-a-binary-tree/",
+    "youtube": "https://www.youtube.com/watch?v=EoAsWbO7sqg",
+    "striver_title": "Level Order Traversal"
+   },
+   "pattern": "bfs-levels",
+   "template": "T-TREE-02",
+   "companies": [
+    "Amazon",
+    "Microsoft",
+    "Facebook",
+    "LinkedIn",
+    "Bloomberg"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Capturing the queue size before the inner loop is what separates one level from the next. That single line converts a flat BFS into a grouped one, and a dozen other problems are variations on it.",
+    "trick": "`int sz = q.size();` before the inner for-loop. Reading q.size() inside the loop sees it grow as children are pushed and merges the levels.",
+    "edge_cases": [
+     "Null root returns empty, not a list containing an empty level.",
+     "Only non-null children are enqueued.",
+     "The size snapshot must be taken outside the inner loop."
+    ],
+    "complexity": {
+     "time": "O(n)",
+     "space": "O(w) where w is the maximum width",
+     "why": "every node is enqueued and dequeued once. The queue holds at most one level, which reaches n/2 for a perfect tree."
+    },
+    "siblings": [
+     "binary-tree-level-order-traversal-ii",
+     "binary-tree-zigzag-level-order-traversal",
+     "binary-tree-right-side-view",
+     "average-of-levels-in-binary-tree"
+    ],
+    "followups": [
+     {
+      "q": "Right side view, left view, maximum width, deepest leaves sum.",
+      "a": "All one-line variants: last of each level, first of each level, index arithmetic per level, and the last level's sum. Learn this template and four problems come free."
+     },
+     {
+      "q": "Minimum depth - BFS or DFS?",
+      "a": "BFS, because it stops at the first leaf. DFS may explore a 10^5-deep branch before finding a leaf at depth 2."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "binary-trees-binary-tree-maximum-path-sum",
+   "order": 4,
+   "phase": "V1",
+   "day": 4,
+   "topic": "binary-trees",
+   "tier": "CORE",
+   "title": "Binary Tree Maximum Path Sum",
+   "lc": {
+    "id": "124",
+    "slug": "binary-tree-maximum-path-sum",
+    "url": "https://leetcode.com/problems/binary-tree-maximum-path-sum/",
+    "difficulty": "Hard",
+    "ac_rate": 42.8,
+    "tags": [
+     "Dynamic Programming",
+     "Tree",
+     "Depth-First Search",
+     "Binary Tree",
+     "DP on Trees"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/maximum-sum-path-in-binary-tree/",
+    "youtube": "https://www.youtube.com/watch?v=WszrfSwMz58",
+    "striver_title": "Maximum path sum"
+   },
+   "pattern": "bottom-up-return",
+   "template": "T-TREE-03",
+   "companies": [
+    "Amazon",
+    "Facebook",
+    "Google",
+    "Microsoft",
+    "Adobe"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "The hardest instance of the return-one-accumulate-another pattern. The answer through a node uses both children; the value returned upward can use only one. Clamping negative contributions at zero is what handles negative values correctly.",
+    "trick": "`l = max(0, dfs(left)); r = max(0, dfs(right)); best = max(best, val + l + r); return val + max(l, r);`. Four lines, and every one of them matters.",
+    "edge_cases": [
+     "Clamping at 0 means a negative subtree is excluded rather than forced into the path.",
+     "The path need not touch the root and need not reach a leaf.",
+     "An all-negative tree returns the largest single value, which the clamp handles.",
+     "Initialise best to INT_MIN, not 0."
+    ],
+    "complexity": {
+     "time": "O(n)",
+     "space": "O(h)",
+     "why": "one traversal with constant work per node."
+    },
+    "siblings": [
+     "diameter-of-binary-tree",
+     "longest-univalue-path",
+     "house-robber-iii",
+     "distribute-coins-in-binary-tree"
+    ],
+    "followups": [
+     {
+      "q": "Why clamp at zero?",
+      "a": "Including a negatively-summing subtree can only reduce the total, and the path is allowed to stop before it. max(0, ...) encodes that choice without a branch."
+     },
+     {
+      "q": "Return the path itself.",
+      "a": "Record the node achieving each best, plus which children contributed, then reconstruct by walking down from the recorded node."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "binary-trees-binary-tree-right-side-view",
+   "order": 5,
+   "phase": "V1",
+   "day": 4,
+   "topic": "binary-trees",
+   "tier": "CORE",
+   "title": "Binary Tree Right Side View",
+   "lc": {
+    "id": "199",
+    "slug": "binary-tree-right-side-view",
+    "url": "https://leetcode.com/problems/binary-tree-right-side-view/",
+    "difficulty": "Medium",
+    "ac_rate": 71.2,
+    "tags": [
+     "Tree",
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Binary Tree"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/right-left-view-of-binary-tree/",
+    "youtube": "https://www.youtube.com/watch?v=KV4mRzTjlAk",
+    "striver_title": "Right/Left View of Binary Tree"
+   },
+   "pattern": "bfs-levels",
+   "template": "T-TREE-02",
+   "companies": [
+    "Amazon",
+    "Facebook",
+    "Google",
+    "Microsoft"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "The right side view is the last node of each level. Once you see that, the entire problem is the level-order template with one line changed - which is why learning that template properly pays off repeatedly.",
+    "trick": "BFS, and append the node when `i == sz - 1`. The DFS alternative visits right before left and records the first node seen at each new depth.",
+    "edge_cases": [
+     "It is not 'all rightmost children' - a deep left subtree is visible when the right side is shorter.",
+     "Null root returns empty.",
+     "The DFS version must visit right first, or it records the left side."
+    ],
+    "complexity": {
+     "time": "O(n)",
+     "space": "O(w)",
+     "why": "one BFS with constant work per node."
+    },
+    "siblings": [
+     "binary-tree-level-order-traversal",
+     "find-bottom-left-tree-value",
+     "maximum-width-of-binary-tree",
+     "deepest-leaves-sum"
+    ],
+    "followups": [
+     {
+      "q": "Left side view.",
+      "a": "Append when i == 0, or DFS visiting left before right. One character of difference."
+     },
+     {
+      "q": "Why not just follow right pointers?",
+      "a": "A node's right child may be null while a deeper left descendant is still the rightmost visible node at its level."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "binary-trees-construct-binary-tree-from-preorder-and-inorder-traversal",
+   "order": 6,
+   "phase": "V1",
+   "day": 5,
+   "topic": "binary-trees",
+   "tier": "CORE",
+   "title": "Construct Binary Tree from Preorder and Inorder Traversal",
+   "lc": {
+    "id": "105",
+    "slug": "construct-binary-tree-from-preorder-and-inorder-traversal",
+    "url": "https://leetcode.com/problems/construct-binary-tree-from-preorder-and-inorder-traversal/",
+    "difficulty": "Medium",
+    "ac_rate": 69.6,
+    "tags": [
+     "Array",
+     "Hash Table",
+     "Divide and Conquer",
+     "Tree",
+     "Binary Tree"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/construct-a-binary-tree-from-inorder-and-preorder-traversal/",
+    "youtube": "https://www.youtube.com/watch?v=aZNaLrVebKQ",
+    "striver_title": "Construct a BT from Preorder and Inorder"
+   },
+   "pattern": "traversal-reconstruction",
+   "template": "T-TREE-04",
+   "companies": [
+    "Amazon",
+    "Facebook",
+    "Microsoft",
+    "Bloomberg"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Preorder gives you the root; inorder tells you how many nodes are on each side of it. Together they pin the tree down uniquely, and a hash map from value to inorder index is what keeps the construction linear.",
+    "trick": "Consume preorder left to right with a shared index. For each call, take the root, look up its inorder position in O(1), and recurse LEFT before RIGHT - the preorder index must advance in that order.",
+    "edge_cases": [
+     "Left must be built before right, because preorder is consumed sequentially.",
+     "Without the hash map, searching inorder is O(n) per node, giving O(n^2).",
+     "This assumes distinct values, which the constraints guarantee."
+    ],
+    "complexity": {
+     "time": "O(n)",
+     "space": "O(n)",
+     "why": "each node is constructed once with an O(1) index lookup. The map is the only extra space beyond the recursion."
+    },
+    "siblings": [
+     "construct-binary-tree-from-inorder-and-postorder-traversal",
+     "construct-binary-search-tree-from-preorder-traversal",
+     "serialize-and-deserialize-binary-tree"
+    ],
+    "followups": [
+     {
+      "q": "The postorder variant.",
+      "a": "Consume postorder from the END and build RIGHT before LEFT - postorder reversed is node-right-left."
+     },
+     {
+      "q": "Can preorder plus postorder work?",
+      "a": "Not for a general binary tree - it cannot distinguish a single left child from a single right child. It does work for full binary trees."
+     },
+     {
+      "q": "What if values repeat?",
+      "a": "The index map becomes ambiguous and the reconstruction is no longer unique. The constraint on distinctness is load-bearing."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "binary-trees-diameter-of-binary-tree",
+   "order": 7,
+   "phase": "V1",
+   "day": 5,
+   "topic": "binary-trees",
+   "tier": "CORE",
+   "title": "Diameter of Binary Tree",
+   "lc": {
+    "id": "543",
+    "slug": "diameter-of-binary-tree",
+    "url": "https://leetcode.com/problems/diameter-of-binary-tree/",
+    "difficulty": "Easy",
+    "ac_rate": 66.3,
+    "tags": [
+     "Tree",
+     "Depth-First Search",
+     "Binary Tree",
+     "DP on Trees"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/calculate-the-diameter-of-a-binary-tree/",
+    "youtube": "https://www.youtube.com/watch?v=Rezetez59Nk",
+    "striver_title": "Diameter of Binary Tree"
+   },
+   "pattern": "bottom-up-return",
+   "template": "T-TREE-03",
+   "companies": [
+    "Amazon",
+    "Facebook",
+    "Google",
+    "Microsoft"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "The diameter through a node is leftHeight + rightHeight, but the value returned to the parent is 1 + max(leftHeight, rightHeight). Confusing those two is the single most common bug in tree problems, and this is where you learn the distinction.",
+    "trick": "Update a global best with l + r inside the recursion, but return 1 + max(l, r). The answer through a node uses BOTH children; the value that can extend upward uses only one.",
+    "edge_cases": [
+     "The diameter counts EDGES, so it is l + r rather than l + r + 1.",
+     "The longest path need not pass through the root.",
+     "A single node has diameter 0."
+    ],
+    "complexity": {
+     "time": "O(n)",
+     "space": "O(h)",
+     "why": "one traversal, with each node contributing a constant-time update. Computing height separately at each node is O(n^2)."
+    },
+    "siblings": [
+     "binary-tree-maximum-path-sum",
+     "longest-univalue-path",
+     "balanced-binary-tree",
+     "maximum-depth-of-binary-tree"
+    ],
+    "followups": [
+     {
+      "q": "Why can't you just return the diameter?",
+      "a": "The diameter through a node uses both subtrees and therefore cannot be extended by the parent. The parent needs a one-sided value. Two different quantities, one traversal."
+     },
+     {
+      "q": "Maximum path sum instead of length.",
+      "a": "LC 124 - same skeleton, but clamp negative child contributions at zero, since excluding a negative subtree is always allowed."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "binary-trees-house-robber-iii",
+   "order": 8,
+   "phase": "V1",
+   "day": 5,
+   "topic": "binary-trees",
+   "tier": "CORE",
+   "title": "House Robber III",
+   "lc": {
+    "id": "337",
+    "slug": "house-robber-iii",
+    "url": "https://leetcode.com/problems/house-robber-iii/",
+    "difficulty": "Medium",
+    "ac_rate": 56.3,
+    "tags": [
+     "Dynamic Programming",
+     "Tree",
+     "Depth-First Search",
+     "Binary Tree",
+     "DP on Trees"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": null,
+    "striver_title": null
+   },
+   "pattern": "tree-dp-two-states",
+   "template": "T-DP-01",
+   "companies": [
+    "Amazon",
+    "Google",
+    "Facebook"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Tree DP with two states per node: the best total if this node is robbed, and the best if it is not. Returning a pair rather than a single number is what removes the exponential recomputation.",
+    "trick": "Return {robbed, notRobbed}. robbed = val + left.notRobbed + right.notRobbed. notRobbed = max of each child's two options, summed.",
+    "edge_cases": [
+     "notRobbed takes the MAX of each child's states, not the notRobbed one - you may still choose not to rob a child.",
+     "Null returns {0, 0}.",
+     "Values are non-negative here, so no clamping is needed."
+    ],
+    "complexity": {
+     "time": "O(n)",
+     "space": "O(h)",
+     "why": "one traversal returning a pair. Memoising a single-value recursion also works but is more machinery for the same result."
+    },
+    "siblings": [
+     "house-robber",
+     "binary-tree-maximum-path-sum",
+     "distribute-coins-in-binary-tree",
+     "binary-tree-cameras"
+    ],
+    "followups": [
+     {
+      "q": "Why return a pair instead of memoising?",
+      "a": "The pair makes the state explicit and needs no map. Memoising hides the same two states behind a cache keyed on (node, robbed)."
+     },
+     {
+      "q": "Name the general pattern.",
+      "a": "Tree DP: each node returns a small tuple of states, and the parent combines them. Binary Tree Cameras is the same idea with three states."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "binary-trees-lowest-common-ancestor-of-a-binary-tree",
+   "order": 9,
+   "phase": "V1",
+   "day": 5,
+   "topic": "binary-trees",
+   "tier": "CORE",
+   "title": "Lowest Common Ancestor of a Binary Tree",
+   "lc": {
+    "id": "236",
+    "slug": "lowest-common-ancestor-of-a-binary-tree",
+    "url": "https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-tree/",
+    "difficulty": "Medium",
+    "ac_rate": 70.1,
+    "tags": [
+     "Tree",
+     "Depth-First Search",
+     "Binary Tree",
+     "Binary Lifting",
+     "Lowest Common Ancestor"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/lowest-common-ancestor-for-two-given-nodes/",
+    "youtube": "https://www.youtube.com/watch?v=_-QHfMDde90",
+    "striver_title": "LCA in BT"
+   },
+   "pattern": "lca-recursion",
+   "template": "T-TREE-03",
+   "companies": [
+    "Amazon",
+    "Facebook",
+    "Google",
+    "Microsoft",
+    "LinkedIn"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Return the node itself if it matches either target, then let the recursion combine: if both sides return non-null, this node is the split point and therefore the LCA. Four lines, and the correctness argument is worth more than the code.",
+    "trick": "`if (!r || r == p || r == q) return r;` then recurse both sides. Both non-null means return r; otherwise return whichever is non-null.",
+    "edge_cases": [
+     "A node may be its own ancestor - if p is an ancestor of q, p is the LCA.",
+     "This assumes both nodes exist. If that is not guaranteed, a verification pass is needed.",
+     "Comparison is by pointer identity here, not by value."
+    ],
+    "complexity": {
+     "time": "O(n)",
+     "space": "O(h)",
+     "why": "one traversal with early return. Every node is visited at most once."
+    },
+    "siblings": [
+     "lowest-common-ancestor-of-a-binary-search-tree",
+     "all-nodes-distance-k-in-binary-tree",
+     "cousins-in-binary-tree"
+    ],
+    "followups": [
+     {
+      "q": "What if a node might not exist?",
+      "a": "The bare algorithm returns the other node, which is wrong. Add a verification pass, or count found targets during the recursion."
+     },
+     {
+      "q": "The BST version.",
+      "a": "LC 235 - far simpler. Descend while both targets are on the same side; the first node that splits them is the LCA. O(h) with no recursion."
+     },
+     {
+      "q": "Many queries on the same tree.",
+      "a": "Binary lifting for O(log n) per query after O(n log n) preprocessing, or Euler tour plus sparse table for O(1) queries."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "binary-trees-maximum-depth-of-binary-tree",
+   "order": 10,
+   "phase": "V1",
+   "day": 5,
+   "topic": "binary-trees",
+   "tier": "CORE",
+   "title": "Maximum Depth of Binary Tree",
+   "lc": {
+    "id": "104",
+    "slug": "maximum-depth-of-binary-tree",
+    "url": "https://leetcode.com/problems/maximum-depth-of-binary-tree/",
+    "difficulty": "Easy",
+    "ac_rate": 78.6,
+    "tags": [
+     "Tree",
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Binary Tree"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/maximum-depth-of-a-binary-tree/",
+    "youtube": "https://www.youtube.com/watch?v=eD3tmO66aBA",
+    "striver_title": "Maximum Depth in BT"
+   },
+   "pattern": "bottom-up-return",
+   "template": "T-TREE-03",
+   "companies": [
+    "Amazon",
+    "Microsoft",
+    "Google",
+    "LinkedIn"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "The gentlest possible instance of the bottom-up pattern: a node's answer is one more than the best of its children's answers. Every harder tree problem is this skeleton with a more interesting body.",
+    "trick": "`return r ? 1 + max(depth(left), depth(right)) : 0;`. The null base case returning 0 is what makes the arithmetic work without special-casing leaves.",
+    "edge_cases": [
+     "Null returns 0, so a leaf correctly returns 1.",
+     "Depth counts nodes here, not edges - check the definition each time.",
+     "A 10^5-deep degenerate tree overflows the recursion stack."
+    ],
+    "complexity": {
+     "time": "O(n)",
+     "space": "O(h)",
+     "why": "every node is visited once; stack depth is the height."
+    },
+    "siblings": [
+     "minimum-depth-of-binary-tree",
+     "balanced-binary-tree",
+     "diameter-of-binary-tree",
+     "maximum-depth-of-n-ary-tree"
+    ],
+    "followups": [
+     {
+      "q": "Minimum depth - is it symmetric?",
+      "a": "No. A node with one null child has no path through that side, so `min` would wrongly return 1. You must take the non-null child's depth, or use BFS."
+     },
+     {
+      "q": "Do it iteratively.",
+      "a": "BFS counting levels, or DFS with an explicit stack of (node, depth) pairs."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "binary-trees-path-sum-iii",
+   "order": 11,
+   "phase": "V1",
+   "day": 6,
+   "topic": "binary-trees",
+   "tier": "CORE",
+   "title": "Path Sum III",
+   "lc": {
+    "id": "437",
+    "slug": "path-sum-iii",
+    "url": "https://leetcode.com/problems/path-sum-iii/",
+    "difficulty": "Medium",
+    "ac_rate": 46.7,
+    "tags": [
+     "Tree",
+     "Depth-First Search",
+     "Binary Tree"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": null,
+    "striver_title": null
+   },
+   "pattern": "prefix-sum-on-path",
+   "template": "T-HASH-04",
+   "companies": [
+    "Amazon",
+    "Facebook",
+    "Google"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Paths need not start at the root, so this is Subarray Sum Equals K on the root-to-node path. A hash map of prefix sums along the current path answers each node in O(1), and the map must be UNWOUND on the way back up.",
+    "trick": "Maintain a map from prefix sum to count, seeded with {0: 1}. At each node add `map[cur - target]` to the answer, then recurse, then DECREMENT the map entry before returning.",
+    "edge_cases": [
+     "Failing to decrement on the way back up counts paths from other branches.",
+     "Seed the map with {0, 1} for paths starting at the root.",
+     "Sums overflow int - use long long for the running prefix.",
+     "Negative values are permitted, which is why no pruning is possible."
+    ],
+    "complexity": {
+     "time": "O(n)",
+     "space": "O(h)",
+     "why": "each node does constant-time map work, and the map holds at most h entries because it is unwound. The naive all-pairs version is O(n^2)."
+    },
+    "siblings": [
+     "subarray-sum-equals-k",
+     "path-sum",
+     "path-sum-ii",
+     "binary-tree-maximum-path-sum"
+    ],
+    "followups": [
+     {
+      "q": "Why must the map be decremented?",
+      "a": "The map represents prefixes along the CURRENT path only. Leaving a sibling branch's entries in place counts paths that do not exist."
+     },
+     {
+      "q": "Recognise the parent problem.",
+      "a": "It is Subarray Sum Equals K with the array replaced by a root-to-node path. Recognising that equivalence is worth more than the code."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "binary-trees-populating-next-right-pointers-in-each-node-ii",
+   "order": 12,
+   "phase": "V1",
+   "day": 6,
+   "topic": "binary-trees",
+   "tier": "CORE",
+   "title": "Populating Next Right Pointers in Each Node II",
+   "lc": {
+    "id": "117",
+    "slug": "populating-next-right-pointers-in-each-node-ii",
+    "url": "https://leetcode.com/problems/populating-next-right-pointers-in-each-node-ii/",
+    "difficulty": "Medium",
+    "ac_rate": 58.2,
+    "tags": [
+     "Linked List",
+     "Tree",
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Binary Tree"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": null,
+    "striver_title": null
+   },
+   "pattern": "level-linking",
+   "template": "T-TREE-02",
+   "companies": [
+    "Amazon",
+    "Facebook",
+    "Microsoft"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Without the perfect-tree guarantee, a node's next sibling may be several nodes along the level. A dummy head for the level being built turns that search into a simple append, which is the trick that makes the O(1) version tractable.",
+    "trick": "Keep a dummy node and a tail pointer for the next level. Walk the current level via next pointers, appending each existing child to the tail. The next level's head is dummy.next.",
+    "edge_cases": [
+     "The dummy must be reset at the start of every level.",
+     "Children may be absent on either side - append only non-null ones.",
+     "The last node of each level must end with a null next."
+    ],
+    "complexity": {
+     "time": "O(n)",
+     "space": "O(1)",
+     "why": "each node is appended exactly once and the walk uses pointers already built."
+    },
+    "siblings": [
+     "populating-next-right-pointers-in-each-node",
+     "binary-tree-level-order-traversal",
+     "flatten-binary-tree-to-linked-list"
+    ],
+    "followups": [
+     {
+      "q": "Why does the dummy head help so much?",
+      "a": "It removes the 'is this the first node of the level' special case, exactly as a dummy head does in linked list problems. Same trick, different structure."
+     },
+     {
+      "q": "Does this solution also work for LC 116?",
+      "a": "Yes - it is strictly more general. Writing this one first means you only learn one algorithm."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "binary-trees-serialize-and-deserialize-binary-tree",
+   "order": 13,
+   "phase": "V1",
+   "day": 6,
+   "topic": "binary-trees",
+   "tier": "CORE",
+   "title": "Serialize and Deserialize Binary Tree",
+   "lc": {
+    "id": "297",
+    "slug": "serialize-and-deserialize-binary-tree",
+    "url": "https://leetcode.com/problems/serialize-and-deserialize-binary-tree/",
+    "difficulty": "Hard",
+    "ac_rate": 61.1,
+    "tags": [
+     "String",
+     "Tree",
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Design",
+     "Binary Tree"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/serialize-and-deserialize-a-binary-tree/",
+    "youtube": "https://www.youtube.com/watch?v=-YbXySKJsX8",
+    "striver_title": "Serialize and De-serialize BT"
+   },
+   "pattern": "preorder-with-sentinels",
+   "template": "T-TREE-01",
+   "companies": [
+    "Amazon",
+    "Facebook",
+    "Google",
+    "Microsoft",
+    "LinkedIn"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Preorder alone cannot rebuild a tree, but preorder WITH null sentinels can - the sentinels encode exactly the shape information that ordering alone lacks. That is the whole design decision.",
+    "trick": "Serialise preorder, emitting a marker such as '#' for every null, with a delimiter between tokens. Deserialise by consuming tokens in the same order, returning null on the marker.",
+    "edge_cases": [
+     "Delimiters are needed as well as sentinels, or 1 and 12 are ambiguous against 1,2.",
+     "Negative values must survive the round trip.",
+     "Deserialisation consumes tokens in exactly the serialisation order - an index or stream shared across recursive calls."
+    ],
+    "complexity": {
+     "time": "O(n) both ways",
+     "space": "O(n)",
+     "why": "each node produces one token and consumes one. The string is proportional to the node count."
+    },
+    "siblings": [
+     "construct-binary-tree-from-preorder-and-inorder-traversal",
+     "subtree-of-another-tree",
+     "binary-tree-preorder-traversal"
+    ],
+    "followups": [
+     {
+      "q": "Why are sentinels enough when a second traversal was needed before?",
+      "a": "The nulls mark exactly where subtrees end, which is the structural information inorder was supplying. One annotated traversal replaces two plain ones."
+     },
+     {
+      "q": "Serialise a BST more compactly.",
+      "a": "Preorder alone suffices, because the BST invariant supplies the shape. No sentinels needed - LC 449."
+     },
+     {
+      "q": "Make it robust to duplicate values.",
+      "a": "It already is - unlike reconstruction from two traversals, the sentinel form never needs to look values up."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "binary-trees-symmetric-tree",
+   "order": 14,
+   "phase": "V1",
+   "day": 6,
+   "topic": "binary-trees",
+   "tier": "CORE",
+   "title": "Symmetric Tree",
+   "lc": {
+    "id": "101",
+    "slug": "symmetric-tree",
+    "url": "https://leetcode.com/problems/symmetric-tree/",
+    "difficulty": "Easy",
+    "ac_rate": 62.0,
+    "tags": [
+     "Tree",
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Binary Tree"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/check-for-symmetrical-binary-tree/",
+    "youtube": "https://www.youtube.com/watch?v=nKggNAiEpBE",
+    "striver_title": "Symmetric Binary Tree"
+   },
+   "pattern": "mirror-recursion",
+   "template": "T-TREE-03",
+   "companies": [
+    "Amazon",
+    "Microsoft",
+    "LinkedIn",
+    "Bloomberg"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "A tree is symmetric when its left subtree mirrors its right. The recursion therefore takes two nodes and compares left-against-right crosswise - which is Same Tree with one pair of arguments swapped.",
+    "trick": "`mirror(a,b)` returns `a->val == b->val && mirror(a->left, b->right) && mirror(a->right, b->left)`. The crossing in the two recursive calls is the whole difference.",
+    "edge_cases": [
+     "Compare a->left with b->right, NOT b->left. Getting this wrong tests identity instead of symmetry.",
+     "Both null is true; one null is false.",
+     "A single node is symmetric."
+    ],
+    "complexity": {
+     "time": "O(n)",
+     "space": "O(h)",
+     "why": "each pair of mirrored nodes is compared once."
+    },
+    "siblings": [
+     "same-tree",
+     "invert-binary-tree",
+     "subtree-of-another-tree"
+    ],
+    "followups": [
+     {
+      "q": "Do it iteratively.",
+      "a": "A queue holding pairs of nodes, enqueued in mirrored order. The pairing is what preserves the crossing."
+     },
+     {
+      "q": "How does this relate to Invert Binary Tree?",
+      "a": "A tree is symmetric exactly when it equals its own inversion. You could invert and compare, though that mutates or copies unnecessarily."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "bst-binary-search-tree-iterator",
+   "order": 15,
+   "phase": "V1",
+   "day": 6,
+   "topic": "bst",
+   "tier": "CORE",
+   "title": "Binary Search Tree Iterator",
+   "lc": {
+    "id": "173",
+    "slug": "binary-search-tree-iterator",
+    "url": "https://leetcode.com/problems/binary-search-tree-iterator/",
+    "difficulty": "Medium",
+    "ac_rate": 77.0,
+    "tags": [
+     "Stack",
+     "Tree",
+     "Design",
+     "Binary Search Tree",
+     "Binary Tree",
+     "Iterator"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/bst-iterator",
+    "youtube": "https://www.youtube.com/watch?v=D2jMcmxU4bs",
+    "striver_title": "Merge 2 BST's"
+   },
+   "pattern": "controlled-inorder",
+   "template": "T-TREE-01",
+   "companies": [
+    "Amazon",
+    "Facebook",
+    "Google",
+    "Microsoft",
+    "LinkedIn"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Materialising the whole inorder list is O(n) space and defeats the purpose. Keeping only the left spine on a stack gives O(h) space with amortised O(1) next() - the recursion's state made explicit and paused.",
+    "trick": "Push the entire left spine in the constructor. next() pops, then pushes the left spine of the popped node's right child. hasNext() is simply a non-empty stack.",
+    "edge_cases": [
+     "Only the LEFT spine is pushed, never whole subtrees.",
+     "After popping, descend the right child's left spine, not the right child alone.",
+     "next() is O(h) worst case but O(1) amortised across n calls."
+    ],
+    "complexity": {
+     "time": "O(1) amortised per next()",
+     "space": "O(h)",
+     "why": "each node is pushed and popped exactly once across all calls, so n calls cost O(n) total despite individual calls costing up to O(h)."
+    },
+    "siblings": [
+     "binary-tree-inorder-traversal",
+     "kth-smallest-element-in-a-bst",
+     "two-sum-iv-input-is-a-bst",
+     "flatten-nested-list-iterator"
+    ],
+    "followups": [
+     {
+      "q": "Justify the amortised bound.",
+      "a": "Every node enters the stack once and leaves once over the iterator's lifetime. Total work across n calls is O(n), so O(1) each on average."
+     },
+     {
+      "q": "Add a prev() operation.",
+      "a": "Keep a second stack for the right spine, or record visited nodes. Genuinely harder - LC 1586."
+     },
+     {
+      "q": "Why is O(h) space better than O(n) here?",
+      "a": "For a balanced tree that is log n versus n, and the iterator may be abandoned early, in which case the unbuilt portion was never paid for."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "bst-delete-node-in-a-bst",
+   "order": 16,
+   "phase": "V1",
+   "day": 7,
+   "topic": "bst",
+   "tier": "CORE",
+   "title": "Delete Node in a BST",
+   "lc": {
+    "id": "450",
+    "slug": "delete-node-in-a-bst",
+    "url": "https://leetcode.com/problems/delete-node-in-a-bst/",
+    "difficulty": "Medium",
+    "ac_rate": 55.4,
+    "tags": [
+     "Tree",
+     "Binary Search Tree",
+     "Binary Tree"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": "https://www.youtube.com/watch?v=kouxiP_H5WE",
+    "striver_title": "Delete a node in BST"
+   },
+   "pattern": "bst-delete",
+   "template": "T-BST-01",
+   "companies": [
+    "Amazon",
+    "Microsoft",
+    "Facebook"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Three cases, and only the third is interesting. With zero or one child you splice. With two, you replace the value with the inorder successor - the smallest value in the right subtree - and then delete that successor, which by construction has at most one child.",
+    "trick": "`if (!left) return right; if (!right) return left;` handles the easy cases. Then find the leftmost node of the right subtree, copy its value up, and recursively delete it.",
+    "edge_cases": [
+     "The successor is the LEFTMOST node of the right subtree, not the right child.",
+     "Deleting the successor recursively is safe because it has at most one child.",
+     "Deleting the root must return the new root.",
+     "The predecessor works equally well - either is a valid answer."
+    ],
+    "complexity": {
+     "time": "O(h)",
+     "space": "O(h)",
+     "why": "one descent to find the node, plus one to find and remove the successor."
+    },
+    "siblings": [
+     "insert-into-a-binary-search-tree",
+     "trim-a-binary-search-tree",
+     "balance-a-binary-search-tree",
+     "binary-tree-pruning"
+    ],
+    "followups": [
+     {
+      "q": "Why the successor rather than any node?",
+      "a": "It is the smallest value greater than the deleted one, so placing it at the node preserves the BST invariant on both sides simultaneously."
+     },
+     {
+      "q": "Why does the successor have at most one child?",
+      "a": "It is the leftmost node of a subtree, so by definition it has no left child."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "bst-kth-smallest-element-in-a-bst",
+   "order": 17,
+   "phase": "V1",
+   "day": 7,
+   "topic": "bst",
+   "tier": "CORE",
+   "title": "Kth Smallest Element in a BST",
+   "lc": {
+    "id": "230",
+    "slug": "kth-smallest-element-in-a-bst",
+    "url": "https://leetcode.com/problems/kth-smallest-element-in-a-bst/",
+    "difficulty": "Medium",
+    "ac_rate": 77.3,
+    "tags": [
+     "Tree",
+     "Depth-First Search",
+     "Binary Search Tree",
+     "Binary Tree"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/kth-largest-smallest-element-in-binary-search-tree/",
+    "youtube": "https://www.youtube.com/watch?v=9TJYWh0adfk",
+    "striver_title": "Kth Smallest and Largest element in BST"
+   },
+   "pattern": "inorder-with-counter",
+   "template": "T-TREE-01",
+   "companies": [
+    "Amazon",
+    "Facebook",
+    "Google",
+    "Uber"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Inorder on a BST yields sorted order, so the kth smallest is simply the kth element emitted. The follow-up about frequent modifications is where the real content is - and the answer is node augmentation.",
+    "trick": "Iterative inorder with a counter, returning as soon as the count reaches k. Do not build the full sorted list.",
+    "edge_cases": [
+     "Return early - building the whole list is O(n) when O(h + k) suffices.",
+     "k is 1-indexed.",
+     "A degenerate tree makes this O(n) regardless."
+    ],
+    "complexity": {
+     "time": "O(h + k)",
+     "space": "O(h)",
+     "why": "the descent to the smallest element is O(h), then k steps of the traversal. Collecting everything first is O(n)."
+    },
+    "siblings": [
+     "binary-search-tree-iterator",
+     "validate-binary-search-tree",
+     "binary-tree-inorder-traversal",
+     "find-mode-in-binary-search-tree"
+    ],
+    "followups": [
+     {
+      "q": "The tree is modified frequently and this query is common.",
+      "a": "Augment each node with its subtree size. Then descending is O(h) per query: at each node you know how many values lie to its left. This is an order-statistic tree."
+     },
+     {
+      "q": "Why is augmentation the general answer?",
+      "a": "Any aggregate that can be computed from a node's children - size, sum, min, max - can be cached at the node and maintained in O(1) per structural change."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "bst-lowest-common-ancestor-of-a-binary-search-tree",
+   "order": 18,
+   "phase": "V1",
+   "day": 7,
+   "topic": "bst",
+   "tier": "CORE",
+   "title": "Lowest Common Ancestor of a Binary Search Tree",
+   "lc": {
+    "id": "235",
+    "slug": "lowest-common-ancestor-of-a-binary-search-tree",
+    "url": "https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-search-tree/",
+    "difficulty": "Medium",
+    "ac_rate": 71.4,
+    "tags": [
+     "Tree",
+     "Depth-First Search",
+     "Binary Search Tree",
+     "Binary Tree",
+     "Binary Lifting",
+     "Lowest Common Ancestor"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": "https://www.youtube.com/watch?v=cX_kPV_foZc",
+    "striver_title": "LCA in BST"
+   },
+   "pattern": "bst-split-point",
+   "template": "T-BST-01",
+   "companies": [
+    "Amazon",
+    "Facebook",
+    "Microsoft",
+    "LinkedIn"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "In a BST the LCA is the first node whose value lies between the two targets - the point where their search paths diverge. No recursion and no subtree exploration is needed at all, which is a dramatic simplification over the general-tree version.",
+    "trick": "Descend from the root. Both targets smaller means go left, both larger means go right, otherwise the current node is the answer.",
+    "edge_cases": [
+     "A node may be its own ancestor - if p is an ancestor of q, p is the LCA and the split test handles it.",
+     "The targets may arrive in either order, so compare against both.",
+     "Iterative is O(1) space."
+    ],
+    "complexity": {
+     "time": "O(h)",
+     "space": "O(1) iterative",
+     "why": "one descent. Compare with the general binary tree version, which must explore both subtrees at every node for O(n)."
+    },
+    "siblings": [
+     "lowest-common-ancestor-of-a-binary-tree",
+     "search-in-a-binary-search-tree",
+     "validate-binary-search-tree"
+    ],
+    "followups": [
+     {
+      "q": "Why is the BST version so much cheaper?",
+      "a": "The invariant tells you which side each target is on without looking. The general tree has no such information, so it must search both sides."
+     },
+     {
+      "q": "What if a node might not be present?",
+      "a": "The split test still returns a node. Verify both targets exist with two searches, or the answer is meaningless."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "bst-unique-binary-search-trees",
+   "order": 19,
+   "phase": "V1",
+   "day": 7,
+   "topic": "bst",
+   "tier": "CORE",
+   "title": "Unique Binary Search Trees",
+   "lc": {
+    "id": "96",
+    "slug": "unique-binary-search-trees",
+    "url": "https://leetcode.com/problems/unique-binary-search-trees/",
+    "difficulty": "Medium",
+    "ac_rate": 64.2,
+    "tags": [
+     "Math",
+     "Dynamic Programming",
+     "Tree",
+     "Binary Search Tree",
+     "Binary Tree"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": null,
+    "striver_title": null
+   },
+   "pattern": "catalan-dp",
+   "template": "T-DP-01",
+   "companies": [
+    "Amazon",
+    "Google",
+    "Facebook"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Choosing a root splits the remaining nodes into a left group and a right group whose counts multiply. Summing over every root choice gives the Catalan recurrence, and the whole problem is two nested loops.",
+    "trick": "`dp[n] = sum over i of dp[i] * dp[n-1-i]`, with dp[0] = 1. The empty tree counting as one arrangement is what makes the base case work.",
+    "edge_cases": [
+     "dp[0] = 1, not 0 - an empty subtree is one valid arrangement.",
+     "The values do not matter, only the count, because any n distinct values give the same structural count.",
+     "Catalan numbers grow fast but fit in int for n <= 19."
+    ],
+    "complexity": {
+     "time": "O(n\u00b2)",
+     "space": "O(n)",
+     "why": "two nested loops over the DP table. The closed form C(2n,n)/(n+1) is O(n) but needs careful overflow handling."
+    },
+    "siblings": [
+     "unique-binary-search-trees-ii",
+     "generate-parentheses",
+     "number-of-ways-to-reorder-array-to-get-same-bst"
+    ],
+    "followups": [
+     {
+      "q": "Derive the recurrence.",
+      "a": "With root i, the left subtree holds i nodes and the right holds n-1-i. Their counts are independent, so they multiply; summing over i gives the total."
+     },
+     {
+      "q": "Where else do Catalan numbers appear?",
+      "a": "Balanced bracket sequences, triangulations of a polygon, and monotonic lattice paths - which is why Generate Parentheses has the same count."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  },
+  {
+   "id": "bst-validate-binary-search-tree",
+   "order": 20,
+   "phase": "V1",
+   "day": 7,
+   "topic": "bst",
+   "tier": "CORE",
+   "title": "Validate Binary Search Tree",
+   "lc": {
+    "id": "98",
+    "slug": "validate-binary-search-tree",
+    "url": "https://leetcode.com/problems/validate-binary-search-tree/",
+    "difficulty": "Medium",
+    "ac_rate": 36.3,
+    "tags": [
+     "Tree",
+     "Depth-First Search",
+     "Binary Search Tree",
+     "Binary Tree"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": "https://www.youtube.com/watch?v=f-sj7I5oXEI",
+    "striver_title": "Check if a tree is a BST or not"
+   },
+   "pattern": "range-propagation",
+   "template": "T-BST-01",
+   "companies": [
+    "Amazon",
+    "Facebook",
+    "Microsoft",
+    "Google",
+    "Bloomberg"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Comparing each node only against its parent is the classic wrong answer. A node deep in a left subtree must be smaller than EVERY ancestor above it, and only a propagated range carries that constraint.",
+    "trick": "Pass (lo, hi) down, narrowing at each step. Use `long` bounds, or a tree containing INT_MIN breaks the sentinels. The inorder-strictly-increasing check is an equally valid alternative with no sentinels at all.",
+    "edge_cases": [
+     "Root 10, left child 5, that node's right child 12 - passes a parent check, fails validation. This is the canonical counterexample.",
+     "Duplicates are not allowed, so comparisons are strict.",
+     "INT_MIN or INT_MAX values break int-typed sentinels - use long."
+    ],
+    "complexity": {
+     "time": "O(n)",
+     "space": "O(h)",
+     "why": "one traversal carrying two scalars. Every node is checked against its full ancestor constraint rather than just its parent."
+    },
+    "siblings": [
+     "recover-binary-search-tree",
+     "kth-smallest-element-in-a-bst",
+     "binary-search-tree-iterator",
+     "count-good-nodes-in-binary-tree"
+    ],
+    "followups": [
+     {
+      "q": "Give the counterexample for parent-only checking.",
+      "a": "[10, 5, 15, null, null, 6, 20]. The node 6 sits in the root's right subtree and is smaller than 10, yet passes every parent comparison."
+     },
+     {
+      "q": "The inorder alternative.",
+      "a": "Traverse inorder and verify each value strictly exceeds the previous. No sentinels needed, and it extends naturally to Recover BST."
+     }
+    ]
+   },
+   "user_fields": {
+    "status": "todo",
+    "revision": false,
+    "notes": "",
+    "tags": [],
+    "confidence": null,
+    "last_revised": null,
+    "goodnotes_ref": "",
+    "my_approach": ""
+   }
+  }
+ ]
+}

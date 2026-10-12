@@ -1,0 +1,2521 @@
+{
+ "key": "V2",
+ "slug": "v2-graphs",
+ "title": "Graphs",
+ "goal": "Traversal, topological order, shortest paths, disjoint sets and minimum spanning trees.",
+ "day_start": 8,
+ "day_end": 13,
+ "problem_count": 31,
+ "theory": [
+  {
+   "id": "t-graphs",
+   "title": "Graphs",
+   "links": [
+    "[Striver: Graph series](https://www.youtube.com/watch?v=M3_pLsDdeuU)"
+   ],
+   "parts": {
+    "breadth": "\n**What it is.** A graph is a set of vertices and a set of edges connecting them. Trees and linked\nlists are special cases — a tree is a connected graph with no cycles — so graph techniques subsume\nmuch of what you already know.\n\n**The vocabulary that matters.**\n\n- *Directed* vs *undirected* — whether an edge can be traversed both ways.\n- *Weighted* vs *unweighted* — whether edges carry a cost.\n- *Degree* — edges at a vertex. Directed graphs split it into *in-degree* and *out-degree*.\n- *Connected component* — a maximal set of mutually reachable vertices.\n- *DAG* — a directed graph with no cycles. Topological ordering exists only for DAGs.\n- *Cycle* — a path returning to its start.\n\n**Representation.** Adjacency list almost always; adjacency matrix only when the graph is dense or\nyou need O(1) edge lookups.\n\n```cpp\nvector<vector<int>> adj(n);                        // unweighted\nadj[u].push_back(v);                               // and adj[v].push_back(u) if undirected\n\nvector<vector<pair<int,int>>> wadj(n);             // weighted: (neighbour, weight)\nwadj[u].push_back({v, w});\n```\n\nAdjacency list is O(V + E) space; matrix is O(V²). At V = 10⁵ the matrix is impossible, which the\nconstraints will tell you.\n\n**A grid is a graph.** Every cell is a vertex with up to four neighbours. Map (i, j) to `i * cols + j`\nwhen you need a flat index for DSU.\n\n```cpp\nstatic const int d[] = {0, 1, 0, -1, 0};           // four neighbours from one array\nfor (int t = 0; t < 4; t++) { int ni = i + d[t], nj = j + d[t+1]; }\n```\n\n**The two traversals.**\n\n*DFS* goes as deep as possible before backtracking. Natural recursively; used for connected\ncomponents, cycle detection, topological order and anything needing subtree information.\n\n```cpp\nvoid dfs(int u, vector<vector<int>>& adj, vector<bool>& vis) {\n    vis[u] = true;\n    for (int v : adj[u]) if (!vis[v]) dfs(v, adj, vis);\n}\n```\n\n*BFS* explores level by level. Used whenever the question is about **fewest steps**, because on an\nunweighted graph BFS visits vertices in non-decreasing distance order.\n\n```cpp\nvector<int> bfs(int src, vector<vector<int>>& adj) {\n    vector<int> dist(adj.size(), -1);\n    queue<int> q; q.push(src); dist[src] = 0;\n    while (!q.empty()) {\n        int u = q.front(); q.pop();\n        for (int v : adj[u])\n            if (dist[v] == -1) { dist[v] = dist[u] + 1; q.push(v); }\n    }\n    return dist;\n}\n```\n\nMark visited when **enqueuing**, not when dequeuing, or vertices enter the queue many times.\n\n**Multi-source BFS.** Push every source at distance 0 before the loop starts. One BFS then computes\nthe distance to the *nearest* source for every vertex, which is what Rotting Oranges and 01 Matrix\nneed.\n\n**Topological sort (Kahn's algorithm).** Repeatedly remove a vertex with in-degree zero.\n\n```cpp\nvector<int> topo(int n, vector<vector<int>>& adj) {\n    vector<int> indeg(n, 0), order;\n    for (int u = 0; u < n; u++) for (int v : adj[u]) indeg[v]++;\n    queue<int> q;\n    for (int i = 0; i < n; i++) if (!indeg[i]) q.push(i);\n    while (!q.empty()) {\n        int u = q.front(); q.pop(); order.push_back(u);\n        for (int v : adj[u]) if (--indeg[v] == 0) q.push(v);\n    }\n    return (int)order.size() == n ? order : vector<int>{};   // short means a cycle\n}\n```\n\nThe length check **is** the cycle detection — no separate pass.\n\n**Dijkstra.** Shortest paths with non-negative weights.\n\n```cpp\nvector<long long> dijkstra(int n, vector<vector<pair<int,int>>>& adj, int src) {\n    vector<long long> dist(n, LLONG_MAX);\n    priority_queue<pair<long long,int>, vector<pair<long long,int>>, greater<>> pq;\n    dist[src] = 0; pq.push({0, src});\n    while (!pq.empty()) {\n        auto [d, u] = pq.top(); pq.pop();\n        if (d > dist[u]) continue;                  // stale entry\n        for (auto [v, w] : adj[u])\n            if (dist[u] + w < dist[v]) { dist[v] = dist[u] + w; pq.push({dist[v], v}); }\n    }\n    return dist;\n}\n```\n\n**Disjoint Set Union.** Connected components and cycle detection in undirected graphs.\n\n```cpp\nstruct DSU {\n    vector<int> p, r;\n    DSU(int n) : p(n), r(n, 0) { iota(p.begin(), p.end(), 0); }\n    int find(int x) { return p[x] == x ? x : p[x] = find(p[x]); }      // path compression\n    bool unite(int a, int b) {\n        a = find(a); b = find(b);\n        if (a == b) return false;                   // already joined: this edge closes a cycle\n        if (r[a] < r[b]) swap(a, b);\n        p[b] = a;\n        if (r[a] == r[b]) r[a]++;                   // union by rank\n        return true;\n    }\n};\n```\n\n**Complexity summary.**\n\n| Algorithm | Time | Use |\n|---|---|---|\n| DFS / BFS | O(V + E) | reachability, components, levels |\n| Multi-source BFS | O(V + E) | distance to nearest source |\n| Kahn topological sort | O(V + E) | ordering, DAG cycle detection |\n| DFS colour cycle detection | O(V + E) | directed cycles |\n| Dijkstra | O((V + E) log V) | non-negative weights |\n| Bellman-Ford | O(V · E) | negative weights, negative-cycle detection |\n| Floyd-Warshall | O(V³) | all pairs, V ≤ a few hundred |\n| DSU operation | ~O(1) amortised | components, Kruskal |\n| Kruskal MST | O(E log E) | minimum spanning tree |\n",
+    "depth": "\n**Why BFS gives shortest paths only on unweighted graphs.** BFS dequeues vertices in non-decreasing\ndistance order, so the first time it reaches a vertex is via a minimum-edge-count path. With weights,\na path of two cheap edges can beat one expensive edge, and BFS has no mechanism to reconsider —\nhence Dijkstra's priority queue.\n\nA useful middle case: when all weights are 0 or 1, **0-1 BFS** with a deque gives O(V + E) — push\nzero-weight neighbours to the front and one-weight to the back. This beats Dijkstra's log factor and\nappears in minimum-obstacle-removal problems.\n\n**Mark visited on enqueue.** If you mark on dequeue, a vertex reachable from several frontier\nvertices is enqueued once per incoming edge. The queue grows to O(E) and the constant factor\ncollapses. This is the single most common BFS bug.\n\n**Dijkstra's correctness and why it needs non-negative weights.** The invariant is that when a vertex\nis popped, its distance is final. The proof: any alternative path to it must pass through an\nunfinalised vertex whose tentative distance is already at least as large, and since edge weights are\nnon-negative, extending that path cannot make it shorter. A negative edge breaks the last step — a\nlonger-looking path could later shrink — so the greedy commitment is unsound. Use Bellman-Ford there:\nV−1 rounds of relaxing every edge, and a Vth round that still improves something proves a negative\ncycle.\n\n**The stale-entry check replaces decrease-key.** `std::priority_queue` cannot update a key, so\nDijkstra pushes duplicates and skips any pop whose distance exceeds the recorded one. The queue holds\nO(E) entries rather than O(V), which is why the bound is O((V+E) log V) rather than O(E + V log V).\nAn indexed binary heap or a Fibonacci heap achieves the tighter bound; neither is worth implementing\nin an interview.\n\n**Dijkstra variants change only the relaxation step.** Maximum-probability paths multiply instead of\nadding and use a max-heap. Minimum-effort paths take `max(currentEffort, edgeWeight)` instead of a\nsum — a minimax objective, and it still works because that function is monotone along a path. Spotting\nthat a problem is \"Dijkstra with a different combine operator\" is worth more than memorising the\nvariants.\n\n**Cheapest Flights Within K Stops** is the case where Dijkstra's invariant genuinely fails: a vertex's\ncheapest route may use too many stops, so arriving cheaply is not the same as arriving usefully. Either\nrun Bellman-Ford for exactly K+1 rounds, or run BFS level by level where each level is one additional\nstop. The lesson is that adding a second dimension to the state can invalidate a greedy algorithm.\n\n**Directed cycle detection needs three colours, not two.** A visited vertex is only evidence of a\ncycle if it lies on the *current* recursion path. White, grey and black — unvisited, in-progress,\nfinished — distinguish a back edge from a harmless cross edge. In undirected graphs you instead ignore\nthe edge back to the parent, and must be careful with parallel edges.\n\n**DSU complexity.** Path compression alone gives O(log n) amortised; union by rank alone gives\nO(log n); together they give O(α(n)), where α is the inverse Ackermann function and is below 5 for any\nn you will ever see. Treat it as constant but know the real bound and that it comes from combining\nboth optimisations.\n\nDSU answers connectivity under *additions* only. It cannot delete an edge, which is why dynamic\nconnectivity problems are much harder, and why \"offline, process the queries in reverse\" is a common\ntrick — deletions become additions when time runs backwards.\n\n**Kruskal versus Prim.** Kruskal sorts edges and unions greedily: O(E log E), better on sparse graphs,\nand trivially correct given the cut property. Prim grows one tree with a priority queue: O(E log V),\nbetter on dense graphs. Both rely on the cut property — the lightest edge crossing any partition of\nthe vertices belongs to some MST.\n\n**Bridges and articulation points (Tarjan).** A bridge is an edge whose removal disconnects the graph.\nTrack each vertex's DFS discovery time and the lowest discovery time reachable from its subtree. An\nedge (u, v) is a bridge when `low[v] > disc[u]` — nothing in v's subtree can reach u or above except\nthrough that edge. O(V + E), one DFS. This is Critical Connections, and the `low` array idea also\ngives strongly connected components via Tarjan's SCC algorithm.\n\n**When the graph is implicit.** Word Ladder, Open the Lock and Shortest Path Visiting All Nodes have\nno edge list — states are strings, dial positions, or (vertex, visited-bitmask) pairs, and neighbours\nare generated on demand. Recognising a state space as a graph is usually the whole difficulty; the\nBFS afterwards is routine. When the state includes a bitmask, `n ≤ 20` in the constraints is the tell.\n\n**Eulerian paths.** Reconstruct Itinerary wants a path using every edge exactly once. Hierholzer's\nalgorithm does a DFS that appends a vertex to the answer only after exhausting its edges, then\nreverses. Greedily picking the lexicographically smallest next edge without that post-order append\ngets stuck in a dead end — which is exactly the trap the problem sets.\n\n**The grilling chain.**\n\n- *BFS or Dijkstra here?* — Whether edges are weighted; mention 0-1 BFS for the 0/1 case.\n- *Why does Dijkstra fail on negative weights?* — The finalisation invariant; name Bellman-Ford.\n- *How do you decrease-key in `priority_queue`?* — You do not; push duplicates and skip stale pops.\n- *Detect a cycle in a directed graph.* — Three colours, and why two are insufficient.\n- *What is DSU's real complexity?* — O(α(n)) from path compression plus union by rank.\n- *Can DSU handle edge deletion?* — No. Mention offline reverse processing.\n- *Find all bridges.* — Tarjan's `disc` and `low`, with the `low[v] > disc[u]` condition.\n- *Shortest path with at most K edges.* — Dijkstra's invariant breaks; Bellman-Ford rounds or\n  level-wise BFS.\n",
+    "analogy": {
+     "Why BFS finds the shortest route": "\nYou are looking for the nearest open shop. Rather than walking one street to its very end, you check\nevery shop one minute away, then every shop two minutes away, then three.\n\nThe first shop you find open is necessarily among the closest, because you never looked further\nbefore looking nearer. Depth-first would send you down a single long road, and you might find an\nopen shop forty minutes away while missing one around the corner.\n",
+     "Why Dijkstra breaks on negative edges": "\nYou are budgeting a journey and you finalise each leg as soon as it looks cheapest. Then someone\ntells you a particular road pays you to use it.\n\nNow a route you had already dismissed as too long might end up cheaper than the one you locked in.\nEvery decision you finalised is suspect. Dijkstra's whole speed comes from never revisiting a\nfinalised vertex, and a negative edge destroys that guarantee.\n",
+     "Disjoint Set Union": "\nTwo hostels merge. Rather than relabelling everyone, each hostel just names one person as the\nrepresentative, and the smaller hostel's representative starts pointing at the larger one's.\n\nTo ask whether two students share a hostel, each follows the chain of representatives to the top and\nyou compare. Path compression is everyone remembering the final answer so nobody walks the chain\ntwice.\n",
+     "The cut property behind MST": "\nSplit a railway network into two halves any way you like. Among all the lines crossing that split,\nthe cheapest one must be in the optimal network.\n\nIf it were not, you could add it and remove whatever other crossing line the network used — the\nnetwork stays connected and gets cheaper, so the original was not optimal.\n",
+     "An implicit graph": "\nA combination lock with four dials is a graph nobody drew for you. Each lock position is a place you\ncan stand, and one click of one dial is a road to a neighbouring position.\n\nOnce you see that, \"fewest clicks to open it\" is just \"shortest route\", and you already know how to\nfind shortest routes.\n"
+    }
+   }
+  }
+ ],
+ "learnings": [
+  {
+   "id": "L-G-01",
+   "topic": "graphs",
+   "day": 8,
+   "headline": "A grid is a graph nobody drew for you",
+   "detail": "Cells are vertices, adjacency is edges. Saying that out loud is what unlocks BFS, DSU and Dijkstra on grid problems, and the {0,1,0,-1,0} offset array gives all four neighbours from one loop.",
+   "applied": [
+    [
+     "number-of-islands",
+     "treating each land cell as a vertex and flood-filling its component"
+    ],
+    [
+     "shortest-path-in-binary-matrix",
+     "BFS over cells with an eight-neighbour offset array"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-02",
+   "topic": "graphs",
+   "day": 8,
+   "headline": "Sink as you go instead of keeping a visited array",
+   "detail": "Overwriting a visited cell with a sentinel is O(1) extra space and cannot desynchronise from the grid. The cost is mutating the input, which must be acceptable or restored.",
+   "applied": [
+    [
+     "number-of-islands",
+     "setting the cell to '0' on arrival"
+    ],
+    [
+     "max-area-of-island",
+     "the same sink, with the DFS returning a size instead of nothing"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-03",
+   "topic": "graphs",
+   "day": 8,
+   "headline": "Push every source before the loop starts",
+   "detail": "Multi-source BFS computes the distance to the NEAREST source for every vertex in one pass. Running a separate BFS per source is correct and quadratic.",
+   "applied": [
+    [
+     "rotting-oranges",
+     "enqueuing every rotten orange at level 0 so the waves expand together"
+    ],
+    [
+     "01-matrix",
+     "enqueuing every zero rather than searching outward from each one"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-04",
+   "topic": "graphs",
+   "day": 8,
+   "headline": "Solve the complement when the property is global",
+   "detail": "Being enclosed is defined by what a region cannot reach, which no local traversal can see. Border-reachability is local and traversable, and its complement is the answer.",
+   "applied": [
+    [
+     "surrounded-regions",
+     "marking everything reachable from the border, then flipping the rest"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-05",
+   "topic": "graphs",
+   "day": 8,
+   "headline": "A flood fill can return any aggregate over its component",
+   "detail": "Area, perimeter, maximum value - whatever the DFS returns up the recursion becomes a property of the whole component, with no second pass.",
+   "applied": [
+    [
+     "max-area-of-island",
+     "returning 1 plus the four recursive sizes, with water returning 0"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-09",
+   "topic": "graphs",
+   "day": 9,
+   "headline": "Mark visited when enqueuing, never when dequeuing",
+   "detail": "A vertex reachable from several frontier vertices is otherwise enqueued once per incoming edge, and the queue grows to O(E). This is the single most common BFS bug.",
+   "applied": [
+    [
+     "rotting-oranges",
+     "setting the cell rotten as it is pushed"
+    ],
+    [
+     "is-graph-bipartite",
+     "assigning the colour at push time, which doubles as the visited mark"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-06",
+   "topic": "graphs",
+   "day": 9,
+   "headline": "A map from original to copy is both the memo and the visited set",
+   "detail": "Any traversal building a parallel structure over a cyclic graph needs this, and the entry must be inserted BEFORE recursing or a cycle re-enters the same node forever.",
+   "applied": [
+    [
+     "clone-graph",
+     "registering the clone in the map before visiting any neighbour"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-07",
+   "topic": "graphs",
+   "day": 9,
+   "headline": "The topological order's length is the cycle check",
+   "detail": "Kahn's algorithm peels in-degree-zero vertices. If fewer than n come out, the remainder are stuck in a cycle - no separate detection pass is needed.",
+   "applied": [
+    [
+     "course-schedule",
+     "comparing the processed count to n"
+    ],
+    [
+     "course-schedule-ii",
+     "the identical peel, keeping the order instead of discarding it"
+    ],
+    [
+     "minimum-height-trees",
+     "the same peeling mechanic applied to leaves to find tree centroids"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-08",
+   "topic": "graphs",
+   "day": 9,
+   "headline": "Reverse the graph to flip the direction a property propagates",
+   "detail": "Safety, reachability and dependency all propagate backwards along edges. Reversing turns that into a forward peel, which Kahn already does.",
+   "applied": [
+    [
+     "find-eventual-safe-states",
+     "peeling from terminal nodes in the reversed graph"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-10",
+   "topic": "graphs",
+   "day": 9,
+   "headline": "Two-colourable means no odd cycle",
+   "detail": "Paint each neighbour the opposite colour; a neighbour already painted the SAME colour is the failure. Walking an odd cycle flips colour an odd number of times and contradicts the start.",
+   "applied": [
+    [
+     "is-graph-bipartite",
+     "alternating colours from every unvisited vertex, since the graph may be disconnected"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-11",
+   "topic": "graphs",
+   "day": 9,
+   "headline": "DSU's false return IS the cycle test",
+   "detail": "If two endpoints already share a root, the edge closes a cycle. Path compression plus union by rank makes each operation O(alpha(n)), effectively constant.",
+   "applied": [
+    [
+     "redundant-connection",
+     "returning the first edge whose unite fails"
+    ],
+    [
+     "number-of-provinces",
+     "counting vertices that are their own root"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-12",
+   "topic": "graphs",
+   "day": 9,
+   "headline": "A visited set prevents revisits on ONE path, not across paths",
+   "detail": "On a DAG, enumerating all routes needs no visited array at all - acyclicity already guarantees termination, and a vertex may legitimately appear on many different paths.",
+   "applied": [
+    [
+     "all-paths-from-source-to-target",
+     "DFS with push and pop but no visited marking"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-13",
+   "topic": "graphs",
+   "day": 10,
+   "headline": "BFS is shortest-path only when every edge costs the same",
+   "detail": "BFS dequeues in non-decreasing edge-count order. With weights, two cheap edges can beat one expensive edge and BFS cannot reconsider - that is what the priority queue buys.",
+   "applied": [
+    [
+     "network-delay-time",
+     "a min-heap on distance instead of a plain queue"
+    ],
+    [
+     "shortest-path-in-binary-matrix",
+     "the contrasting case where every step costs 1 so BFS suffices"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-14",
+   "topic": "graphs",
+   "day": 10,
+   "headline": "The stale-entry skip replaces decrease-key",
+   "detail": "std::priority_queue cannot update a key, so Dijkstra pushes duplicates and discards any pop whose distance exceeds the recorded one. The heap holds O(E) entries rather than O(V).",
+   "applied": [
+    [
+     "network-delay-time",
+     "`if (d > dist[u]) continue;` at the top of the loop"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-15",
+   "topic": "graphs",
+   "day": 10,
+   "headline": "Dijkstra only needs the cost to be monotone along a path",
+   "detail": "Swap addition for maximum and it still works, because extending a path can never reduce its maximum. Multiplication with a max-heap works for probabilities for the same reason.",
+   "applied": [
+    [
+     "path-with-minimum-effort",
+     "relaxing with max(currentEffort, |heightDiff|)"
+    ],
+    [
+     "swim-in-rising-water",
+     "the same minimax relaxation, with a DSU-over-time alternative"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-16",
+   "topic": "graphs",
+   "day": 10,
+   "headline": "Adding a dimension to the state can break a greedy algorithm",
+   "detail": "Arriving somewhere cheaply is not the same as arriving usefully once a second constraint exists. Either make the state carry that dimension, or switch to Bellman-Ford rounds.",
+   "applied": [
+    [
+     "cheapest-flights-within-k-stops",
+     "K+1 relaxation rounds over a snapshot, because the cheapest route may use too many stops"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-17",
+   "topic": "graphs",
+   "day": 11,
+   "headline": "The cut property justifies every MST algorithm",
+   "detail": "The cheapest edge crossing any partition of the vertices belongs to some MST - otherwise swapping it in keeps the tree connected and reduces its weight.",
+   "applied": [
+    [
+     "min-cost-to-connect-all-points",
+     "sorting all edges and unioning greedily until n-1 are accepted"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-18",
+   "topic": "graphs",
+   "day": 11,
+   "headline": "DSU works on anything hashable once you index it",
+   "detail": "Map each distinct key to an integer and the DSU itself never changes. Emails, grid cells, rows and columns all become DSU elements this way.",
+   "applied": [
+    [
+     "accounts-merge",
+     "mapping each email to an index and unioning within each account"
+    ],
+    [
+     "most-stones-removed-with-same-row-or-column",
+     "treating rows and columns as the elements, with columns offset so the index ranges stay disjoint"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-19",
+   "topic": "graphs",
+   "day": 11,
+   "headline": "Pick the equivalence relation deliberately",
+   "detail": "An email identifies a person; a name does not. Choosing what counts as 'the same thing' is the modelling decision, and getting it wrong produces a correct algorithm on the wrong graph.",
+   "applied": [
+    [
+     "accounts-merge",
+     "merging on shared email rather than shared name"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-20",
+   "topic": "graphs",
+   "day": 11,
+   "headline": "Composition along a path makes division a graph problem",
+   "detail": "Ratios multiply along edges, so a/d is the product of weights from a to d. Any associative composition turns a relational query into a traversal.",
+   "applied": [
+    [
+     "evaluate-division",
+     "building edges a->b with weight a/b and multiplying along the path"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-21",
+   "topic": "graphs",
+   "day": 12,
+   "headline": "Generate neighbours instead of comparing all pairs",
+   "detail": "In an implicit graph, neighbours are defined by a rule. Applying the rule is usually a constant times the state size; scanning the whole state set is linear in it.",
+   "applied": [
+    [
+     "word-ladder",
+     "trying all 26 letters at each position, O(26L), rather than comparing against every dictionary word"
+    ],
+    [
+     "open-the-lock",
+     "generating the 8 single-click neighbours of a lock position"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-22",
+   "topic": "graphs",
+   "day": 12,
+   "headline": "Decide what a vertex is from what the answer counts",
+   "detail": "The edges must correspond to the unit being measured. Counting bus changes means routes are vertices; counting stops travelled would mean stops are.",
+   "applied": [
+    [
+     "bus-routes",
+     "making each route a vertex, adjacent when they share a stop"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-23",
+   "topic": "graphs",
+   "day": 12,
+   "headline": "Seed forbidden states into visited",
+   "detail": "A state you may never occupy is indistinguishable, to BFS, from one already visited. Seeding them removes a check from the inner loop entirely.",
+   "applied": [
+    [
+     "open-the-lock",
+     "inserting every deadend into the visited set before the search begins"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-24",
+   "topic": "graphs",
+   "day": 12,
+   "headline": "Commit after exhausting, not before",
+   "detail": "Greedy lexicographic choice strands remaining edges in a dead end. Appending a vertex only once its edges are used up, then reversing, is Hierholzer's fix.",
+   "applied": [
+    [
+     "reconstruct-itinerary",
+     "appending the airport AFTER the neighbour loop, then reversing the result"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-25",
+   "topic": "graphs",
+   "day": 13,
+   "headline": "disc and low turn one DFS into three algorithms",
+   "detail": "Tracking each vertex's discovery time and the lowest discovery time reachable from its subtree gives bridges, articulation points and strongly connected components from the same machinery.",
+   "applied": [
+    [
+     "critical-connections-in-a-network",
+     "the bridge condition low[v] > disc[u], skipping only the parent edge and not all visited neighbours"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-26",
+   "topic": "graphs",
+   "day": 13,
+   "headline": "The intermediate vertex must be the outermost loop",
+   "detail": "Floyd-Warshall's state is 'shortest paths using only the first k vertices as intermediates', so every (i,j) pair must be updated for one k before moving to k+1.",
+   "applied": [
+    [
+     "find-the-city-with-the-smallest-number-of-neighbors-at-a-threshold-distance",
+     "the k, i, j loop order, with n <= 100 signalling that O(n^3) is intended"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-27",
+   "topic": "graphs",
+   "day": 13,
+   "headline": "Monotone movement makes a grid a DAG, and DAGs admit memoisation",
+   "detail": "Strict increase means no path can return to a cell, so no visited set is needed and caching each cell's answer is sound. This is where graph traversal becomes dynamic programming.",
+   "applied": [
+    [
+     "longest-increasing-path-in-a-matrix",
+     "memoising the longest path from each cell with no visited array"
+    ]
+   ]
+  },
+  {
+   "id": "L-G-28",
+   "topic": "graphs",
+   "day": 13,
+   "headline": "When the state includes a visited set, bitmask it",
+   "detail": "Small n in the constraints - 12 or 20 - is an instruction. The state becomes (position, mask), and revisiting a position with a different mask is legal and necessary.",
+   "applied": [
+    [
+     "shortest-path-visiting-all-nodes",
+     "BFS over (node, mask) pairs starting from every node"
+    ]
+   ]
+  }
+ ],
+ "problems": [
+  {
+   "id": "graphs-number-of-islands",
+   "order": 1,
+   "phase": "V2",
+   "day": 8,
+   "topic": "graphs",
+   "tier": "CORE",
+   "title": "Number of Islands",
+   "lc": {
+    "id": "200",
+    "slug": "number-of-islands",
+    "url": "https://leetcode.com/problems/number-of-islands/",
+    "difficulty": "Medium",
+    "ac_rate": 65.1,
+    "tags": [
+     "Array",
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Union-Find",
+     "Matrix"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/number-of-distinct-islands/",
+    "youtube": "https://www.youtube.com/watch?v=muncqlKJrH0",
+    "striver_title": "Number of islands"
+   },
+   "pattern": "grid-dfs-flood-fill",
+   "template": "T-GRAPH-01",
+   "companies": [
+    "Amazon",
+    "Facebook",
+    "Google",
+    "Microsoft",
+    "Bloomberg"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "A grid is a graph nobody drew for you: each cell is a vertex with up to four neighbours. Counting components means starting a traversal from every unvisited land cell and sinking everything it reaches.",
+    "trick": "Sink as you go - overwrite the visited cell with '0' instead of keeping a separate visited array. O(1) extra space, and it cannot desynchronise from the grid.",
+    "edge_cases": [
+     "Bounds must be checked before dereferencing the cell.",
+     "Recursion can hit 10^6 depth on an all-land 1000x1000 grid and overflow the stack - use BFS or an explicit stack there.",
+     "Only four-directional adjacency; diagonals do not connect."
+    ],
+    "complexity": {
+     "time": "O(m·n)",
+     "space": "O(1) sinking, O(m·n) worst-case recursion",
+     "why": "every cell is visited at most twice - once by the outer scan, once by a traversal. Sinking removes the visited array entirely."
+    },
+    "siblings": [
+     "max-area-of-island",
+     "surrounded-regions",
+     "number-of-provinces",
+     "rotting-oranges"
+    ],
+    "followups": [
+     {
+      "q": "The grid is too large to recurse.",
+      "a": "Convert to BFS with a queue, or an explicit stack. The recursion depth on an all-land grid is the cell count, not the perimeter."
+     },
+     {
+      "q": "Count islands as the grid is built up, one cell at a time.",
+      "a": "That is LC 305 and it needs DSU - each new land cell either starts a component or merges existing ones. Sinking cannot answer incremental queries."
+     },
+     {
+      "q": "Why is a grid a graph?",
+      "a": "Vertices are cells, edges are adjacency. Saying that out loud is what unlocks BFS, DSU and Dijkstra on grid problems."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-max-area-of-island",
+   "order": 2,
+   "phase": "V2",
+   "day": 8,
+   "topic": "graphs",
+   "tier": "DRILL",
+   "title": "Max Area of Island",
+   "lc": {
+    "id": "695",
+    "slug": "max-area-of-island",
+    "url": "https://leetcode.com/problems/max-area-of-island/",
+    "difficulty": "Medium",
+    "ac_rate": 74.3,
+    "tags": [
+     "Array",
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Union-Find",
+     "Matrix"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": null,
+    "striver_title": null
+   },
+   "pattern": "grid-dfs-flood-fill",
+   "template": "T-GRAPH-01",
+   "companies": [
+    "Amazon",
+    "Google",
+    "Facebook"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Number of Islands with the DFS returning a size instead of nothing. The lesson is that a flood fill can compute any aggregate over its component - area, perimeter, maximum value - by returning it up the recursion.",
+    "trick": "Return `1 + dfs(up) + dfs(down) + dfs(left) + dfs(right)`, with out-of-bounds and water returning 0. Take the maximum across all starting cells.",
+    "edge_cases": [
+     "Out-of-bounds and water must both return 0 so the sum arithmetic works.",
+     "An all-water grid returns 0, not 1.",
+     "Sink before recursing, or the same cell is counted repeatedly."
+    ],
+    "complexity": {
+     "time": "O(m·n)",
+     "space": "O(m·n) recursion worst case",
+     "why": "one traversal per component, each cell visited once."
+    },
+    "siblings": [
+     "number-of-islands",
+     "island-perimeter",
+     "making-a-large-island",
+     "count-sub-islands"
+    ],
+    "followups": [
+     {
+      "q": "Perimeter instead of area.",
+      "a": "Count edges facing water or the boundary. The traversal is identical; only the accumulated quantity changes."
+     },
+     {
+      "q": "Largest island after flipping one water cell.",
+      "a": "LC 827 - label each component with DSU or a colouring pass, record sizes, then for each water cell sum the distinct neighbouring component sizes. Re-running DFS per flip is O((mn)^2)."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-surrounded-regions",
+   "order": 3,
+   "phase": "V2",
+   "day": 8,
+   "topic": "graphs",
+   "tier": "CORE",
+   "title": "Surrounded Regions",
+   "lc": {
+    "id": "130",
+    "slug": "surrounded-regions",
+    "url": "https://leetcode.com/problems/surrounded-regions/",
+    "difficulty": "Medium",
+    "ac_rate": 46.3,
+    "tags": [
+     "Array",
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Union-Find",
+     "Matrix"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/graph/surrounded-regions-replace-os-with-xs/",
+    "youtube": "https://www.youtube.com/watch?v=BtdgAys4yMk",
+    "striver_title": "Surrounded Regions"
+   },
+   "pattern": "boundary-first-dfs",
+   "template": "T-GRAPH-01",
+   "companies": [
+    "Amazon",
+    "Google",
+    "Microsoft"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Finding enclosed regions directly is awkward. Inverting the question - mark everything reachable from the BORDER as safe, then flip the rest - makes it one pass. Solving the complement is the transferable idea.",
+    "trick": "DFS from every border 'O', marking them with a temporary sentinel. Then sweep the grid: sentinel becomes 'O', every remaining 'O' becomes 'X'.",
+    "edge_cases": [
+     "Start from all four borders, not just the top and left.",
+     "A temporary third symbol is needed; flipping in place during the DFS loses information.",
+     "A 1xN or Nx1 grid is entirely border, so nothing is captured."
+    ],
+    "complexity": {
+     "time": "O(m·n)",
+     "space": "O(m·n) recursion worst case",
+     "why": "one traversal from the border plus one sweep, each linear in the cell count."
+    },
+    "siblings": [
+     "number-of-enclaves",
+     "number-of-islands",
+     "pacific-atlantic-water-flow",
+     "count-sub-islands"
+    ],
+    "followups": [
+     {
+      "q": "Why solve the complement?",
+      "a": "An enclosed region is defined by what it canNOT reach, which is a global property. Border-reachability is local and traversable, and its complement is exactly the answer."
+     },
+     {
+      "q": "Pacific Atlantic Water Flow.",
+      "a": "LC 417 - two border-first traversals, one from each ocean, then intersect. The same inversion applied twice."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-rotting-oranges",
+   "order": 4,
+   "phase": "V2",
+   "day": 8,
+   "topic": "graphs",
+   "tier": "CORE",
+   "title": "Rotting Oranges",
+   "lc": {
+    "id": "994",
+    "slug": "rotting-oranges",
+    "url": "https://leetcode.com/problems/rotting-oranges/",
+    "difficulty": "Medium",
+    "ac_rate": 59.5,
+    "tags": [
+     "Array",
+     "Breadth-First Search",
+     "Matrix"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/rotten-oranges-min-time-to-rot-all-oranges-bfs/",
+    "youtube": "https://www.youtube.com/watch?v=yf3oUhkvqA0",
+    "striver_title": "Rotten Oranges"
+   },
+   "pattern": "multi-source-bfs",
+   "template": "T-GRAPH-02",
+   "companies": [
+    "Amazon",
+    "Google",
+    "Microsoft"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Several sources spread simultaneously, so a per-source BFS would be wrong as well as slow. Pushing every source at distance 0 before the loop starts makes one BFS compute the distance to the NEAREST source for every cell.",
+    "trick": "Enqueue all initially rotten cells first, then BFS level by level. The number of levels is the elapsed time. Count fresh oranges up front and verify none remain at the end.",
+    "edge_cases": [
+     "Any fresh orange unreachable from a rotten one means -1 - count them rather than inspecting the grid afterwards.",
+     "A grid with no fresh oranges returns 0, even with no rotten ones.",
+     "Time is levels minus one if you enqueue sources at level 0 and count levels."
+    ],
+    "complexity": {
+     "time": "O(m·n)",
+     "space": "O(m·n)",
+     "why": "every cell is enqueued once. Running a separate BFS per source would be O((mn)^2)."
+    },
+    "siblings": [
+     "01-matrix",
+     "shortest-path-in-binary-matrix",
+     "number-of-islands",
+     "as-far-from-land-as-possible"
+    ],
+    "followups": [
+     {
+      "q": "Why does multi-source BFS give the nearest source?",
+      "a": "All sources sit at distance 0 in the same frontier, so the wave expands from all of them together. The first wave to reach a cell came from its closest source."
+     },
+     {
+      "q": "Which cell is furthest from any land?",
+      "a": "LC 1162 - the same multi-source BFS, taking the maximum distance instead of the level count."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-01-matrix",
+   "order": 5,
+   "phase": "V2",
+   "day": 8,
+   "topic": "graphs",
+   "tier": "DRILL",
+   "title": "01 Matrix",
+   "lc": {
+    "id": "542",
+    "slug": "01-matrix",
+    "url": "https://leetcode.com/problems/01-matrix/",
+    "difficulty": "Medium",
+    "ac_rate": 54.9,
+    "tags": [
+     "Array",
+     "Dynamic Programming",
+     "Breadth-First Search",
+     "Matrix"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/graph/distance-of-nearest-cell-having-1/",
+    "youtube": "https://www.youtube.com/watch?v=edXdVwkYHF8",
+    "striver_title": "Distance of nearest cell having one"
+   },
+   "pattern": "multi-source-bfs",
+   "template": "T-GRAPH-02",
+   "companies": [
+    "Amazon",
+    "Google",
+    "Facebook"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Doing a BFS from each 1 to find the nearest 0 is O((mn)^2). Inverting it - BFS outward from every 0 at once - answers all cells in one pass. Second instance of the same inversion, deliberately placed next to the first.",
+    "trick": "Enqueue every 0 at distance 0, set every 1 to -1 as unvisited, then BFS filling distances.",
+    "edge_cases": [
+     "Initialise the 1 cells to a sentinel so visited and distance-zero are distinguishable.",
+     "An all-zero matrix returns all zeros.",
+     "The problem guarantees at least one 0."
+    ],
+    "complexity": {
+     "time": "O(m·n)",
+     "space": "O(m·n)",
+     "why": "each cell enters the queue once."
+    },
+    "siblings": [
+     "rotting-oranges",
+     "shortest-path-in-binary-matrix",
+     "as-far-from-land-as-possible"
+    ],
+    "followups": [
+     {
+      "q": "Solve it with DP instead.",
+      "a": "Two passes - top-left to bottom-right, then bottom-right to top-left - each taking the minimum of the neighbour above/left or below/right plus one. O(mn) with O(1) extra space, and it works because Manhattan distance decomposes by direction."
+     },
+     {
+      "q": "Why can't you BFS from each 1?",
+      "a": "Correct but O((mn)^2). Reversing the direction of the search is the whole optimisation."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-shortest-path-in-binary-matrix",
+   "order": 6,
+   "phase": "V2",
+   "day": 8,
+   "topic": "graphs",
+   "tier": "DRILL",
+   "title": "Shortest Path in Binary Matrix",
+   "lc": {
+    "id": "1091",
+    "slug": "shortest-path-in-binary-matrix",
+    "url": "https://leetcode.com/problems/shortest-path-in-binary-matrix/",
+    "difficulty": "Medium",
+    "ac_rate": 52.2,
+    "tags": [
+     "Array",
+     "Breadth-First Search",
+     "Matrix"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/g-36-shortest-distance-in-a-binary-maze/",
+    "youtube": "https://www.youtube.com/watch?v=U5Mw4eyUmw4",
+    "striver_title": "Shortest Distance in a Binary Maze"
+   },
+   "pattern": "bfs-grid-shortest",
+   "template": "T-GRAPH-02",
+   "companies": [
+    "Amazon",
+    "Google",
+    "Facebook"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Unweighted shortest path on a grid, with eight-directional movement. The only thing worth internalising is that BFS - not DFS, not Dijkstra - is correct precisely because every step costs the same.",
+    "trick": "BFS from (0,0) with an eight-neighbour offset array. Return the level on reaching the bottom-right. Mark visited on enqueue.",
+    "edge_cases": [
+     "Eight directions, not four - diagonals count.",
+     "The start or end cell may itself be blocked; check before starting.",
+     "A 1x1 grid with value 0 has path length 1."
+    ],
+    "complexity": {
+     "time": "O(m·n)",
+     "space": "O(m·n)",
+     "why": "each cell is enqueued once, with eight edge checks each."
+    },
+    "siblings": [
+     "01-matrix",
+     "rotting-oranges",
+     "open-the-lock",
+     "word-ladder"
+    ],
+    "followups": [
+     {
+      "q": "Why BFS rather than Dijkstra?",
+      "a": "All edges cost 1, so BFS already dequeues in non-decreasing distance order. Dijkstra's heap would add a log factor for no benefit."
+     },
+     {
+      "q": "Some cells cost 2 to enter.",
+      "a": "Now it is weighted. Use Dijkstra - or 0-1 BFS with a deque if the only weights are 0 and 1, which keeps it O(V+E)."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-clone-graph",
+   "order": 7,
+   "phase": "V2",
+   "day": 9,
+   "topic": "graphs",
+   "tier": "CORE",
+   "title": "Clone Graph",
+   "lc": {
+    "id": "133",
+    "slug": "clone-graph",
+    "url": "https://leetcode.com/problems/clone-graph/",
+    "difficulty": "Medium",
+    "ac_rate": 66.2,
+    "tags": [
+     "Hash Table",
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Graph Theory"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": null,
+    "striver_title": null
+   },
+   "pattern": "traversal-with-mapping",
+   "template": "T-GRAPH-01",
+   "companies": [
+    "Amazon",
+    "Facebook",
+    "Google",
+    "Microsoft"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Cycles mean a naive recursive copy loops forever. A map from original node to its clone serves as both the memo and the visited set, which is the general fix for any traversal that must build a parallel structure.",
+    "trick": "Create the clone and insert it into the map BEFORE recursing into neighbours. Inserting afterwards lets a cycle re-enter the same node.",
+    "edge_cases": [
+     "The map insert must precede the recursion, or cycles cause infinite descent.",
+     "A null input returns null.",
+     "A single node with no neighbours still needs a clone."
+    ],
+    "complexity": {
+     "time": "O(V + E)",
+     "space": "O(V)",
+     "why": "each node and edge is processed once; the map holds one entry per node."
+    },
+    "siblings": [
+     "copy-list-with-random-pointer",
+     "number-of-islands",
+     "course-schedule"
+    ],
+    "followups": [
+     {
+      "q": "Why insert into the map before recursing?",
+      "a": "The map is the visited set. A cycle returning to this node must find the clone already registered, or it recurses forever."
+     },
+     {
+      "q": "BFS instead of DFS.",
+      "a": "Identical - create the clone on first sight, enqueue the original, and wire neighbours as they are dequeued. Avoids deep recursion on a long chain."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-number-of-provinces",
+   "order": 8,
+   "phase": "V2",
+   "day": 9,
+   "topic": "graphs",
+   "tier": "CORE",
+   "title": "Number of Provinces",
+   "lc": {
+    "id": "547",
+    "slug": "number-of-provinces",
+    "url": "https://leetcode.com/problems/number-of-provinces/",
+    "difficulty": "Medium",
+    "ac_rate": 71.1,
+    "tags": [
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Union-Find",
+     "Graph Theory"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/number-of-provinces/",
+    "youtube": "https://www.youtube.com/watch?v=ACzkVtewUYA",
+    "striver_title": "Number of provinces"
+   },
+   "pattern": "dsu-components",
+   "template": "T-GRAPH-05",
+   "companies": [
+    "Amazon",
+    "Facebook",
+    "Bloomberg"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Counting connected components can be done with DFS or with DSU, and this is the cleanest place to learn DSU because the answer is literally the number of distinct roots. DSU is what you reach for when connectivity is built up incrementally.",
+    "trick": "Union every connected pair, then count vertices that are their own root. Path compression plus union by rank makes each operation effectively constant.",
+    "edge_cases": [
+     "The adjacency matrix is symmetric - iterate only j > i to avoid redundant unions.",
+     "Every vertex is its own province when there are no edges.",
+     "Counting roots at the end is simpler than maintaining a running component count."
+    ],
+    "complexity": {
+     "time": "O(n² · α(n))",
+     "space": "O(n)",
+     "why": "the matrix scan is O(n^2) and dominates; each union is effectively O(1). A DFS solution is also O(n^2) here because the input is a matrix."
+    },
+    "siblings": [
+     "redundant-connection",
+     "number-of-islands",
+     "accounts-merge",
+     "min-cost-to-connect-all-points"
+    ],
+    "followups": [
+     {
+      "q": "DFS or DSU - does it matter here?",
+      "a": "Not for this input. DSU wins when edges arrive incrementally or when you need to answer connectivity queries during construction; DFS wins when you have the whole graph up front."
+     },
+     {
+      "q": "What is DSU's actual complexity?",
+      "a": "O(α(n)) amortised per operation with path compression and union by rank, where α is the inverse Ackermann function - under 5 for any n in practice."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-redundant-connection",
+   "order": 9,
+   "phase": "V2",
+   "day": 9,
+   "topic": "graphs",
+   "tier": "CORE",
+   "title": "Redundant Connection",
+   "lc": {
+    "id": "684",
+    "slug": "redundant-connection",
+    "url": "https://leetcode.com/problems/redundant-connection/",
+    "difficulty": "Medium",
+    "ac_rate": 68.2,
+    "tags": [
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Union-Find",
+     "Graph Theory"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": null,
+    "striver_title": null
+   },
+   "pattern": "dsu-cycle-detection",
+   "template": "T-GRAPH-05",
+   "companies": [
+    "Amazon",
+    "Google",
+    "Facebook"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "A tree on n vertices has exactly n-1 edges, so one extra edge creates exactly one cycle. DSU detects it directly: the first edge whose endpoints already share a root is the redundant one.",
+    "trick": "`unite` returning false IS the cycle test. Process edges in input order and return the first one that fails to merge.",
+    "edge_cases": [
+     "Return the LAST such edge in input order if several would close cycles - here the problem guarantees exactly one.",
+     "Vertices are 1-indexed, so size the DSU n+1.",
+     "The graph is undirected; the directed version is substantially harder."
+    ],
+    "complexity": {
+     "time": "O(n · α(n))",
+     "space": "O(n)",
+     "why": "one pass over the edges with near-constant union operations."
+    },
+    "siblings": [
+     "number-of-provinces",
+     "min-cost-to-connect-all-points",
+     "most-stones-removed-with-same-row-or-column",
+     "number-of-operations-to-make-network-connected"
+    ],
+    "followups": [
+     {
+      "q": "The directed version.",
+      "a": "LC 685 - a node may have two parents, or there may be a cycle, or both. You must identify which case applies and that changes which edge to remove. Genuinely harder."
+     },
+     {
+      "q": "Validate that a graph is a tree.",
+      "a": "n-1 edges, no cycle, and one component. DSU gives all three: unite every edge, fail on any false return, then check the root count is 1."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-is-graph-bipartite",
+   "order": 10,
+   "phase": "V2",
+   "day": 9,
+   "topic": "graphs",
+   "tier": "CORE",
+   "title": "Is Graph Bipartite?",
+   "lc": {
+    "id": "785",
+    "slug": "is-graph-bipartite",
+    "url": "https://leetcode.com/problems/is-graph-bipartite/",
+    "difficulty": "Medium",
+    "ac_rate": 59.9,
+    "tags": [
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Union-Find",
+     "Graph Theory",
+     "Graph Coloring",
+     "Bipartite Graph"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/graph/bipartite-graph-dfs-implementation/",
+    "youtube": "https://www.youtube.com/watch?v=KG5YFfR0j8A",
+    "striver_title": "Bipartite Graph (DFS)"
+   },
+   "pattern": "two-colouring",
+   "template": "T-GRAPH-02",
+   "companies": [
+    "Amazon",
+    "Facebook",
+    "Google"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Bipartite means two-colourable, and that is a traversal with a colour assignment: paint each neighbour the opposite colour and fail on a conflict. A graph is bipartite exactly when it has no odd-length cycle.",
+    "trick": "BFS or DFS assigning alternating colours from each unvisited vertex. A neighbour already coloured the SAME as the current vertex is the failure condition.",
+    "edge_cases": [
+     "The graph may be disconnected - loop over every vertex as a potential start.",
+     "A conflict is same-colour, not merely already-coloured.",
+     "Self-loops make a graph non-bipartite immediately."
+    ],
+    "complexity": {
+     "time": "O(V + E)",
+     "space": "O(V)",
+     "why": "one traversal per component, visiting every edge once."
+    },
+    "siblings": [
+     "possible-bipartition",
+     "course-schedule",
+     "number-of-provinces",
+     "clone-graph"
+    ],
+    "followups": [
+     {
+      "q": "Why is bipartite the same as no odd cycle?",
+      "a": "Walking an odd cycle returns you to the start having flipped colour an odd number of times, which contradicts the start's own colour. Even cycles flip back consistently."
+     },
+     {
+      "q": "Possible Bipartition.",
+      "a": "LC 886 - the same two-colouring, phrased as splitting people who dislike each other into two groups. Recognising the rename is the exercise."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-course-schedule",
+   "order": 11,
+   "phase": "V2",
+   "day": 9,
+   "topic": "graphs",
+   "tier": "CORE",
+   "title": "Course Schedule",
+   "lc": {
+    "id": "207",
+    "slug": "course-schedule",
+    "url": "https://leetcode.com/problems/course-schedule/",
+    "difficulty": "Medium",
+    "ac_rate": 52.2,
+    "tags": [
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Graph Theory",
+     "Topological Sort",
+     "Directed Acyclic Graph"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/detect-cycle-in-an-undirected-graph-using-dfs/",
+    "youtube": "https://www.youtube.com/watch?v=zQ3zgFypzX4",
+    "striver_title": "Detect a cycle in an undirected graph"
+   },
+   "pattern": "topological-cycle-detection",
+   "template": "T-GRAPH-03",
+   "companies": [
+    "Amazon",
+    "Facebook",
+    "Google",
+    "Microsoft",
+    "Uber"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "'Can all courses be completed' is 'is this graph a DAG'. Kahn's algorithm answers it without a separate cycle check: if the topological order is shorter than the vertex count, the leftovers are stuck in a cycle.",
+    "trick": "Compute in-degrees, enqueue every zero, and peel. Compare the processed count to n - that comparison IS the cycle detection.",
+    "edge_cases": [
+     "Build the edge direction deliberately: prerequisite -> course.",
+     "Courses with no prerequisites must be in the initial queue.",
+     "A graph with no edges is trivially orderable."
+    ],
+    "complexity": {
+     "time": "O(V + E)",
+     "space": "O(V + E)",
+     "why": "each vertex is enqueued once and each edge decremented once."
+    },
+    "siblings": [
+     "course-schedule-ii",
+     "find-eventual-safe-states",
+     "find-eventual-safe-states",
+     "course-schedule-iv"
+    ],
+    "followups": [
+     {
+      "q": "Return the order, not just feasibility.",
+      "a": "LC 210 - the same algorithm, returning the peeling order. Feasibility is the special case where you discard it."
+     },
+     {
+      "q": "Detect the cycle with DFS instead.",
+      "a": "Three-colour DFS: white unvisited, grey in-progress, black finished. A grey neighbour is a back edge and therefore a cycle. Two colours are insufficient, because a black neighbour is harmless."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-course-schedule-ii",
+   "order": 12,
+   "phase": "V2",
+   "day": 9,
+   "topic": "graphs",
+   "tier": "DRILL",
+   "title": "Course Schedule II",
+   "lc": {
+    "id": "210",
+    "slug": "course-schedule-ii",
+    "url": "https://leetcode.com/problems/course-schedule-ii/",
+    "difficulty": "Medium",
+    "ac_rate": 56.3,
+    "tags": [
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Graph Theory",
+     "Topological Sort"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/detect-cycle-in-a-directed-graph-using-dfs-g-19/",
+    "youtube": "https://www.youtube.com/watch?v=9twcmtQj4DU",
+    "striver_title": "Cycle Detection in Directed Graph (DFS)"
+   },
+   "pattern": "topological-order",
+   "template": "T-GRAPH-03",
+   "companies": [
+    "Amazon",
+    "Facebook",
+    "Google",
+    "Microsoft"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "The same peeling as Course Schedule, but you keep the order. Worth doing immediately afterwards because it makes explicit that feasibility was never a separate algorithm.",
+    "trick": "Identical to LC 207, returning the order vector when its length equals n and an empty vector otherwise.",
+    "edge_cases": [
+     "Any valid order is accepted; the queue's internal order decides which.",
+     "A cycle means returning empty, not a partial order.",
+     "Use a priority_queue instead for the lexicographically smallest valid order."
+    ],
+    "complexity": {
+     "time": "O(V + E)",
+     "space": "O(V + E)",
+     "why": "one peeling pass."
+    },
+    "siblings": [
+     "course-schedule",
+     "find-eventual-safe-states",
+     "find-eventual-safe-states",
+     "minimum-height-trees"
+    ],
+    "followups": [
+     {
+      "q": "Lexicographically smallest order.",
+      "a": "Swap the queue for a min-heap. O((V+E) log V), and it is the standard follow-up."
+     },
+     {
+      "q": "Alien Dictionary.",
+      "a": "Build the precedence edges by comparing adjacent words at their first differing character, then topologically sort. The graph construction is the hard part, not the sort."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-find-eventual-safe-states",
+   "order": 13,
+   "phase": "V2",
+   "day": 9,
+   "topic": "graphs",
+   "tier": "DRILL",
+   "title": "Find Eventual Safe States",
+   "lc": {
+    "id": "802",
+    "slug": "find-eventual-safe-states",
+    "url": "https://leetcode.com/problems/find-eventual-safe-states/",
+    "difficulty": "Medium",
+    "ac_rate": 71.6,
+    "tags": [
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Graph Theory",
+     "Topological Sort",
+     "Kosaraju's Algorithm",
+     "Tarjan's SCC Algorithm"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/find-eventual-safe-states-bfs-topological-sort-g-25/",
+    "youtube": "https://www.youtube.com/watch?v=2gtg3VsDGyc",
+    "striver_title": "Find eventual safe states"
+   },
+   "pattern": "reverse-topological",
+   "template": "T-GRAPH-07",
+   "companies": [
+    "Amazon",
+    "Google"
+   ],
+   "campus_oa": "MEDIUM",
+   "learnings": {
+    "insight": "A node is safe when every path from it terminates. Reversing the edges turns that into a reachability question from the terminal nodes, and Kahn's algorithm then peels safety outward. Reversing a graph to flip the question is a technique worth owning.",
+    "trick": "Reverse the edges and peel from out-degree-zero nodes - which become in-degree-zero in the reversed graph. Everything peeled is safe.",
+    "edge_cases": [
+     "Terminal nodes (no outgoing edges) are safe by definition and seed the queue.",
+     "The answer must be returned sorted.",
+     "The three-colour DFS alternative is equally valid and worth knowing."
+    ],
+    "complexity": {
+     "time": "O(V + E)",
+     "space": "O(V + E)",
+     "why": "one reversal plus one peeling pass, both linear."
+    },
+    "siblings": [
+     "course-schedule",
+     "course-schedule-ii",
+     "is-graph-bipartite"
+    ],
+    "followups": [
+     {
+      "q": "Solve it with three-colour DFS.",
+      "a": "A node is unsafe if any descendant is grey when reached. Mark black-safe on successful completion and cache it, which is memoised DFS."
+     },
+     {
+      "q": "Why reverse the graph?",
+      "a": "Safety propagates backwards - a node is safe because its successors are. Reversing makes that propagation a forward peel, which Kahn already does."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-all-paths-from-source-to-target",
+   "order": 14,
+   "phase": "V2",
+   "day": 9,
+   "topic": "graphs",
+   "tier": "SKIM",
+   "title": "All Paths From Source to Target",
+   "lc": {
+    "id": "797",
+    "slug": "all-paths-from-source-to-target",
+    "url": "https://leetcode.com/problems/all-paths-from-source-to-target/",
+    "difficulty": "Medium",
+    "ac_rate": 83.8,
+    "tags": [
+     "Backtracking",
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Graph Theory",
+     "Directed Acyclic Graph"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": null,
+    "striver_title": null
+   },
+   "pattern": "dag-path-enumeration",
+   "template": "T-BT-01",
+   "companies": [
+    "Amazon",
+    "Facebook"
+   ],
+   "campus_oa": "MEDIUM",
+   "learnings": {
+    "insight": "Enumerating all paths is backtracking, not BFS, and because the graph is a DAG there is no visited set at all - a node may legitimately appear on different paths. Knowing when the visited set is unnecessary is the point.",
+    "trick": "DFS pushing the node, recursing into neighbours, popping on the way out. No visited array, because acyclicity guarantees termination.",
+    "edge_cases": [
+     "No visited set - adding one would wrongly block a node reachable by two routes.",
+     "The DAG guarantee is what makes this safe; a cycle would loop forever.",
+     "The number of paths can be exponential, which is the real bound."
+    ],
+    "complexity": {
+     "time": "O(2^V · V)",
+     "space": "O(V) excluding output",
+     "why": "a DAG on V nodes can have exponentially many source-to-target paths, and each costs O(V) to copy."
+    },
+    "siblings": [
+     "binary-tree-paths",
+     "subsets",
+     "word-search",
+     "course-schedule"
+    ],
+    "followups": [
+     {
+      "q": "Why no visited set?",
+      "a": "Visited sets prevent revisiting on a SINGLE path. Here a node can appear on many distinct paths, and acyclicity already prevents infinite descent."
+     },
+     {
+      "q": "Count the paths instead of listing them.",
+      "a": "Memoised DFS - the count from a node is the sum of counts from its neighbours. O(V + E) instead of exponential, which is the usual count-vs-enumerate split."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-network-delay-time",
+   "order": 15,
+   "phase": "V2",
+   "day": 10,
+   "topic": "graphs",
+   "tier": "CORE",
+   "title": "Network Delay Time",
+   "lc": {
+    "id": "743",
+    "slug": "network-delay-time",
+    "url": "https://leetcode.com/problems/network-delay-time/",
+    "difficulty": "Medium",
+    "ac_rate": 61.6,
+    "tags": [
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Graph Theory",
+     "Heap (Priority Queue)",
+     "Shortest Path",
+     "Dijkstra's Algorithm"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/network-delay-time",
+    "youtube": null,
+    "striver_title": "Network Delay Time"
+   },
+   "pattern": "dijkstra",
+   "template": "T-GRAPH-04",
+   "companies": [
+    "Amazon",
+    "Google",
+    "Facebook"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "The canonical Dijkstra problem. Weighted edges mean BFS is wrong, and the priority queue is what replaces the plain queue. The stale-entry skip is what stands in for the decrease-key operation `std::priority_queue` lacks.",
+    "trick": "Min-heap of (distance, node). Skip any pop whose distance exceeds the recorded one. The answer is the maximum finalised distance, or -1 if any node is unreachable.",
+    "edge_cases": [
+     "Unreachable nodes mean -1 - check for any remaining infinity.",
+     "Nodes are 1-indexed.",
+     "Distances can exceed int when weights and paths are large - use long long.",
+     "Self-loops and parallel edges are harmless but should not be assumed absent."
+    ],
+    "complexity": {
+     "time": "O((V + E) log V)",
+     "space": "O(V + E)",
+     "why": "each edge can push one heap entry, so the heap holds O(E) entries and each operation is O(log V). The stale skip keeps correctness without decrease-key."
+    },
+    "siblings": [
+     "cheapest-flights-within-k-stops",
+     "path-with-minimum-effort",
+     "swim-in-rising-water",
+     "shortest-path-in-binary-matrix"
+    ],
+    "followups": [
+     {
+      "q": "Why not BFS?",
+      "a": "BFS dequeues in edge-count order, not cost order. With weights, two cheap edges can beat one expensive one and BFS cannot reconsider."
+     },
+     {
+      "q": "Negative weights.",
+      "a": "Dijkstra's finalisation invariant breaks. Bellman-Ford: V-1 rounds of relaxing every edge, and a Vth round that still improves proves a negative cycle. O(V·E)."
+     },
+     {
+      "q": "How do you decrease-key?",
+      "a": "You do not. Push a duplicate and skip stale pops - that is why the bound is O((V+E) log V) rather than O(E + V log V)."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-cheapest-flights-within-k-stops",
+   "order": 16,
+   "phase": "V2",
+   "day": 10,
+   "topic": "graphs",
+   "tier": "CORE",
+   "title": "Cheapest Flights Within K Stops",
+   "lc": {
+    "id": "787",
+    "slug": "cheapest-flights-within-k-stops",
+    "url": "https://leetcode.com/problems/cheapest-flights-within-k-stops/",
+    "difficulty": "Medium",
+    "ac_rate": 42.6,
+    "tags": [
+     "Dynamic Programming",
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Graph Theory",
+     "Heap (Priority Queue)",
+     "Shortest Path"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/g-38-cheapest-flights-within-k-stops/",
+    "youtube": "https://www.youtube.com/watch?v=9XybHVqTHcQ",
+    "striver_title": "Cheapest flight within K stops"
+   },
+   "pattern": "bellman-ford-rounds",
+   "template": "T-GRAPH-04",
+   "companies": [
+    "Amazon",
+    "Google",
+    "Facebook"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "This is the problem that shows Dijkstra's invariant failing. Arriving at a city cheaply is not the same as arriving usefully, because the cheap route may have used too many stops. Adding a dimension to the state can invalidate a greedy algorithm.",
+    "trick": "Bellman-Ford for exactly K+1 rounds, relaxing from a SNAPSHOT of the previous round's distances. Relaxing in place lets one round use edges from the same round.",
+    "edge_cases": [
+     "Copy the distance array each round, or a single round chains multiple edges.",
+     "K stops means K+1 edges.",
+     "Unreachable within the stop limit returns -1, which is different from unreachable at all."
+    ],
+    "complexity": {
+     "time": "O(K · E)",
+     "space": "O(V)",
+     "why": "K+1 rounds, each relaxing every edge once. Level-wise BFS carrying (city, cost) is an equivalent formulation with the same bound."
+    },
+    "siblings": [
+     "network-delay-time",
+     "path-with-minimum-effort",
+     "swim-in-rising-water"
+    ],
+    "followups": [
+     {
+      "q": "Why does plain Dijkstra fail?",
+      "a": "It finalises a node at its cheapest distance and never revisits. But the cheapest route may exceed the stop budget, and a costlier route with fewer stops is the one you need."
+     },
+     {
+      "q": "Fix Dijkstra rather than switching.",
+      "a": "Make the state (node, stopsUsed) rather than just node. The state space grows K-fold but the invariant is restored."
+     },
+     {
+      "q": "Why snapshot the distances?",
+      "a": "Without it, round i can relax an edge whose source was already updated in round i, using i+1 edges in one round and breaking the stop bound."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-path-with-minimum-effort",
+   "order": 17,
+   "phase": "V2",
+   "day": 10,
+   "topic": "graphs",
+   "tier": "CORE",
+   "title": "Path With Minimum Effort",
+   "lc": {
+    "id": "1631",
+    "slug": "path-with-minimum-effort",
+    "url": "https://leetcode.com/problems/path-with-minimum-effort/",
+    "difficulty": "Medium",
+    "ac_rate": 64.1,
+    "tags": [
+     "Array",
+     "Binary Search",
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Union-Find",
+     "Heap (Priority Queue)",
+     "Matrix",
+     "Dijkstra's Algorithm"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/g-37-path-with-minimum-effort/",
+    "youtube": "https://www.youtube.com/watch?v=0ytpZyiZFhA",
+    "striver_title": "Path with minimum effort"
+   },
+   "pattern": "dijkstra-minimax",
+   "template": "T-GRAPH-04",
+   "companies": [
+    "Amazon",
+    "Google"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Dijkstra with the combine operator changed from addition to maximum. It still works because max is monotone along a path - extending a path can never reduce its effort - which is the only property Dijkstra's proof actually needs.",
+    "trick": "Relax with `max(currentEffort, abs(heightDiff))` instead of a sum. Everything else is unchanged.",
+    "edge_cases": [
+     "The effort of a single cell with no moves is 0.",
+     "Grid cells need flattening to indices, or use a 2D distance array.",
+     "Binary search on the answer plus a connectivity check is an equally valid O(mn log(range)) alternative."
+    ],
+    "complexity": {
+     "time": "O(m·n·log(m·n))",
+     "space": "O(m·n)",
+     "why": "a grid Dijkstra over mn vertices with four edges each."
+    },
+    "siblings": [
+     "swim-in-rising-water",
+     "network-delay-time",
+     "cheapest-flights-within-k-stops",
+     "split-array-largest-sum"
+    ],
+    "followups": [
+     {
+      "q": "Why can you swap addition for maximum?",
+      "a": "Dijkstra needs the path cost to be non-decreasing as the path extends. Both sum with non-negative weights and max satisfy that, so the finalisation invariant survives."
+     },
+     {
+      "q": "Solve it with binary search instead.",
+      "a": "Binary search the effort threshold and check reachability with BFS or DSU. Often easier to reason about, and it generalises to other minimax path problems."
+     },
+     {
+      "q": "Maximum probability path.",
+      "a": "LC 1514 - multiply instead of add and use a max-heap. Same template, third operator."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-swim-in-rising-water",
+   "order": 18,
+   "phase": "V2",
+   "day": 10,
+   "topic": "graphs",
+   "tier": "DRILL",
+   "title": "Swim in Rising Water",
+   "lc": {
+    "id": "778",
+    "slug": "swim-in-rising-water",
+    "url": "https://leetcode.com/problems/swim-in-rising-water/",
+    "difficulty": "Hard",
+    "ac_rate": 68.3,
+    "tags": [
+     "Array",
+     "Binary Search",
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Union-Find",
+     "Minimax",
+     "Heap (Priority Queue)",
+     "Matrix",
+     "Dijkstra's Algorithm"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/swim-in-rising-water",
+    "youtube": null,
+    "striver_title": "Swim in Rising Water"
+   },
+   "pattern": "dijkstra-minimax",
+   "template": "T-GRAPH-04",
+   "companies": [
+    "Google",
+    "Amazon"
+   ],
+   "campus_oa": "MEDIUM",
+   "learnings": {
+    "insight": "The same minimax objective as Minimum Effort, which is why it sits next to it. It also admits a DSU solution: add cells in increasing height order and stop when start and end connect. Two very different routes to one answer.",
+    "trick": "Either Dijkstra with max as the combiner, or sort cells by height and union them into a DSU until (0,0) and (n-1,n-1) share a root.",
+    "edge_cases": [
+     "The answer is at least the maximum of the start and end cell heights.",
+     "Heights are a permutation of 0..n^2-1, which is what makes the DSU ordering clean.",
+     "Eight-direction movement is not allowed here - four only."
+    ],
+    "complexity": {
+     "time": "O(n² log n)",
+     "space": "O(n²)",
+     "why": "both routes are dominated by a sort or a heap over n^2 cells."
+    },
+    "siblings": [
+     "path-with-minimum-effort",
+     "network-delay-time",
+     "min-cost-to-connect-all-points",
+     "number-of-provinces"
+    ],
+    "followups": [
+     {
+      "q": "Compare the two solutions.",
+      "a": "Dijkstra answers one query. The DSU version naturally answers 'at what time does X connect to Y' for many pairs, because it builds connectivity over time."
+     },
+     {
+      "q": "Why does adding cells in height order work?",
+      "a": "At time t exactly the cells with height <= t are swimmable. Processing in sorted order simulates time advancing, and DSU tracks connectivity as it does."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-min-cost-to-connect-all-points",
+   "order": 19,
+   "phase": "V2",
+   "day": 11,
+   "topic": "graphs",
+   "tier": "CORE",
+   "title": "Min Cost to Connect All Points",
+   "lc": {
+    "id": "1584",
+    "slug": "min-cost-to-connect-all-points",
+    "url": "https://leetcode.com/problems/min-cost-to-connect-all-points/",
+    "difficulty": "Medium",
+    "ac_rate": 71.8,
+    "tags": [
+     "Array",
+     "Union-Find",
+     "Graph Theory",
+     "Minimum Spanning Tree",
+     "Prim's Algorithm",
+     "Kruskal's Algorithm",
+     "Borůvka's Algorithm"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": null,
+    "striver_title": null
+   },
+   "pattern": "kruskal-mst",
+   "template": "T-GRAPH-06",
+   "companies": [
+    "Amazon",
+    "Google"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Minimum spanning tree on a complete graph. The correctness rests on the cut property: the lightest edge crossing any partition of the vertices belongs to some MST. That one fact justifies both Kruskal and Prim.",
+    "trick": "Generate all n(n-1)/2 edges with Manhattan weights, sort, and union greedily until n-1 edges are accepted. DSU's false return skips cycle-forming edges.",
+    "edge_cases": [
+     "The graph is complete, so there are O(n^2) edges to generate.",
+     "Stop at n-1 accepted edges to avoid scanning the tail.",
+     "Weights fit in int here, but the total can be large - accumulate in long long."
+    ],
+    "complexity": {
+     "time": "O(n² log n)",
+     "space": "O(n²)",
+     "why": "generating and sorting n^2 edges dominates. Prim with an adjacency matrix is O(n^2) with no sort, which is strictly better on a complete graph - worth saying."
+    },
+    "siblings": [
+     "redundant-connection",
+     "number-of-provinces",
+     "swim-in-rising-water",
+     "most-stones-removed-with-same-row-or-column"
+    ],
+    "followups": [
+     {
+      "q": "Prim would be better here. Why?",
+      "a": "The graph is dense - E = O(V^2) - so Kruskal's sort costs O(V^2 log V) while Prim with an adjacency matrix is O(V^2). Kruskal wins on sparse graphs, Prim on dense ones."
+     },
+     {
+      "q": "State the cut property.",
+      "a": "Partition the vertices any way you like; the cheapest edge crossing the partition is in some MST. If it were not, swapping it for whatever crossing edge the MST used keeps the tree connected and reduces its weight."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-accounts-merge",
+   "order": 20,
+   "phase": "V2",
+   "day": 11,
+   "topic": "graphs",
+   "tier": "CORE",
+   "title": "Accounts Merge",
+   "lc": {
+    "id": "721",
+    "slug": "accounts-merge",
+    "url": "https://leetcode.com/problems/accounts-merge/",
+    "difficulty": "Medium",
+    "ac_rate": 62,
+    "tags": [
+     "Array",
+     "Hash Table",
+     "String",
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Union-Find",
+     "Sorting"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/accounts-merge-dsu-g-50/",
+    "youtube": "https://www.youtube.com/watch?v=FMwpt_aQOGw",
+    "striver_title": "Accounts merge"
+   },
+   "pattern": "dsu-with-mapping",
+   "template": "T-GRAPH-05",
+   "companies": [
+    "Amazon",
+    "Facebook",
+    "Google"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "DSU over non-integer keys. Mapping each email to an index is the whole technique, and it is what lets DSU apply to strings, coordinates, or any hashable identity.",
+    "trick": "Map each email to an index, union all emails within an account, then group emails by root. Sort each group and prepend the owner's name.",
+    "edge_cases": [
+     "The same person may appear under several account entries with different name spellings - any one name is accepted.",
+     "Emails within each merged group must be sorted.",
+     "Two different people can share a name but never an email, which is what makes the merge sound."
+    ],
+    "complexity": {
+     "time": "O(N·α + N log N)",
+     "space": "O(N)",
+     "why": "unions are near-constant; the sort of each group dominates. N is the total email count."
+    },
+    "siblings": [
+     "number-of-provinces",
+     "redundant-connection",
+     "most-stones-removed-with-same-row-or-column",
+     "evaluate-division"
+    ],
+    "followups": [
+     {
+      "q": "How do you apply DSU to non-integers?",
+      "a": "Assign each distinct key an index via a hash map. Grid cells use i*cols+j; strings use an incrementing counter. The DSU itself never changes."
+     },
+     {
+      "q": "Why can you merge on email but not name?",
+      "a": "An email uniquely identifies a person; a name does not. Choosing the right equivalence relation is the actual modelling decision."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-most-stones-removed-with-same-row-or-column",
+   "order": 21,
+   "phase": "V2",
+   "day": 11,
+   "topic": "graphs",
+   "tier": "DRILL",
+   "title": "Most Stones Removed with Same Row or Column",
+   "lc": {
+    "id": "947",
+    "slug": "most-stones-removed-with-same-row-or-column",
+    "url": "https://leetcode.com/problems/most-stones-removed-with-same-row-or-column/",
+    "difficulty": "Medium",
+    "ac_rate": 63.5,
+    "tags": [
+     "Hash Table",
+     "Depth-First Search",
+     "Union-Find",
+     "Graph Theory",
+     "Bipartite Graph"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/most-stones-removed-with-same-row-or-column-dsu-g-53/",
+    "youtube": "https://www.youtube.com/watch?v=OwMNX8SPavM",
+    "striver_title": "Most stones removed with same row or column"
+   },
+   "pattern": "dsu-implicit-edges",
+   "template": "T-GRAPH-05",
+   "companies": [
+    "Amazon",
+    "Google"
+   ],
+   "campus_oa": "MEDIUM",
+   "learnings": {
+    "insight": "The answer is stones minus components, because each component can be reduced to a single stone. Reframing 'how many can I remove' as 'how many must remain' is what makes it a connectivity problem at all.",
+    "trick": "Union stones sharing a row or column - or more cleverly, union row r with column c for each stone, treating rows and columns as the DSU elements. Then count distinct roots among occupied rows and columns.",
+    "edge_cases": [
+     "Rows and columns must occupy disjoint index ranges in the DSU - offset columns by 10000.",
+     "Count roots over the keys that actually appear, not all possible indices.",
+     "A single stone forms its own component and cannot be removed."
+    ],
+    "complexity": {
+     "time": "O(n · α(n))",
+     "space": "O(n)",
+     "why": "one union per stone with near-constant operations, versus O(n^2) for comparing every pair."
+    },
+    "siblings": [
+     "number-of-provinces",
+     "accounts-merge",
+     "redundant-connection",
+     "number-of-islands"
+    ],
+    "followups": [
+     {
+      "q": "Why can every component be reduced to one stone?",
+      "a": "A connected component has a spanning tree; removing stones in reverse order of a DFS leaves each one still sharing a line with an unremoved stone until only the root remains."
+     },
+     {
+      "q": "Why union rows with columns rather than stones with stones?",
+      "a": "Stone-to-stone is O(n^2) comparisons. Treating each row and column as a node makes each stone a single edge, giving O(n)."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-evaluate-division",
+   "order": 22,
+   "phase": "V2",
+   "day": 11,
+   "topic": "graphs",
+   "tier": "DRILL",
+   "title": "Evaluate Division",
+   "lc": {
+    "id": "399",
+    "slug": "evaluate-division",
+    "url": "https://leetcode.com/problems/evaluate-division/",
+    "difficulty": "Medium",
+    "ac_rate": 64.6,
+    "tags": [
+     "Array",
+     "String",
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Union-Find",
+     "Graph Theory",
+     "Shortest Path",
+     "Bellman–Ford Algorithm",
+     "Floyd–Warshall Algorithm"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": null,
+    "striver_title": null
+   },
+   "pattern": "weighted-graph-path",
+   "template": "T-GRAPH-01",
+   "companies": [
+    "Google",
+    "Amazon",
+    "Facebook"
+   ],
+   "campus_oa": "MEDIUM",
+   "learnings": {
+    "insight": "Ratios compose multiplicatively along a path, so a/d is the product of edge weights from a to d. Division problems become weighted graph traversal, which is the reframing worth taking away.",
+    "trick": "Build a graph with edge weight a/b from a to b and b/a back. Each query is a DFS or BFS multiplying weights along the path; -1 if no path exists.",
+    "edge_cases": [
+     "Unknown variables - not merely unconnected ones - must return -1.",
+     "A query like a/a is 1.0, but only if a appears in the input.",
+     "Floating-point accumulation drifts; the problem allows a tolerance."
+    ],
+    "complexity": {
+     "time": "O(Q · (V + E))",
+     "space": "O(V + E)",
+     "why": "one traversal per query. Weighted DSU answers each query in near-constant time after an O(E·α) build, which is the better solution for many queries."
+    },
+    "siblings": [
+     "accounts-merge",
+     "number-of-provinces",
+     "clone-graph",
+     "find-the-city-with-the-smallest-number-of-neighbors-at-a-threshold-distance"
+    ],
+    "followups": [
+     {
+      "q": "Many queries over a fixed input.",
+      "a": "Weighted DSU: store each node's ratio to its root and compose during find. Queries become O(α(n)) instead of O(V+E)."
+     },
+     {
+      "q": "Floyd-Warshall alternative.",
+      "a": "Compute all pairwise ratios in O(V^3). Fine when V is small and queries are numerous."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-word-ladder",
+   "order": 23,
+   "phase": "V2",
+   "day": 12,
+   "topic": "graphs",
+   "tier": "CORE",
+   "title": "Word Ladder",
+   "lc": {
+    "id": "127",
+    "slug": "word-ladder",
+    "url": "https://leetcode.com/problems/word-ladder/",
+    "difficulty": "Hard",
+    "ac_rate": 46.6,
+    "tags": [
+     "Hash Table",
+     "String",
+     "Breadth-First Search",
+     "Bidirectional Search"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/graph/word-ladder-i-g-29/",
+    "youtube": "https://www.youtube.com/watch?v=tRPda0rcf8E",
+    "striver_title": "Word ladder I"
+   },
+   "pattern": "implicit-graph-bfs",
+   "template": "T-GRAPH-02",
+   "companies": [
+    "Amazon",
+    "Facebook",
+    "Google",
+    "Microsoft"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "There is no edge list. Vertices are words and two words are adjacent when they differ in one character, so neighbours are generated on demand. Recognising a state space as a graph is the whole difficulty; the BFS afterwards is routine.",
+    "trick": "Generate neighbours by trying all 26 letters at each position - O(26L) per word - rather than comparing against every word in the list, which is O(N·L).",
+    "edge_cases": [
+     "endWord must be in the dictionary, or no transformation exists.",
+     "Erase words from the set as they are enqueued; a visited set is otherwise mandatory.",
+     "The answer counts words including both ends, so a one-step change is length 2."
+    ],
+    "complexity": {
+     "time": "O(N · L · 26)",
+     "space": "O(N · L)",
+     "why": "each word is enqueued once and generates 26L candidate neighbours. Pairwise comparison would be O(N^2 · L)."
+    },
+    "siblings": [
+     "open-the-lock",
+     "shortest-path-in-binary-matrix",
+     "bus-routes",
+     "minimum-genetic-mutation"
+    ],
+    "followups": [
+     {
+      "q": "Why generate neighbours rather than compare all pairs?",
+      "a": "26L is a constant times the word length; comparing against the whole dictionary is O(N). With N = 5000 that is the difference between passing and timing out."
+     },
+     {
+      "q": "Return all shortest transformation sequences.",
+      "a": "LC 126 - BFS to compute levels, then DFS backwards through the level structure. Much harder, because you need the whole predecessor DAG rather than one path."
+     },
+     {
+      "q": "Bidirectional BFS.",
+      "a": "Search from both ends and stop when the frontiers meet. Roughly halves the explored depth, which is an exponential saving on a branching graph."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-open-the-lock",
+   "order": 24,
+   "phase": "V2",
+   "day": 12,
+   "topic": "graphs",
+   "tier": "DRILL",
+   "title": "Open the Lock",
+   "lc": {
+    "id": "752",
+    "slug": "open-the-lock",
+    "url": "https://leetcode.com/problems/open-the-lock/",
+    "difficulty": "Medium",
+    "ac_rate": 61.6,
+    "tags": [
+     "Array",
+     "Hash Table",
+     "String",
+     "Breadth-First Search",
+     "Bidirectional Search"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": null,
+    "striver_title": null
+   },
+   "pattern": "implicit-graph-bfs",
+   "template": "T-GRAPH-02",
+   "companies": [
+    "Amazon",
+    "Google"
+   ],
+   "campus_oa": "MEDIUM",
+   "learnings": {
+    "insight": "Second implicit graph in a row, deliberately. Lock positions are vertices and one click of one dial is an edge. Once stated that way, 'fewest clicks' is just 'shortest path' and you already know the algorithm.",
+    "trick": "BFS from '0000' generating 8 neighbours per state - each of 4 dials up or down. Put the deadends into the visited set up front so they are never expanded.",
+    "edge_cases": [
+     "'0000' may itself be a deadend, in which case the answer is -1.",
+     "Dials wrap: 9 goes to 0 and 0 goes to 9.",
+     "The target may be the start, giving 0."
+    ],
+    "complexity": {
+     "time": "O(10⁴ · 8)",
+     "space": "O(10⁴)",
+     "why": "the state space is bounded at 10,000 lock positions with 8 transitions each."
+    },
+    "siblings": [
+     "word-ladder",
+     "shortest-path-in-binary-matrix",
+     "shortest-path-visiting-all-nodes"
+    ],
+    "followups": [
+     {
+      "q": "Seeding deadends into visited - why is that clean?",
+      "a": "A deadend is a state you may never occupy, which is exactly what 'already visited' means to BFS. It needs no separate check inside the loop."
+     },
+     {
+      "q": "What makes a state space tractable?",
+      "a": "Here it is bounded at 10^4. When the bound is unclear, estimate it before coding - that estimate is what tells you whether BFS is viable at all."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-bus-routes",
+   "order": 25,
+   "phase": "V2",
+   "day": 12,
+   "topic": "graphs",
+   "tier": "DRILL",
+   "title": "Bus Routes",
+   "lc": {
+    "id": "815",
+    "slug": "bus-routes",
+    "url": "https://leetcode.com/problems/bus-routes/",
+    "difficulty": "Hard",
+    "ac_rate": 47.6,
+    "tags": [
+     "Array",
+     "Hash Table",
+     "Breadth-First Search"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": null,
+    "striver_title": null
+   },
+   "pattern": "graph-of-routes",
+   "template": "T-GRAPH-02",
+   "companies": [
+    "Amazon",
+    "Google",
+    "Uber"
+   ],
+   "campus_oa": "MEDIUM",
+   "learnings": {
+    "insight": "Modelling stops as vertices is the trap - the answer counts BUSES, not stops. Making each ROUTE a vertex, with two routes adjacent when they share a stop, turns the problem into a short BFS. Choosing what the vertices are is the entire exercise.",
+    "trick": "Build a map from stop to the routes serving it. BFS over routes, starting from every route serving the source stop, and stop when a route serves the target.",
+    "edge_cases": [
+     "Source equal to target returns 0 without taking any bus.",
+     "Mark routes visited, not stops - and also mark stops consumed, or you re-expand them.",
+     "A stop may be served by many routes."
+    ],
+    "complexity": {
+     "time": "O(sum of route lengths)",
+     "space": "O(sum of route lengths)",
+     "why": "each route is expanded once and each stop's route list is scanned once."
+    },
+    "siblings": [
+     "word-ladder",
+     "open-the-lock",
+     "shortest-path-visiting-all-nodes"
+    ],
+    "followups": [
+     {
+      "q": "Why routes rather than stops?",
+      "a": "The cost is one per bus boarded, not one per stop travelled. Edges must correspond to the thing being counted, and here that is a route change."
+     },
+     {
+      "q": "General lesson.",
+      "a": "Before writing BFS, ask what one unit of the answer corresponds to. That decides what a vertex is."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-reconstruct-itinerary",
+   "order": 26,
+   "phase": "V2",
+   "day": 12,
+   "topic": "graphs",
+   "tier": "CORE",
+   "title": "Reconstruct Itinerary",
+   "lc": {
+    "id": "332",
+    "slug": "reconstruct-itinerary",
+    "url": "https://leetcode.com/problems/reconstruct-itinerary/",
+    "difficulty": "Hard",
+    "ac_rate": 45,
+    "tags": [
+     "Array",
+     "String",
+     "Depth-First Search",
+     "Graph Theory",
+     "Sorting",
+     "Heap (Priority Queue)",
+     "Eulerian Circuit",
+     "Eulerian Path",
+     "Semi-Eulerian Graph"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": null,
+    "striver_title": null
+   },
+   "pattern": "eulerian-path",
+   "template": "T-GRAPH-01",
+   "companies": [
+    "Amazon",
+    "Google",
+    "Facebook"
+   ],
+   "campus_oa": "MEDIUM",
+   "learnings": {
+    "insight": "Every ticket must be used exactly once, which makes this an Eulerian path - and greedy lexicographic choice gets stuck in dead ends. Hierholzer's algorithm fixes it by appending each airport only after its edges are exhausted, then reversing.",
+    "trick": "DFS consuming edges from a sorted multiset per airport. Append the airport to the answer AFTER the loop over its neighbours, then reverse the whole result at the end.",
+    "edge_cases": [
+     "Appending before the recursion gives a path that strands remaining tickets.",
+     "Neighbours must be visited in sorted order for lexicographic minimality.",
+     "Tickets may repeat, so a multiset or an index-into-sorted-vector is needed, not a set."
+    ],
+    "complexity": {
+     "time": "O(E log E)",
+     "space": "O(E)",
+     "why": "sorting each airport's destinations dominates; each edge is consumed exactly once."
+    },
+    "siblings": [
+     "course-schedule-ii",
+     "all-paths-from-source-to-target",
+     "critical-connections-in-a-network"
+    ],
+    "followups": [
+     {
+      "q": "Why does naive greedy fail?",
+      "a": "Taking the smallest next airport can enter a branch that dead-ends while tickets remain elsewhere. The post-order append defers commitment until a branch is provably exhausted."
+     },
+     {
+      "q": "When does an Eulerian path exist?",
+      "a": "In a directed graph: at most one vertex with outdegree-indegree = 1, at most one with indegree-outdegree = 1, all others balanced, and the edges connected. Here the problem guarantees it."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-critical-connections-in-a-network",
+   "order": 27,
+   "phase": "V2",
+   "day": 13,
+   "topic": "graphs",
+   "tier": "CORE",
+   "title": "Critical Connections in a Network",
+   "lc": {
+    "id": "1192",
+    "slug": "critical-connections-in-a-network",
+    "url": "https://leetcode.com/problems/critical-connections-in-a-network/",
+    "difficulty": "Hard",
+    "ac_rate": 60.6,
+    "tags": [
+     "Depth-First Search",
+     "Graph Theory",
+     "Biconnected Component",
+     "Bridge (Graph)"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/graph/bridges-in-graph-using-tarjans-algorithm-of-time-in-and-low-time-g-55/",
+    "youtube": "https://www.youtube.com/watch?v=qrAub5z8FeA",
+    "striver_title": "Bridges in graph"
+   },
+   "pattern": "tarjan-bridges",
+   "template": "T-GRAPH-01",
+   "companies": [
+    "Amazon",
+    "Google",
+    "Facebook"
+   ],
+   "campus_oa": "MEDIUM",
+   "learnings": {
+    "insight": "A bridge is an edge whose removal disconnects the graph. Tarjan's insight is to track, for each vertex, the lowest discovery time reachable from its subtree - if a child cannot reach the parent or above except through their shared edge, that edge is a bridge.",
+    "trick": "DFS recording `disc[u]` and `low[u]`. The edge (u, v) is a bridge exactly when `low[v] > disc[u]`. Skip the edge back to the parent, but not other edges to visited nodes.",
+    "edge_cases": [
+     "Skipping ALL visited neighbours is wrong - back edges to ancestors are what make low[] meaningful.",
+     "Parallel edges mean no bridge; track the parent edge id rather than the parent vertex.",
+     "The graph may be disconnected - loop over all vertices as roots."
+    ],
+    "complexity": {
+     "time": "O(V + E)",
+     "space": "O(V + E)",
+     "why": "one DFS computing two timestamps per vertex. The naive approach removes each edge and tests connectivity, which is O(E · (V+E))."
+    },
+    "siblings": [
+     "number-of-provinces",
+     "redundant-connection",
+     "reconstruct-itinerary"
+    ],
+    "followups": [
+     {
+      "q": "Why does low[v] > disc[u] mean a bridge?",
+      "a": "low[v] is the earliest-discovered vertex reachable from v's subtree. If that is still later than u's discovery, nothing in the subtree has a back edge bypassing (u,v), so removing it severs the subtree."
+     },
+     {
+      "q": "Articulation points.",
+      "a": "Nearly the same DFS with `low[v] >= disc[u]` and a special case for the root, which is an articulation point only if it has two or more DFS children."
+     },
+     {
+      "q": "Strongly connected components.",
+      "a": "The same disc/low machinery gives Tarjan's SCC algorithm. Learning low[] once pays three times."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-find-the-city-with-the-smallest-number-of-neighbors-at-a-threshold-distance",
+   "order": 28,
+   "phase": "V2",
+   "day": 13,
+   "topic": "graphs",
+   "tier": "DRILL",
+   "title": "Find the City With the Smallest Number of Neighbors at a Threshold Distance",
+   "lc": {
+    "id": "1334",
+    "slug": "find-the-city-with-the-smallest-number-of-neighbors-at-a-threshold-distance",
+    "url": "https://leetcode.com/problems/find-the-city-with-the-smallest-number-of-neighbors-at-a-threshold-distance/",
+    "difficulty": "Medium",
+    "ac_rate": 73.9,
+    "tags": [
+     "Dynamic Programming",
+     "Graph Theory",
+     "Shortest Path",
+     "Dijkstra's Algorithm",
+     "Bellman–Ford Algorithm",
+     "Floyd–Warshall Algorithm"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/find-the-city-with-the-smallest-number-of-neighbours-at-a-threshold-distance-g-43/",
+    "youtube": "https://www.youtube.com/watch?v=9XybHVqTHcQ",
+    "striver_title": "Find the city with the smallest number of neighbors"
+   },
+   "pattern": "floyd-warshall",
+   "template": "T-GRAPH-04",
+   "companies": [
+    "Amazon",
+    "Google"
+   ],
+   "campus_oa": "MEDIUM",
+   "learnings": {
+    "insight": "All-pairs shortest paths with n <= 100. That constraint is the problem telling you an O(n^3) algorithm is intended, and Floyd-Warshall is three nested loops with the intermediate vertex OUTERMOST.",
+    "trick": "`for k, for i, for j: dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])`. The k loop must be outermost - it is the DP dimension 'paths using only the first k vertices'.",
+    "edge_cases": [
+     "k outermost. Putting it innermost silently computes something wrong.",
+     "Initialise non-edges to a large sentinel, but small enough that adding two does not overflow.",
+     "Ties on the city count break toward the LARGEST index."
+    ],
+    "complexity": {
+     "time": "O(n³)",
+     "space": "O(n²)",
+     "why": "three nested loops over n = 100 is 10^6 operations. Running Dijkstra from each vertex is O(V·(V+E) log V), which is also fine here but more code."
+    },
+    "siblings": [
+     "network-delay-time",
+     "cheapest-flights-within-k-stops",
+     "evaluate-division"
+    ],
+    "followups": [
+     {
+      "q": "Why must k be the outer loop?",
+      "a": "dist after iteration k means 'shortest paths using intermediates from the first k vertices'. That recurrence requires all i,j pairs updated for one k before moving to k+1."
+     },
+     {
+      "q": "When is Floyd-Warshall the right choice over repeated Dijkstra?",
+      "a": "When V is small - a few hundred - or when the graph is dense, or when you need all pairs and want twenty lines rather than a heap."
+     },
+     {
+      "q": "Does it handle negative edges?",
+      "a": "Yes, unlike Dijkstra, and a negative value on the diagonal afterwards reveals a negative cycle."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-longest-increasing-path-in-a-matrix",
+   "order": 29,
+   "phase": "V2",
+   "day": 13,
+   "topic": "graphs",
+   "tier": "CORE",
+   "title": "Longest Increasing Path in a Matrix",
+   "lc": {
+    "id": "329",
+    "slug": "longest-increasing-path-in-a-matrix",
+    "url": "https://leetcode.com/problems/longest-increasing-path-in-a-matrix/",
+    "difficulty": "Hard",
+    "ac_rate": 57.1,
+    "tags": [
+     "Array",
+     "Dynamic Programming",
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Graph Theory",
+     "Topological Sort",
+     "Memoization",
+     "Matrix",
+     "Directed Acyclic Graph"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": null,
+    "striver_title": null
+   },
+   "pattern": "memoised-dag-dfs",
+   "template": "T-DP-02",
+   "companies": [
+    "Amazon",
+    "Google",
+    "Facebook"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "Because moves must strictly increase, the grid is implicitly a DAG - no cycles are possible. That is what makes memoisation valid without any visited set, and it is the bridge between graph traversal and DP.",
+    "trick": "DFS from every cell returning the longest path starting there, caching the result. Strict increase guarantees acyclicity, so the memo is sound.",
+    "edge_cases": [
+     "No visited array needed - strict monotonicity prevents cycles.",
+     "Without memoisation this is exponential.",
+     "A single cell has path length 1, not 0."
+    ],
+    "complexity": {
+     "time": "O(m·n)",
+     "space": "O(m·n)",
+     "why": "each cell's answer is computed once and reused, with four edge checks each."
+    },
+    "siblings": [
+     "course-schedule",
+     "all-paths-from-source-to-target",
+     "unique-paths",
+     "word-search"
+    ],
+    "followups": [
+     {
+      "q": "Why is a visited set unnecessary?",
+      "a": "Each move strictly increases the value, so no path can return to a cell. The graph is a DAG, and DAGs admit memoisation without cycle handling."
+     },
+     {
+      "q": "Solve it with topological order instead.",
+      "a": "Sort cells by value and process in increasing order, so every predecessor is already computed. Same bound, no recursion - and it makes the DAG structure explicit."
+     },
+     {
+      "q": "This is DP on a graph. Where is the boundary?",
+      "a": "Memoised DFS on a DAG IS dynamic programming. Trees and grids are the DAGs where you meet it first."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-minimum-height-trees",
+   "order": 30,
+   "phase": "V2",
+   "day": 13,
+   "topic": "graphs",
+   "tier": "DRILL",
+   "title": "Minimum Height Trees",
+   "lc": {
+    "id": "310",
+    "slug": "minimum-height-trees",
+    "url": "https://leetcode.com/problems/minimum-height-trees/",
+    "difficulty": "Medium",
+    "ac_rate": 42.8,
+    "tags": [
+     "Depth-First Search",
+     "Breadth-First Search",
+     "Graph Theory",
+     "Topological Sort"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": null,
+    "striver_title": null
+   },
+   "pattern": "indegree-peeling",
+   "template": "T-GRAPH-03",
+   "companies": [
+    "Amazon",
+    "Google"
+   ],
+   "campus_oa": "MEDIUM",
+   "learnings": {
+    "insight": "Trying every vertex as a root is O(V^2). The insight is that the best roots are the tree's centroids, and peeling leaves layer by layer - the same mechanic as Kahn's algorithm - converges on them.",
+    "trick": "Repeatedly remove all degree-1 vertices. The last one or two remaining are the centroids and therefore the answer.",
+    "edge_cases": [
+     "A tree has at most two centroids - stop when 2 or fewer vertices remain.",
+     "n = 1 returns [0]; n = 2 returns both.",
+     "Degrees must be decremented as neighbours are removed, exactly as in Kahn."
+    ],
+    "complexity": {
+     "time": "O(V + E)",
+     "space": "O(V + E)",
+     "why": "each vertex is removed once. Running BFS from every vertex is O(V·(V+E))."
+    },
+    "siblings": [
+     "course-schedule-ii",
+     "find-eventual-safe-states",
+     "number-of-provinces"
+    ],
+    "followups": [
+     {
+      "q": "Why at most two centroids?",
+      "a": "If three existed, two would have to be adjacent to the third and to each other, forming a cycle - impossible in a tree."
+     },
+     {
+      "q": "Why does peeling find them?",
+      "a": "Each peel removes the current outermost layer, so the vertices surviving longest are furthest from every leaf - which is the definition of a centroid."
+     }
+    ]
+   }
+  },
+  {
+   "id": "graphs-shortest-path-visiting-all-nodes",
+   "order": 31,
+   "phase": "V2",
+   "day": 13,
+   "topic": "graphs",
+   "tier": "SKIM",
+   "title": "Shortest Path Visiting All Nodes",
+   "lc": {
+    "id": "847",
+    "slug": "shortest-path-visiting-all-nodes",
+    "url": "https://leetcode.com/problems/shortest-path-visiting-all-nodes/",
+    "difficulty": "Hard",
+    "ac_rate": 66.3,
+    "tags": [
+     "Dynamic Programming",
+     "Bit Manipulation",
+     "Breadth-First Search",
+     "Graph Theory",
+     "Bitmask"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": null,
+    "striver_title": null
+   },
+   "pattern": "bitmask-bfs",
+   "template": "T-BIT-02",
+   "companies": [
+    "Google",
+    "Amazon"
+   ],
+   "campus_oa": "LOW",
+   "learnings": {
+    "insight": "Visiting every node means the state is not just 'where am I' but 'where have I been'. With n <= 12, that visited set fits in a bitmask, and the state becomes (node, mask) - which is the standard way graph problems and bitmask DP meet.",
+    "trick": "BFS over (node, mask) pairs, starting from every node with only its own bit set. Finish when the mask is all ones. Revisiting a node with a DIFFERENT mask is legal and necessary.",
+    "edge_cases": [
+     "Nodes may be revisited; the (node, mask) pair is what must not repeat.",
+     "Start from all n nodes simultaneously - the path may begin anywhere.",
+     "n <= 12 in the constraints is the signal that 2^n states are intended."
+    ],
+    "complexity": {
+     "time": "O(2ⁿ · n²)",
+     "space": "O(2ⁿ · n)",
+     "why": "2^n masks times n positions, each expanding to n neighbours."
+    },
+    "siblings": [
+     "open-the-lock",
+     "word-ladder",
+     "subsets",
+     "partition-to-k-equal-sum-subsets"
+    ],
+    "followups": [
+     {
+      "q": "Why can nodes be revisited?",
+      "a": "Revisiting with a larger visited set is progress. The state is the pair, so (3, 0b0011) and (3, 0b1011) are genuinely different situations."
+     },
+     {
+      "q": "What does n <= 12 tell you?",
+      "a": "2^12 = 4096, so an exponential-in-n state space is affordable. Small n bounds are nearly always a bitmask instruction."
+     }
+    ]
+   }
+  }
+ ]
+}
