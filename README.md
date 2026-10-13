@@ -67,6 +67,13 @@ Three decisions worth knowing:
   default is noise. DRILL and SKIM do, because they change what the row asks
   of you.
 
+On the day view **one problem is open at a time** — opening a row closes
+whichever was open, and the row you clicked holds its position rather than
+jumping as the one above it collapses. Five sets of notes, tags and timers on
+screen at once is a wall; one is a next action. The learnings panel inside
+always starts closed, including on a row you had it open on, because the
+insight is the one thing on the page you can spoil for yourself.
+
 The **pattern index** is the revision surface: 97 pattern names grouped by
 topic, each linking to the problem that teaches it and its C++ template.
 Read it cold and anything you cannot explain in a sentence is a gap.

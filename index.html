@@ -2875,9 +2875,7 @@ body.domain-dsa::before { background: linear-gradient(rgba(13, 148, 136, .09), t
       /* A repaint puts an expanded row's detail div back empty, so anything
          still open has to be refilled. Cached after the first fetch, so this
          is a dictionary lookup rather than a request. */
-      Object.keys(DSAV.open).forEach(function (id) {
-        if (DSAV.open[id]) dsaFillDetail(id);
-      });
+      if (DSAV.openId) dsaFillDetail(DSAV.openId);
     }
   }
 
@@ -3203,7 +3201,11 @@ body.domain-dsa::before { background: linear-gradient(rgba(13, 148, 136, .09), t
 
   var DSAV = {
     day: 0,
-    open: {},          // problem id -> expanded
+    /* One problem open at a time, by id rather than a map of flags.
+       An accordion is the invariant, so it is better expressed as "there is
+       at most one" than as a set of booleans that happen to have one true. */
+    openId: null,
+    learnOpen: false,  // the open row's learnings panel; resets per row
     part: {},          // theory id + part -> expanded
     theory: null,      // theory id being read
     template: null,    // template id being read
@@ -3553,7 +3555,7 @@ body.domain-dsa::before { background: linear-gradient(rgba(13, 148, 136, .09), t
 
   function dsaRowEl(p) {
     var g = dsaRow(p.id);
-    var open = !!DSAV.open[p.id];
+    var open = DSAV.openId === p.id;
     var all = p.companies || [];
     var companies = all.slice(0, 4).map(function (c) {
       return '<span class="dsa-co">' + esc(c) + "</span>";
@@ -3592,10 +3594,12 @@ body.domain-dsa::before { background: linear-gradient(rgba(13, 148, 136, .09), t
 
   function dsaLearnings(doc) {
     var l = doc.learnings || {};
-    var key = "learn:" + doc.id;
-    var open = !!DSAV.help[key];
-    var out = '<details class="dsa-learnwrap"' + (open ? " open" : "") +
-      ' data-dsa-help="' + esc(key) + '">' +
+    /* Starts closed every time a row is opened, and deliberately not
+       remembered: the insight is the one thing on the page you can spoil for
+       yourself, and a panel that reopens where you left it will eventually
+       show it to you before you have tried the problem. */
+    var out = '<details class="dsa-learnwrap"' + (DSAV.learnOpen ? " open" : "") +
+      ' data-dsa-learn="1">' +
       "<summary>What this teaches you</summary>" +
       '<div class="dsa-learn">';
 
@@ -3939,14 +3943,25 @@ body.domain-dsa::before { background: linear-gradient(rgba(13, 148, 136, .09), t
       "are badged: a <b>DRILL</b> is a variation on a problem you did earlier " +
       "in the same phase and should take under ten minutes, and a <b>SKIM</b> " +
       "is read-the-learnings-and-move-on.</p>" +
+      "<p><b>One problem opens at a time.</b> Click <i>open</i> on a row and " +
+      "whichever row was open closes itself. That is deliberate: the day is " +
+      "a list of five things to do in order, and five sets of notes, tags and " +
+      "timers on screen at once is a wall rather than a next action. The row " +
+      "you click stays where it is under the cursor — the page does not jump " +
+      "when the one above it collapses.</p>" +
 
       "<h5>The loop, per problem</h5>" +
       '<ol class="dsa-loop">' +
         "<li>Read the topic theory first, once per topic — the link is above.</li>" +
-        "<li>Open the problem on LeetCode and write it in an empty file. No editorial.</li>" +
-        "<li>Stuck? <b>Start the timer</b> inside <i>what this teaches you</i> and follow the " +
-          "ladder. It tells you what to do at ten, twenty, thirty and forty minutes, and it " +
-          "exists so that being stuck has a procedure rather than a mood.</li>" +
+        "<li>Click the problem title to open it on LeetCode, and write it in an empty file. " +
+          "No editorial.</li>" +
+        "<li>Click <b>open</b> on the row for your notes, tags and the stuck ladder. " +
+          "<i>What this teaches you</i> sits inside, closed — it stays closed until you ask, " +
+          "and it resets to closed each time you open a row, so you cannot spoil an insight " +
+          "by scrolling past it.</li>" +
+        "<li>Stuck? <b>Start the timer</b> on the open row and follow the ladder. It tells you " +
+          "what to do at ten, twenty, thirty and forty minutes, and it exists so that being " +
+          "stuck has a procedure rather than a mood.</li>" +
         "<li>Got it working? Click the status to mark it <b>solved</b>.</li>" +
         "<li><b>Rate your confidence 1–5, honestly.</b> Three or below puts it in the revision " +
           "queue automatically. This is the single most useful thing on the page and the " +
@@ -3969,10 +3984,14 @@ body.domain-dsa::before { background: linear-gradient(rgba(13, 148, 136, .09), t
         ['<span class="dsa-conf"><button class="on">1</button><button>…</button><button>5</button></span>',
          "How well you know it. <b>1</b> = needed the editorial, <b>5</b> = could teach it. " +
          "Click the number you already have to clear it."],
+        ["<b>open</b>",
+         "Opens this row and closes whatever was open. Inside: your notes, approach, tags and " +
+         "confidence, the stuck ladder with its timer, the C++ template, and Striver's links."],
         ["<b>What this teaches you</b>",
-         "Inside each row, closed until you ask: the insight, the trick, edge cases, complexity " +
-         "with the reason, sibling problems and likely interview follow-ups. Closed on purpose — " +
-         "the insight should not be readable by accident before you have tried the problem."]
+         "A second toggle inside the open row: the insight, the trick, edge cases, complexity " +
+         "with the reason, sibling problems and likely interview follow-ups. Always starts " +
+         "closed, including when you reopen a row you had it open on — the insight is the one " +
+         "thing here you can spoil for yourself."]
       ]) +
 
       "<h5>The badges</h5>" +
@@ -4101,17 +4120,6 @@ body.domain-dsa::before { background: linear-gradient(rgba(13, 148, 136, .09), t
     return '<div class="dsa-rail">' + cells.join("") + "</div>";
   }
 
-  /* PRD 3.3: at five problems a day the day view is a screen, not a scroll,
-     so the rows arrive open. What is behind a click is the learnings panel,
-     not the problem -- the controls and your own notes should be reachable
-     without opening anything, and the insight should not be readable by
-     accident before you have tried it. */
-  function dsaOpenDay(day) {
-    dsaProblemsOn(day).forEach(function (p) {
-      if (DSAV.open[p.id] === undefined) DSAV.open[p.id] = true;
-    });
-  }
-
   function renderDsaSheet() {
     if (!DSA_SPEC) {
       return '<section class="card"><h2>DSA sheet</h2><p class="muted">' +
@@ -4120,7 +4128,6 @@ body.domain-dsa::before { background: linear-gradient(rgba(13, 148, 136, .09), t
     }
 
     var day = DSAV.day || (DSAV.day = dsaCurrentDay());
-    dsaOpenDay(day);
     var rows = dsaProblemsOn(day);
     var st = dsaStats(rows);
     var topic = dsaTopicOf(day);
@@ -4498,8 +4505,7 @@ body.domain-dsa::before { background: linear-gradient(rgba(13, 148, 136, .09), t
     document.querySelectorAll("[data-dsa-day]").forEach(function (b) {
       b.onclick = function () {
         DSAV.day = +b.dataset.dsaDay;
-        DSAV.open = {};
-        dsaOpenDay(DSAV.day);
+        DSAV.openId = null;
         render();
         window.scrollTo({ top: 0, behavior: "smooth" });
       };
@@ -4508,9 +4514,31 @@ body.domain-dsa::before { background: linear-gradient(rgba(13, 148, 136, .09), t
     document.querySelectorAll("[data-dsa-open]").forEach(function (b) {
       b.onclick = function () {
         var id = b.dataset.dsaOpen;
-        DSAV.open[id] = !DSAV.open[id];
+
+        /* Where the row sits right now. Closing a tall row above this one
+           shortens the page by several hundred pixels, which would drag the
+           row you just clicked up from under the cursor. Measuring first and
+           correcting the scroll after lets the clicked row stay exactly where
+           it was, so the accordion reads as the panel changing rather than
+           the whole page jumping. */
+        var before = null;
+        var el = document.querySelector('[data-dsa-row="' + cssEsc(id) + '"]');
+        if (el) before = el.getBoundingClientRect().top;
+
+        DSAV.openId = DSAV.openId === id ? null : id;
+        // A newly opened row starts with its learnings closed, whatever the
+        // previous row had.
+        DSAV.learnOpen = false;
         render();
-        if (DSAV.open[id]) dsaFillDetail(id);
+        if (DSAV.openId) dsaFillDetail(DSAV.openId);
+
+        if (before !== null) {
+          var now = document.querySelector('[data-dsa-row="' + cssEsc(id) + '"]');
+          if (now) {
+            var drift = now.getBoundingClientRect().top - before;
+            if (Math.abs(drift) > 1) window.scrollBy(0, drift);
+          }
+        }
       };
     });
 
@@ -4559,8 +4587,8 @@ body.domain-dsa::before { background: linear-gradient(rgba(13, 148, 136, .09), t
         SECTION = "dsa";
         ACTIVE = "dsa-sheet";
         DSAV.day = p.day;
-        DSAV.open = {};
-        DSAV.open[id] = true;
+        DSAV.openId = id;
+        DSAV.learnOpen = false;
         render();
         dsaFillDetail(id);
         var el = document.querySelector('[data-dsa-row="' + cssEsc(id) + '"]');
@@ -4705,6 +4733,10 @@ body.domain-dsa::before { background: linear-gradient(rgba(13, 148, 136, .09), t
         if (q2) { q2.focus(); q2.setSelectionRange(q2.value.length, q2.value.length); }
       };
     }
+
+    document.querySelectorAll("[data-dsa-learn]").forEach(function (d) {
+      d.ontoggle = function () { DSAV.learnOpen = d.open; };
+    });
 
     document.querySelectorAll("[data-dsa-help]").forEach(function (d) {
       d.ontoggle = function () {
