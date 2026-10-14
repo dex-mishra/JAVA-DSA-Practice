@@ -69,6 +69,42 @@ npx wrangler secret put CONSOLE_PASSWORD
 
 Nothing else changes. The page asks once and remembers.
 
+## Required for the OAs tab: a code runner
+
+The DSA tab's **OAs** sub-tab runs and grades submitted C++ and Python. A
+Cloudflare Worker cannot compile anything itself, so that work goes to an
+external execution service. Without one the tab still opens, the problems
+still read, and the editor still saves — *Run Code* and *Submit* are the
+only things that need it, and the tab says so on the page rather than
+failing when you press submit.
+
+**Judge0 CE, via RapidAPI.** Free tier, no card:
+
+1. Sign in at [rapidapi.com](https://rapidapi.com) and open
+   [Judge0 CE](https://rapidapi.com/judge0-official/api/judge0-ce).
+2. Subscribe to the **Basic** plan, which is £0 and 50 requests a day.
+3. Copy the `X-RapidAPI-Key` it shows you.
+
+```bash
+npx wrangler secret put JUDGE0_KEY
+```
+
+Fifty requests a day sounds tight and is not: grading batches every hidden
+test for a problem into one request, so a full 90-minute mock costs three
+submits plus however many times you press *Run Code*.
+
+**Or a Piston instance**, if you self-host one or have been whitelisted.
+Piston's public API at `emkc.org` was free and keyless until it went
+whitelist-only in February 2026, which is why it is no longer the default.
+
+```bash
+npx wrangler secret put PISTON_URL    # https://your-host/api/v2/piston
+```
+
+Setting `PISTON_URL` wins over `JUDGE0_KEY`, on the grounds that setting it
+is the deliberate act. Both sit behind the same adapter in
+`worker/runner.js`; adding a third is one function.
+
 ## Optional: a custom domain
 
 In the Cloudflare dashboard: **Workers & Pages → launch-console → Settings →
