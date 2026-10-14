@@ -1,12 +1,12 @@
 ---
 title: C++ Pattern Templates
-count: 73
+count: 76
 generated: 2026-09-17
 ---
 
 # C++ Pattern Templates
 
-**73 templates.** Every problem in the sheet names one of these in its `template:` field. Learn the template once and the problems that cite it become parameter changes rather than new problems.
+**76 templates.** Every problem in the sheet names one of these in its `template:` field. Learn the template once and the problems that cite it become parameter changes rather than new problems.
 
 > Templates are written to be typed from memory, not copy-pasted. If you cannot reproduce one on an empty file, you have read it rather than learnt it.
 
@@ -14,7 +14,7 @@ generated: 2026-09-17
 
 **hashing** — [`T-HASH-01`](#t-hash-01) Complement lookup · [`T-HASH-02`](#t-hash-02) Seen-set with early exit · [`T-HASH-03`](#t-hash-03) Frequency count over a fixed alphabet · [`T-HASH-04`](#t-hash-04) Prefix sum plus hash map
 
-**arrays** — [`T-PS-01`](#t-ps-01) Prefix sums · [`T-PS-02`](#t-ps-02) Difference array
+**arrays** — [`T-PS-01`](#t-ps-01) Prefix sums · [`T-PS-02`](#t-ps-02) Difference array · [`T-ARR-01`](#t-arr-01) Boyer-Moore voting
 
 **sorting** — [`T-SORT-01`](#t-sort-01) Merge sort with a counting hook · [`T-SORT-02`](#t-sort-02) Two-pointer partition · [`T-SORT-03`](#t-sort-03) Selection by restricted operation · [`T-SORT-04`](#t-sort-04) Group by an invariant · [`T-SORT-05`](#t-sort-05) Rank map plus comparator · [`T-SORT-06`](#t-sort-06) Sort then adjacent scan · [`T-SORT-07`](#t-sort-07) Dutch National Flag · [`T-SORT-08`](#t-sort-08) Quickselect
 
@@ -44,7 +44,7 @@ generated: 2026-09-17
 
 **graphs** — [`T-GRAPH-01`](#t-graph-01) Grid DFS / flood fill · [`T-GRAPH-02`](#t-graph-02) BFS shortest path on unweighted graphs · [`T-GRAPH-03`](#t-graph-03) Topological sort (Kahn) · [`T-GRAPH-04`](#t-graph-04) Dijkstra · [`T-GRAPH-05`](#t-graph-05) Disjoint Set Union · [`T-GRAPH-06`](#t-graph-06) Kruskal MST · [`T-GRAPH-07`](#t-graph-07) Cycle detection in a directed graph (colours)
 
-**dp** — [`T-DP-01`](#t-dp-01) 1D DP · [`T-DP-02`](#t-dp-02) 2D grid DP · [`T-DP-03`](#t-dp-03) Knapsack / subset sum · [`T-DP-04`](#t-dp-04) DP on two strings · [`T-DP-05`](#t-dp-05) DP on stocks (state machine) · [`T-DP-06`](#t-dp-06) LIS · [`T-DP-07`](#t-dp-07) Interval / MCM partition DP
+**dp** — [`T-DP-01`](#t-dp-01) 1D DP · [`T-DP-02`](#t-dp-02) 2D grid DP · [`T-DP-03`](#t-dp-03) Knapsack / subset sum · [`T-DP-04`](#t-dp-04) DP on two strings · [`T-DP-05`](#t-dp-05) DP on stocks (state machine) · [`T-DP-06`](#t-dp-06) LIS · [`T-DP-07`](#t-dp-07) Interval / MCM partition DP · [`T-DP-08`](#t-dp-08) Game DP (minimax over a range) · [`T-DP-09`](#t-dp-09) DP with binary search on a sorted dimension
 
 **tries** — [`T-TRIE-01`](#t-trie-01) Trie
 
@@ -178,6 +178,29 @@ vector<long long> finalise(vector<long long>& d, int n) {
 
 - O(1) per update and one O(n) pass at the end, versus O(n) per update naively.
 - Size the difference array n+1 so `d[r+1]` never goes out of bounds.
+
+### T-ARR-01
+
+**Boyer-Moore voting**
+
+*When:* Find an element appearing more than n/k times, in O(1) space.
+
+```cpp
+// More than n/2: one candidate, one counter.
+int majorityElement(vector<int>& a) {
+    int cand = a[0], cnt = 0;
+    for (int x : a) {
+        if (cnt == 0) cand = x;
+        cnt += (x == cand) ? 1 : -1;
+    }
+    return cand;                              // verify with a second pass if not guaranteed
+}
+// More than n/3: at most two can exist -> two candidates, two counters.
+// Branch order matters: match c1, match c2, cnt1==0, cnt2==0, else decrement both.
+```
+
+- Each decrement pairs one majority occurrence against one non-majority occurrence; the majority cannot be exhausted.
+- For n/k, keep k-1 candidates (Misra-Gries). A verification pass is mandatory unless existence is guaranteed.
 
 ## sorting
 
@@ -1646,6 +1669,52 @@ int solve(int i, int j, vector<int>& a, vector<vector<int>>& memo) {
 
 - O(n^3): n^2 states, each O(n) to fill. Constraints near n <= 500 are the signal.
 - For Burst Balloons, think of k as the LAST balloon burst in the range - that makes the neighbours well defined.
+
+### T-DP-08
+
+**Game DP (minimax over a range)**
+
+*When:* Two players alternate optimally; stone games, prediction games.
+
+```cpp
+// dp[i][j] = best score DIFFERENCE the current player can force on a[i..j]
+int solve(int i, int j, vector<int>& a, vector<vector<int>>& memo) {
+    if (i > j) return 0;
+    if (memo[i][j] != INT_MIN) return memo[i][j];
+    int takeLeft  = a[i] - solve(i + 1, j, a, memo);   // subtract: opponent's turn next
+    int takeRight = a[j] - solve(i, j - 1, a, memo);
+    return memo[i][j] = max(takeLeft, takeRight);
+}
+// Player 1 wins iff solve(0, n-1) >= 0
+```
+
+- Store the DIFFERENCE, not two separate scores - it halves the state and removes the whose-turn dimension.
+- The minus sign is the whole trick: the opponent plays optimally against you.
+
+### T-DP-09
+
+**DP with binary search on a sorted dimension**
+
+*When:* Weighted interval scheduling, longest chains with a predecessor lookup.
+
+```cpp
+// Jobs sorted by end time. dp[i] = best profit considering the first i jobs.
+int jobScheduling(vector<array<int,3>>& jobs) {     // {end, start, profit}
+    sort(jobs.begin(), jobs.end());
+    int n = jobs.size();
+    vector<int> dp(n + 1, 0), ends(n);
+    for (int i = 0; i < n; i++) ends[i] = jobs[i][0];
+    for (int i = 0; i < n; i++) {
+        // latest job ending at or before this job's start
+        int p = upper_bound(ends.begin(), ends.begin() + i, jobs[i][1]) - ends.begin();
+        dp[i + 1] = max(dp[i], dp[p] + jobs[i][2]);  // skip, or take
+    }
+    return dp[n];
+}
+```
+
+- Sorting by END is what makes the predecessor a prefix, so binary search applies.
+- O(n log n) instead of the O(n^2) scan for a compatible predecessor.
 
 ## tries
 

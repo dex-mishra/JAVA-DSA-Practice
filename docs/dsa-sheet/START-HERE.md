@@ -2,77 +2,49 @@
 
 Read this, then `PRD-v2.md`, then `HANDOFF.md`. Everything else is data.
 
+**The content is finished.** 145 of 145 problems authored, verified, 0 errors. Nothing is pending any
+more, so there is no "wait for the rest" step in the build.
+
 ---
 
-## Give the Claude Code session these 6 files
+## Give the Claude Code session these files
 
-Copy them into the repo under `docs/dsa-sheet/` (or wherever you keep specs) plus a `data/` folder:
+Copy them into the repo under `docs/dsa-sheet/` plus a `data/` folder.
 
 **Specs — read, don't parse**
+
 1. `PRD-v2.md` — what the sheet is, what changed, the interface work required
 2. `HANDOFF.md` — database schema, importer contract, API surface, UI requirements
-3. `SPEC.json` — machine-readable: phase map, user-field schema with types and defaults, revision-queue SQL, stuck ladder
+3. `PRD-OA-TAB.md` — the OAs sub-tab: tables, execution backend, scoring, mock generation
+4. `SPEC.json` — machine-readable: phase map, user-field schema with types and defaults,
+   revision-queue SQL, stuck ladder
 
 **Data — parse these**
-4. `v0-prerequisites.json`
-5. `v1-trees.json`
-6. `v2-graphs.json`
-7. `v4-core-patterns.json`
-8. `cpp-pattern-templates.json`
+
+5. `v0-prerequisites.json` — 14 problems, days 1–3
+6. `v1-trees.json` — 20, days 4–7
+7. `v2-graphs.json` — 31, days 8–13
+8. `v3-dp.json` — 38, days 14–21
+9. `v4-core-patterns.json` — 40, days 22–29
+10. `v5-advanced.json` — 2, day 30
+11. `cpp-pattern-templates.json` — 76 C++ templates
+12. `PATTERN-INDEX.json` — 145 patterns across 17 topics, each row already joined
+    problem → pattern → template. Build the pattern index page from this rather than re-deriving it.
+13. `oa/mock-oa-01-problems.json` — the first mock OA, to seed the OAs tab
 
 **Optional, import later or not at all**
+
 - `OPTIONAL-narrow-tricks.json` — 31 unscheduled stretch problems
 
-**Do not give it** the `.md` versions of the phase files (they're the same content, for your reading) or `_superseded-600-plan/` (the dead 600-problem plan).
+**Do not give it** the `.md` twins of any JSON file (same content, for your reading) or
+`_superseded-600-plan/` (the dead 600-problem plan).
 
 ---
 
 ## Paste this into the Claude Code session
 
-> I'm adding a DSA practice sheet as a new tab in this placement tracker. The content is already
-> authored and verified — 105 problems now, 40 more arriving later with an identical schema.
->
-> Read `docs/dsa-sheet/PRD-v2.md` and `docs/dsa-sheet/HANDOFF.md` first. HANDOFF has the table
-> definitions and API surface; PRD has what's different from an earlier 600-problem version that we
-> abandoned.
->
-> Before writing any code, answer these from the codebase and tell me what you found:
-> 1. What's the ORM/query layer and the database? (HANDOFF assumes Postgres-ish DDL — adapt it.)
-> 2. Where does the existing tracker's topic/mastery data actually live?
-> 3. Is there a users table the new tables should key on, or is this single-user?
-> 4. How is the existing tracker tab built — which components, which styling approach? The DSA tab
->    should match it, not introduce a second visual language.
-> 5. How does the mastery rating currently aggregate across tracks? DSA progress feeds that same
->    aggregate — don't add a new track or a separate rating.
->
-> Then do these in order, stopping after each so I can look:
->
-> **Step 1 — migrations.** The six content tables plus `dsa_progress` from HANDOFF §3. `dsa_progress`
-> is the only table the user writes; keep it separate from content so re-importing never touches it.
->
-> **Step 2 — the importer.** `import_phase(json)` doing an idempotent upsert keyed on
-> `dsa_problem.id`, which is stable across regenerations. It must report added / changed / unchanged
-> and must never delete progress rows. Write this before anything else that touches data — every
-> future content update flows through it.
->
-> **Step 3 — import and verify.** Load the four phase JSONs and the templates. Assert each phase's
-> row count matches its `problem_count` field.
->
-> **Step 4 — day view, read-only.** Problems grouped by day, each with its LeetCode link, difficulty,
-> company chips, pattern name, and a collapsible "What this teaches you" panel built from the
-> `learnings` object. No tier badges — every problem is CORE in this version, so the field is dead
-> weight in the UI.
->
-> **Step 5 — progress writes.** The eight user fields from `SPEC.json → user_field_schema`. Status
-> cycle, revision star, confidence 1–5, notes, tags with the seeded vocabulary.
->
-> **Step 6 — the pattern index.** PRD §3.4. One page listing every problem's `pattern` grouped by
-> topic, each linking to its problem and its C++ template. This is the revision surface and it's the
-> highest-value screen in the whole tab.
->
-> Two things to be careful about: `tuf.article` and `tuf.youtube` are null for problems outside
-> Striver's sheet — hide the chip, don't render a dead link. And checkpoints are computed from the
-> `learnings` array at request time, not stored; the decay rules are in PRD §3 and HANDOFF §7.
+Use `CLAUDE-CODE-PROMPT.md` — it is the prompt, kept in its own file so you can paste it without
+editing. It names every file to use and every file to ignore.
 
 ---
 
@@ -83,17 +55,34 @@ Copy them into the repo under `docs/dsa-sheet/` (or wherever you keep specs) plu
 | V0 Prerequisites | 1–3 | 14 | ready |
 | V1 Trees & BST | 4–7 | 20 | ready |
 | V2 Graphs | 8–13 | 31 | ready |
-| V3 Dynamic Programming | 14–21 | 38 | **pending** |
+| V3 Dynamic Programming | 14–21 | 38 | ready |
 | V4 Core Patterns | 22–29 | 40 | ready |
-| V5 Tries | 30 | 2 | **pending** |
+| V5 Tries & Revision | 30 | 2 | ready |
 
-**105 of 145 ready.** The pending 40 use the identical record shape, so they drop in through the
-same importer with no migration. Don't wait for them to start building.
+**145 / 145.** Trees, graphs and DP are 89 of them — 61% of the sheet, which is the point.
+
+Supporting content: 76 C++ templates, 145-row pattern index, 1 mock OA.
+
+---
+
+## The OAs tab, in one paragraph
+
+`PRD-OA-TAB.md` specifies a sub-tab under DSA that holds timed mock OAs at campus-OA standard. Each
+mock is scoped to days you have already covered, so it can only test concepts you have met. Mock OA
+01 is built: 90 minutes, 100 marks, 3 problems, scoped to days 1–3 only (Boyer-Moore voting,
+prefix-sum with a hashmap, bounded combinations with dedup). All 6 sample cases were brute-force
+verified against reference implementations.
+
+The published artifact is a working HackerRank-style environment you can sit for right now — timer,
+split pane, editor, sample runs, hidden-test checklist, scored review. It executes JavaScript for
+real; for C++ it shows expected output for you to compare against, because an artifact cannot
+compile C++. The real app should wire Judge0 or Piston instead — PRD §4 says how, and says plainly
+not to build your own sandbox.
 
 ---
 
 ## Then start solving
 
-The sheet is usable from the markdown right now — `v0-prerequisites.md` is day 1. You don't need the
-website finished to begin, and waiting for it is the most expensive form of procrastination
+The sheet is usable from the markdown right now — `v0-prerequisites.md` is day 1. You do not need
+the website finished to begin, and waiting for it is the most expensive form of procrastination
 available to you.

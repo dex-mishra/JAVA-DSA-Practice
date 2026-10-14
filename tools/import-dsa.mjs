@@ -54,10 +54,11 @@ function warn(msg) {
   warnings.push(msg);
 }
 
-function readJson(path) {
+function readJson(path, fallback) {
   try {
     return JSON.parse(readFileSync(path, "utf8"));
   } catch (e) {
+    if (fallback !== undefined) return fallback;
     fail(`could not read ${path}: ${e.message}`);
     return null;
   }
@@ -76,6 +77,14 @@ if (!spec || !templateDoc) {
   errors.forEach((e) => console.error(`  error: ${e}`));
   process.exit(1);
 }
+
+/* The pattern index is authored upstream, not derived here.
+ *
+ * It could be rebuilt by scanning the phase files -- it was, for one
+ * release -- but it carries two fields the phases do not: the template's
+ * display name, and the first line of each problem's insight. Re-deriving
+ * would silently drop both, and the index is the screen those belong on. */
+const patternIndexDoc = readJson(join(SRC, "PATTERN-INDEX.json"), null);
 
 const templates = templateDoc.templates || [];
 const templateIds = new Set(templates.map((t) => t.id));
@@ -404,8 +413,35 @@ const stale = existsSync(OUT)
   ? readdirSync(OUT).filter((f) => /^phase-.*\.json$/.test(f) && !declared.has(f))
   : [];
 
+/* The index is authored against the same content, so disagreement means one
+   of the two was regenerated without the other. Worth saying rather than
+   shipping a revision screen that points at problems the sheet does not
+   have. */
+const patternRows = (patternIndexDoc && patternIndexDoc.patterns) || [];
+if (patternIndexDoc) {
+  const known = new Set(index.map((p) => p.id));
+  const orphanRows = patternRows.filter((r) => r.problem_id && !known.has(r.problem_id));
+  const uncovered = index.filter((p) => !patternRows.some((r) => r.problem_id === p.id));
+  if (orphanRows.length) fail(`PATTERN-INDEX.json cites ${orphanRows.length} problem(s) not in the sheet: ${orphanRows.slice(0, 3).map((r) => r.problem_id).join(", ")}`);
+  if (uncovered.length) warn(`${uncovered.length} problem(s) have no row in PATTERN-INDEX.json`);
+  for (const r of patternRows) {
+    if (r.template_id && !templateIds.has(r.template_id)) {
+      warn(`PATTERN-INDEX.json row ${r.pattern} cites missing template ${r.template_id}`);
+    }
+  }
+} else {
+  warn("no PATTERN-INDEX.json; the pattern index screen will be empty");
+}
+
+if (errors.length) {
+  console.error(`\nrefusing to import -- ${errors.length} error(s):\n`);
+  errors.forEach((e) => console.error(`  ${e}`));
+  process.exit(1);
+}
+
 if (!CHECK_ONLY) {
   stale.forEach((f) => rmSync(join(OUT, f)));
+  writeFileSync(join(OUT, "pattern-index.json"), JSON.stringify({ count: patternRows.length, patterns: patternRows }));
   writeFileSync(join(OUT, "spec.json"), JSON.stringify(specOut, null, 1));
   writeFileSync(join(OUT, "templates.json"), JSON.stringify({ count: templates.length, templates }, null, 1));
   writeFileSync(join(OUT, "index.json"), JSON.stringify(indexOut));
@@ -433,6 +469,7 @@ console.log(`\n  problems    ${index.length} of ${spec.pool_size} in the pool`);
 console.log(`  phases      ${phaseSummaries.length} of ${spec.phases.length} imported` +
   (pending.length ? `  (awaiting ${pending.join(", ")})` : ""));
 console.log(`  templates   ${templates.length}`);
+console.log(`  pattern rows ${patternRows.length}`);
 if (stale.length) {
   console.log(`  removed     ${stale.length} phase file(s) for keys SPEC no longer declares:`);
   stale.forEach((f) => console.log(`                ${f}`));

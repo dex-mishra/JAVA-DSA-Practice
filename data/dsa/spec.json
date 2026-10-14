@@ -50,10 +50,10 @@
    "day_start": 14,
    "day_end": 21,
    "quota": 38,
-   "problem_count": 0,
-   "theory_count": 0,
-   "learning_count": 0,
-   "loaded": false
+   "problem_count": 38,
+   "theory_count": 1,
+   "learning_count": 27,
+   "loaded": true
   },
   {
    "key": "V4",
@@ -76,10 +76,10 @@
    "day_start": 30,
    "day_end": 30,
    "quota": 2,
-   "problem_count": 0,
-   "theory_count": 0,
-   "learning_count": 0,
-   "loaded": false
+   "problem_count": 2,
+   "theory_count": 1,
+   "learning_count": 3,
+   "loaded": true
   }
  ],
  "topic_quota": {

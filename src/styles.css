@@ -1236,3 +1236,12 @@ body.domain-dsa::before { background: linear-gradient(rgba(13, 148, 136, .09), t
 @media (max-width: 720px) {
   .dsa-patlist li { grid-template-columns: 1fr; gap: 2px; }
 }
+
+/* The insight line under a pattern name. Dimmed and small: it is the answer
+   to a self-test, so it must be readable but not the first thing the eye
+   lands on when scanning the names. */
+.dsa-patinsight {
+  grid-column: 1 / -1; font-size: 11.5px; line-height: 1.5;
+  color: var(--ink-3); margin-top: 2px;
+}
+.dsa-patlist li.done .dsa-patinsight { opacity: .6; }

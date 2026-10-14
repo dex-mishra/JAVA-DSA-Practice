@@ -1,0 +1,198 @@
+{
+ "id": "mock-01",
+ "title": "Mock OA 01",
+ "covers_days": [
+  1,
+  2,
+  3
+ ],
+ "duration_min": 90,
+ "total_marks": 100,
+ "problems": [
+  {
+   "id": "mock-01-q1",
+   "ord": 1,
+   "title": "Fleet Transponder",
+   "marks": 25,
+   "difficulty": "Easy",
+   "statement": "A logistics firm fits every lorry in its fleet with a transponder that broadcasts a numeric unit ID. A depot receiver logs one reading per broadcast over a shift.\n\nOne lorry is faulty: its transponder broadcasts far more often than it should. Specifically, the audit team has established that exactly one unit ID occupies **strictly more than half** of all readings in the log.\n\nIdentify that unit ID.\n\nThe depot's receiver is an embedded device with almost no spare memory, so your solution must use **O(1) additional space** beyond the input. Sorting the log in place is also unavailable: the log is a read-only stream.",
+   "input_format": "The first line contains a single integer n, the number of readings.\nThe second line contains n space-separated integers, the unit IDs in the order they were logged.",
+   "output_format": "Print a single integer: the unit ID occupying strictly more than half the readings.",
+   "constraints": "1 <= n <= 5 * 10^5\n-10^9 <= unit ID <= 10^9\nIt is guaranteed that exactly one unit ID occupies strictly more than n/2 readings.\nAdditional space: O(1). The input may not be modified or sorted.",
+   "samples": [
+    {
+     "input": "7\n4 9 4 4 2 4 4",
+     "output": "4",
+     "explanation": "Unit 4 appears 5 times out of 7, which is strictly more than 3.5."
+    },
+    {
+     "input": "3\n-6 -6 1",
+     "output": "-6",
+     "explanation": "Unit -6 appears twice out of three. Negative IDs are valid."
+    }
+   ],
+   "hidden": [
+    {
+     "desc": "n = 1, single reading",
+     "marks": 2
+    },
+    {
+     "desc": "majority at the very start of the log",
+     "marks": 3
+    },
+    {
+     "desc": "majority at the very end of the log",
+     "marks": 3
+    },
+    {
+     "desc": "majority exactly n/2 + 1 occurrences, maximally spread",
+     "marks": 5
+    },
+    {
+     "desc": "all IDs negative",
+     "marks": 3
+    },
+    {
+     "desc": "IDs at the \u00b110^9 boundary",
+     "marks": 3
+    },
+    {
+     "desc": "n = 5*10^5, performance",
+     "marks": 6
+    }
+   ],
+   "tests_pattern": "boyer-moore-voting",
+   "source_day": 1,
+   "intended_approach": "Boyer-Moore voting. Hold a candidate and a counter. A matching reading increments the counter, a differing one decrements it, and hitting zero replaces the candidate. The survivor is the majority element.\n\nThe counting argument: each decrement pairs one majority occurrence against one non-majority occurrence. Since the majority count exceeds n/2, the other readings cannot exhaust it, so at least one occurrence survives as the candidate.",
+   "intended_complexity": "O(n) time, O(1) space.",
+   "common_wrong_turn": "Reaching for a frequency hash map. It is O(n) time and correct, but O(n) space \u2014 which the problem explicitly forbids. The O(1) space line in the constraints is the instruction, not decoration.\n\nThe second wrong turn is sorting and taking the middle element: O(n log n) time, and the problem says the input cannot be sorted.",
+   "related": "hashing-majority-element"
+  },
+  {
+   "id": "mock-01-q2",
+   "ord": 2,
+   "title": "Reservoir Balance",
+   "marks": 35,
+   "difficulty": "Medium",
+   "statement": "A municipal reservoir records a net water-level change at the end of every hour. A positive value means inflow exceeded outflow that hour; a negative value means the reservoir lost water.\n\nThe operations team wants to audit how often the reservoir returned to a target net change over a continuous stretch of hours. Formally: count the number of **contiguous** hour ranges whose net changes sum to exactly k.\n\nTwo ranges are different if they start or end at different hours, even if they contain the same values.",
+   "input_format": "The first line contains two integers n and k, the number of hourly readings and the target net change.\nThe second line contains n space-separated integers, the hourly net changes in order.",
+   "output_format": "Print a single integer: the number of contiguous hour ranges summing to exactly k.",
+   "constraints": "1 <= n <= 2 * 10^5\n-10^4 <= each hourly change <= 10^4\n-10^9 <= k <= 10^9\nThe answer may exceed the range of a 32-bit signed integer.",
+   "samples": [
+    {
+     "input": "5 3\n1 2 -1 3 -2",
+     "output": "3",
+     "explanation": "Prefix sums are 0, 1, 3, 2, 5, 3. Three ranges sum to 3: hours [1,2] give 1+2=3; hour [4] alone gives 3; and the full range [1..5] gives 1+2-1+3-2=3. Note that [2,3,4] gives 4 and does not qualify."
+    },
+    {
+     "input": "4 0\n2 -2 2 -2",
+     "output": "4",
+     "explanation": "Four ranges sum to zero: [1,2] = 2-2, [2,3] = -2+2, [3,4] = 2-2, and the full range [1..4] = 0. A target of zero is valid, and the negative values are what let overlapping ranges qualify."
+    }
+   ],
+   "hidden": [
+    {
+     "desc": "n = 1 with the single value equal to k",
+     "marks": 3
+    },
+    {
+     "desc": "n = 1 with the single value not equal to k",
+     "marks": 2
+    },
+    {
+     "desc": "all values zero, k = 0 (answer is n(n+1)/2)",
+     "marks": 5
+    },
+    {
+     "desc": "k = 0 with alternating positives and negatives",
+     "marks": 5
+    },
+    {
+     "desc": "a valid range starting at hour 1",
+     "marks": 4
+    },
+    {
+     "desc": "answer exceeding 2^31 - 1",
+     "marks": 6
+    },
+    {
+     "desc": "all values negative, k negative",
+     "marks": 4
+    },
+    {
+     "desc": "n = 2*10^5, performance",
+     "marks": 6
+    }
+   ],
+   "tests_pattern": "prefix-sum-hashmap",
+   "source_day": 3,
+   "intended_approach": "Prefix sums with a hash map. A range (j, i] sums to k exactly when P(i) - P(j) = k, i.e. P(j) = P(i) - k. Keep a map from prefix value to how many times it has occurred, and at each step add the count of P(i) - k to the answer.\n\nSeed the map with {0: 1} for the empty prefix, or every range starting at hour 1 is missed.",
+   "intended_complexity": "O(n) time, O(n) space.",
+   "common_wrong_turn": "A sliding window. The constraints permit negative values, which means extending the window can DECREASE the sum \u2014 so 'shrink while too large' is not a sound correction and the window misses valid ranges. The negative lower bound in the constraints is the signal that rules it out.\n\nThe second wrong turn is forgetting the {0: 1} seed, which silently drops every range that starts at the first hour. The third is accumulating the prefix in a 32-bit int: 2*10^5 values of 10^4 reaches 2*10^9.",
+   "related": "arrays-subarray-sum-equals-k"
+  },
+  {
+   "id": "mock-01-q3",
+   "ord": 3,
+   "title": "Shift Roster",
+   "marks": 40,
+   "difficulty": "Medium",
+   "statement": "A hospital ward holds a pool of available shift slots, each with a fixed duration in hours. The roster clerk must assemble sets of slots whose durations sum to exactly a required total.\n\nEach slot in the pool may be used **at most once**. Two slots may happen to have the same duration \u2014 they are distinct slots, but a roster is identified only by the multiset of durations it uses, so two rosters using the same durations are the same roster and must be reported once.\n\nReturn every distinct roster, with the durations inside each roster in non-decreasing order, and the rosters themselves in lexicographic order.",
+   "input_format": "The first line contains two integers n and target.\nThe second line contains n space-separated integers, the slot durations.",
+   "output_format": "Print one roster per line, durations space-separated in non-decreasing order.\nRosters must appear in lexicographic order.\nIf no roster exists, print the single word NONE.",
+   "constraints": "1 <= n <= 100\n1 <= each duration <= 50\n1 <= target <= 60\nThe pool may contain repeated durations.\nThe number of distinct rosters fits comfortably in memory.",
+   "samples": [
+    {
+     "input": "4 8\n2 5 2 3",
+     "output": "3 5",
+     "explanation": "Sorted durations are 2 2 3 5. The only subset summing to 8 is {3, 5}. Note {2,2,3} = 7 and {2,5} = 7, neither of which qualifies."
+    },
+    {
+     "input": "5 7\n1 2 2 3 4",
+     "output": "1 2 4\n2 2 3\n3 4",
+     "explanation": "Sorted durations are 1 2 2 3 4. Three distinct rosters sum to 7: {1,2,4}, {2,2,3} and {3,4}. {1,2,4} can be built using either of the two 2s, but both give the same multiset, so it is reported once."
+    }
+   ],
+   "hidden": [
+    {
+     "desc": "no valid roster exists, expect NONE",
+     "marks": 4
+    },
+    {
+     "desc": "exactly one roster, using every slot",
+     "marks": 4
+    },
+    {
+     "desc": "all durations identical",
+     "marks": 6
+    },
+    {
+     "desc": "many duplicate durations, checking no repeated rosters",
+     "marks": 8
+    },
+    {
+     "desc": "a single slot equal to the target",
+     "marks": 3
+    },
+    {
+     "desc": "durations larger than the target present in the pool",
+     "marks": 4
+    },
+    {
+     "desc": "n = 100 with heavy duplication, performance",
+     "marks": 7
+    },
+    {
+     "desc": "output ordering, lexicographic",
+     "marks": 4
+    }
+   ],
+   "tests_pattern": "bounded-combination-dedup",
+   "source_day": 2,
+   "intended_approach": "Sort the durations, then backtrack. Two changes from the unbounded version:\n\n1. Recurse with `i + 1`, not `i`, because each slot is used at most once.\n2. Skip duplicate siblings: `if (i > start && a[i] == a[i-1]) continue;`. The condition is `i > start` and not `i > 0`, because equal durations may legitimately both appear along one path \u2014 they just must not be chosen as alternatives at the same level.\n\nSorting also enables a strong prune: `if (a[i] > remaining) break;`.",
+   "intended_complexity": "O(2^n) worst case, heavily pruned. The sorted break is usually the difference between accepting and timing out.",
+   "common_wrong_turn": "Three separate traps.\n\nFirst, recursing with `i` instead of `i + 1`, which allows a slot to be reused and produces rosters the problem forbids.\n\nSecond, using `i > 0` instead of `i > start` in the duplicate skip, which wrongly discards valid rosters containing two slots of equal duration.\n\nThird, collecting results into a set of strings to deduplicate. It works, but it is slower and signals that you did not see why the sibling skip is the right mechanism.",
+   "related": "recursion-combination-sum-ii"
+  }
+ ]
+}

@@ -1,5 +1,5 @@
 {
- "count": 73,
+ "count": 76,
  "templates": [
   {
    "id": "T-HASH-01",
@@ -805,6 +805,39 @@
    "notes": [
     "Clamping at zero replaces an explicit disjointness branch.",
     "Beyond two sets, inclusion-exclusion is exponential - switch to a sweep line."
+   ]
+  },
+  {
+   "id": "T-ARR-01",
+   "name": "Boyer-Moore voting",
+   "topic": "arrays",
+   "when": "Find an element appearing more than n/k times, in O(1) space.",
+   "code": "// More than n/2: one candidate, one counter.\nint majorityElement(vector<int>& a) {\n    int cand = a[0], cnt = 0;\n    for (int x : a) {\n        if (cnt == 0) cand = x;\n        cnt += (x == cand) ? 1 : -1;\n    }\n    return cand;                              // verify with a second pass if not guaranteed\n}\n// More than n/3: at most two can exist -> two candidates, two counters.\n// Branch order matters: match c1, match c2, cnt1==0, cnt2==0, else decrement both.",
+   "notes": [
+    "Each decrement pairs one majority occurrence against one non-majority occurrence; the majority cannot be exhausted.",
+    "For n/k, keep k-1 candidates (Misra-Gries). A verification pass is mandatory unless existence is guaranteed."
+   ]
+  },
+  {
+   "id": "T-DP-08",
+   "name": "Game DP (minimax over a range)",
+   "topic": "dp",
+   "when": "Two players alternate optimally; stone games, prediction games.",
+   "code": "// dp[i][j] = best score DIFFERENCE the current player can force on a[i..j]\nint solve(int i, int j, vector<int>& a, vector<vector<int>>& memo) {\n    if (i > j) return 0;\n    if (memo[i][j] != INT_MIN) return memo[i][j];\n    int takeLeft  = a[i] - solve(i + 1, j, a, memo);   // subtract: opponent's turn next\n    int takeRight = a[j] - solve(i, j - 1, a, memo);\n    return memo[i][j] = max(takeLeft, takeRight);\n}\n// Player 1 wins iff solve(0, n-1) >= 0",
+   "notes": [
+    "Store the DIFFERENCE, not two separate scores - it halves the state and removes the whose-turn dimension.",
+    "The minus sign is the whole trick: the opponent plays optimally against you."
+   ]
+  },
+  {
+   "id": "T-DP-09",
+   "name": "DP with binary search on a sorted dimension",
+   "topic": "dp",
+   "when": "Weighted interval scheduling, longest chains with a predecessor lookup.",
+   "code": "// Jobs sorted by end time. dp[i] = best profit considering the first i jobs.\nint jobScheduling(vector<array<int,3>>& jobs) {     // {end, start, profit}\n    sort(jobs.begin(), jobs.end());\n    int n = jobs.size();\n    vector<int> dp(n + 1, 0), ends(n);\n    for (int i = 0; i < n; i++) ends[i] = jobs[i][0];\n    for (int i = 0; i < n; i++) {\n        // latest job ending at or before this job's start\n        int p = upper_bound(ends.begin(), ends.begin() + i, jobs[i][1]) - ends.begin();\n        dp[i + 1] = max(dp[i], dp[p] + jobs[i][2]);  // skip, or take\n    }\n    return dp[n];\n}",
+   "notes": [
+    "Sorting by END is what makes the predecessor a prefix, so binary search applies.",
+    "O(n log n) instead of the O(n^2) scan for a compatible predecessor."
    ]
   }
  ]

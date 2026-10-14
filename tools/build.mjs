@@ -175,42 +175,42 @@ if (dsa) {
   emit("data/dsa/learnings.json", { learnings });
 
   /* The pattern index — PRD §3.4, and the revision surface the whole sheet
-     is built around. Every problem owns a named pattern, so the list of
-     names is a list of things you should be able to explain.
-     Grouped by pattern rather than one row per problem: the PRD assumed a
-     pattern maps to exactly one problem, and 8 of them do not. `bfs-levels`
-     covers level-order and right-side-view; `bottom-up-return` covers three.
-     Collapsing those to one entry each is not a loss -- "these three are the
-     same idea" is the single most useful thing the index can tell you. */
+     is built around. Read from the authored PATTERN-INDEX.json rather than
+     rebuilt by scanning the phases: it carries the template's display name
+     and the first line of each insight, neither of which the phase files
+     have, and both of which belong on this screen.
+
+     Grouped by pattern, not one row per problem. 124 distinct patterns cover
+     the 145 problems, so twenty-one of them teach two or three — and saying
+     so is the point. "Level-order and right-side-view are the same
+     traversal" is worth more than listing them apart. */
+  const indexRows = readJson(join("dsa", "pattern-index.json"), { patterns: [] }).patterns;
   const patterns = new Map();
-  for (const row of dsa.index.problems) {
+  for (const row of indexRows) {
     const key = row.pattern || "(unnamed)";
     if (!patterns.has(key)) {
-      patterns.set(key, { pattern: key, topic: row.topic, template_id: row.template || "", problems: [] });
+      patterns.set(key, {
+        pattern: key,
+        topic: row.topic,
+        template_id: row.template_id || "",
+        template_name: row.template_name || "",
+        problems: []
+      });
     }
-    const entry = patterns.get(key);
-    entry.problems.push({
-      id: row.id, title: row.title, topic: row.topic, day: row.day,
-      phase: row.phase, difficulty: row.difficulty, tier: row.tier,
-      url: row.url, template_id: row.template || ""
+    patterns.get(key).problems.push({
+      id: row.problem_id, title: row.title, topic: row.topic, day: row.day,
+      phase: row.phase, difficulty: row.difficulty, url: row.lc_url,
+      insight: row.insight_first_line || ""
     });
-    // A pattern shared across topics is filed under the first one it appears
-    // in, which is where it was taught.
-    if (row.day < entry.problems[0].day) entry.topic = row.topic;
   }
   for (const entry of patterns.values()) entry.problems.sort((a, b) => a.day - b.day);
 
   emit("data/dsa/patterns.json", {
     count: patterns.size,
-    problem_count: dsa.index.problems.length,
+    problem_count: indexRows.length,
     patterns: [...patterns.values()].sort((a, b) =>
       a.problems[0].day - b.problems[0].day || a.pattern.localeCompare(b.pattern))
   });
-
-  for (const t of templates) {
-    const users = (templateUsers.get(t.id) || []).sort((a, b) => a.day - b.day);
-    emit(`data/dsa/template/${t.id}.json`, { ...t, used_by: users });
-  }
 
   emit("data/dsa/templates.json", {
     templates: templates.map((t) => ({

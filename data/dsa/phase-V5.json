@@ -1,0 +1,211 @@
+{
+ "key": "V5",
+ "slug": "v5-advanced",
+ "title": "Advanced & Revision",
+ "goal": "Tries, the hardest leftovers, and the revision queue.",
+ "day_start": 30,
+ "day_end": 30,
+ "problem_count": 2,
+ "theory": [
+  {
+   "id": "t-tries",
+   "title": "Tries",
+   "links": [
+    "[Striver: Trie](https://www.youtube.com/watch?v=dBGUmUQhjaM)"
+   ],
+   "parts": {
+    "breadth": "\n**What it is.** A trie is a tree where each edge is a character and each path from the root spells a\nprefix. Words sharing a prefix share the path, which is what makes prefix queries cheap.\n\n```cpp\nstruct Trie {\n    Trie* ch[26] = {};\n    bool end = false;\n    void insert(const string& w) {\n        Trie* n = this;\n        for (char c : w) {\n            if (!n->ch[c-'a']) n->ch[c-'a'] = new Trie();\n            n = n->ch[c-'a'];\n        }\n        n->end = true;\n    }\n    bool search(const string& w) {\n        Trie* n = this;\n        for (char c : w) { if (!n->ch[c-'a']) return false; n = n->ch[c-'a']; }\n        return n->end;\n    }\n    bool startsWith(const string& p) {\n        Trie* n = this;\n        for (char c : p) { if (!n->ch[c-'a']) return false; n = n->ch[c-'a']; }\n        return true;                    // reached the end of the prefix: it exists\n    }\n};\n```\n\nThe `end` flag is what distinguishes a stored word from a mere prefix. Without it, `search(\"ca\")`\nwould return true for a trie containing only \"cat\".\n\n**Complexity.** Insert, search and prefix-check are all **O(L)** in the word length and\n**independent of how many words are stored** — that independence is the whole point. A hash set\ngives O(L) membership too, but cannot answer prefix queries at all.\n\nSpace is O(total characters × alphabet size) with a fixed array per node. A `map<char, Trie*>` is\nleaner for sparse or large alphabets at the cost of a log factor per step.\n\n**When to reach for it.**\n\n- Autocomplete, \"words starting with\", prefix counting\n- A dictionary queried many times against a fixed word set\n- Searching many words against one text at once — build a trie of the words and walk the text once\n- Maximum XOR pair, by building a **binary** trie over the bits of each number\n\n**Comparison.**\n\n| Need | Structure |\n|---|---|\n| exact membership only | hash set — O(L), smaller |\n| prefix queries, autocomplete | trie |\n| sorted iteration | balanced BST |\n| many patterns against one text | trie, or Aho-Corasick |\n",
+    "depth": "\n**Why a trie beats a hash set despite both being O(L).** The bound is the same for exact lookup, but\na hash set cannot answer \"does any stored word start with this prefix\" without scanning everything.\nThe trie's structure *is* the prefix index. State this when asked why not just hash.\n\n**Space is the real cost.** 26 pointers per node at 8 bytes each is 208 bytes per node before the\nflag. A dictionary of 10⁵ words averaging 10 characters is up to 10⁶ nodes, so ~200 MB in the worst\ncase — though shared prefixes reduce it enormously in practice. Mitigations: `map<char, Trie*>` for\nsparse nodes, or a compressed trie (radix tree) that collapses non-branching chains into single\nedges holding a substring.\n\n**Wildcards.** Supporting `.` as \"any character\" turns search from a walk into a DFS: at a `.` you\nmust try every existing child. Worst case O(26^d) for d wildcards, which is why the problem bounds\nthem. The implementation is a recursive search rather than a loop, and that change is the whole of\nLC 211.\n\n**Binary tries for XOR.** Insert each number as a 32-bit path, most significant bit first. To\nmaximise XOR against a query, walk greedily preferring the **opposite** bit at every level. This is\nexact because a higher bit outweighs every lower bit combined: 2^k > 2^k − 1. That inequality is the\ngreedy's proof, and it is the follow-up interviewers ask.\n\n**Aho-Corasick** extends a trie with failure links — on a mismatch, jump to the longest proper suffix\nthat is still a prefix of some pattern, exactly like KMP's lps generalised to many patterns. It finds\nall occurrences of all patterns in O(text + total pattern length + matches). Worth being able to name\nand describe at one level of depth; rarely worth implementing in an interview.\n\n**Memory management.** The naive `new Trie()` leaks. In an interview, say so and offer either a vector\nof nodes with integer indices — faster, cache-friendly, trivially freed — or smart pointers. The\nindex-based form is what competitive implementations use:\n\n```cpp\nvector<array<int,26>> ch{ {} };        // node 0 is the root\nvector<bool> end{false};\nint newNode() { ch.push_back({}); end.push_back(false); return ch.size()-1; }\n```\n\n**The grilling chain.**\n\n- *Why a trie rather than a hash set?* — Prefix queries, which a hash cannot answer.\n- *What does the `end` flag do?* — Distinguishes a stored word from a prefix of one.\n- *What is the space cost, and how would you reduce it?* — 26 pointers per node; name radix\n  compression and the map-per-node alternative.\n- *Support `.` as a wildcard.* — Search becomes a DFS branching over all children.\n- *Maximum XOR pair in better than O(n²).* — Binary trie, greedy opposite bit, with the\n  2^k > 2^k − 1 argument.\n- *Find all of 10⁴ patterns in a 10⁶-character text.* — Aho-Corasick; a trie alone still needs one\n  pass per start position.\n",
+    "analogy": {
+     "What a trie is": "\nA library index organised by the first letter, then the second, then the third. To find everything\nbeginning \"pho\", you walk to P, then H, then O, and everything below that point qualifies.\n\nA hash set is more like a cloakroom: you hand over the exact title and get an instant yes or no, but\nyou cannot ask what else starts with \"pho\".\n",
+     "The end flag": "\nWalking to P-H-O-N-E tells you that path exists. It does not tell you whether \"phone\" is itself a\nword in the index or merely the beginning of \"phonetics\".\n\nThe flag is a small tick at that node saying \"a real entry stops here\".\n",
+     "Why the greedy bit choice is exact": "\nChoosing between a thousand-rupee note and any combination of smaller notes that add to less than a\nthousand. The single large note always wins, so you take it whenever it is available.\n\nEach bit position is worth more than every position below it combined, which is why taking the\nopposite bit greedily, from the top down, cannot be improved on.\n"
+    }
+   }
+  }
+ ],
+ "learnings": [
+  {
+   "id": "L-TR-01",
+   "topic": "tries",
+   "day": 30,
+   "headline": "The end flag is what makes a trie a dictionary",
+   "detail": "Without it, reaching a node only proves the path exists - not that a word stops there. search and startsWith differ in exactly that one test.",
+   "applied": [
+    [
+     "implement-trie-prefix-tree",
+     "the boolean checked by search and ignored by startsWith"
+    ]
+   ]
+  },
+  {
+   "id": "L-TR-02",
+   "topic": "tries",
+   "day": 30,
+   "headline": "A trie's cost is independent of how many words it holds",
+   "detail": "Every operation is O(L) in the query length regardless of dictionary size. A hash set matches that for exact lookup but cannot answer prefix queries at all.",
+   "applied": [
+    [
+     "implement-trie-prefix-tree",
+     "walking one character per step, never touching unrelated words"
+    ]
+   ]
+  },
+  {
+   "id": "L-TR-03",
+   "topic": "tries",
+   "day": 30,
+   "headline": "A wildcard turns a walk into a search",
+   "detail": "When you cannot tell which child to follow, you must try all of them - so the loop becomes recursion and the bound gains a factor of the alphabet size per wildcard.",
+   "applied": [
+    [
+     "design-add-and-search-words-data-structure",
+     "branching over all 26 children at every '.'"
+    ]
+   ]
+  }
+ ],
+ "problems": [
+  {
+   "id": "tries-implement-trie-prefix-tree",
+   "order": 1,
+   "phase": "V5",
+   "day": 30,
+   "topic": "tries",
+   "tier": "CORE",
+   "title": "Implement Trie (Prefix Tree)",
+   "lc": {
+    "id": "208",
+    "slug": "implement-trie-prefix-tree",
+    "url": "https://leetcode.com/problems/implement-trie-prefix-tree/",
+    "difficulty": "Medium",
+    "ac_rate": 70,
+    "tags": [
+     "Hash Table",
+     "String",
+     "Design",
+     "Trie"
+    ]
+   },
+   "tuf": {
+    "article": "https://takeuforward.org/data-structure/implement-trie-1/",
+    "youtube": "https://www.youtube.com/watch?v=dBGUmUQhjaM",
+    "striver_title": "Trie Implementation and Operations"
+   },
+   "pattern": "trie-insert-search",
+   "template": "T-TRIE-01",
+   "companies": [
+    "Amazon",
+    "Google",
+    "Facebook",
+    "Microsoft",
+    "Bloomberg"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "The whole structure in three methods. The one detail that matters is the `end` flag - without it there is no way to distinguish a stored word from a prefix of one, and search('ca') would wrongly succeed on a trie holding only 'cat'.",
+    "trick": "26-pointer array per node plus a boolean. insert walks and creates; search walks and checks the flag; startsWith walks and checks only that the path exists.",
+    "edge_cases": [
+     "search and startsWith differ ONLY in whether the end flag is tested.",
+     "An empty string inserted marks the root as a word end.",
+     "`new Trie()` leaks - mention the vector-of-nodes alternative with integer indices."
+    ],
+    "complexity": {
+     "time": "O(L) per operation",
+     "space": "O(total characters × 26)",
+     "why": "every operation walks one character at a time, independent of how many words are stored. That independence is the reason to use a trie at all."
+    },
+    "siblings": [
+     "design-add-and-search-words-data-structure",
+     "word-search-ii",
+     "replace-words",
+     "maximum-xor-of-two-numbers-in-an-array"
+    ],
+    "followups": [
+     {
+      "q": "Why not a hash set?",
+      "a": "A hash set matches O(L) for exact lookup but cannot answer prefix queries without scanning every word. The trie's structure is the prefix index."
+     },
+     {
+      "q": "Reduce the memory.",
+      "a": "map<char, Trie*> for sparse nodes, or a radix tree collapsing non-branching chains into one edge holding a substring. 26 pointers per node is 208 bytes before the flag."
+     },
+     {
+      "q": "Count how many words share a prefix.",
+      "a": "Store a counter per node, incremented on every insert passing through. Then the count is a single O(L) walk."
+     }
+    ]
+   }
+  },
+  {
+   "id": "tries-design-add-and-search-words-data-structure",
+   "order": 2,
+   "phase": "V5",
+   "day": 30,
+   "topic": "tries",
+   "tier": "CORE",
+   "title": "Design Add and Search Words Data Structure",
+   "lc": {
+    "id": "211",
+    "slug": "design-add-and-search-words-data-structure",
+    "url": "https://leetcode.com/problems/design-add-and-search-words-data-structure/",
+    "difficulty": "Medium",
+    "ac_rate": 49,
+    "tags": [
+     "String",
+     "Depth-First Search",
+     "Design",
+     "Trie"
+    ]
+   },
+   "tuf": {
+    "article": null,
+    "youtube": null,
+    "striver_title": null
+   },
+   "pattern": "trie-with-wildcard",
+   "template": "T-TRIE-01",
+   "companies": [
+    "Amazon",
+    "Google",
+    "Facebook",
+    "Microsoft"
+   ],
+   "campus_oa": "HIGH",
+   "learnings": {
+    "insight": "The wildcard turns search from a walk into a search. At a '.' you cannot know which child to follow, so you must try all of them - which means recursion rather than a loop. That is the only change from a plain trie.",
+    "trick": "Recursive search(node, word, index). On a normal character follow that child; on '.' loop over all 26 children and recurse into each existing one, returning true on the first success.",
+    "edge_cases": [
+     "'.' must branch over all existing children, not just the first.",
+     "A word of all dots matches any stored word of that length.",
+     "Worst case is O(26^d) for d wildcards, which is why the problem bounds them.",
+     "The end flag is still what terminates a successful match."
+    ],
+    "complexity": {
+     "time": "O(L) with no wildcards, O(26^d · L) with d of them",
+     "space": "O(total characters × 26)",
+     "why": "a normal walk is linear; each wildcard multiplies the branching by the alphabet size."
+    },
+    "siblings": [
+     "implement-trie-prefix-tree",
+     "word-search-ii",
+     "regular-expression-matching"
+    ],
+    "followups": [
+     {
+      "q": "Support '*' meaning zero or more characters.",
+      "a": "Now it is regex matching against a trie - the branch must also consider staying at the same node. Substantially harder, and closer to LC 10 than to this."
+     },
+     {
+      "q": "Why is this O(26^d) and not O(L)?",
+      "a": "Each '.' forces exploring every child subtree. With d wildcards the search tree branches 26 ways d times."
+     },
+     {
+      "q": "Bound it better in practice.",
+      "a": "Index words by length first, so a search only explores the trie restricted to matching lengths. Does not change the worst case but helps enormously on real data."
+     }
+    ]
+   }
+  }
+ ]
+}

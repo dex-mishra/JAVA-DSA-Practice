@@ -3026,9 +3026,18 @@
                     (dsaIsDone(dsaRow(q.id).status) ? ' <span class="dsa-patick">✓</span>' : "");
                 }).join('<span class="dsa-patsep">·</span>') + "</span>" +
                 (p.template_id
-                  ? '<a class="dsa-tlink" href="#" data-dsa-template="' + esc(p.template_id) + '">' +
+                  ? '<a class="dsa-tlink" href="#" data-dsa-template="' + esc(p.template_id) + '"' +
+                    (p.template_name ? ' title="' + esc(p.template_name) + '"' : "") + ">" +
                     esc(p.template_id) + "</a>"
                   : '<span class="dsa-patnotmpl">—</span>') +
+                /* The first line of the insight, under the pattern name.
+                   A name alone tests recall of a label; the line underneath
+                   is what you are actually supposed to be able to say, so it
+                   is the answer to check yourself against -- which is why it
+                   is here and dimmed rather than hidden behind a click. */
+                (p.problems[0].insight
+                  ? '<span class="dsa-patinsight">' + esc(p.problems[0].insight) + "</span>"
+                  : "") +
                 "</li>";
             }).join("") + "</ul></div>";
         }).join("");
@@ -3047,6 +3056,8 @@
       "<p>A tick means you have worked every problem under that name. Where a pattern lists two " +
       "or three problems, they are the same idea seen from different angles — that is worth " +
       "knowing as much as the pattern itself.</p>" +
+      "<p>The dimmed line under each name is the first line of that problem\u2019s insight — the " +
+      "answer to check yourself against. Say your sentence first, then read it.</p>" +
       "<p>The code on the right is the C++ template for the pattern. Click it to read the shape " +
       "you should be able to type from memory.</p>");
   }
