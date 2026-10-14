@@ -955,6 +955,7 @@
   TABS.push({ id: "dsa-revision", label: "Revision", domain: "dsa", section: "dsa" });
   TABS.push({ id: "dsa-theory", label: "Theory", domain: "dsa", section: "dsa" });
   TABS.push({ id: "dsa-templates", label: "Templates", domain: "dsa", section: "dsa" });
+  TABS.push({ id: "dsa-oa", label: "OAs", domain: "dsa", section: "dsa" });
   TABS.push({ id: "mba", label: "MBA Windows", domain: "mba", section: "mba" });
 
   var SECTION = "placement";
@@ -1511,6 +1512,7 @@
     else if (tab.id === "dsa-revision") panel.innerHTML = renderDsaRevision();
     else if (tab.id === "dsa-theory") panel.innerHTML = renderDsaTheory();
     else if (tab.id === "dsa-templates") panel.innerHTML = renderDsaTemplates();
+    else if (tab.id === "dsa-oa") panel.innerHTML = renderDsaOa();
     else panel.innerHTML = renderTrack(tab.track);
 
     renderHeader();
@@ -1533,6 +1535,16 @@
       if (tab.id === "dsa-theory" && DSAV.theory) dsaFillTheory();
       if (tab.id === "dsa-templates") {
         if (DSAV.template) dsaFillTemplate(); else dsaFillTemplateList();
+      }
+      if (tab.id === "dsa-oa") {
+        bindOa();
+        // The list is the only OA screen that paints before its fetch.
+        if (OAV.view === "list" && !OAV.list && !OAV.error) oaLoadList();
+      } else {
+        // Leaving the tab stops the countdown repainting an element that
+        // is no longer on the page. The attempt itself keeps running --
+        // the clock belongs to the server, not to this interval.
+        oaStopTimer();
       }
       /* A repaint puts an expanded row's detail div back empty, so anything
          still open has to be refilled. Cached after the first fetch, so this
@@ -2890,6 +2902,791 @@
       host.innerHTML = '<p class="muted">Theory is served by the console API, which is not ' +
         "reachable from here.</p>";
     });
+  }
+
+  /* ====================================================================
+     The OAs
+     ====================================================================
+
+     A timed mock assessment, modelled on the HackerRank screen because that
+     is what campus OAs actually use and the familiarity is part of what is
+     being trained.
+
+     Three things here are deliberately unlike the rest of this file:
+
+     - Nothing is cached. The sheet's content is static and cacheable; a
+       mock's content is handed out per attempt and the answers never leave
+       the Worker, so every screen here is a fetch.
+     - The clock is the server's. `OAV.deadline` is derived from the
+       `remaining_ms` the API reports and re-derived on every response, so a
+       paused laptop or a fiddled system clock buys nothing.
+     - The draft is local. Code is written to localStorage on every
+       keystroke, because losing 40 minutes of work to a refresh is the one
+       failure this screen must not have. */
+
+  var OAV = {
+    view: "list",      // list | attempt | review | history
+    list: null,        // the mocks payload; null means "not fetched yet"
+    inProgress: [],    // live attempts the server will still accept work for
+    attemptId: null,
+    mock: null,        // the attempt payload, without answers
+    qid: null,         // the open problem
+    state: {},         // per problem: submitted, marks, passed, total
+    deadline: 0,       // ms epoch, from the server's remaining_ms
+    expired: false,
+    runner: null,
+    langs: [],
+    lang: "cpp",
+    results: {},       // per problem: the last run or submit result
+    busy: "",          // "run" | "submit" | "finish", for the button states
+    review: null,
+    history: null,
+    error: ""
+  };
+
+  var OA_TIMER = null;
+  var OA_DRAFT = "launch-console-oa-draft-v1";
+
+  function oaDrafts() {
+    try { return JSON.parse(localStorage.getItem(OA_DRAFT) || "{}") || {}; } catch (e) { return {}; }
+  }
+  function oaDraft(attemptId, qid) {
+    var all = oaDrafts();
+    var one = all[attemptId + ":" + qid];
+    return one && typeof one.code === "string" ? one : null;
+  }
+  function oaSaveDraft(attemptId, qid, code, lang) {
+    var all = oaDrafts();
+    all[attemptId + ":" + qid] = { code: code, lang: lang, at: Date.now() };
+    /* Drafts are only ever useful for the attempt you are in. Keeping the
+       last 40 keys bounds the thing without a cleanup pass that would have
+       to know which attempts are finished. */
+    var keys = Object.keys(all);
+    if (keys.length > 40) {
+      keys.sort(function (a, b) { return (all[a].at || 0) - (all[b].at || 0); });
+      keys.slice(0, keys.length - 40).forEach(function (k) { delete all[k]; });
+    }
+    try { localStorage.setItem(OA_DRAFT, JSON.stringify(all)); } catch (e) { /* full or blocked */ }
+  }
+
+  var OA_STARTER = {
+    cpp:
+      "#include <bits/stdc++.h>\nusing namespace std;\n\n" +
+      "int main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n\n    return 0;\n}\n",
+    python: "import sys\n\ndef main():\n    data = sys.stdin.read().split()\n\n\nmain()\n"
+  };
+
+  function oaClock(ms) {
+    var total = Math.max(0, Math.floor(ms / 1000));
+    var m = Math.floor(total / 60);
+    var s = total % 60;
+    return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  function oaRemaining() {
+    return Math.max(0, OAV.deadline - Date.now());
+  }
+
+  /* Every response carries the server's remaining_ms. Rebasing the local
+     deadline on each one means the countdown can drift between calls but
+     never past the next one, and the submit endpoint is the authority
+     regardless of what the display says. */
+  function oaSync(payload) {
+    if (payload && typeof payload.remaining_ms === "number") {
+      OAV.deadline = Date.now() + payload.remaining_ms;
+      OAV.expired = payload.remaining_ms <= 0;
+    }
+    if (payload && payload.runner) OAV.runner = payload.runner;
+    if (payload && payload.langs) OAV.langs = payload.langs;
+    if (payload && payload.state) OAV.state = payload.state;
+  }
+
+  function oaStopTimer() {
+    if (OA_TIMER) { clearInterval(OA_TIMER); OA_TIMER = null; }
+  }
+
+  /* The countdown repaints one element rather than calling render(), because
+     a full repaint once a second would throw away the editor's cursor. */
+  function oaStartTimer() {
+    oaStopTimer();
+    OA_TIMER = setInterval(function () {
+      var el = document.querySelector("[data-oa-clock]");
+      if (!el) { oaStopTimer(); return; }
+      var left = oaRemaining();
+      el.textContent = oaClock(left);
+      el.className = "oa-clock" + (left <= 5 * 60000 ? " red" : left <= 15 * 60000 ? " amber" : "");
+      if (left <= 0 && !OAV.expired) {
+        OAV.expired = true;
+        /* Time is up. The attempt is not auto-finished behind your back --
+           that would discard a problem you were about to submit without
+           anything on screen saying so -- but everything stops accepting
+           work and the only button left is the one that ends it. */
+        render();
+      }
+    }, 1000);
+  }
+
+  // ------------------------------------------------------------ the list
+
+  function renderDsaOa() {
+    if (OAV.view === "attempt") return oaAssessment();
+    if (OAV.view === "review") return oaReview();
+    if (OAV.view === "history") return oaHistory();
+    return oaList();
+  }
+
+  function oaHelpPanel() {
+    return dsaHelp("oa", "What an OA is for, and how this one is scored",
+      "<p>The sheet asks whether you can solve a problem <i>when you already know which " +
+      "pattern it is</i>. A real assessment never tells you that. It wraps a known pattern " +
+      "in an unfamiliar story, gives you ninety minutes for three problems, and says nothing " +
+      "about where they came from. That gap — recognition under time pressure, with no label " +
+      "— is the only thing this tab trains.</p>" +
+
+      "<p><b>A mock only ever uses days you have already done.</b> Every problem records the " +
+      "day it was drawn from, and the mock declares the days it covers. That is what makes a " +
+      "bad score diagnostic rather than demoralising: it can only tell you about material you " +
+      "have actually studied.</p>" +
+
+      "<h5>During the attempt</h5>" +
+      dl([
+        ["<b>The clock</b>",
+         "Ninety minutes, counted by the server from the moment you start. Closing the tab, " +
+         "reloading, or shutting the laptop does not pause it — that is the point. It turns " +
+         "amber under fifteen minutes and red under five."],
+        ["<b>Run Code</b>",
+         "Runs your code against the <i>sample</i> cases only, and shows you exactly what it " +
+         "printed next to what was expected. Samples are worth <b>zero marks</b>. They exist " +
+         "so you can catch a format mistake before spending your one submission."],
+        ["<b>Submit</b>",
+         "Grades against the hidden tests and <b>locks the problem</b>. There is no second " +
+         "attempt, which is what makes the time pressure real. You see which tests passed and " +
+         "what each was checking, never their input or expected output."],
+        ["<b>Partial credit</b>",
+         "Every hidden test carries its own marks, so a solution that handles the ordinary " +
+         "cases and misses the edge ones scores accordingly. A program that does not compile " +
+         "scores zero and shows you the compiler's own message — it is not graded as a wrong " +
+         "answer."]
+      ]) +
+
+      "<h5>What is hidden, and why</h5>" +
+      "<p>While the clock is running, the page is not told the pattern, the topic, the day a " +
+      "problem came from, or which sheet problem teaches it. None of that is merely hidden in " +
+      "the interface — it never leaves the server until you finish, because a page that knows " +
+      "the answer is a page you can read the answer out of.</p>" +
+
+      "<h5>Afterwards</h5>" +
+      "<p>The review names the pattern each problem was diagnosing, the intended approach and " +
+      "complexity, and the wrong turn most people take, with a link back to the sheet problem " +
+      "that teaches it. <b>Anything you attempted and did not finish is written straight back " +
+      "into your revision queue</b> at confidence 2 — so a mock reorders what you practise " +
+      "next without you transcribing anything. It never raises a confidence you set yourself: " +
+      "ninety minutes is good evidence that you do not know something and poor evidence that " +
+      "you do.</p>");
+  }
+
+  function oaRunnerNote() {
+    if (!OAV.runner || OAV.runner.ready) return "";
+    return '<div class="oa-warn"><b>No code runner is configured.</b><p>' +
+      esc(OAV.runner.reason) + "</p><p>You can still read the problems and write solutions — " +
+      "<i>Run Code</i> and <i>Submit</i> are what need it.</p></div>";
+  }
+
+  function oaList() {
+    var mocks = OAV.list || null;
+    if (OAV.error) {
+      return '<div class="card"><h3>Online assessments</h3><p class="muted">' + esc(OAV.error) + "</p></div>";
+    }
+    if (!mocks) return '<div class="card"><h3>Online assessments</h3><p class="muted">Loading…</p></div>';
+
+    var live = (OAV.inProgress || [])[0];
+
+    var rows = mocks.mocks.map(function (m) {
+      var days = m.covers_days.length
+        ? "days " + m.covers_days[0] + "–" + m.covers_days[m.covers_days.length - 1]
+        : "";
+      /* The prerequisite is reported, not enforced. See the note on the
+         server: the only evidence here is what has been ticked in this
+         tracker, and days done on paper are common enough that a hard lock
+         would mostly be wrong. */
+      var unmet = oaUnmetDays(m);
+      return '<div class="oa-card">' +
+        '<div class="oa-card-hd"><h4>' + esc(m.title) + "</h4>" +
+          '<span class="oa-chip">' + m.duration_min + " min</span>" +
+          '<span class="oa-chip">' + m.problem_count + " problems</span>" +
+          '<span class="oa-chip">' + m.total_marks + " marks</span></div>" +
+        '<p class="muted">Built from ' + esc(days) + " of the sheet. " +
+          esc(m.difficulty.replace(/-/g, " ")) + ".</p>" +
+        (unmet
+          ? '<p class="oa-unmet">You have not ticked everything in ' + esc(days) +
+            " yet. You can still take it — the warning is here because a mock is only a fair " +
+            "diagnostic of material you have actually worked through.</p>"
+          : "") +
+        '<button class="btn" data-oa-start="' + esc(m.id) + '" type="button">' +
+          (live ? "Start a new attempt" : "Start the assessment") + "</button>" +
+      "</div>";
+    }).join("");
+
+    return '<div class="card">' +
+      "<h3>Online assessments</h3>" +
+      '<p class="muted">Ninety minutes, three problems, no hints, and a clock that does not ' +
+        "stop. Everything here is drawn from days the sheet says you have done.</p>" +
+      oaHelpPanel() +
+      oaRunnerNote() +
+      (live
+        ? '<div class="oa-resume"><b>You have an attempt in progress.</b> ' +
+          '<button class="btn" data-oa-resume="' + live.id + '" type="button">Resume it</button>' +
+          "</div>"
+        : "") +
+      '<div class="oa-cards">' + rows + "</div>" +
+      '<p class="oa-histlink"><a href="#" data-oa-history="1">Past attempts and per-pattern accuracy →</a></p>' +
+    "</div>";
+  }
+
+  /* A day counts as done when every problem the sheet puts on it is done.
+     Same definition the rest of the tab uses, so the two cannot disagree. */
+  function oaUnmetDays(mock) {
+    if (!DSA_PROBLEMS || !DSA_PROBLEMS.length) return false;
+    for (var i = 0; i < mock.covers_days.length; i++) {
+      var day = mock.covers_days[i];
+      var onDay = DSA_PROBLEMS.filter(function (p) { return p.day === day; });
+      if (!onDay.length) continue;
+      var done = onDay.filter(function (p) { return dsaIsDone(dsaRow(p.id).status); });
+      if (done.length < onDay.length) return true;
+    }
+    return false;
+  }
+
+  // ------------------------------------------------------ the assessment
+
+  function oaProblem() {
+    if (!OAV.mock) return null;
+    return OAV.mock.problems.find(function (q) { return q.id === OAV.qid; }) || OAV.mock.problems[0];
+  }
+
+  function oaAssessment() {
+    if (!OAV.mock) return '<div class="card"><p class="muted">Loading the assessment…</p></div>';
+
+    var q = oaProblem();
+    var left = oaRemaining();
+    var scored = OAV.mock.problems.reduce(function (n, p) {
+      return n + ((OAV.state[p.id] && OAV.state[p.id].marks) || 0);
+    }, 0);
+    var done = OAV.mock.problems.every(function (p) {
+      return OAV.state[p.id] && OAV.state[p.id].submitted;
+    });
+
+    var tabs = OAV.mock.problems.map(function (p) {
+      var st = OAV.state[p.id] || {};
+      return '<button class="oa-qtab' + (p.id === q.id ? " on" : "") + (st.submitted ? " done" : "") +
+        '" data-oa-q="' + esc(p.id) + '" type="button">Q' + p.ord +
+        (st.submitted ? ' <span class="oa-tick">✓</span>' : "") + "</button>";
+    }).join("");
+
+    return '<div class="oa-screen">' +
+      '<div class="oa-bar">' +
+        '<div class="oa-bar-l"><span class="oa-title">' + esc(OAV.mock.title) + "</span>" + tabs + "</div>" +
+        '<div class="oa-bar-r">' +
+          '<span class="oa-marks">' + scored + " / " + OAV.mock.total_marks + " marks</span>" +
+          '<span class="oa-clock' + (left <= 5 * 60000 ? " red" : left <= 15 * 60000 ? " amber" : "") +
+            '" data-oa-clock="1">' + oaClock(left) + "</span>" +
+          '<button class="btn tiny" data-oa-finish="1" type="button">' +
+            (done || OAV.expired ? "Finish and see the review" : "Finish early") + "</button>" +
+        "</div>" +
+      "</div>" +
+
+      (OAV.expired
+        ? '<div class="oa-expired">Time is up. Nothing further can be submitted — finish to see ' +
+          "the review.</div>"
+        : "") +
+
+      '<div class="oa-panes">' +
+        '<div class="oa-statement">' + oaStatement(q) + "</div>" +
+        '<div class="oa-editor-wrap">' + oaEditor(q) + "</div>" +
+      "</div>" +
+    "</div>";
+  }
+
+  function oaStatement(q) {
+    var samples = (q.samples || []).map(function (s, i) {
+      return '<div class="oa-sample"><h5>Sample ' + (i + 1) + "</h5>" +
+        '<div class="oa-io"><div><span class="oa-iolab">Input</span><pre>' + esc(s.input) + "</pre></div>" +
+        '<div><span class="oa-iolab">Output</span><pre>' + esc(s.output) + "</pre></div></div>" +
+        (s.explanation ? '<p class="oa-expl">' + mdInline(s.explanation) + "</p>" : "") +
+      "</div>";
+    }).join("");
+
+    var st = OAV.state[q.id] || {};
+
+    return '<div class="oa-qhead"><h3>' + esc(q.title) + "</h3>" +
+        '<span class="dsa-diff d-' + esc(String(q.difficulty).toLowerCase()) + '">' +
+          esc(q.difficulty) + "</span>" +
+        '<span class="oa-chip">' + q.marks + " marks</span>" +
+        '<span class="oa-chip">' + q.hidden_count + " hidden tests</span>" +
+        (st.submitted ? '<span class="oa-locked">submitted — ' + st.marks + "/" + q.marks + "</span>" : "") +
+      "</div>" +
+      '<div class="oa-body">' + md(q.statement) + "</div>" +
+      '<div class="oa-fmt"><h5>Input</h5>' + md(q.input_format) + "</div>" +
+      '<div class="oa-fmt"><h5>Output</h5>' + md(q.output_format) + "</div>" +
+      '<div class="oa-fmt"><h5>Constraints</h5>' + md(q.constraints) + "</div>" +
+      samples;
+  }
+
+  function oaEditor(q) {
+    var st = OAV.state[q.id] || {};
+    var saved = oaDraft(OAV.attemptId, q.id);
+    var code = saved ? saved.code : (OA_STARTER[OAV.lang] || "");
+    var locked = !!st.submitted || OAV.expired;
+
+    var langs = (OAV.langs.length ? OAV.langs : [{ id: "cpp", label: "C++17" }]).map(function (l) {
+      return '<option value="' + esc(l.id) + '"' + (l.id === OAV.lang ? " selected" : "") + ">" +
+        esc(l.label) + "</option>";
+    }).join("");
+
+    return '<div class="oa-etop">' +
+        '<select class="oa-lang" data-oa-lang="1"' + (locked ? " disabled" : "") + ">" + langs + "</select>" +
+        '<span class="oa-esave" data-oa-saved="1"></span>' +
+      "</div>" +
+      '<div class="oa-code' + (locked ? " locked" : "") + '">' +
+        '<div class="oa-gutter" data-oa-gutter="1"></div>' +
+        '<div class="oa-codearea">' +
+          '<pre class="oa-hl" data-oa-hl="1" aria-hidden="true"></pre>' +
+          '<textarea class="oa-ta" data-oa-code="' + esc(q.id) + '" spellcheck="false" ' +
+            'autocapitalize="off" autocomplete="off"' + (locked ? " readonly" : "") + ">" +
+            esc(code) + "</textarea>" +
+        "</div>" +
+      "</div>" +
+      '<div class="oa-strip">' +
+        '<button class="btn tiny" data-oa-run="1" type="button"' +
+          (locked || OAV.busy ? " disabled" : "") + ">" +
+          (OAV.busy === "run" ? "Running…" : "Run Code") + "</button>" +
+        '<button class="btn tiny primary" data-oa-submit="1" type="button"' +
+          (locked || OAV.busy ? " disabled" : "") + ">" +
+          (OAV.busy === "submit" ? "Grading…" : st.submitted ? "Submitted" : "Submit") + "</button>" +
+        '<span class="oa-striphint">' +
+          (locked
+            ? "This problem is locked."
+            : "Run checks the samples and costs nothing. Submit grades the hidden tests and locks it.") +
+        "</span>" +
+      "</div>" +
+      '<div class="oa-results">' + oaResults(q) + "</div>";
+  }
+
+  function oaResults(q) {
+    var r = OAV.results[q.id];
+    if (!r) return "";
+
+    if (r.error) return '<div class="oa-warn"><b>Could not run your code.</b><p>' + esc(r.error) + "</p></div>";
+
+    if (r.compile_error) {
+      return '<div class="oa-compile"><h5>Compilation failed</h5><pre>' + esc(r.compile_error) + "</pre>" +
+        '<p class="muted">Zero marks, and not counted as a wrong answer — the compiler’s own ' +
+        "message is above, verbatim.</p></div>";
+    }
+
+    if (r.kind === "run") {
+      return '<table class="oa-table"><thead><tr><th>Sample</th><th>Verdict</th><th>Expected</th>' +
+        "<th>Your output</th></tr></thead><tbody>" +
+        r.tests.map(function (t, i) {
+          return "<tr><td>" + (i + 1) + '</td><td><span class="oa-v ' + esc(t.verdict) + '">' +
+            esc(t.verdict) + "</span></td><td><pre>" + esc(t.expected) + "</pre></td>" +
+            "<td><pre>" + esc(t.got || (t.stderr ? "(stderr) " + t.stderr : "")) + "</pre></td></tr>";
+        }).join("") + "</tbody></table>";
+    }
+
+    /* A submit result. The test's description is shown and its data is not:
+       printing what a hidden test fed in, or what it expected back, would
+       give the whole set away over two or three submissions. */
+    return '<div class="oa-scored"><b>' + r.marks + " / " + r.out_of + " marks</b> · " +
+        r.passed + " of " + r.total + " hidden tests passed</div>" +
+      '<table class="oa-table"><thead><tr><th>Test</th><th>Marks</th><th>Verdict</th><th>Time</th>' +
+      "</tr></thead><tbody>" +
+      r.tests.map(function (t) {
+        return "<tr><td>" + esc(t.desc) + "</td><td>" + t.earned + " / " + t.marks + "</td>" +
+          '<td><span class="oa-v ' + esc(t.verdict) + '">' + esc(t.verdict) + "</span></td>" +
+          "<td>" + (t.time_ms == null ? "—" : t.time_ms + " ms") + "</td></tr>";
+      }).join("") + "</tbody></table>";
+  }
+
+  // ---------------------------------------------------------- the review
+
+  function oaReview() {
+    var r = OAV.review;
+    if (!r) return '<div class="card"><p class="muted">Loading the review…</p></div>';
+
+    var byId = {};
+    r.review.problems.forEach(function (q) { byId[q.id] = q; });
+
+    var problems = r.mock.problems.map(function (q) {
+      var rev = byId[q.id] || {};
+      var got = r.per_problem[q.id] || {};
+      var sheet = DSA_BY_ID[rev.related];
+
+      return '<div class="oa-rev">' +
+        '<div class="oa-rev-hd"><h4>Q' + q.ord + " · " + esc(q.title) + "</h4>" +
+          '<span class="oa-chip">' + (got.marks || 0) + " / " + q.marks + " marks</span>" +
+          (got.submitted
+            ? '<span class="oa-chip">' + (got.passed || 0) + "/" + (got.total || 0) + " tests</span>" +
+              (got.minutes != null ? '<span class="oa-chip">at ' + got.minutes + " min</span>" : "")
+            : '<span class="oa-chip warn">not submitted</span>') +
+        "</div>" +
+
+        '<div class="dsa-lblock"><h4>What it was diagnosing</h4>' +
+          '<p><span class="dsa-pattern">' + esc(rev.tests_pattern || "—") + "</span>" +
+          (rev.source_day ? ' <span class="muted">— day ' + rev.source_day + " of the sheet</span>" : "") +
+          "</p></div>" +
+
+        '<div class="dsa-lblock"><h4>The intended approach</h4>' + md(rev.intended_approach || "") +
+          (rev.intended_complexity
+            ? '<p class="oa-cx">' + mdInline(rev.intended_complexity) + "</p>" : "") + "</div>" +
+
+        '<div class="dsa-lblock"><h4>The common wrong turn</h4>' + md(rev.common_wrong_turn || "") + "</div>" +
+
+        (sheet
+          ? '<div class="dsa-lblock"><h4>On the sheet</h4><p><a href="#" data-dsa-goto="' +
+            esc(rev.related) + '">' + esc(sheet.title) + "</a> teaches this pattern" +
+            ((got.marks || 0) < q.marks
+              ? " — and has just been flagged for revision at confidence 2."
+              : ".") + "</p></div>"
+          : "") +
+
+        (got.code
+          ? '<div class="dsa-lblock"><h4>What you wrote</h4>' + mdCode(got.code, got.lang || "cpp") + "</div>"
+          : "") +
+
+        (got.tests && got.tests.length
+          ? '<div class="dsa-lblock"><h4>Tests</h4><table class="oa-table"><tbody>' +
+            got.tests.map(function (t) {
+              return "<tr><td>" + esc(t.desc) + "</td><td>" + t.earned + " / " + t.marks + "</td>" +
+                '<td><span class="oa-v ' + esc(t.verdict) + '">' + esc(t.verdict) + "</span></td></tr>";
+            }).join("") + "</tbody></table></div>"
+          : "") +
+      "</div>";
+    }).join("");
+
+    var mins = Math.round((r.ended_at - r.started_at) / 60);
+
+    return '<div class="card">' +
+      '<div class="oa-score-hd">' +
+        "<h3>" + esc(r.mock.title) + " — review</h3>" +
+        '<div class="oa-bigscore b-' + esc(r.band.key) + '">' + r.score + " <span>/ " + r.total_marks + "</span></div>" +
+      "</div>" +
+      '<div class="oa-band b-' + esc(r.band.key) + '"><b>' + esc(r.band.reading) + ".</b> " +
+        esc(r.band.action) + "</div>" +
+      '<p class="muted">Finished in ' + mins + " minutes.</p>" +
+      problems +
+      '<p class="oa-histlink"><a href="#" data-oa-back="1">← Back to the assessments</a> · ' +
+        '<a href="#" data-oa-history="1">Past attempts →</a></p>' +
+    "</div>";
+  }
+
+  // --------------------------------------------------------- the history
+
+  function oaHistory() {
+    var h = OAV.history;
+    if (!h) return '<div class="card"><p class="muted">Loading…</p></div>';
+
+    if (!h.attempts.length) {
+      return '<div class="card"><h3>Past attempts</h3>' +
+        '<p class="muted">Nothing finished yet.</p>' +
+        '<p class="oa-histlink"><a href="#" data-oa-back="1">← Back to the assessments</a></p></div>';
+    }
+
+    var rows = h.attempts.map(function (a) {
+      return "<tr>" +
+        '<td><a href="#" data-oa-review="' + a.id + '">' + esc(a.mock_title) + "</a></td>" +
+        "<td>" + esc(new Date(a.started_at * 1000).toISOString().slice(0, 10)) + "</td>" +
+        '<td><b>' + a.score + "</b> / " + a.total_marks + "</td>" +
+        '<td><span class="oa-bandtag b-' + esc(a.band.key) + '">' + esc(a.band.reading) + "</span></td>" +
+      "</tr>";
+    }).join("");
+
+    /* The number the history is actually for. One mock tells you whether you
+       had a bad morning; the same pattern missed three times is a gap, and
+       this is the only screen that can show the difference. */
+    var pats = h.patterns.map(function (p) {
+      var sheet = DSA_BY_ID[p.related];
+      return '<li><span class="oa-patbar"><i style="width:' + p.percent + '%"></i></span>' +
+        '<span class="dsa-pattern">' + esc(p.pattern) + "</span>" +
+        '<span class="oa-patpct">' + p.percent + "%</span>" +
+        '<span class="muted tiny">' + p.earned + "/" + p.out_of + " marks over " + p.attempts +
+          (p.attempts === 1 ? " attempt" : " attempts") + "</span>" +
+        (sheet ? ' <a href="#" data-dsa-goto="' + esc(p.related) + '">' + esc(sheet.title) + "</a>" : "") +
+      "</li>";
+    }).join("");
+
+    return '<div class="card">' +
+      "<h3>Past attempts</h3>" +
+      '<table class="oa-table"><thead><tr><th>Mock</th><th>Taken</th><th>Score</th><th>Reading</th>' +
+      "</tr></thead><tbody>" + rows + "</tbody></table>" +
+      "<h4>Accuracy by pattern</h4>" +
+      '<p class="muted">Weakest first, across every attempt. This is the list worth acting on — ' +
+        "a single bad score is a bad morning, the same pattern three times is a gap.</p>" +
+      '<ul class="oa-pats">' + pats + "</ul>" +
+      '<p class="oa-histlink"><a href="#" data-oa-back="1">← Back to the assessments</a></p>' +
+    "</div>";
+  }
+
+  // ------------------------------------------------------------- actions
+
+  function oaLoadList() {
+    return api("/api/oa/mocks").then(function (d) {
+      OAV.list = d;
+      OAV.inProgress = d.in_progress || [];
+      OAV.runner = d.runner;
+      OAV.langs = d.langs || [];
+      OAV.error = "";
+    }).catch(function (e) {
+      OAV.error = "Could not load the assessments: " + e.message;
+    }).then(function () {
+      if (ACTIVE === "dsa-oa") render();
+    });
+  }
+
+  function oaEnterAttempt(d) {
+    OAV.attemptId = d.attempt_id;
+    OAV.mock = d.mock;
+    OAV.qid = (d.mock.problems[0] || {}).id;
+    OAV.results = {};
+    OAV.view = "attempt";
+    oaSync(d);
+    if (!d.state) {
+      OAV.state = {};
+      d.mock.problems.forEach(function (q) {
+        OAV.state[q.id] = { submitted: false, marks: 0, passed: 0, total: 0 };
+      });
+    }
+    render();
+  }
+
+  function oaStart(mockId) {
+    api("/api/oa/attempt", { method: "POST", body: JSON.stringify({ mock_id: mockId }) })
+      .then(oaEnterAttempt)
+      .catch(function (e) { toast(e.message); oaLoadList(); });
+  }
+
+  function oaResume(id) {
+    api("/api/oa/attempt/" + id).then(function (d) {
+      if (d.ended_at) { oaOpenReview(id); return; }
+      oaEnterAttempt(d);
+    }).catch(function (e) { toast(e.message); });
+  }
+
+  function oaCurrentCode() {
+    var ta = document.querySelector("[data-oa-code]");
+    return ta ? ta.value : "";
+  }
+
+  function oaRun() {
+    var q = oaProblem();
+    if (!q) return;
+    OAV.busy = "run";
+    render();
+    api("/api/oa/attempt/" + OAV.attemptId + "/run", {
+      method: "POST",
+      body: JSON.stringify({ problem_id: q.id, source: oaCurrentCode(), lang: OAV.lang })
+    }).then(function (d) {
+      OAV.results[q.id] = { kind: "run", tests: d.tests || [], compile_error: d.compile_error, error: d.error };
+    }).catch(function (e) {
+      OAV.results[q.id] = { kind: "run", tests: [], error: e.message };
+    }).then(function () {
+      OAV.busy = "";
+      render();
+    });
+  }
+
+  function oaSubmit() {
+    var q = oaProblem();
+    if (!q) return;
+    /* The one confirm in the tab. Submitting is irreversible by design and
+       there is no second attempt, so a misplaced click should not cost the
+       problem. */
+    if (!window.confirm("Submit Q" + q.ord + "? This grades it against the hidden tests and " +
+        "locks it — there is no second submission.")) return;
+
+    OAV.busy = "submit";
+    render();
+    api("/api/oa/attempt/" + OAV.attemptId + "/submit/" + encodeURIComponent(q.id), {
+      method: "POST",
+      body: JSON.stringify({ source: oaCurrentCode(), lang: OAV.lang })
+    }).then(function (d) {
+      OAV.results[q.id] = {
+        kind: "submit", marks: d.marks, out_of: d.out_of, passed: d.passed,
+        total: d.total, tests: d.tests || [], compile_error: d.compile_error
+      };
+      OAV.state[q.id] = { submitted: true, marks: d.marks, passed: d.passed, total: d.total };
+    }).catch(function (e) {
+      // A backend failure is not a zero and does not lock anything.
+      OAV.results[q.id] = { kind: "submit", tests: [], error: e.message };
+    }).then(function () {
+      OAV.busy = "";
+      render();
+    });
+  }
+
+  function oaFinish() {
+    var unsubmitted = OAV.mock.problems.filter(function (q) {
+      return !(OAV.state[q.id] && OAV.state[q.id].submitted);
+    });
+    if (unsubmitted.length && !OAV.expired) {
+      if (!window.confirm("Finish now? " + unsubmitted.length +
+          (unsubmitted.length === 1 ? " problem has" : " problems have") +
+          " not been submitted and will score zero.")) return;
+    }
+    OAV.busy = "finish";
+    render();
+    api("/api/oa/attempt/" + OAV.attemptId + "/finish", { method: "POST" })
+      .then(function (d) {
+        oaStopTimer();
+        /* The write-back has already happened server-side. Refreshing the
+           local progress cache is what makes the sheet show the new
+           confidence and revision flags without a reload. */
+        if ((d.revision_queue || []).length) {
+          toast(d.revision_queue.length + " problem(s) flagged for revision");
+          /* The write-back happened server-side, so the local cache is now
+             a version behind on exactly the rows the review is about to
+             link to. Pulling once here is what makes the sheet show the new
+             confidence without a reload. */
+          dsaSyncFromServer();
+        }
+        return oaOpenReview(OAV.attemptId);
+      })
+      .catch(function (e) { toast(e.message); })
+      .then(function () { OAV.busy = ""; render(); });
+  }
+
+  function oaOpenReview(id) {
+    return api("/api/oa/attempt/" + id + "/review").then(function (d) {
+      OAV.review = d;
+      OAV.view = "review";
+      OAV.mock = null;
+      oaStopTimer();
+      render();
+    }).catch(function (e) { toast(e.message); });
+  }
+
+  function oaOpenHistory() {
+    OAV.view = "history";
+    render();
+    api("/api/oa/history").then(function (d) {
+      OAV.history = d;
+      if (ACTIVE === "dsa-oa") render();
+    }).catch(function (e) { toast(e.message); });
+  }
+
+  // -------------------------------------------------------------- the editor
+
+  /* A textarea with a highlighted <pre> behind it, which is the only way to
+     get syntax colour without either a CDN dependency or a contenteditable
+     div that fights the browser over newlines. The two must agree exactly on
+     font, size, padding and wrapping or the text drifts apart, which is what
+     the shared .oa-ta/.oa-hl rules in the stylesheet are for. */
+  function oaPaintEditor() {
+    var ta = document.querySelector("[data-oa-code]");
+    var hl = document.querySelector("[data-oa-hl]");
+    var gutter = document.querySelector("[data-oa-gutter]");
+    if (!ta || !hl) return;
+
+    var code = ta.value;
+    /* A trailing newline would collapse in the <pre> and leave the last line
+       unhighlighted while the textarea still shows it. */
+    hl.innerHTML = (OAV.lang === "cpp" ? highlightCpp(code) : esc(code)) + "\n";
+
+    if (gutter) {
+      var lines = code.split("\n").length;
+      var nums = "";
+      for (var i = 1; i <= lines; i++) nums += i + "\n";
+      gutter.textContent = nums;
+    }
+    hl.scrollTop = ta.scrollTop;
+    hl.scrollLeft = ta.scrollLeft;
+    if (gutter) gutter.scrollTop = ta.scrollTop;
+  }
+
+  function bindOa() {
+    document.querySelectorAll("[data-oa-start]").forEach(function (b) {
+      b.onclick = function () { oaStart(b.dataset.oaStart); };
+    });
+    document.querySelectorAll("[data-oa-resume]").forEach(function (b) {
+      b.onclick = function () { oaResume(Number(b.dataset.oaResume)); };
+    });
+    document.querySelectorAll("[data-oa-q]").forEach(function (b) {
+      b.onclick = function () { OAV.qid = b.dataset.oaQ; render(); };
+    });
+    document.querySelectorAll("[data-oa-run]").forEach(function (b) { b.onclick = oaRun; });
+    document.querySelectorAll("[data-oa-submit]").forEach(function (b) { b.onclick = oaSubmit; });
+    document.querySelectorAll("[data-oa-finish]").forEach(function (b) { b.onclick = oaFinish; });
+
+    document.querySelectorAll("[data-oa-history]").forEach(function (a) {
+      a.onclick = function (e) { e.preventDefault(); oaOpenHistory(); };
+    });
+    document.querySelectorAll("[data-oa-review]").forEach(function (a) {
+      a.onclick = function (e) { e.preventDefault(); oaOpenReview(Number(a.dataset.oaReview)); };
+    });
+    document.querySelectorAll("[data-oa-back]").forEach(function (a) {
+      a.onclick = function (e) {
+        e.preventDefault();
+        OAV.view = "list"; OAV.review = null; OAV.mock = null;
+        render();
+        oaLoadList();
+      };
+    });
+
+    var lang = document.querySelector("[data-oa-lang]");
+    if (lang) {
+      lang.onchange = function () {
+        OAV.lang = lang.value;
+        var q = oaProblem();
+        /* Switching language on an untouched buffer swaps the starter in;
+           switching it on work in progress leaves the work alone. */
+        var ta = document.querySelector("[data-oa-code]");
+        if (ta && q) {
+          var untouched = Object.keys(OA_STARTER).some(function (k) {
+            return ta.value.trim() === (OA_STARTER[k] || "").trim();
+          });
+          if (untouched) ta.value = OA_STARTER[OAV.lang] || "";
+          oaSaveDraft(OAV.attemptId, q.id, ta.value, OAV.lang);
+        }
+        render();
+      };
+    }
+
+    var ta = document.querySelector("[data-oa-code]");
+    if (ta) {
+      var saved = document.querySelector("[data-oa-saved]");
+      var qid = ta.dataset.oaCode;
+      var paint = function () { oaPaintEditor(); };
+
+      ta.oninput = function () {
+        paint();
+        oaSaveDraft(OAV.attemptId, qid, ta.value, OAV.lang);
+        if (saved) {
+          saved.textContent = "saved";
+          clearTimeout(ta._savedBell);
+          ta._savedBell = setTimeout(function () { saved.textContent = ""; }, 1200);
+        }
+      };
+      ta.onscroll = paint;
+
+      /* Tab indents instead of leaving the editor. In a code box that is
+         what the key means, and losing focus mid-problem to the next
+         button is worse than losing the shortcut out. Escape then Tab
+         still gets you out, which is the accessible way round. */
+      ta.onkeydown = function (e) {
+        if (e.key !== "Tab" || e.shiftKey || ta.readOnly) return;
+        e.preventDefault();
+        var s = ta.selectionStart;
+        var t = ta.selectionEnd;
+        ta.value = ta.value.slice(0, s) + "    " + ta.value.slice(t);
+        ta.selectionStart = ta.selectionEnd = s + 4;
+        ta.oninput();
+      };
+
+      paint();
+    }
+
+    if (OAV.view === "attempt" && OAV.mock && !OAV.expired) oaStartTimer();
+    else oaStopTimer();
   }
 
   function renderDsaTemplates() {

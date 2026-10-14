@@ -30,6 +30,7 @@
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
+import { buildInput as oaBuildInput } from "../worker/oa-gen.js";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -209,6 +210,7 @@ if (danglingSiblings) {
   // these as plain LeetCode links instead of internal ones.
   warn(`${danglingSiblings} sibling references point outside the sheet (rendered as external links)`);
 }
+
 
 if (errors.length) {
   console.error(`\nrefusing to import -- ${errors.length} error(s):\n`);
@@ -443,6 +445,181 @@ if (patternIndexDoc) {
   warn("no PATTERN-INDEX.json; the pattern index screen will be empty");
 }
 
+// ---------------------------------------------------------------- the OAs
+
+/* Mock assessments, which go somewhere the sheet content deliberately does
+ * not: into the Worker bundle.
+ *
+ * PRD §5.1 is the reason. The sheet's phase files are static assets because
+ * they are meant to be read by the client. OA content is the opposite --
+ * `hidden_tests` must never reach the browser before submission, and
+ * anything under public/ is world-readable by definition. One curl of the
+ * mock and the assessment is worth nothing.
+ *
+ * So this writes worker/oa-content.json, which Wrangler bundles into the
+ * Worker, and nothing here is ever copied into public/. The build has a
+ * test that asserts exactly that.
+ */
+
+const OA_SRC = join(SRC, "oa");
+const OA_OUT = join(ROOT, "worker", "oa-content.json");
+
+const oaMocks = [];
+const knownPatterns = new Set(index.map((p) => p.pattern).filter(Boolean));
+const knownProblemIds = new Set(index.map((p) => p.id));
+
+/* The authored generator, run here and only here.
+ *
+ * This is the one place `builder_js` is evaluated, and it happens at import
+ * time on a developer's machine over content from this repository -- the
+ * same trust level as running this script at all. PRD §3.1 forbids it at
+ * request time, which is a different thing entirely, and the Worker never
+ * sees the string: it is stripped below. Evaluating it here is what makes
+ * the hand-written port in worker/oa-gen.js verifiable rather than a second
+ * copy that drifts. */
+function runAuthoredBuilder(source) {
+  return new Function(`${source}; return build();`)();
+}
+
+const oaFiles = existsSync(OA_SRC)
+  ? readdirSync(OA_SRC).filter((f) => /-problems\.json$/.test(f)).sort()
+  : [];
+
+for (const file of oaFiles) {
+  const mock = readJson(join(OA_SRC, file), null);
+  if (!mock) continue;
+
+  const where = `oa/${file}`;
+  if (!mock.id || !Array.isArray(mock.problems)) {
+    fail(`${where}: not a mock (needs id and problems[])`);
+    continue;
+  }
+
+  const coversDays = Array.isArray(mock.covers_days) ? mock.covers_days : [];
+  if (!coversDays.length) fail(`${where}: covers_days is empty -- the prerequisite rule has nothing to check`);
+  const lastCovered = Math.max(...coversDays, 0);
+
+  let marks = 0;
+  const problems = [];
+
+  for (const q of mock.problems) {
+    const qw = `${where} ${q.id}`;
+
+    /* §2: a mock may only use patterns from days already completed, and
+       `source_day` is what enforces it. A problem drawn from outside the
+       declared range makes the mock a test of unstudied material, which is
+       the one thing the tab exists not to be. */
+    if (!(q.source_day >= 1) || !coversDays.includes(q.source_day)) {
+      fail(`${qw}: source_day ${q.source_day} is not in covers_days [${coversDays.join(", ")}]`);
+    }
+    if (q.tests_pattern && !knownPatterns.has(q.tests_pattern)) {
+      fail(`${qw}: tests_pattern '${q.tests_pattern}' is not a pattern on the sheet`);
+    }
+    if (q.related && !knownProblemIds.has(q.related)) {
+      fail(`${qw}: related '${q.related}' is not a problem on the sheet`);
+    }
+
+    for (const [i, t] of (q.samples || []).entries()) {
+      if (typeof t.input !== "string" || typeof t.output !== "string") {
+        fail(`${qw}: sample[${i}] needs both input and output`);
+      }
+    }
+
+    const hidden = [];
+    let hiddenMarks = 0;
+
+    for (const [i, t] of (q.hidden || []).entries()) {
+      const key = `${q.id}#${i}`;
+      if (typeof t.output !== "string") {
+        fail(`${qw}: hidden[${i}] has no output -- it cannot be graded`);
+        continue;
+      }
+      hiddenMarks += Number(t.marks) || 0;
+
+      if (typeof t.input === "string") {
+        hidden.push({ desc: t.desc || "", marks: Number(t.marks) || 0, input: t.input, output: t.output });
+        continue;
+      }
+
+      if (!t.gen || typeof t.gen.builder_js !== "string") {
+        fail(`${qw}: hidden[${i}] has neither an input nor a gen.builder_js`);
+        continue;
+      }
+
+      /* The port check. Both sides build the same string or the import
+         stops -- a generator that has drifted would grade a correct
+         solution as wrong, silently, and only on the test that exists to
+         catch the slow ones. */
+      let authored;
+      try {
+        authored = runAuthoredBuilder(t.gen.builder_js);
+      } catch (e) {
+        fail(`${qw}: hidden[${i}] gen.builder_js does not run: ${e.message}`);
+        continue;
+      }
+      let ported;
+      try {
+        ported = oaBuildInput(key);
+      } catch (e) {
+        fail(`${qw}: hidden[${i}] ${e.message} -- port gen.builder_js into worker/oa-gen.js under key '${key}'`);
+        continue;
+      }
+      if (authored !== ported) {
+        fail(`${qw}: hidden[${i}] the port in worker/oa-gen.js disagrees with gen.builder_js ` +
+             `(authored ${authored.length} chars, ported ${ported.length}) -- re-port it under key '${key}'`);
+        continue;
+      }
+
+      /* builder_js and spec are dropped here. What reaches the Worker is a
+         key into the ported generators, so there is no source string in the
+         bundle to evaluate even by mistake. */
+      hidden.push({ desc: t.desc || "", marks: Number(t.marks) || 0, gen_key: key, output: t.output });
+    }
+
+    if (hiddenMarks !== Number(q.marks)) {
+      fail(`${qw}: hidden tests total ${hiddenMarks} marks but the problem declares ${q.marks}`);
+    }
+    marks += Number(q.marks) || 0;
+
+    problems.push({
+      id: q.id,
+      ord: q.ord,
+      title: q.title,
+      marks: q.marks,
+      difficulty: q.difficulty,
+      statement: q.statement,
+      input_format: q.input_format,
+      output_format: q.output_format,
+      constraints: q.constraints,
+      samples: q.samples || [],
+      hidden,
+      // The review payload. Served only after the attempt is finished.
+      tests_pattern: q.tests_pattern || "",
+      source_day: q.source_day,
+      intended_approach: q.intended_approach || "",
+      intended_complexity: q.intended_complexity || "",
+      common_wrong_turn: q.common_wrong_turn || "",
+      related: q.related || ""
+    });
+  }
+
+  if (marks !== Number(mock.total_marks)) {
+    fail(`${where}: problems total ${marks} marks but the mock declares ${mock.total_marks}`);
+  }
+
+  oaMocks.push({
+    id: mock.id,
+    title: mock.title,
+    covers_days: coversDays,
+    last_covered_day: lastCovered,
+    duration_min: mock.duration_min,
+    total_marks: mock.total_marks,
+    difficulty: mock.difficulty || "campus-standard",
+    grading: mock.grading || {},
+    problems: problems.sort((a, b) => a.ord - b.ord)
+  });
+}
+
 if (errors.length) {
   console.error(`\nrefusing to import -- ${errors.length} error(s):\n`);
   errors.forEach((e) => console.error(`  ${e}`));
@@ -455,6 +632,7 @@ if (!CHECK_ONLY) {
   writeFileSync(join(OUT, "spec.json"), JSON.stringify(specOut, null, 1));
   writeFileSync(join(OUT, "templates.json"), JSON.stringify({ count: templates.length, templates }, null, 1));
   writeFileSync(join(OUT, "index.json"), JSON.stringify(indexOut));
+  writeFileSync(OA_OUT, JSON.stringify({ count: oaMocks.length, mocks: oaMocks }));
 }
 
 // ---------------------------------------------------------------- output
@@ -485,6 +663,8 @@ if (stale.length) {
   stale.forEach((f) => console.log(`                ${f}`));
 }
 console.log(`  index.json  ${kb(JSON.stringify(indexOut).length)}  (baked into the page)`);
+console.log(`  OA mocks    ${oaMocks.length}, ${oaMocks.reduce((n, m) => n + m.problems.length, 0)} problems, ` +
+  `${kb(JSON.stringify({ mocks: oaMocks }).length)}  (bundled into the Worker, never public/)`);
 
 if (warnings.length) {
   console.log(`\n  ${warnings.length} warning(s):`);

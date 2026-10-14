@@ -25,6 +25,11 @@ import {
   emptyCustom, readCustom, allItems, cleanTags, refusal, sameTag,
   tagFault, DATE_OK, MAX_CUSTOM_MBA, MAX_TAGS_PER_ITEM
 } from "./mba.js";
+import {
+  getMock, allMocks, forList, forAttempt, forReview, gradeProblem, runSamples,
+  band, remainingMs, rawRemainingMs, expired, failedPatterns, MAX_SOURCE, GRACE_MIN
+} from "./oa.js";
+import { runnerStatus, LANGS } from "./runner.js";
 
 // A tick is an id and a boolean. Tens of thousands still fit well inside
 // this; anything larger is a bug or someone poking at the endpoint.
@@ -623,6 +628,350 @@ route("GET", /^\/api\/codeforces$/, async (_m, request, env) => {
     if (cached.data.payload) return json({ ...cached.data.payload, cf_handle: handle, stale: true });
     return json({ error: "could not reach Codeforces", cf_handle: handle });
   }
+});
+
+// -- OA mocks --------------------------------------------------------------
+
+/* The assessment tab. Three things make it different from everything else
+   under /api:
+   - the content is bundled into this Worker rather than served as a static
+     asset, because hidden tests must not be readable before submission;
+   - the clock is the server's, because a client timer is paused by closing
+     a laptop and the pressure is the point;
+   - a submitted problem locks, because being able to resubmit turns a
+     diagnostic into a debugger. */
+
+const LANG_IDS = new Set(LANGS.map((l) => l.id));
+
+async function readAttempt(db, id) {
+  const row = await db.prepare("SELECT * FROM oa_attempt WHERE id = ?").bind(id).first();
+  if (!row) return null;
+  let per = {};
+  try {
+    const parsed = JSON.parse(row.per_problem || "{}");
+    if (parsed && typeof parsed === "object") per = parsed;
+  } catch { /* a malformed blob is an empty one, not a 500 */ }
+  return { ...row, per_problem: per };
+}
+
+async function saveAttempt(db, id, per) {
+  await db.prepare("UPDATE oa_attempt SET per_problem = ? WHERE id = ?")
+    .bind(JSON.stringify(per), id).run();
+}
+
+/** Shared by every per-attempt route: find it, find its mock, and refuse
+ *  the ones that cannot be acted on. */
+async function openAttempt(env, rawId, { mustBeLive = true } = {}) {
+  const id = Number(rawId);
+  if (!Number.isInteger(id) || id <= 0) return { error: bad("not an attempt id", 400) };
+
+  const attempt = await readAttempt(env.DB, id);
+  if (!attempt) return { error: bad(`no attempt ${id}`, 404) };
+
+  const mock = getMock(attempt.mock_id);
+  if (!mock) return { error: bad(`attempt ${id} refers to '${attempt.mock_id}', which is no longer a mock`, 410) };
+
+  if (mustBeLive && attempt.ended_at) return { error: bad("this attempt has finished", 409) };
+  return { attempt, mock, id };
+}
+
+/* The prerequisite rule from PRD §2, as a soft gate.
+   Why soft: the rule exists so a mock is never a test of material you have
+   not studied, and the only evidence available here is what has been ticked
+   in this tracker. Days done on paper and never ticked are common enough
+   that a hard block would mostly be wrong, so the unmet days are reported
+   and the choice is left to the person who actually knows. */
+async function prerequisites(db, mock) {
+  const { results } = await db
+    .prepare("SELECT problem_id FROM dsa_progress WHERE status IN ('solved', 'revisit')")
+    .all();
+  const done = new Set((results || []).map((r) => r.problem_id));
+  return { solved_count: done.size, covers_days: mock.covers_days };
+}
+
+route("GET", /^\/api\/oa\/mocks$/, async (_m, _r, env) => {
+  const mocks = [];
+  for (const mock of allMocks()) {
+    mocks.push({ ...forList(mock), prerequisites: await prerequisites(env.DB, mock) });
+  }
+
+  const { results } = await env.DB
+    .prepare("SELECT id, mock_id, started_at FROM oa_attempt WHERE ended_at IS NULL ORDER BY started_at DESC")
+    .all();
+
+  /* An unfinished attempt whose clock has run out is not resumable, it is
+     just unfinished. Reporting it as live would offer a Resume button that
+     opens an assessment with zero seconds on it. */
+  const live = (results || [])
+    .map((r) => ({ id: r.id, mock_id: r.mock_id, started_at: r.started_at }))
+    .filter((r) => {
+      const mock = getMock(r.mock_id);
+      return mock && !expired(r, mock);
+    });
+
+  return json({ mocks, in_progress: live, runner: runnerStatus(env), langs: LANGS });
+});
+
+route("POST", /^\/api\/oa\/attempt$/, async (_m, request, env) => {
+  const payload = await body(request);
+  const mock = getMock(String(payload.mock_id || ""));
+  if (!mock) return bad("unknown mock", 404);
+
+  /* One live attempt at a time. Two open assessments on the same mock means
+     two clocks and two sets of drafts, and whichever is submitted second
+     silently wins. */
+  const open = await env.DB
+    .prepare("SELECT id, mock_id, started_at FROM oa_attempt WHERE ended_at IS NULL")
+    .all();
+  for (const row of open.results || []) {
+    const other = getMock(row.mock_id);
+    if (other && !expired(row, other)) {
+      return json({ error: "an attempt is already in progress", attempt_id: row.id }, 409);
+    }
+  }
+
+  const started = Date.now() / 1000;
+  const res = await env.DB
+    .prepare("INSERT INTO oa_attempt (mock_id, started_at, per_problem) VALUES (?, ?, '{}')")
+    .bind(mock.id, started).run();
+
+  const id = res.meta.last_row_id;
+  return json({
+    attempt_id: id,
+    started_at: started,
+    remaining_ms: remainingMs({ started_at: started }, mock),
+    mock: forAttempt(mock)
+  });
+});
+
+route("GET", /^\/api\/oa\/attempt\/(\d+)$/, async (match, _r, env) => {
+  const found = await openAttempt(env, match[1], { mustBeLive: false });
+  if (found.error) return found.error;
+  const { attempt, mock } = found;
+
+  /* The per-problem state the browser may know mid-attempt: whether it is
+     locked, and what it scored if it is. Not the code -- the browser has
+     its own draft and the stored copy is for the review screen. */
+  const state = {};
+  for (const q of mock.problems) {
+    const got = attempt.per_problem[q.id];
+    state[q.id] = got
+      ? { submitted: !!got.submitted, marks: got.marks || 0, passed: got.passed || 0,
+          total: got.total || 0, lang: got.lang || "cpp" }
+      : { submitted: false, marks: 0, passed: 0, total: 0, lang: "cpp" };
+  }
+
+  return json({
+    attempt_id: attempt.id,
+    started_at: attempt.started_at,
+    ended_at: attempt.ended_at,
+    remaining_ms: remainingMs(attempt, mock),
+    expired: expired(attempt, mock),
+    score: attempt.score,
+    state,
+    mock: forAttempt(mock),
+    runner: runnerStatus(env),
+    langs: LANGS
+  });
+});
+
+/* Shared validation for the two endpoints that take code. */
+function sourceFault(payload) {
+  const source = typeof payload.source === "string" ? payload.source : "";
+  const lang = String(payload.lang || "cpp");
+  if (!source.trim()) return { fault: "there is no code to run" };
+  if (source.length > MAX_SOURCE) return { fault: `the source is over ${MAX_SOURCE / 1024} KB` };
+  if (!LANG_IDS.has(lang)) return { fault: `unknown language '${lang}'` };
+  return { source, lang };
+}
+
+route("POST", /^\/api\/oa\/attempt\/(\d+)\/run$/, async (match, request, env) => {
+  const found = await openAttempt(env, match[1]);
+  if (found.error) return found.error;
+  const { attempt, mock } = found;
+  if (expired(attempt, mock)) return bad("time is up on this attempt", 409);
+
+  const payload = await body(request);
+  const problem = mock.problems.find((q) => q.id === String(payload.problem_id || ""));
+  if (!problem) return bad("unknown problem", 404);
+
+  const checked = sourceFault(payload);
+  if (checked.fault) return bad(checked.fault, 400);
+
+  const result = await runSamples(env, problem, checked);
+  return json({ problem_id: problem.id, ...result });
+});
+
+route("POST", /^\/api\/oa\/attempt\/(\d+)\/submit\/([A-Za-z0-9-]+)$/, async (match, request, env) => {
+  const found = await openAttempt(env, match[1]);
+  if (found.error) return found.error;
+  const { attempt, mock, id } = found;
+
+  const problem = mock.problems.find((q) => q.id === match[2]);
+  if (!problem) return bad("unknown problem", 404);
+
+  const already = attempt.per_problem[problem.id];
+  if (already && already.submitted) return bad("this problem has already been submitted", 409);
+
+  /* The clock is checked here rather than trusted from the client, and a
+     submission that arrives after time is refused outright. The grace is
+     for the round trip, not for thinking: a submit pressed at 00:00 should
+     not be lost to network latency. */
+  if (rawRemainingMs(attempt, mock) <= -GRACE_MIN * 60_000) {
+    return bad("time is up on this attempt", 409);
+  }
+
+  const checked = sourceFault(await body(request));
+  if (checked.fault) return bad(checked.fault, 400);
+
+  const graded = await gradeProblem(env, problem, checked);
+  if (!graded.ok) {
+    // A backend failure is not a zero. Nothing is locked and it can be
+    // submitted again once the runner is reachable.
+    return json({ problem_id: problem.id, error: graded.error, kind: graded.kind }, 502);
+  }
+
+  const minutes = Math.round((Date.now() / 1000 - attempt.started_at) / 60);
+  const per = { ...attempt.per_problem };
+  per[problem.id] = {
+    submitted: true,
+    code: checked.source,
+    lang: checked.lang,
+    marks: graded.marks,
+    passed: graded.passed,
+    total: graded.total,
+    tests: graded.tests,
+    compile_error: graded.compile_error || null,
+    minutes
+  };
+  await saveAttempt(env.DB, id, per);
+
+  return json({
+    problem_id: problem.id,
+    locked: true,
+    marks: graded.marks,
+    out_of: problem.marks,
+    passed: graded.passed,
+    total: graded.total,
+    compile_error: graded.compile_error || null,
+    tests: graded.tests
+  });
+});
+
+route("POST", /^\/api\/oa\/attempt\/(\d+)\/finish$/, async (match, _r, env) => {
+  const found = await openAttempt(env, match[1], { mustBeLive: false });
+  if (found.error) return found.error;
+  const { attempt, mock, id } = found;
+
+  if (attempt.ended_at) {
+    return json({ attempt_id: id, already_finished: true, score: attempt.score });
+  }
+
+  const per = attempt.per_problem;
+  const score = mock.problems.reduce((n, q) => n + ((per[q.id] && per[q.id].marks) || 0), 0);
+  const ended = Date.now() / 1000;
+
+  await env.DB.prepare("UPDATE oa_attempt SET ended_at = ?, score = ? WHERE id = ?")
+    .bind(ended, score, id).run();
+
+  /* PRD §7: feed the per-pattern accuracy back into the sheet. A problem
+     that was attempted and fell short sets its sheet problem to confidence
+     2 and flags it for revision, so the mock drives the revision queue
+     without anyone transcribing anything.
+
+     Confidence is only ever lowered. A mock is one data point under time
+     pressure; it is good evidence that you do not know something and poor
+     evidence that you do, so it may not raise a rating you earned by
+     working the problem properly. */
+  const failed = failedPatterns(mock, per);
+  const written = [];
+  for (const f of failed) {
+    const row = await env.DB.prepare("SELECT confidence FROM dsa_progress WHERE problem_id = ?")
+      .bind(f.problem_id).first();
+    const current = row && row.confidence !== null && row.confidence !== undefined
+      ? Number(row.confidence) : null;
+    const next = current === null ? 2 : Math.min(current, 2);
+    await patchDsaProgress(env.DB, f.problem_id, { confidence: next, revision: true });
+    written.push({ ...f, confidence: next });
+  }
+
+  return json({
+    attempt_id: id,
+    score,
+    total_marks: mock.total_marks,
+    band: band(score, mock.total_marks),
+    revision_queue: written
+  });
+});
+
+route("GET", /^\/api\/oa\/attempt\/(\d+)\/review$/, async (match, _r, env) => {
+  const found = await openAttempt(env, match[1], { mustBeLive: false });
+  if (found.error) return found.error;
+  const { attempt, mock } = found;
+
+  /* 403 until finished, per PRD §4. The review payload is the answer key:
+     the pattern, the intended approach, the complexity and the wrong turn.
+     Handing it over while the clock is running would make the tab a hint
+     system. */
+  if (!attempt.ended_at) return bad("the review opens when the attempt is finished", 403);
+
+  return json({
+    attempt_id: attempt.id,
+    started_at: attempt.started_at,
+    ended_at: attempt.ended_at,
+    score: attempt.score,
+    total_marks: mock.total_marks,
+    band: band(attempt.score || 0, mock.total_marks),
+    per_problem: attempt.per_problem,
+    mock: forAttempt(mock),
+    review: forReview(mock)
+  });
+});
+
+route("GET", /^\/api\/oa\/history$/, async (_m, _r, env) => {
+  const { results } = await env.DB
+    .prepare("SELECT * FROM oa_attempt WHERE ended_at IS NOT NULL ORDER BY started_at DESC LIMIT 50")
+    .all();
+
+  const attempts = [];
+  /* Accuracy per pattern across every attempt, which is the number the
+     history is for. One mock tells you whether you had a bad morning;
+     the same pattern missed three times is a gap. */
+  const patterns = new Map();
+
+  for (const row of results || []) {
+    const mock = getMock(row.mock_id);
+    if (!mock) continue;
+    let per = {};
+    try { per = JSON.parse(row.per_problem || "{}") || {}; } catch { /* skip */ }
+
+    const problems = mock.problems.map((q) => {
+      const got = per[q.id] || {};
+      const marks = got.marks || 0;
+      const acc = patterns.get(q.tests_pattern) || { pattern: q.tests_pattern, earned: 0, out_of: 0, attempts: 0, related: q.related };
+      acc.earned += marks;
+      acc.out_of += q.marks;
+      acc.attempts += 1;
+      patterns.set(q.tests_pattern, acc);
+      return { id: q.id, title: q.title, pattern: q.tests_pattern, marks, out_of: q.marks,
+               submitted: !!got.submitted, minutes: got.minutes ?? null };
+    });
+
+    attempts.push({
+      id: row.id, mock_id: row.mock_id, mock_title: mock.title,
+      started_at: row.started_at, ended_at: row.ended_at,
+      score: row.score, total_marks: mock.total_marks,
+      band: band(row.score || 0, mock.total_marks),
+      problems
+    });
+  }
+
+  return json({
+    attempts,
+    patterns: [...patterns.values()]
+      .map((p) => ({ ...p, percent: p.out_of ? Math.round((p.earned / p.out_of) * 100) : 0 }))
+      .sort((a, b) => a.percent - b.percent)
+  });
 });
 
 // ---------------------------------------------------------------- dispatch

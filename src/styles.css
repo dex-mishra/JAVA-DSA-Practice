@@ -1231,3 +1231,239 @@ body.domain-dsa::before { background: linear-gradient(rgba(13, 148, 136, .09), t
   color: var(--ink-3); margin-top: 2px;
 }
 .dsa-patlist li.done .dsa-patinsight { opacity: .6; }
+
+/* ====================================================================
+   The OAs
+
+   An assessment screen, not a reading screen. It borrows the HackerRank
+   layout on purpose -- split panes, a fixed bar, a countdown that changes
+   colour -- because that is what campus assessments look like and the
+   familiarity is part of what the tab trains.
+   ==================================================================== */
+
+.oa-cards { display: grid; gap: 12px; margin: 16px 0 6px; }
+.oa-card { border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; background: var(--surface); }
+.oa-card-hd { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.oa-card-hd h4 { margin: 0; font-size: 15px; }
+.oa-card p { font-size: 13px; margin: 4px 0 10px; }
+
+.oa-chip {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .08em;
+  padding: 2px 7px; border-radius: 3px; background: var(--raise); color: var(--ink-2);
+}
+.oa-chip.warn { background: rgba(185, 28, 28, .10); color: var(--crit); }
+
+.oa-unmet {
+  font-size: 12.5px; color: var(--warn);
+  border-left: 2px solid var(--warn); padding-left: 10px; margin: 8px 0 10px !important;
+}
+.oa-resume {
+  border: 1px solid var(--dsa); background: var(--dsa-soft);
+  border-radius: var(--r); padding: 11px 14px; margin: 14px 0; font-size: 13.5px;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.oa-warn {
+  border: 1px solid var(--warn); background: rgba(180, 83, 9, .07);
+  border-radius: var(--r); padding: 11px 14px; margin: 14px 0; font-size: 13px;
+}
+.oa-warn p { margin: 5px 0 0; font-size: 12.5px; line-height: 1.6; }
+.oa-histlink { margin-top: 16px; font-size: 13px; }
+
+/* ---------------------------------------------------------- the screen */
+
+/* Full width, outside the normal card rhythm: ninety minutes in a 720px
+   column with the editor below the fold is not the thing being simulated. */
+.oa-screen {
+  border: 1px solid var(--line); border-radius: var(--r);
+  background: var(--surface); overflow: hidden;
+}
+
+.oa-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 9px 14px; border-bottom: 1px solid var(--line); background: var(--raise);
+  position: sticky; top: 0; z-index: 5; flex-wrap: wrap;
+}
+.oa-bar-l, .oa-bar-r { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.oa-title { font-weight: 600; font-size: 13.5px; margin-right: 6px; }
+
+.oa-qtab {
+  font-family: var(--mono); font-size: 11.5px; padding: 4px 11px;
+  border: 1px solid var(--line); border-radius: 3px; background: var(--surface);
+  color: var(--ink-2); cursor: pointer;
+}
+.oa-qtab:hover { color: var(--ink); }
+.oa-qtab.on { border-color: var(--dsa); color: var(--dsa); font-weight: 700; }
+.oa-qtab.done { background: var(--dsa-soft); }
+.oa-tick { color: var(--dsa); }
+
+.oa-marks { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); }
+
+/* The countdown. Amber under fifteen minutes, red under five, per the PRD --
+   the colour is the only warning you get and it has to be readable from the
+   corner of your eye while you are reading something else. */
+.oa-clock {
+  font-family: var(--mono); font-size: 19px; font-weight: 700; letter-spacing: .04em;
+  min-width: 76px; text-align: right; font-variant-numeric: tabular-nums;
+}
+.oa-clock.amber { color: var(--warn); }
+.oa-clock.red { color: var(--crit); }
+
+.oa-expired {
+  padding: 9px 14px; background: rgba(185, 28, 28, .08);
+  border-bottom: 1px solid var(--line); color: var(--crit);
+  font-size: 13px; font-weight: 600;
+}
+
+.oa-panes { display: grid; grid-template-columns: 45fr 55fr; min-height: 72vh; }
+.oa-statement { padding: 16px 18px; border-right: 1px solid var(--line); overflow-y: auto; max-height: 82vh; }
+.oa-editor-wrap { display: flex; flex-direction: column; min-width: 0; }
+
+.oa-qhead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.oa-qhead h3 { margin: 0; font-size: 16px; }
+.oa-locked {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .08em;
+  padding: 2px 7px; border-radius: 3px; background: var(--dsa-soft); color: var(--dsa);
+}
+.oa-body p, .oa-fmt p { font-size: 13.5px; line-height: 1.68; color: var(--ink); }
+.oa-body ul, .oa-body ol, .oa-fmt ul { font-size: 13.5px; line-height: 1.6; padding-left: 20px; }
+.oa-fmt { margin-top: 14px; }
+.oa-fmt h5, .oa-sample h5 {
+  margin: 0 0 4px; font-family: var(--mono); font-size: 10px;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3);
+}
+.oa-sample { margin-top: 14px; border-top: 1px solid var(--line-soft); padding-top: 12px; }
+.oa-io { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.oa-iolab { font-family: var(--mono); font-size: 9.5px; letter-spacing: .14em; color: var(--ink-3); }
+.oa-io pre, .oa-table pre {
+  margin: 3px 0 0; padding: 7px 9px; background: var(--raise); border-radius: 3px;
+  font-family: var(--mono); font-size: 12px; line-height: 1.5;
+  white-space: pre-wrap; word-break: break-word; max-height: 160px; overflow: auto;
+}
+.oa-expl { font-size: 12.5px; color: var(--ink-2); line-height: 1.6; margin: 7px 0 0; }
+
+/* ---------------------------------------------------------- the editor */
+
+.oa-etop {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 12px; border-bottom: 1px solid var(--line-soft);
+}
+.oa-lang {
+  font-family: var(--mono); font-size: 11.5px; padding: 3px 7px;
+  border: 1px solid var(--line); border-radius: 3px; background: var(--surface); color: var(--ink);
+}
+.oa-esave { font-family: var(--mono); font-size: 10px; color: var(--ink-3); letter-spacing: .1em; }
+
+.oa-code { display: flex; flex: 1; min-height: 340px; background: var(--surface); overflow: hidden; }
+.oa-code.locked { opacity: .78; }
+
+.oa-gutter {
+  padding: 12px 8px 12px 12px; text-align: right; user-select: none;
+  color: var(--ink-3); background: var(--raise);
+  border-right: 1px solid var(--line-soft); overflow: hidden; white-space: pre;
+}
+
+.oa-codearea { position: relative; flex: 1; min-width: 0; }
+
+/* The overlay. The <pre> carries the colour and the <textarea> carries the
+   caret and the text, so every metric below has to match in both or the two
+   layers drift apart as you type. That is why they are declared together. */
+.oa-gutter, .oa-hl, .oa-ta {
+  font-family: var(--mono); font-size: 13px; line-height: 1.55;
+  tab-size: 4; -moz-tab-size: 4;
+}
+.oa-hl, .oa-ta {
+  margin: 0; padding: 12px 14px; border: 0; white-space: pre; overflow: auto;
+  position: absolute; inset: 0; width: 100%; height: 100%;
+}
+.oa-hl { pointer-events: none; color: var(--ink); background: transparent; }
+.oa-ta {
+  resize: none; background: transparent; color: transparent; caret-color: var(--ink);
+  outline: none; display: block;
+}
+.oa-ta::selection { background: rgba(13, 148, 136, .25); color: transparent; }
+.oa-ta:focus { outline: none; }
+
+.oa-strip {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  padding: 9px 12px; border-top: 1px solid var(--line); background: var(--raise);
+}
+.oa-striphint { font-size: 11.5px; color: var(--ink-3); }
+
+.oa-results { padding: 0 12px 14px; max-height: 38vh; overflow-y: auto; }
+.oa-scored {
+  font-size: 13.5px; padding: 9px 0 7px; border-bottom: 1px solid var(--line-soft); margin-bottom: 8px;
+}
+.oa-compile h5 {
+  margin: 10px 0 4px; font-family: var(--mono); font-size: 10px;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--crit);
+}
+.oa-compile pre {
+  margin: 0; padding: 9px 11px; background: rgba(185, 28, 28, .07);
+  border-radius: 3px; font-family: var(--mono); font-size: 11.5px;
+  line-height: 1.5; white-space: pre-wrap; max-height: 200px; overflow: auto;
+}
+
+.oa-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; }
+.oa-table th {
+  text-align: left; font-family: var(--mono); font-size: 9.5px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--ink-3); font-weight: 400;
+  padding: 5px 8px 5px 0; border-bottom: 1px solid var(--line);
+}
+.oa-table td { padding: 6px 8px 6px 0; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+
+.oa-v {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .06em;
+  padding: 2px 6px; border-radius: 3px; white-space: nowrap;
+}
+.oa-v.passed { background: rgba(21, 128, 61, .11); color: var(--ok); }
+.oa-v.failed { background: rgba(185, 28, 28, .09); color: var(--crit); }
+.oa-v.errored, .oa-v.compile-error { background: rgba(185, 28, 28, .09); color: var(--crit); }
+.oa-v.timed-out { background: rgba(180, 83, 9, .11); color: var(--warn); }
+
+/* ---------------------------------------------------------- the review */
+
+.oa-score-hd { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.oa-bigscore { font-family: var(--mono); font-size: 36px; font-weight: 700; line-height: 1; }
+.oa-bigscore span { font-size: 16px; font-weight: 400; color: var(--ink-3); }
+
+.oa-band { border-radius: var(--r); padding: 11px 14px; margin: 12px 0 4px; font-size: 13.5px; line-height: 1.6; }
+.oa-band.b-strong, .oa-bigscore.b-strong { color: var(--ok); }
+.oa-band.b-strong { background: rgba(21, 128, 61, .09); }
+.oa-band.b-implementation, .oa-bigscore.b-implementation { color: var(--dsa); }
+.oa-band.b-implementation { background: var(--dsa-soft); }
+.oa-band.b-partial, .oa-bigscore.b-partial { color: var(--warn); }
+.oa-band.b-partial { background: rgba(180, 83, 9, .09); }
+.oa-band.b-not-yet, .oa-bigscore.b-not-yet { color: var(--crit); }
+.oa-band.b-not-yet { background: rgba(185, 28, 28, .08); }
+.oa-band b { color: var(--ink); }
+
+.oa-rev { border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; margin-top: 14px; }
+.oa-rev-hd { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.oa-rev-hd h4 { margin: 0; font-size: 15px; }
+.oa-cx { font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
+
+.oa-bandtag { font-size: 11.5px; }
+.oa-bandtag.b-strong { color: var(--ok); }
+.oa-bandtag.b-implementation { color: var(--dsa); }
+.oa-bandtag.b-partial { color: var(--warn); }
+.oa-bandtag.b-not-yet { color: var(--crit); }
+
+.oa-pats { list-style: none; margin: 10px 0 0; padding: 0; }
+.oa-pats li {
+  display: grid; grid-template-columns: 70px auto auto 1fr auto;
+  align-items: center; gap: 10px; padding: 6px 0;
+  border-bottom: 1px solid var(--line-soft); font-size: 12.5px;
+}
+.oa-patbar { display: block; height: 5px; border-radius: 3px; background: var(--raise); overflow: hidden; }
+.oa-patbar i { display: block; height: 100%; background: var(--dsa); }
+.oa-patpct { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); }
+
+@media (max-width: 900px) {
+  /* Below this the split pane stops being a split pane. The statement goes
+     first and the editor follows it, which is the order you read them in. */
+  .oa-panes { grid-template-columns: 1fr; min-height: 0; }
+  .oa-statement { border-right: 0; border-bottom: 1px solid var(--line); max-height: none; }
+  .oa-io { grid-template-columns: 1fr; }
+  .oa-pats li { grid-template-columns: 1fr; gap: 2px; }
+  .oa-patbar { width: 70px; }
+}

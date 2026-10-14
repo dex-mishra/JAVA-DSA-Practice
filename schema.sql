@@ -41,3 +41,28 @@ CREATE INDEX IF NOT EXISTS dsa_progress_queue
 -- Filtering the sheet by status is the other common read.
 CREATE INDEX IF NOT EXISTS dsa_progress_status
   ON dsa_progress (status);
+
+-- Mock online assessments.
+--
+-- Only the attempt is a table. The mocks and their problems live in the
+-- Worker bundle (worker/oa-content.json, written by tools/import-dsa.mjs),
+-- because PRD §5.1 requires that hidden tests never reach the client and
+-- anything under public/ is world-readable. Bundling also means content
+-- regenerates with a deploy instead of drifting from a seed script.
+--
+-- `per_problem` holds the submitted code, so an attempt is reviewable
+-- months later without the browser's local draft still existing.
+
+CREATE TABLE IF NOT EXISTS oa_attempt (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  mock_id     TEXT    NOT NULL,
+  started_at  REAL    NOT NULL,     -- server clock; the timer is computed from this
+  ended_at    REAL,                 -- null while in progress
+  score       INTEGER,              -- null until finished
+  per_problem TEXT    NOT NULL DEFAULT '{}',  -- {qid: {code, lang, passed, total, marks, tests, minutes}}
+  notes       TEXT    NOT NULL DEFAULT ''
+);
+
+-- History reads newest-first and the in-progress check reads ended_at.
+CREATE INDEX IF NOT EXISTS oa_attempt_recent ON oa_attempt (started_at DESC);
+CREATE INDEX IF NOT EXISTS oa_attempt_open   ON oa_attempt (ended_at);
