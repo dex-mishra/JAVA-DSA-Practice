@@ -51,9 +51,9 @@ you want them later.
 | `V0` | Prerequisites | 1–3 | 14 | reused |
 | `V1` | Trees & BST | 4–7 | 20 | reused |
 | `V2` | Graphs | 8–13 | 31 | **delivered** |
-| `V3` | Dynamic Programming | 14–21 | 38 | pending |
+| `V3` | Dynamic Programming | 14–21 | 38 | **delivered** |
 | `V4` | Core Patterns | 22–29 | 40 | reused |
-| `V5` | Advanced & Revision | 30 | 2 | pending |
+| `V5` | Advanced & Revision | 30 | 2 | **delivered** |
 
 Flat ~4.8 problems a day.
 
@@ -107,11 +107,26 @@ list in ten minutes and know which names he cannot explain.
 
 ### 3.5 Striver link coverage is partial, by design
 
-`tuf.article` and `tuf.youtube` are `null` for problems outside Striver's sheet. Hide the chip when
-null; do not render a dead link or a placeholder.
+`tuf.article`, `tuf.practice` and `tuf.youtube` are `null` for problems outside Striver's sheet.
+Hide the chip when null; do not render a dead link or a placeholder.
 
-Current coverage across the reused phases is roughly 60% article, 55% video. Phases V2, V3 and V5
-will carry them inline wherever Striver covers the problem.
+Coverage across all 145: **108 editorials (74%), 107 practice pages (74%), 100 videos (69%)**. The
+remaining 37 are LeetCode-only problems chosen because they teach a pattern Striver's sheet does
+not isolate.
+
+**URL migration (October 2026).** TUF moved its articles off `/data-structure/<slug>` onto
+`/plus/dsa/problems/<slug>`. The old URLs now mostly serve an empty shell — the title renders, the
+article body does not. Every link in the sheet has been repointed:
+
+| Field | Value | Note |
+|---|---|---|
+| `tuf.article` | `https://takeuforward.org/plus/dsa/problems/<slug>?tab=editorial` | the editorial. Render this as the TUF chip. |
+| `tuf.practice` | `https://takeuforward.org/plus/dsa/problems/<slug>` | TUF's own judge for the same problem. Optional second chip. |
+| `tuf.legacy_article` | the old `/data-structure/…` URL | kept for provenance only. **Never render it.** |
+
+One problem, `dp-count-square-submatrices-with-all-ones`, has no page under the new scheme, so its
+`article` is still a legacy URL. That one was checked by hand and still serves its full article;
+`practice` is null for it.
 
 ### 3.6 Progress maths
 
@@ -133,18 +148,18 @@ Do not rework any of this:
 - The API surface, except the two additions above
 - Checkpoint computation and the decay rules
 - The theory three-part structure
-- The 73 C++ pattern templates and their ids
+- The 76 C++ pattern templates and their ids
 - `revision_queue_rule`
 
 ---
 
 ## 5. Build order from here
 
-1. Re-import `v0`, `v1`, `v2`, `v4` (105 problems) — generated and verified
+1. Import all six phase JSONs (145 problems) — all generated and verified, nothing pending
 2. Apply the interface changes in §3
-3. Import `v3-dp` and `v5-advanced` when delivered (40 problems)
-4. Build the pattern index from §3.4
-5. Answer the four codebase questions in START-HERE.md so the migrations target the real schema
+3. Build the pattern index from §3.4, using `PATTERN-INDEX.json` as the pre-computed source
+4. Build the OAs sub-tab per `PRD-OA-TAB.md`, seeding it with `oa/mock-oa-01-problems.json`
+5. Answer the five codebase questions in START-HERE.md so the migrations target the real schema
 
 ---
 

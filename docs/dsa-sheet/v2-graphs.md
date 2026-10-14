@@ -311,7 +311,7 @@ find shortest routes.
 
 <!-- id:graphs-number-of-islands | order:1 | day:8 | pattern:grid-dfs-flood-fill | template:T-GRAPH-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/number-of-islands/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/number-of-distinct-islands/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=muncqlKJrH0)
+[Solve on LeetCode](https://leetcode.com/problems/number-of-islands/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/number-of-islands?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=muncqlKJrH0)
 
 **Asked by:** Amazon, Facebook, Google, Microsoft, Bloomberg &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `grid-dfs-flood-fill`
 
@@ -347,7 +347,7 @@ find shortest routes.
 
 <!-- id:graphs-surrounded-regions | order:3 | day:8 | pattern:boundary-first-dfs | template:T-GRAPH-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/surrounded-regions/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/graph/surrounded-regions-replace-os-with-xs/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=BtdgAys4yMk)
+[Solve on LeetCode](https://leetcode.com/problems/surrounded-regions/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/surrounded-regions?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=BtdgAys4yMk)
 
 **Asked by:** Amazon, Google, Microsoft &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `boundary-first-dfs`
 
@@ -381,7 +381,7 @@ find shortest routes.
 
 <!-- id:graphs-rotting-oranges | order:4 | day:8 | pattern:multi-source-bfs | template:T-GRAPH-02 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/rotting-oranges/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/rotten-oranges-min-time-to-rot-all-oranges-bfs/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=yf3oUhkvqA0)
+[Solve on LeetCode](https://leetcode.com/problems/rotting-oranges/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/rotten-oranges?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=yf3oUhkvqA0)
 
 **Asked by:** Amazon, Google, Microsoft &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `multi-source-bfs`
 
@@ -449,7 +449,7 @@ find shortest routes.
 
 <!-- id:graphs-01-matrix | order:5 | day:8 | pattern:multi-source-bfs | template:T-GRAPH-02 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/01-matrix/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/graph/distance-of-nearest-cell-having-1/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=edXdVwkYHF8)
+[Solve on LeetCode](https://leetcode.com/problems/01-matrix/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/distance-of-nearest-cell-having-one?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=edXdVwkYHF8)
 
 **Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `multi-source-bfs`
 
@@ -483,7 +483,7 @@ find shortest routes.
 
 <!-- id:graphs-shortest-path-in-binary-matrix | order:6 | day:8 | pattern:bfs-grid-shortest | template:T-GRAPH-02 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/shortest-path-in-binary-matrix/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/g-36-shortest-distance-in-a-binary-maze/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=U5Mw4eyUmw4)
+[Solve on LeetCode](https://leetcode.com/problems/shortest-path-in-binary-matrix/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/shortest-path-with-minimum-effort?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=U5Mw4eyUmw4)
 
 **Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `bfs-grid-shortest`
 
@@ -572,7 +572,7 @@ find shortest routes.
 
 <!-- id:graphs-number-of-provinces | order:8 | day:9 | pattern:dsu-components | template:T-GRAPH-05 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/number-of-provinces/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/number-of-provinces/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=ACzkVtewUYA)
+[Solve on LeetCode](https://leetcode.com/problems/number-of-provinces/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/number-of-provinces?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=ACzkVtewUYA)
 
 **Asked by:** Amazon, Facebook, Bloomberg &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `dsu-components`
 
@@ -640,7 +640,7 @@ find shortest routes.
 
 <!-- id:graphs-is-graph-bipartite | order:10 | day:9 | pattern:two-colouring | template:T-GRAPH-02 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/is-graph-bipartite/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/graph/bipartite-graph-dfs-implementation/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=KG5YFfR0j8A)
+[Solve on LeetCode](https://leetcode.com/problems/is-graph-bipartite/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/bipartite-graph?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=KG5YFfR0j8A)
 
 **Asked by:** Amazon, Facebook, Google &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `two-colouring`
 
@@ -674,7 +674,7 @@ find shortest routes.
 
 <!-- id:graphs-course-schedule | order:11 | day:9 | pattern:topological-cycle-detection | template:T-GRAPH-03 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/course-schedule/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/detect-cycle-in-an-undirected-graph-using-dfs/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=zQ3zgFypzX4)
+[Solve on LeetCode](https://leetcode.com/problems/course-schedule/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/course-schedule-i?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=zQ3zgFypzX4)
 
 **Asked by:** Amazon, Facebook, Google, Microsoft, Uber &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `topological-cycle-detection`
 
@@ -708,7 +708,7 @@ find shortest routes.
 
 <!-- id:graphs-course-schedule-ii | order:12 | day:9 | pattern:topological-order | template:T-GRAPH-03 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/course-schedule-ii/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/detect-cycle-in-a-directed-graph-using-dfs-g-19/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=9twcmtQj4DU)
+[Solve on LeetCode](https://leetcode.com/problems/course-schedule-ii/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/course-schedule-ii?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=9twcmtQj4DU)
 
 **Asked by:** Amazon, Facebook, Google, Microsoft &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `topological-order`
 
@@ -742,7 +742,7 @@ find shortest routes.
 
 <!-- id:graphs-find-eventual-safe-states | order:13 | day:9 | pattern:reverse-topological | template:T-GRAPH-07 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/find-eventual-safe-states/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/find-eventual-safe-states-bfs-topological-sort-g-25/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=2gtg3VsDGyc)
+[Solve on LeetCode](https://leetcode.com/problems/find-eventual-safe-states/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/find-eventual-safe-states?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=2gtg3VsDGyc)
 
 **Asked by:** Amazon, Google &nbsp;·&nbsp; **Campus OA:** `MEDIUM` &nbsp;·&nbsp; **Pattern:** `reverse-topological`
 
@@ -843,7 +843,7 @@ find shortest routes.
 
 <!-- id:graphs-network-delay-time | order:15 | day:10 | pattern:dijkstra | template:T-GRAPH-04 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/network-delay-time/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/network-delay-time)
+[Solve on LeetCode](https://leetcode.com/problems/network-delay-time/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/network-delay-time?tab=editorial)
 
 **Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `dijkstra`
 
@@ -880,7 +880,7 @@ find shortest routes.
 
 <!-- id:graphs-cheapest-flights-within-k-stops | order:16 | day:10 | pattern:bellman-ford-rounds | template:T-GRAPH-04 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/cheapest-flights-within-k-stops/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/g-38-cheapest-flights-within-k-stops/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=9XybHVqTHcQ)
+[Solve on LeetCode](https://leetcode.com/problems/cheapest-flights-within-k-stops/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/cheapest-flight-within-k-stops?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=9XybHVqTHcQ)
 
 **Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `bellman-ford-rounds`
 
@@ -916,7 +916,7 @@ find shortest routes.
 
 <!-- id:graphs-path-with-minimum-effort | order:17 | day:10 | pattern:dijkstra-minimax | template:T-GRAPH-04 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/path-with-minimum-effort/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/g-37-path-with-minimum-effort/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=0ytpZyiZFhA)
+[Solve on LeetCode](https://leetcode.com/problems/path-with-minimum-effort/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/path-with-minimum-effort?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=0ytpZyiZFhA)
 
 **Asked by:** Amazon, Google &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `dijkstra-minimax`
 
@@ -952,7 +952,7 @@ find shortest routes.
 
 <!-- id:graphs-swim-in-rising-water | order:18 | day:10 | pattern:dijkstra-minimax | template:T-GRAPH-04 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/swim-in-rising-water/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/swim-in-rising-water)
+[Solve on LeetCode](https://leetcode.com/problems/swim-in-rising-water/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/swim-in-rising-water?tab=editorial)
 
 **Asked by:** Google, Amazon &nbsp;·&nbsp; **Campus OA:** `MEDIUM` &nbsp;·&nbsp; **Pattern:** `dijkstra-minimax`
 
@@ -1057,7 +1057,7 @@ find shortest routes.
 
 <!-- id:graphs-accounts-merge | order:20 | day:11 | pattern:dsu-with-mapping | template:T-GRAPH-05 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/accounts-merge/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/accounts-merge-dsu-g-50/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=FMwpt_aQOGw)
+[Solve on LeetCode](https://leetcode.com/problems/accounts-merge/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/accounts-merge?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=FMwpt_aQOGw)
 
 **Asked by:** Amazon, Facebook, Google &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `dsu-with-mapping`
 
@@ -1091,7 +1091,7 @@ find shortest routes.
 
 <!-- id:graphs-most-stones-removed-with-same-row-or-column | order:21 | day:11 | pattern:dsu-implicit-edges | template:T-GRAPH-05 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/most-stones-removed-with-same-row-or-column/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/most-stones-removed-with-same-row-or-column-dsu-g-53/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=OwMNX8SPavM)
+[Solve on LeetCode](https://leetcode.com/problems/most-stones-removed-with-same-row-or-column/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/most-stones-removed-with-same-row-or-column?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=OwMNX8SPavM)
 
 **Asked by:** Amazon, Google &nbsp;·&nbsp; **Campus OA:** `MEDIUM` &nbsp;·&nbsp; **Pattern:** `dsu-implicit-edges`
 
@@ -1199,7 +1199,7 @@ find shortest routes.
 
 <!-- id:graphs-word-ladder | order:23 | day:12 | pattern:implicit-graph-bfs | template:T-GRAPH-02 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/word-ladder/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/graph/word-ladder-i-g-29/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=tRPda0rcf8E)
+[Solve on LeetCode](https://leetcode.com/problems/word-ladder/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/word-ladder-i?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=tRPda0rcf8E)
 
 **Asked by:** Amazon, Facebook, Google, Microsoft &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `implicit-graph-bfs`
 
@@ -1374,7 +1374,7 @@ find shortest routes.
 
 <!-- id:graphs-critical-connections-in-a-network | order:27 | day:13 | pattern:tarjan-bridges | template:T-GRAPH-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/critical-connections-in-a-network/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/graph/bridges-in-graph-using-tarjans-algorithm-of-time-in-and-low-time-g-55/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=qrAub5z8FeA)
+[Solve on LeetCode](https://leetcode.com/problems/critical-connections-in-a-network/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/bridges-in-graph?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=qrAub5z8FeA)
 
 **Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `MEDIUM` &nbsp;·&nbsp; **Pattern:** `tarjan-bridges`
 
@@ -1446,7 +1446,7 @@ find shortest routes.
 
 <!-- id:graphs-find-the-city-with-the-smallest-number-of-neighbors-at-a-threshold-distance | order:28 | day:13 | pattern:floyd-warshall | template:T-GRAPH-04 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/find-the-city-with-the-smallest-number-of-neighbors-at-a-threshold-distance/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/find-the-city-with-the-smallest-number-of-neighbours-at-a-threshold-distance-g-43/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=9XybHVqTHcQ)
+[Solve on LeetCode](https://leetcode.com/problems/find-the-city-with-the-smallest-number-of-neighbors-at-a-threshold-distance/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/find-the-city-with-the-smallest-number-of-neighbors?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=9XybHVqTHcQ)
 
 **Asked by:** Amazon, Google &nbsp;·&nbsp; **Campus OA:** `MEDIUM` &nbsp;·&nbsp; **Pattern:** `floyd-warshall`
 

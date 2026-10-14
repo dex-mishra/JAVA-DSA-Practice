@@ -96,8 +96,11 @@ Two things from that PRD that are easy to get wrong:
 
 ## Two things to get right in the main tab
 
-- `tuf.article` and `tuf.youtube` are `null` for problems outside Striver's sheet. Hide the chip when
-  null — never render a dead link or a placeholder.
+- `tuf.article`, `tuf.practice` and `tuf.youtube` are `null` for problems outside Striver's sheet
+  (37 of 145). Hide the chip when null — never render a dead link or a placeholder.
+- `tuf.legacy_article` is provenance only. **Do not import it and never render it.** Those are the
+  pre-October-2026 `/data-structure/<slug>` URLs, which now serve an empty shell. PRD §3.5 has the
+  table.
 - Checkpoints are **computed** from the top-level `learnings` array at request time, not stored. The
   decay rules are in PRD §3 and HANDOFF §7.
 

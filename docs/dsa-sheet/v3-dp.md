@@ -263,7 +263,7 @@ instead of two, and the turn is implied rather than stored.
 
 <!-- id:dp-climbing-stairs | order:1 | day:14 | pattern:1d-dp | template:T-DP-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/climbing-stairs/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/dynamic-programming-climbing-stairs/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=mLfjzJsN8us)
+[Solve on LeetCode](https://leetcode.com/problems/climbing-stairs/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/climbing-stairs?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=mLfjzJsN8us)
 
 **Asked by:** Amazon, Adobe, Apple &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `1d-dp`
 
@@ -299,7 +299,7 @@ instead of two, and the turn is implied rather than stored.
 
 <!-- id:dp-house-robber | order:2 | day:14 | pattern:1d-dp-skip | template:T-DP-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/house-robber/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/maximum-sum-of-non-adjacent-elements-dp-5/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=GrMBfJNk_NY)
+[Solve on LeetCode](https://leetcode.com/problems/house-robber/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/maximum-sum-of-non-adjacent-elements?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=GrMBfJNk_NY)
 
 **Asked by:** Amazon, Google, Microsoft, LinkedIn &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `1d-dp-skip`
 
@@ -370,7 +370,7 @@ instead of two, and the turn is implied rather than stored.
 
 <!-- id:dp-unique-paths | order:5 | day:14 | pattern:2d-grid-dp | template:T-DP-02 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/unique-paths/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/grid-unique-paths-dp-on-grids-dp8/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=sdE0A2Oxofw)
+[Solve on LeetCode](https://leetcode.com/problems/unique-paths/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/grid-unique-paths?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=sdE0A2Oxofw)
 
 **Asked by:** Amazon, Google, Facebook, Bloomberg &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `2d-grid-dp`
 
@@ -404,7 +404,7 @@ instead of two, and the turn is implied rather than stored.
 
 <!-- id:dp-house-robber-ii | order:3 | day:14 | pattern:circular-reduction | template:T-DP-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/house-robber-ii/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/dynamic-programming-house-robber-dp-6/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=3WaxQMELSkw)
+[Solve on LeetCode](https://leetcode.com/problems/house-robber-ii/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/house-robber?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=3WaxQMELSkw)
 
 **Asked by:** Amazon, Google, Microsoft &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `circular-reduction`
 
@@ -457,7 +457,7 @@ instead of two, and the turn is implied rather than stored.
 
 <!-- id:dp-minimum-path-sum | order:7 | day:15 | pattern:2d-grid-dp | template:T-DP-02 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/minimum-path-sum/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/minimum-path-sum-in-a-grid-dp-10/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=_rgTlyky1uQ)
+[Solve on LeetCode](https://leetcode.com/problems/minimum-path-sum/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/minimum-falling-path-sum?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=_rgTlyky1uQ)
 
 **Asked by:** Amazon, Google, Microsoft, Bloomberg &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `2d-grid-dp`
 
@@ -527,7 +527,7 @@ instead of two, and the turn is implied rather than stored.
 
 <!-- id:dp-unique-paths-ii | order:6 | day:15 | pattern:2d-grid-dp | template:T-DP-02 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/unique-paths-ii/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/grid-unique-paths-2-dp-9/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=TmhpgXScLyY)
+[Solve on LeetCode](https://leetcode.com/problems/unique-paths-ii/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/unique-paths-ii?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=TmhpgXScLyY)
 
 **Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `2d-grid-dp`
 
@@ -561,7 +561,7 @@ instead of two, and the turn is implied rather than stored.
 
 <!-- id:dp-triangle | order:8 | day:15 | pattern:2d-grid-dp | template:T-DP-02 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/triangle/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/minimum-path-sum-in-triangular-grid-dp-11/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=SrP-PiLSYC0)
+[Solve on LeetCode](https://leetcode.com/problems/triangle/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/triangle?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=SrP-PiLSYC0)
 
 **Asked by:** Amazon, Google &nbsp;·&nbsp; **Campus OA:** `MEDIUM` &nbsp;·&nbsp; **Pattern:** `2d-grid-dp`
 
@@ -629,7 +629,7 @@ instead of two, and the turn is implied rather than stored.
 
 <!-- id:dp-count-square-submatrices-with-all-ones | order:11 | day:15 | pattern:dp-on-squares | template:T-DP-02 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/count-square-submatrices-with-all-ones/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/count-square-submatrices-with-all-1s-dp-on-rectangles-dp-56/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=auS1fynpnjo)
+[Solve on LeetCode](https://leetcode.com/problems/count-square-submatrices-with-all-ones/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/data-structure/count-square-submatrices-with-all-1s-dp-on-rectangles-dp-56/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=auS1fynpnjo)
 
 **Asked by:** Amazon, Google &nbsp;·&nbsp; **Campus OA:** `MEDIUM` &nbsp;·&nbsp; **Pattern:** `dp-on-squares`
 
@@ -687,7 +687,7 @@ instead of two, and the turn is implied rather than stored.
 
 <!-- id:dp-partition-equal-subset-sum | order:12 | day:16 | pattern:0-1-knapsack | template:T-DP-03 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/partition-equal-subset-sum/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/partition-equal-subset-sum-dp-15/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=7win3dcgo3k)
+[Solve on LeetCode](https://leetcode.com/problems/partition-equal-subset-sum/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/partition-equal-subset-sum?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=7win3dcgo3k)
 
 **Asked by:** Amazon, Facebook, Google, Microsoft &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `0-1-knapsack`
 
@@ -722,7 +722,7 @@ instead of two, and the turn is implied rather than stored.
 
 <!-- id:dp-target-sum | order:13 | day:16 | pattern:knapsack-transformation | template:T-DP-03 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/target-sum/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/target-sum-dp-21/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=b3GD8263-PQ)
+[Solve on LeetCode](https://leetcode.com/problems/target-sum/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/target-sum?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=b3GD8263-PQ)
 
 **Asked by:** Facebook, Amazon, Google &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `knapsack-transformation`
 
@@ -756,7 +756,7 @@ instead of two, and the turn is implied rather than stored.
 
 <!-- id:dp-coin-change | order:15 | day:16 | pattern:unbounded-knapsack-min | template:T-DP-03 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/coin-change/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/minimum-coins-dp-20/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=myPeWb3Y68A)
+[Solve on LeetCode](https://leetcode.com/problems/coin-change/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/minimum-coins?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=myPeWb3Y68A)
 
 **Asked by:** Amazon, Google, Facebook, Microsoft, Uber &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `unbounded-knapsack-min`
 
@@ -1061,7 +1061,7 @@ instead of two, and the turn is implied rather than stored.
 
 <!-- id:dp-edit-distance | order:21 | day:18 | pattern:two-string-dp | template:T-DP-04 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/edit-distance/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/edit-distance-dp-33/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=fJaKO8FbDdo)
+[Solve on LeetCode](https://leetcode.com/problems/edit-distance/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/edit-distance?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=fJaKO8FbDdo)
 
 **Asked by:** Amazon, Google, Microsoft, Facebook, Adobe &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `two-string-dp`
 
@@ -1097,7 +1097,7 @@ instead of two, and the turn is implied rather than stored.
 
 <!-- id:dp-longest-palindromic-subsequence | order:23 | day:18 | pattern:lcs-reduction | template:T-DP-04 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/longest-palindromic-subsequence/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/longest-palindromic-subsequence-dp-28/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=6i_T5kkfv4A)
+[Solve on LeetCode](https://leetcode.com/problems/longest-palindromic-subsequence/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/longest-palindromic-subsequence?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=6i_T5kkfv4A)
 
 **Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `lcs-reduction`
 
@@ -1169,7 +1169,7 @@ instead of two, and the turn is implied rather than stored.
 
 <!-- id:dp-distinct-subsequences | order:22 | day:18 | pattern:two-string-dp-count | template:T-DP-04 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/distinct-subsequences/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/distinct-subsequences-dp-32/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=nVG7eTiD2bY)
+[Solve on LeetCode](https://leetcode.com/problems/distinct-subsequences/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/distinct-subsequences?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=nVG7eTiD2bY)
 
 **Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `MEDIUM` &nbsp;·&nbsp; **Pattern:** `two-string-dp-count`
 
@@ -1311,7 +1311,7 @@ instead of two, and the turn is implied rather than stored.
 
 <!-- id:dp-best-time-to-buy-and-sell-stock-iii | order:27 | day:19 | pattern:state-machine-dp | template:T-DP-05 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/best-time-to-buy-and-sell-stock-iii/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/buy-and-sell-stock-iii-dp-37/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=-uQGzhYj8BQ)
+[Solve on LeetCode](https://leetcode.com/problems/best-time-to-buy-and-sell-stock-iii/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/best-time-to-buy-and-sell-stock-iii?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=-uQGzhYj8BQ)
 
 **Asked by:** Amazon, Google, Microsoft, Goldman Sachs &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `state-machine-dp`
 
@@ -1345,7 +1345,7 @@ instead of two, and the turn is implied rather than stored.
 
 <!-- id:dp-best-time-to-buy-and-sell-stock-iv | order:28 | day:19 | pattern:state-machine-dp | template:T-DP-05 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/best-time-to-buy-and-sell-stock-iv/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/buy-and-sell-stock-iv-dp-38/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=IV1dHbk5CDc)
+[Solve on LeetCode](https://leetcode.com/problems/best-time-to-buy-and-sell-stock-iv/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/best-time-to-buy-and-sell-stock-iv?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=IV1dHbk5CDc)
 
 **Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `state-machine-dp`
 
@@ -1415,7 +1415,7 @@ instead of two, and the turn is implied rather than stored.
 
 <!-- id:dp-best-time-to-buy-and-sell-stock-with-cooldown | order:29 | day:19 | pattern:state-machine-dp | template:T-DP-05 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/best-time-to-buy-and-sell-stock-with-cooldown/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/buy-and-sell-stocks-with-cooldown-dp-39/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=IGIe46xw3YY)
+[Solve on LeetCode](https://leetcode.com/problems/best-time-to-buy-and-sell-stock-with-cooldown/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/best-time-to-buy-and-sell-stock-with-cooldown?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=IGIe46xw3YY)
 
 **Asked by:** Amazon, Google &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `state-machine-dp`
 
@@ -1449,7 +1449,7 @@ instead of two, and the turn is implied rather than stored.
 
 <!-- id:dp-best-time-to-buy-and-sell-stock-with-transaction-fee | order:30 | day:19 | pattern:state-machine-dp | template:T-DP-05 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/best-time-to-buy-and-sell-stock-with-transaction-fee/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/buy-and-sell-stocks-with-transaction-fees-dp-40/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=k4eK-vEmnKg)
+[Solve on LeetCode](https://leetcode.com/problems/best-time-to-buy-and-sell-stock-with-transaction-fee/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/best-time-to-buy-and-sell-stock-with-cooldown-and-transaction-fees?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=k4eK-vEmnKg)
 
 **Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `state-machine-dp`
 
@@ -1553,7 +1553,7 @@ instead of two, and the turn is implied rather than stored.
 
 <!-- id:dp-burst-balloons | order:34 | day:20 | pattern:interval-dp | template:T-DP-07 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/burst-balloons/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/burst-balloons-partition-dp-dp-51/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=Yz4LlDSlkns)
+[Solve on LeetCode](https://leetcode.com/problems/burst-balloons/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/burst-balloons?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=Yz4LlDSlkns)
 
 **Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `interval-dp`
 
@@ -1589,7 +1589,7 @@ instead of two, and the turn is implied rather than stored.
 
 <!-- id:dp-longest-string-chain | order:33 | day:20 | pattern:lis-on-predecessors | template:T-DP-06 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/longest-string-chain/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/longest-string-chain-dp-45/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=YY8iBaYcc4g)
+[Solve on LeetCode](https://leetcode.com/problems/longest-string-chain/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/longest-string-chain?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=YY8iBaYcc4g)
 
 **Asked by:** Amazon, Google &nbsp;·&nbsp; **Campus OA:** `MEDIUM` &nbsp;·&nbsp; **Pattern:** `lis-on-predecessors`
 
@@ -1623,7 +1623,7 @@ instead of two, and the turn is implied rather than stored.
 
 <!-- id:dp-minimum-cost-to-cut-a-stick | order:35 | day:20 | pattern:interval-dp | template:T-DP-07 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/minimum-cost-to-cut-a-stick/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/minimum-cost-to-cut-the-stick-dp-50/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=xwomavsC86c)
+[Solve on LeetCode](https://leetcode.com/problems/minimum-cost-to-cut-a-stick/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/minimum-cost-to-cut-the-stick?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=xwomavsC86c)
 
 **Asked by:** Amazon, Google &nbsp;·&nbsp; **Campus OA:** `MEDIUM` &nbsp;·&nbsp; **Pattern:** `interval-dp`
 
@@ -1691,7 +1691,7 @@ instead of two, and the turn is implied rather than stored.
 
 <!-- id:dp-palindrome-partitioning-ii | order:36 | day:21 | pattern:front-partition-dp | template:T-DP-07 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/palindrome-partitioning-ii/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/palindrome-partitioning-ii-front-partition-dp-53/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=_H8V5hJUGd0)
+[Solve on LeetCode](https://leetcode.com/problems/palindrome-partitioning-ii/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/palindrome-partitioning-ii-?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=_H8V5hJUGd0)
 
 **Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `front-partition-dp`
 

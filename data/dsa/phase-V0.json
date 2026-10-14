@@ -358,9 +358,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/find-the-majority-element-that-occurs-more-than-n-2-times/",
+    "article": "https://takeuforward.org/plus/dsa/problems/majority-element-i?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=nP_ns3uSh80",
-    "striver_title": "Majority Element-I"
+    "striver_title": "Majority Element-I",
+    "practice": "https://takeuforward.org/plus/dsa/problems/majority-element-i"
    },
    "pattern": "boyer-moore-voting",
    "template": "T-ARR-01",
@@ -426,9 +427,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/arrays/find-the-number-that-appears-once-and-the-other-numbers-twice/",
+    "article": "https://takeuforward.org/plus/dsa/problems/single-number---i?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=bYWLJb3vCWY&t=1369",
-    "striver_title": "Find the number that appears once, and other numbers twice."
+    "striver_title": "Find the number that appears once, and other numbers twice.",
+    "practice": "https://takeuforward.org/plus/dsa/problems/single-number---i"
    },
    "pattern": "xor-cancellation",
    "template": "T-BIT-01",
@@ -494,9 +496,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/two-sum-check-if-a-pair-with-given-sum-exists-in-array/",
+    "article": "https://takeuforward.org/plus/dsa/problems/two-sum?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=UXDSeD9mN-k",
-    "striver_title": "Two Sum"
+    "striver_title": "Two Sum",
+    "practice": "https://takeuforward.org/plus/dsa/problems/two-sum"
    },
    "pattern": "hash-complement",
    "template": "T-HASH-01",
@@ -571,7 +574,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "merge-sort",
    "template": "T-SORT-01",
@@ -636,9 +640,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/combination-sum-1/",
+    "article": "https://takeuforward.org/plus/dsa/problems/combination-sum?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=OyZFFqQtu98",
-    "striver_title": "Combination Sum"
+    "striver_title": "Combination Sum",
+    "practice": "https://takeuforward.org/plus/dsa/problems/combination-sum"
    },
    "pattern": "unbounded-combination",
    "template": "T-BT-03",
@@ -700,9 +705,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/combination-sum-ii-find-all-unique-combinations/",
+    "article": "https://takeuforward.org/plus/dsa/problems/combination-sum-ii?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=G1fRTGRxXU8",
-    "striver_title": "Combination Sum II"
+    "striver_title": "Combination Sum II",
+    "practice": "https://takeuforward.org/plus/dsa/problems/combination-sum-ii"
    },
    "pattern": "bounded-combination-dedup",
    "template": "T-BT-03",
@@ -764,9 +770,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/n-queen-problem-return-all-distinct-solutions-to-the-n-queens-puzzle/",
+    "article": "https://takeuforward.org/plus/dsa/problems/n-queen?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=i05Ju7AftcM",
-    "striver_title": "N Queen"
+    "striver_title": "N Queen",
+    "practice": "https://takeuforward.org/plus/dsa/problems/n-queen"
    },
    "pattern": "constraint-backtracking",
    "template": "T-BT-05",
@@ -830,7 +837,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "swap-permutation",
    "template": "T-BT-02",
@@ -894,9 +902,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/bit-manipulation/power-set-bit-manipulation",
+    "article": "https://takeuforward.org/plus/dsa/problems/power-set-bit-manipulation?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=LqKaUv1G3_I",
-    "striver_title": "Power Set Bit Manipulation"
+    "striver_title": "Power Set Bit Manipulation",
+    "practice": "https://takeuforward.org/plus/dsa/problems/power-set-bit-manipulation"
    },
    "pattern": "include-exclude",
    "template": "T-BT-01",
@@ -959,9 +968,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/subset-ii-print-all-the-unique-subsets/",
+    "article": "https://takeuforward.org/plus/dsa/problems/subsets-ii?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=RIn3gOkbhQE",
-    "striver_title": "Subsets II"
+    "striver_title": "Subsets II",
+    "practice": "https://takeuforward.org/plus/dsa/problems/subsets-ii"
    },
    "pattern": "include-exclude-dedup",
    "template": "T-BT-01",
@@ -1025,9 +1035,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/word-search-leetcode/",
+    "article": "https://takeuforward.org/plus/dsa/problems/word-search?tab=editorial",
     "youtube": null,
-    "striver_title": "Word Search"
+    "striver_title": "Word Search",
+    "practice": "https://takeuforward.org/plus/dsa/problems/word-search"
    },
    "pattern": "grid-backtracking",
    "template": "T-BT-04",
@@ -1089,9 +1100,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/stock-buy-and-sell/",
+    "article": "https://takeuforward.org/plus/dsa/problems/best-time-to-buy-and-sell-stock?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=excAOvwF_Wk",
-    "striver_title": "Stock Buy and Sell"
+    "striver_title": "Stock Buy and Sell",
+    "practice": "https://takeuforward.org/plus/dsa/problems/best-time-to-buy-and-sell-stock"
    },
    "pattern": "running-minimum",
    "template": "T-DP-05",
@@ -1158,9 +1170,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/kadanes-algorithm-maximum-subarray-sum-in-an-array/",
+    "article": "https://takeuforward.org/plus/dsa/problems/kadane's-algorithm?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=AHZpyENo7k4",
-    "striver_title": "Kadane's Algorithm"
+    "striver_title": "Kadane's Algorithm",
+    "practice": "https://takeuforward.org/plus/dsa/problems/kadane's-algorithm"
    },
    "pattern": "kadane",
    "template": "T-DP-01",
@@ -1228,9 +1241,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/arrays/count-subarray-sum-equals-k/",
+    "article": "https://takeuforward.org/plus/dsa/problems/count-subarrays-with-given-sum?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=xvNwoz-ufXA",
-    "striver_title": "Count subarrays with given sum"
+    "striver_title": "Count subarrays with given sum",
+    "practice": "https://takeuforward.org/plus/dsa/problems/count-subarrays-with-given-sum"
    },
    "pattern": "prefix-sum-hashmap",
    "template": "T-HASH-04",

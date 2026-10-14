@@ -660,9 +660,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/3-sum-find-triplets-that-add-up-to-a-zero/",
+    "article": "https://takeuforward.org/plus/dsa/problems/3-sum?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=DhFh8Kw7ymk",
-    "striver_title": "3 Sum"
+    "striver_title": "3 Sum",
+    "practice": "https://takeuforward.org/plus/dsa/problems/3-sum"
    },
    "pattern": "sort-two-pointer",
    "template": "T-TP-02",
@@ -730,9 +731,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/jump-game-2",
+    "article": "https://takeuforward.org/plus/dsa/problems/jump-game-ii?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=7SBVnw7GSTk",
-    "striver_title": "Jump Game II"
+    "striver_title": "Jump Game II",
+    "practice": "https://takeuforward.org/plus/dsa/problems/jump-game-ii"
    },
    "pattern": "bfs-levels-greedy",
    "template": "T-GREEDY-04",
@@ -792,9 +794,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/maximum-product-subarray-in-an-array/",
+    "article": "https://takeuforward.org/plus/dsa/problems/maximum-product-subarray-in-an-array?tab=editorial",
     "youtube": null,
-    "striver_title": "Maximum Product Subarray in an Array"
+    "striver_title": "Maximum Product Subarray in an Array",
+    "practice": "https://takeuforward.org/plus/dsa/problems/maximum-product-subarray-in-an-array"
    },
    "pattern": "track-min-and-max",
    "template": "T-DP-01",
@@ -856,9 +859,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/merge-overlapping-sub-intervals/",
+    "article": "https://takeuforward.org/plus/dsa/problems/merge-intervals?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=IexN60k62jo",
-    "striver_title": "Merge Overlapping Subintervals"
+    "striver_title": "Merge Overlapping Subintervals",
+    "practice": "https://takeuforward.org/plus/dsa/problems/merge-intervals"
    },
    "pattern": "sort-by-start-merge",
    "template": "T-GREEDY-02",
@@ -927,9 +931,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/non-overlapping-intervals",
+    "article": "https://takeuforward.org/plus/dsa/problems/non-overlapping-intervals?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=HDHQ8lAWakY",
-    "striver_title": "Non-overlapping Intervals"
+    "striver_title": "Non-overlapping Intervals",
+    "practice": "https://takeuforward.org/plus/dsa/problems/non-overlapping-intervals"
    },
    "pattern": "sort-by-end-schedule",
    "template": "T-GREEDY-01",
@@ -998,9 +1003,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/sort-an-array-of-0s-1s-and-2s/",
+    "article": "https://takeuforward.org/plus/dsa/problems/sort-an-array-of-0's-1's-and-2's?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=tp8JIuCXBaU",
-    "striver_title": "Sort an array of 0's 1's and 2's"
+    "striver_title": "Sort an array of 0's 1's and 2's",
+    "practice": "https://takeuforward.org/plus/dsa/problems/sort-an-array-of-0's-1's-and-2's"
    },
    "pattern": "dutch-national-flag",
    "template": "T-SORT-07",
@@ -1063,9 +1069,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/binary-search-explained/",
+    "article": "https://takeuforward.org/plus/dsa/problems/search-x-in-sorted-array?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=MHf6awe89xw",
-    "striver_title": "Search X in sorted array"
+    "striver_title": "Search X in sorted array",
+    "practice": "https://takeuforward.org/plus/dsa/problems/search-x-in-sorted-array"
    },
    "pattern": "exact-binary-search",
    "template": "T-BS-01",
@@ -1125,9 +1132,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/last-occurrence-in-a-sorted-array/",
+    "article": "https://takeuforward.org/plus/dsa/problems/first-and-last-occurrence?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=hjR1IYVx9lY",
-    "striver_title": "First and last occurrence"
+    "striver_title": "First and last occurrence",
+    "practice": "https://takeuforward.org/plus/dsa/problems/first-and-last-occurrence"
    },
    "pattern": "boundary-search",
    "template": "T-BS-01",
@@ -1188,9 +1196,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/peak-element-in-array/",
+    "article": "https://takeuforward.org/plus/dsa/problems/find-peak-element?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=cXxmbemS6XM",
-    "striver_title": "Find peak element"
+    "striver_title": "Find peak element",
+    "practice": "https://takeuforward.org/plus/dsa/problems/find-peak-element"
    },
    "pattern": "slope-binary-search",
    "template": "T-BS-01",
@@ -1255,9 +1264,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/binary-search/koko-eating-bananas/",
+    "article": "https://takeuforward.org/plus/dsa/problems/koko-eating-bananas?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=qyfekrNni90",
-    "striver_title": "Koko eating bananas"
+    "striver_title": "Koko eating bananas",
+    "practice": "https://takeuforward.org/plus/dsa/problems/koko-eating-bananas"
    },
    "pattern": "binary-search-on-answer",
    "template": "T-BS-02",
@@ -1324,9 +1334,10 @@
     ]
    },
    "tuf": {
-    "article": null,
+    "article": "https://takeuforward.org/plus/dsa/problems/median-of-2-sorted-arrays?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=NTop3VTjmxk",
-    "striver_title": "Median of 2 sorted arrays"
+    "striver_title": "Median of 2 sorted arrays",
+    "practice": "https://takeuforward.org/plus/dsa/problems/median-of-2-sorted-arrays"
    },
    "pattern": "partition-binary-search",
    "template": "T-BS-02",
@@ -1395,9 +1406,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/arrays/search-in-a-row-and-column-wise-sorted-matrix/",
+    "article": "https://takeuforward.org/plus/dsa/problems/search-in-2d-matrix-ii?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=9ZbB397jU4k",
-    "striver_title": "Search in 2D matrix - II"
+    "striver_title": "Search in 2D matrix - II",
+    "practice": "https://takeuforward.org/plus/dsa/problems/search-in-2d-matrix-ii"
    },
    "pattern": "staircase-search",
    "template": "T-BS-04",
@@ -1458,9 +1470,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/search-element-in-a-rotated-sorted-array/",
+    "article": "https://takeuforward.org/plus/dsa/problems/search-in-rotated-sorted-array-i?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=r3pMQ8-Ad5s",
-    "striver_title": "Search in rotated sorted array-I"
+    "striver_title": "Search in rotated sorted array-I",
+    "practice": "https://takeuforward.org/plus/dsa/problems/search-in-rotated-sorted-array-i"
    },
    "pattern": "rotated-binary-search",
    "template": "T-BS-03",
@@ -1525,9 +1538,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/arrays/split-array-largest-sum/",
+    "article": "https://takeuforward.org/plus/dsa/problems/split-array---largest-sum?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=thUd_WJn6wk",
-    "striver_title": "Split array - largest sum"
+    "striver_title": "Split array - largest sum",
+    "practice": "https://takeuforward.org/plus/dsa/problems/split-array---largest-sum"
    },
    "pattern": "binary-search-on-answer",
    "template": "T-BS-02",
@@ -1595,9 +1609,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/generate-parenthesis",
+    "article": "https://takeuforward.org/plus/dsa/problems/generate-parentheses?tab=editorial",
     "youtube": null,
-    "striver_title": "Generate Parentheses"
+    "striver_title": "Generate Parentheses",
+    "practice": "https://takeuforward.org/plus/dsa/problems/generate-parentheses"
    },
    "pattern": "backtracking-with-invariant",
    "template": "T-BT-01",
@@ -1666,9 +1681,10 @@
     ]
    },
    "tuf": {
-    "article": null,
+    "article": "https://takeuforward.org/plus/dsa/problems/longest-palindromic-substring?tab=editorial",
     "youtube": null,
-    "striver_title": "Longest Palindromic Substring"
+    "striver_title": "Longest Palindromic Substring",
+    "practice": "https://takeuforward.org/plus/dsa/problems/longest-palindromic-substring"
    },
    "pattern": "expand-around-centre",
    "template": "T-STR-02",
@@ -1736,9 +1752,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/longest-repeating-character-replacement",
+    "article": "https://takeuforward.org/plus/dsa/problems/longest-repeating-character-replacement?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=_eNhaDCr6P0",
-    "striver_title": "Longest Repeating Character Replacement"
+    "striver_title": "Longest Repeating Character Replacement",
+    "practice": "https://takeuforward.org/plus/dsa/problems/longest-repeating-character-replacement"
    },
    "pattern": "window-with-max-frequency",
    "template": "T-SW-03",
@@ -1800,9 +1817,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/length-of-longest-substring-without-any-repeating-character/",
+    "article": "https://takeuforward.org/plus/dsa/problems/longest-substring-without-repeating-characters?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=-zSxTJkcdAo",
-    "striver_title": "Longest Substring Without Repeating Characters"
+    "striver_title": "Longest Substring Without Repeating Characters",
+    "practice": "https://takeuforward.org/plus/dsa/problems/longest-substring-without-repeating-characters"
    },
    "pattern": "variable-window",
    "template": "T-SW-01",
@@ -1871,9 +1889,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/check-for-balanced-parentheses/",
+    "article": "https://takeuforward.org/plus/dsa/problems/balanced-paranthesis?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=xwjS0iZhw4I",
-    "striver_title": "Balanced Paranthesis"
+    "striver_title": "Balanced Paranthesis",
+    "practice": "https://takeuforward.org/plus/dsa/problems/balanced-paranthesis"
    },
    "pattern": "bracket-stack",
    "template": "T-STK-03",
@@ -1937,9 +1956,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/add-two-numbers-represented-as-linked-lists/",
+    "article": "https://takeuforward.org/plus/dsa/problems/add-two-numbers-in-ll?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=LBVsXSMOIk4",
-    "striver_title": "Add two numbers in Linked List"
+    "striver_title": "Add two numbers in Linked List",
+    "practice": "https://takeuforward.org/plus/dsa/problems/add-two-numbers-in-ll"
    },
    "pattern": "digit-carry-traversal",
    "template": "T-LL-02",
@@ -2004,9 +2024,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/detect-a-cycle-in-a-linked-list/",
+    "article": "https://takeuforward.org/plus/dsa/problems/detect-a-loop-in-ll?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=wiOo4DC5GGA",
-    "striver_title": "Detect a loop in LL"
+    "striver_title": "Detect a loop in LL",
+    "practice": "https://takeuforward.org/plus/dsa/problems/detect-a-loop-in-ll"
    },
    "pattern": "fast-slow-pointers",
    "template": "T-TP-03",
@@ -2074,9 +2095,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/starting-point-of-loop-in-a-linked-list/",
+    "article": "https://takeuforward.org/plus/dsa/problems/find-the-starting-point-in-ll?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=2Kd0KKmmHFc",
-    "striver_title": "Find the starting point in LL"
+    "striver_title": "Find the starting point in LL",
+    "practice": "https://takeuforward.org/plus/dsa/problems/find-the-starting-point-in-ll"
    },
    "pattern": "floyd-entry-point",
    "template": "T-TP-03",
@@ -2138,9 +2160,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/check-if-given-linked-list-is-plaindrome/",
+    "article": "https://takeuforward.org/plus/dsa/problems/check-if-ll-is-palindrome-or-not?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=lRY_G-u_8jk",
-    "striver_title": "Check if LL is palindrome or not"
+    "striver_title": "Check if LL is palindrome or not",
+    "practice": "https://takeuforward.org/plus/dsa/problems/check-if-ll-is-palindrome-or-not"
    },
    "pattern": "reverse-half-compare",
    "template": "T-LL-01",
@@ -2202,9 +2225,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/remove-n-th-node-from-the-end-of-a-linked-list/",
+    "article": "https://takeuforward.org/plus/dsa/problems/remove-nth-node-from-the-back-of-the-ll?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=3kMKYQ2wNIU",
-    "striver_title": "Remove Nth node from the back of the LL"
+    "striver_title": "Remove Nth node from the back of the LL",
+    "practice": "https://takeuforward.org/plus/dsa/problems/remove-nth-node-from-the-back-of-the-ll"
    },
    "pattern": "runner-offset",
    "template": "T-LL-03",
@@ -2266,9 +2290,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/reverse-a-linked-list/",
+    "article": "https://takeuforward.org/plus/dsa/problems/reverse-a-ll?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=D2vI2DNJGd8",
-    "striver_title": "Reverse a LinkedList [Iterative]"
+    "striver_title": "Reverse a LinkedList [Iterative]",
+    "practice": "https://takeuforward.org/plus/dsa/problems/reverse-a-ll"
    },
    "pattern": "iterative-reversal",
    "template": "T-LL-01",
@@ -2335,9 +2360,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/linked-list/sort-a-linked-list",
+    "article": "https://takeuforward.org/plus/dsa/problems/sort-ll?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=8ocB7a_c-Cc",
-    "striver_title": "Sort LL"
+    "striver_title": "Sort LL",
+    "practice": "https://takeuforward.org/plus/dsa/problems/sort-ll"
    },
    "pattern": "merge-sort-on-list",
    "template": "T-SORT-01",
@@ -2402,7 +2428,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "monotonic-stack",
    "template": "T-STK-01",
@@ -2466,9 +2493,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/area-of-largest-rectangle-in-histogram/",
+    "article": "https://takeuforward.org/plus/dsa/problems/largest-rectangle-in-a-histogram?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=Bzat9vgD0fs",
-    "striver_title": "Largest rectangle in a histogram"
+    "striver_title": "Largest rectangle in a histogram",
+    "practice": "https://takeuforward.org/plus/dsa/problems/largest-rectangle-in-a-histogram"
    },
    "pattern": "monotonic-stack-boundaries",
    "template": "T-STK-01",
@@ -2534,9 +2562,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/implement-min-stack-o2n-and-on-space-complexity/",
+    "article": "https://takeuforward.org/plus/dsa/problems/implement-min-stack?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=NdDIaH91P0g",
-    "striver_title": "Implement Min Stack"
+    "striver_title": "Implement Min Stack",
+    "practice": "https://takeuforward.org/plus/dsa/problems/implement-min-stack"
    },
    "pattern": "auxiliary-min-stack",
    "template": "T-STK-03",
@@ -2604,9 +2633,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/remove-k-digits",
+    "article": "https://takeuforward.org/plus/dsa/problems/remove-k-digits?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=jmbuRzYPGrg",
-    "striver_title": "Remove K Digits"
+    "striver_title": "Remove K Digits",
+    "practice": "https://takeuforward.org/plus/dsa/problems/remove-k-digits"
    },
    "pattern": "greedy-monotonic-stack",
    "template": "T-STK-01",
@@ -2675,9 +2705,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/sliding-window-maximum/",
+    "article": "https://takeuforward.org/plus/dsa/problems/sliding-window-maximum?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=NwBvene4Imo",
-    "striver_title": "Sliding Window Maximum"
+    "striver_title": "Sliding Window Maximum",
+    "practice": "https://takeuforward.org/plus/dsa/problems/sliding-window-maximum"
    },
    "pattern": "monotonic-deque",
    "template": "T-STK-02",
@@ -2746,9 +2777,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/sum-of-subarray-minimums",
+    "article": "https://takeuforward.org/plus/dsa/problems/sum-of-subarray-minimums?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=v0e8p9JCgRc",
-    "striver_title": "Sum of Subarray Minimums"
+    "striver_title": "Sum of Subarray Minimums",
+    "practice": "https://takeuforward.org/plus/dsa/problems/sum-of-subarray-minimums"
    },
    "pattern": "contribution-counting",
    "template": "T-STK-01",
@@ -2809,9 +2841,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/fruit-into-baskets",
+    "article": "https://takeuforward.org/plus/dsa/problems/fruit-into-baskets?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=e3bs0uA1NhQ",
-    "striver_title": "Fruit Into Baskets"
+    "striver_title": "Fruit Into Baskets",
+    "practice": "https://takeuforward.org/plus/dsa/problems/fruit-into-baskets"
    },
    "pattern": "at-most-k-distinct",
    "template": "T-SW-03",
@@ -2873,9 +2906,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/subarray-with-k-different-integers",
+    "article": "https://takeuforward.org/plus/dsa/problems/subarrays-with-k-different-integers?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=7wYGbV_LsX4",
-    "striver_title": "Subarrays with K Different Integers"
+    "striver_title": "Subarrays with K Different Integers",
+    "practice": "https://takeuforward.org/plus/dsa/problems/subarrays-with-k-different-integers"
    },
    "pattern": "at-most-k-difference",
    "template": "T-SW-03",
@@ -2939,9 +2973,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/find-median-from-data-stream",
+    "article": "https://takeuforward.org/plus/dsa/problems/find-median-from-data-stream?tab=editorial",
     "youtube": null,
-    "striver_title": "Find Median from Data Stream"
+    "striver_title": "Find Median from Data Stream",
+    "practice": "https://takeuforward.org/plus/dsa/problems/find-median-from-data-stream"
    },
    "pattern": "two-heaps",
    "template": "T-HEAP-02",
@@ -3012,7 +3047,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "size-k-heap",
    "template": "T-HEAP-01",
@@ -3085,9 +3121,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/top-k-frequent-elements",
+    "article": "https://takeuforward.org/plus/dsa/problems/top-k-frequent-elements?tab=editorial",
     "youtube": null,
-    "striver_title": "Top K Frequent Elements"
+    "striver_title": "Top K Frequent Elements",
+    "practice": "https://takeuforward.org/plus/dsa/problems/top-k-frequent-elements"
    },
    "pattern": "count-then-select",
    "template": "T-HEAP-01",
@@ -3157,9 +3194,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/valid-paranthesis-checker",
+    "article": "https://takeuforward.org/plus/dsa/problems/valid-paranthesis-checker?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=cHT6sG_hUZI",
-    "striver_title": "Valid Paranthesis Checker"
+    "striver_title": "Valid Paranthesis Checker",
+    "practice": "https://takeuforward.org/plus/dsa/problems/valid-paranthesis-checker"
    },
    "pattern": "range-tracking",
    "template": "T-GREEDY-01",
@@ -3225,9 +3263,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/sieve-of-eratosthenes",
+    "article": "https://takeuforward.org/plus/dsa/problems/count-primes-in-range-l-to-r?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=g5Fuxn_AvSk",
-    "striver_title": "Count primes in range L to R"
+    "striver_title": "Count primes in range L to R",
+    "practice": "https://takeuforward.org/plus/dsa/problems/count-primes-in-range-l-to-r"
    },
    "pattern": "sieve-of-eratosthenes",
    "template": "T-MATH-03",
@@ -3293,9 +3332,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/maximum-xor-of-two-numbers-in-an-array/",
+    "article": "https://takeuforward.org/plus/dsa/problems/maximum-xor-of-two-numbers-in-an-array?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=EIhAwfHubE8",
-    "striver_title": "Maximum XOR of two numbers in an array"
+    "striver_title": "Maximum XOR of two numbers in an array",
+    "practice": "https://takeuforward.org/plus/dsa/problems/maximum-xor-of-two-numbers-in-an-array"
    },
    "pattern": "binary-trie",
    "template": "T-TRIE-01",

@@ -460,9 +460,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/number-of-distinct-islands/",
+    "article": "https://takeuforward.org/plus/dsa/problems/number-of-islands?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=muncqlKJrH0",
-    "striver_title": "Number of islands"
+    "striver_title": "Number of islands",
+    "practice": "https://takeuforward.org/plus/dsa/problems/number-of-islands"
    },
    "pattern": "grid-dfs-flood-fill",
    "template": "T-GRAPH-01",
@@ -534,7 +535,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "grid-dfs-flood-fill",
    "template": "T-GRAPH-01",
@@ -598,9 +600,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/graph/surrounded-regions-replace-os-with-xs/",
+    "article": "https://takeuforward.org/plus/dsa/problems/surrounded-regions?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=BtdgAys4yMk",
-    "striver_title": "Surrounded Regions"
+    "striver_title": "Surrounded Regions",
+    "practice": "https://takeuforward.org/plus/dsa/problems/surrounded-regions"
    },
    "pattern": "boundary-first-dfs",
    "template": "T-GRAPH-01",
@@ -662,9 +665,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/rotten-oranges-min-time-to-rot-all-oranges-bfs/",
+    "article": "https://takeuforward.org/plus/dsa/problems/rotten-oranges?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=yf3oUhkvqA0",
-    "striver_title": "Rotten Oranges"
+    "striver_title": "Rotten Oranges",
+    "practice": "https://takeuforward.org/plus/dsa/problems/rotten-oranges"
    },
    "pattern": "multi-source-bfs",
    "template": "T-GRAPH-02",
@@ -727,9 +731,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/graph/distance-of-nearest-cell-having-1/",
+    "article": "https://takeuforward.org/plus/dsa/problems/distance-of-nearest-cell-having-one?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=edXdVwkYHF8",
-    "striver_title": "Distance of nearest cell having one"
+    "striver_title": "Distance of nearest cell having one",
+    "practice": "https://takeuforward.org/plus/dsa/problems/distance-of-nearest-cell-having-one"
    },
    "pattern": "multi-source-bfs",
    "template": "T-GRAPH-02",
@@ -790,9 +795,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/g-36-shortest-distance-in-a-binary-maze/",
+    "article": "https://takeuforward.org/plus/dsa/problems/shortest-path-with-minimum-effort?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=U5Mw4eyUmw4",
-    "striver_title": "Shortest Distance in a Binary Maze"
+    "striver_title": "Shortest Distance in a Binary Maze",
+    "practice": "https://takeuforward.org/plus/dsa/problems/shortest-path-with-minimum-effort"
    },
    "pattern": "bfs-grid-shortest",
    "template": "T-GRAPH-02",
@@ -857,7 +863,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "traversal-with-mapping",
    "template": "T-GRAPH-01",
@@ -920,9 +927,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/number-of-provinces/",
+    "article": "https://takeuforward.org/plus/dsa/problems/number-of-provinces?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=ACzkVtewUYA",
-    "striver_title": "Number of provinces"
+    "striver_title": "Number of provinces",
+    "practice": "https://takeuforward.org/plus/dsa/problems/number-of-provinces"
    },
    "pattern": "dsu-components",
    "template": "T-GRAPH-05",
@@ -987,7 +995,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "dsu-cycle-detection",
    "template": "T-GRAPH-05",
@@ -1052,9 +1061,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/graph/bipartite-graph-dfs-implementation/",
+    "article": "https://takeuforward.org/plus/dsa/problems/bipartite-graph?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=KG5YFfR0j8A",
-    "striver_title": "Bipartite Graph (DFS)"
+    "striver_title": "Bipartite Graph (DFS)",
+    "practice": "https://takeuforward.org/plus/dsa/problems/bipartite-graph"
    },
    "pattern": "two-colouring",
    "template": "T-GRAPH-02",
@@ -1118,9 +1128,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/detect-cycle-in-an-undirected-graph-using-dfs/",
+    "article": "https://takeuforward.org/plus/dsa/problems/course-schedule-i?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=zQ3zgFypzX4",
-    "striver_title": "Detect a cycle in an undirected graph"
+    "striver_title": "Detect a cycle in an undirected graph",
+    "practice": "https://takeuforward.org/plus/dsa/problems/course-schedule-i"
    },
    "pattern": "topological-cycle-detection",
    "template": "T-GRAPH-03",
@@ -1185,9 +1196,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/detect-cycle-in-a-directed-graph-using-dfs-g-19/",
+    "article": "https://takeuforward.org/plus/dsa/problems/course-schedule-ii?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=9twcmtQj4DU",
-    "striver_title": "Cycle Detection in Directed Graph (DFS)"
+    "striver_title": "Cycle Detection in Directed Graph (DFS)",
+    "practice": "https://takeuforward.org/plus/dsa/problems/course-schedule-ii"
    },
    "pattern": "topological-order",
    "template": "T-GRAPH-03",
@@ -1253,9 +1265,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/find-eventual-safe-states-bfs-topological-sort-g-25/",
+    "article": "https://takeuforward.org/plus/dsa/problems/find-eventual-safe-states?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=2gtg3VsDGyc",
-    "striver_title": "Find eventual safe states"
+    "striver_title": "Find eventual safe states",
+    "practice": "https://takeuforward.org/plus/dsa/problems/find-eventual-safe-states"
    },
    "pattern": "reverse-topological",
    "template": "T-GRAPH-07",
@@ -1319,7 +1332,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "dag-path-enumeration",
    "template": "T-BT-01",
@@ -1383,9 +1397,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/network-delay-time",
+    "article": "https://takeuforward.org/plus/dsa/problems/network-delay-time?tab=editorial",
     "youtube": null,
-    "striver_title": "Network Delay Time"
+    "striver_title": "Network Delay Time",
+    "practice": "https://takeuforward.org/plus/dsa/problems/network-delay-time"
    },
    "pattern": "dijkstra",
    "template": "T-GRAPH-04",
@@ -1455,9 +1470,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/g-38-cheapest-flights-within-k-stops/",
+    "article": "https://takeuforward.org/plus/dsa/problems/cheapest-flight-within-k-stops?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=9XybHVqTHcQ",
-    "striver_title": "Cheapest flight within K stops"
+    "striver_title": "Cheapest flight within K stops",
+    "practice": "https://takeuforward.org/plus/dsa/problems/cheapest-flight-within-k-stops"
    },
    "pattern": "bellman-ford-rounds",
    "template": "T-GRAPH-04",
@@ -1527,9 +1543,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/g-37-path-with-minimum-effort/",
+    "article": "https://takeuforward.org/plus/dsa/problems/path-with-minimum-effort?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=0ytpZyiZFhA",
-    "striver_title": "Path with minimum effort"
+    "striver_title": "Path with minimum effort",
+    "practice": "https://takeuforward.org/plus/dsa/problems/path-with-minimum-effort"
    },
    "pattern": "dijkstra-minimax",
    "template": "T-GRAPH-04",
@@ -1600,9 +1617,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/swim-in-rising-water",
+    "article": "https://takeuforward.org/plus/dsa/problems/swim-in-rising-water?tab=editorial",
     "youtube": null,
-    "striver_title": "Swim in Rising Water"
+    "striver_title": "Swim in Rising Water",
+    "practice": "https://takeuforward.org/plus/dsa/problems/swim-in-rising-water"
    },
    "pattern": "dijkstra-minimax",
    "template": "T-GRAPH-04",
@@ -1669,7 +1687,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "kruskal-mst",
    "template": "T-GRAPH-06",
@@ -1734,9 +1753,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/accounts-merge-dsu-g-50/",
+    "article": "https://takeuforward.org/plus/dsa/problems/accounts-merge?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=FMwpt_aQOGw",
-    "striver_title": "Accounts merge"
+    "striver_title": "Accounts merge",
+    "practice": "https://takeuforward.org/plus/dsa/problems/accounts-merge"
    },
    "pattern": "dsu-with-mapping",
    "template": "T-GRAPH-05",
@@ -1800,9 +1820,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/most-stones-removed-with-same-row-or-column-dsu-g-53/",
+    "article": "https://takeuforward.org/plus/dsa/problems/most-stones-removed-with-same-row-or-column?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=OwMNX8SPavM",
-    "striver_title": "Most stones removed with same row or column"
+    "striver_title": "Most stones removed with same row or column",
+    "practice": "https://takeuforward.org/plus/dsa/problems/most-stones-removed-with-same-row-or-column"
    },
    "pattern": "dsu-implicit-edges",
    "template": "T-GRAPH-05",
@@ -1871,7 +1892,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "weighted-graph-path",
    "template": "T-GRAPH-01",
@@ -1934,9 +1956,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/graph/word-ladder-i-g-29/",
+    "article": "https://takeuforward.org/plus/dsa/problems/word-ladder-i?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=tRPda0rcf8E",
-    "striver_title": "Word ladder I"
+    "striver_title": "Word ladder I",
+    "practice": "https://takeuforward.org/plus/dsa/problems/word-ladder-i"
    },
    "pattern": "implicit-graph-bfs",
    "template": "T-GRAPH-02",
@@ -2007,7 +2030,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "implicit-graph-bfs",
    "template": "T-GRAPH-02",
@@ -2069,7 +2093,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "graph-of-routes",
    "template": "T-GRAPH-02",
@@ -2138,7 +2163,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "eulerian-path",
    "template": "T-GRAPH-01",
@@ -2200,9 +2226,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/graph/bridges-in-graph-using-tarjans-algorithm-of-time-in-and-low-time-g-55/",
+    "article": "https://takeuforward.org/plus/dsa/problems/bridges-in-graph?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=qrAub5z8FeA",
-    "striver_title": "Bridges in graph"
+    "striver_title": "Bridges in graph",
+    "practice": "https://takeuforward.org/plus/dsa/problems/bridges-in-graph"
    },
    "pattern": "tarjan-bridges",
    "template": "T-GRAPH-01",
@@ -2270,9 +2297,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/find-the-city-with-the-smallest-number-of-neighbours-at-a-threshold-distance-g-43/",
+    "article": "https://takeuforward.org/plus/dsa/problems/find-the-city-with-the-smallest-number-of-neighbors?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=9XybHVqTHcQ",
-    "striver_title": "Find the city with the smallest number of neighbors"
+    "striver_title": "Find the city with the smallest number of neighbors",
+    "practice": "https://takeuforward.org/plus/dsa/problems/find-the-city-with-the-smallest-number-of-neighbors"
    },
    "pattern": "floyd-warshall",
    "template": "T-GRAPH-04",
@@ -2344,7 +2372,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "memoised-dag-dfs",
    "template": "T-DP-02",
@@ -2413,7 +2442,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "indegree-peeling",
    "template": "T-GRAPH-03",
@@ -2477,7 +2507,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "bitmask-bfs",
    "template": "T-BIT-02",

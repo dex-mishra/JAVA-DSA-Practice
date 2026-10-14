@@ -82,13 +82,13 @@
     "[Striver: Graph series](https://www.youtube.com/watch?v=M3_pLsDdeuU)"
    ],
    "parts": {
-    "breadth": "\n**What it is.** A graph is a set of vertices and a set of edges connecting them. Trees and linked\nlists are special cases \u2014 a tree is a connected graph with no cycles \u2014 so graph techniques subsume\nmuch of what you already know.\n\n**The vocabulary that matters.**\n\n- *Directed* vs *undirected* \u2014 whether an edge can be traversed both ways.\n- *Weighted* vs *unweighted* \u2014 whether edges carry a cost.\n- *Degree* \u2014 edges at a vertex. Directed graphs split it into *in-degree* and *out-degree*.\n- *Connected component* \u2014 a maximal set of mutually reachable vertices.\n- *DAG* \u2014 a directed graph with no cycles. Topological ordering exists only for DAGs.\n- *Cycle* \u2014 a path returning to its start.\n\n**Representation.** Adjacency list almost always; adjacency matrix only when the graph is dense or\nyou need O(1) edge lookups.\n\n```cpp\nvector<vector<int>> adj(n);                        // unweighted\nadj[u].push_back(v);                               // and adj[v].push_back(u) if undirected\n\nvector<vector<pair<int,int>>> wadj(n);             // weighted: (neighbour, weight)\nwadj[u].push_back({v, w});\n```\n\nAdjacency list is O(V + E) space; matrix is O(V\u00b2). At V = 10\u2075 the matrix is impossible, which the\nconstraints will tell you.\n\n**A grid is a graph.** Every cell is a vertex with up to four neighbours. Map (i, j) to `i * cols + j`\nwhen you need a flat index for DSU.\n\n```cpp\nstatic const int d[] = {0, 1, 0, -1, 0};           // four neighbours from one array\nfor (int t = 0; t < 4; t++) { int ni = i + d[t], nj = j + d[t+1]; }\n```\n\n**The two traversals.**\n\n*DFS* goes as deep as possible before backtracking. Natural recursively; used for connected\ncomponents, cycle detection, topological order and anything needing subtree information.\n\n```cpp\nvoid dfs(int u, vector<vector<int>>& adj, vector<bool>& vis) {\n    vis[u] = true;\n    for (int v : adj[u]) if (!vis[v]) dfs(v, adj, vis);\n}\n```\n\n*BFS* explores level by level. Used whenever the question is about **fewest steps**, because on an\nunweighted graph BFS visits vertices in non-decreasing distance order.\n\n```cpp\nvector<int> bfs(int src, vector<vector<int>>& adj) {\n    vector<int> dist(adj.size(), -1);\n    queue<int> q; q.push(src); dist[src] = 0;\n    while (!q.empty()) {\n        int u = q.front(); q.pop();\n        for (int v : adj[u])\n            if (dist[v] == -1) { dist[v] = dist[u] + 1; q.push(v); }\n    }\n    return dist;\n}\n```\n\nMark visited when **enqueuing**, not when dequeuing, or vertices enter the queue many times.\n\n**Multi-source BFS.** Push every source at distance 0 before the loop starts. One BFS then computes\nthe distance to the *nearest* source for every vertex, which is what Rotting Oranges and 01 Matrix\nneed.\n\n**Topological sort (Kahn's algorithm).** Repeatedly remove a vertex with in-degree zero.\n\n```cpp\nvector<int> topo(int n, vector<vector<int>>& adj) {\n    vector<int> indeg(n, 0), order;\n    for (int u = 0; u < n; u++) for (int v : adj[u]) indeg[v]++;\n    queue<int> q;\n    for (int i = 0; i < n; i++) if (!indeg[i]) q.push(i);\n    while (!q.empty()) {\n        int u = q.front(); q.pop(); order.push_back(u);\n        for (int v : adj[u]) if (--indeg[v] == 0) q.push(v);\n    }\n    return (int)order.size() == n ? order : vector<int>{};   // short means a cycle\n}\n```\n\nThe length check **is** the cycle detection \u2014 no separate pass.\n\n**Dijkstra.** Shortest paths with non-negative weights.\n\n```cpp\nvector<long long> dijkstra(int n, vector<vector<pair<int,int>>>& adj, int src) {\n    vector<long long> dist(n, LLONG_MAX);\n    priority_queue<pair<long long,int>, vector<pair<long long,int>>, greater<>> pq;\n    dist[src] = 0; pq.push({0, src});\n    while (!pq.empty()) {\n        auto [d, u] = pq.top(); pq.pop();\n        if (d > dist[u]) continue;                  // stale entry\n        for (auto [v, w] : adj[u])\n            if (dist[u] + w < dist[v]) { dist[v] = dist[u] + w; pq.push({dist[v], v}); }\n    }\n    return dist;\n}\n```\n\n**Disjoint Set Union.** Connected components and cycle detection in undirected graphs.\n\n```cpp\nstruct DSU {\n    vector<int> p, r;\n    DSU(int n) : p(n), r(n, 0) { iota(p.begin(), p.end(), 0); }\n    int find(int x) { return p[x] == x ? x : p[x] = find(p[x]); }      // path compression\n    bool unite(int a, int b) {\n        a = find(a); b = find(b);\n        if (a == b) return false;                   // already joined: this edge closes a cycle\n        if (r[a] < r[b]) swap(a, b);\n        p[b] = a;\n        if (r[a] == r[b]) r[a]++;                   // union by rank\n        return true;\n    }\n};\n```\n\n**Complexity summary.**\n\n| Algorithm | Time | Use |\n|---|---|---|\n| DFS / BFS | O(V + E) | reachability, components, levels |\n| Multi-source BFS | O(V + E) | distance to nearest source |\n| Kahn topological sort | O(V + E) | ordering, DAG cycle detection |\n| DFS colour cycle detection | O(V + E) | directed cycles |\n| Dijkstra | O((V + E) log V) | non-negative weights |\n| Bellman-Ford | O(V \u00b7 E) | negative weights, negative-cycle detection |\n| Floyd-Warshall | O(V\u00b3) | all pairs, V \u2264 a few hundred |\n| DSU operation | ~O(1) amortised | components, Kruskal |\n| Kruskal MST | O(E log E) | minimum spanning tree |\n",
-    "depth": "\n**Why BFS gives shortest paths only on unweighted graphs.** BFS dequeues vertices in non-decreasing\ndistance order, so the first time it reaches a vertex is via a minimum-edge-count path. With weights,\na path of two cheap edges can beat one expensive edge, and BFS has no mechanism to reconsider \u2014\nhence Dijkstra's priority queue.\n\nA useful middle case: when all weights are 0 or 1, **0-1 BFS** with a deque gives O(V + E) \u2014 push\nzero-weight neighbours to the front and one-weight to the back. This beats Dijkstra's log factor and\nappears in minimum-obstacle-removal problems.\n\n**Mark visited on enqueue.** If you mark on dequeue, a vertex reachable from several frontier\nvertices is enqueued once per incoming edge. The queue grows to O(E) and the constant factor\ncollapses. This is the single most common BFS bug.\n\n**Dijkstra's correctness and why it needs non-negative weights.** The invariant is that when a vertex\nis popped, its distance is final. The proof: any alternative path to it must pass through an\nunfinalised vertex whose tentative distance is already at least as large, and since edge weights are\nnon-negative, extending that path cannot make it shorter. A negative edge breaks the last step \u2014 a\nlonger-looking path could later shrink \u2014 so the greedy commitment is unsound. Use Bellman-Ford there:\nV\u22121 rounds of relaxing every edge, and a Vth round that still improves something proves a negative\ncycle.\n\n**The stale-entry check replaces decrease-key.** `std::priority_queue` cannot update a key, so\nDijkstra pushes duplicates and skips any pop whose distance exceeds the recorded one. The queue holds\nO(E) entries rather than O(V), which is why the bound is O((V+E) log V) rather than O(E + V log V).\nAn indexed binary heap or a Fibonacci heap achieves the tighter bound; neither is worth implementing\nin an interview.\n\n**Dijkstra variants change only the relaxation step.** Maximum-probability paths multiply instead of\nadding and use a max-heap. Minimum-effort paths take `max(currentEffort, edgeWeight)` instead of a\nsum \u2014 a minimax objective, and it still works because that function is monotone along a path. Spotting\nthat a problem is \"Dijkstra with a different combine operator\" is worth more than memorising the\nvariants.\n\n**Cheapest Flights Within K Stops** is the case where Dijkstra's invariant genuinely fails: a vertex's\ncheapest route may use too many stops, so arriving cheaply is not the same as arriving usefully. Either\nrun Bellman-Ford for exactly K+1 rounds, or run BFS level by level where each level is one additional\nstop. The lesson is that adding a second dimension to the state can invalidate a greedy algorithm.\n\n**Directed cycle detection needs three colours, not two.** A visited vertex is only evidence of a\ncycle if it lies on the *current* recursion path. White, grey and black \u2014 unvisited, in-progress,\nfinished \u2014 distinguish a back edge from a harmless cross edge. In undirected graphs you instead ignore\nthe edge back to the parent, and must be careful with parallel edges.\n\n**DSU complexity.** Path compression alone gives O(log n) amortised; union by rank alone gives\nO(log n); together they give O(\u03b1(n)), where \u03b1 is the inverse Ackermann function and is below 5 for any\nn you will ever see. Treat it as constant but know the real bound and that it comes from combining\nboth optimisations.\n\nDSU answers connectivity under *additions* only. It cannot delete an edge, which is why dynamic\nconnectivity problems are much harder, and why \"offline, process the queries in reverse\" is a common\ntrick \u2014 deletions become additions when time runs backwards.\n\n**Kruskal versus Prim.** Kruskal sorts edges and unions greedily: O(E log E), better on sparse graphs,\nand trivially correct given the cut property. Prim grows one tree with a priority queue: O(E log V),\nbetter on dense graphs. Both rely on the cut property \u2014 the lightest edge crossing any partition of\nthe vertices belongs to some MST.\n\n**Bridges and articulation points (Tarjan).** A bridge is an edge whose removal disconnects the graph.\nTrack each vertex's DFS discovery time and the lowest discovery time reachable from its subtree. An\nedge (u, v) is a bridge when `low[v] > disc[u]` \u2014 nothing in v's subtree can reach u or above except\nthrough that edge. O(V + E), one DFS. This is Critical Connections, and the `low` array idea also\ngives strongly connected components via Tarjan's SCC algorithm.\n\n**When the graph is implicit.** Word Ladder, Open the Lock and Shortest Path Visiting All Nodes have\nno edge list \u2014 states are strings, dial positions, or (vertex, visited-bitmask) pairs, and neighbours\nare generated on demand. Recognising a state space as a graph is usually the whole difficulty; the\nBFS afterwards is routine. When the state includes a bitmask, `n \u2264 20` in the constraints is the tell.\n\n**Eulerian paths.** Reconstruct Itinerary wants a path using every edge exactly once. Hierholzer's\nalgorithm does a DFS that appends a vertex to the answer only after exhausting its edges, then\nreverses. Greedily picking the lexicographically smallest next edge without that post-order append\ngets stuck in a dead end \u2014 which is exactly the trap the problem sets.\n\n**The grilling chain.**\n\n- *BFS or Dijkstra here?* \u2014 Whether edges are weighted; mention 0-1 BFS for the 0/1 case.\n- *Why does Dijkstra fail on negative weights?* \u2014 The finalisation invariant; name Bellman-Ford.\n- *How do you decrease-key in `priority_queue`?* \u2014 You do not; push duplicates and skip stale pops.\n- *Detect a cycle in a directed graph.* \u2014 Three colours, and why two are insufficient.\n- *What is DSU's real complexity?* \u2014 O(\u03b1(n)) from path compression plus union by rank.\n- *Can DSU handle edge deletion?* \u2014 No. Mention offline reverse processing.\n- *Find all bridges.* \u2014 Tarjan's `disc` and `low`, with the `low[v] > disc[u]` condition.\n- *Shortest path with at most K edges.* \u2014 Dijkstra's invariant breaks; Bellman-Ford rounds or\n  level-wise BFS.\n",
+    "breadth": "\n**What it is.** A graph is a set of vertices and a set of edges connecting them. Trees and linked\nlists are special cases — a tree is a connected graph with no cycles — so graph techniques subsume\nmuch of what you already know.\n\n**The vocabulary that matters.**\n\n- *Directed* vs *undirected* — whether an edge can be traversed both ways.\n- *Weighted* vs *unweighted* — whether edges carry a cost.\n- *Degree* — edges at a vertex. Directed graphs split it into *in-degree* and *out-degree*.\n- *Connected component* — a maximal set of mutually reachable vertices.\n- *DAG* — a directed graph with no cycles. Topological ordering exists only for DAGs.\n- *Cycle* — a path returning to its start.\n\n**Representation.** Adjacency list almost always; adjacency matrix only when the graph is dense or\nyou need O(1) edge lookups.\n\n```cpp\nvector<vector<int>> adj(n);                        // unweighted\nadj[u].push_back(v);                               // and adj[v].push_back(u) if undirected\n\nvector<vector<pair<int,int>>> wadj(n);             // weighted: (neighbour, weight)\nwadj[u].push_back({v, w});\n```\n\nAdjacency list is O(V + E) space; matrix is O(V²). At V = 10⁵ the matrix is impossible, which the\nconstraints will tell you.\n\n**A grid is a graph.** Every cell is a vertex with up to four neighbours. Map (i, j) to `i * cols + j`\nwhen you need a flat index for DSU.\n\n```cpp\nstatic const int d[] = {0, 1, 0, -1, 0};           // four neighbours from one array\nfor (int t = 0; t < 4; t++) { int ni = i + d[t], nj = j + d[t+1]; }\n```\n\n**The two traversals.**\n\n*DFS* goes as deep as possible before backtracking. Natural recursively; used for connected\ncomponents, cycle detection, topological order and anything needing subtree information.\n\n```cpp\nvoid dfs(int u, vector<vector<int>>& adj, vector<bool>& vis) {\n    vis[u] = true;\n    for (int v : adj[u]) if (!vis[v]) dfs(v, adj, vis);\n}\n```\n\n*BFS* explores level by level. Used whenever the question is about **fewest steps**, because on an\nunweighted graph BFS visits vertices in non-decreasing distance order.\n\n```cpp\nvector<int> bfs(int src, vector<vector<int>>& adj) {\n    vector<int> dist(adj.size(), -1);\n    queue<int> q; q.push(src); dist[src] = 0;\n    while (!q.empty()) {\n        int u = q.front(); q.pop();\n        for (int v : adj[u])\n            if (dist[v] == -1) { dist[v] = dist[u] + 1; q.push(v); }\n    }\n    return dist;\n}\n```\n\nMark visited when **enqueuing**, not when dequeuing, or vertices enter the queue many times.\n\n**Multi-source BFS.** Push every source at distance 0 before the loop starts. One BFS then computes\nthe distance to the *nearest* source for every vertex, which is what Rotting Oranges and 01 Matrix\nneed.\n\n**Topological sort (Kahn's algorithm).** Repeatedly remove a vertex with in-degree zero.\n\n```cpp\nvector<int> topo(int n, vector<vector<int>>& adj) {\n    vector<int> indeg(n, 0), order;\n    for (int u = 0; u < n; u++) for (int v : adj[u]) indeg[v]++;\n    queue<int> q;\n    for (int i = 0; i < n; i++) if (!indeg[i]) q.push(i);\n    while (!q.empty()) {\n        int u = q.front(); q.pop(); order.push_back(u);\n        for (int v : adj[u]) if (--indeg[v] == 0) q.push(v);\n    }\n    return (int)order.size() == n ? order : vector<int>{};   // short means a cycle\n}\n```\n\nThe length check **is** the cycle detection — no separate pass.\n\n**Dijkstra.** Shortest paths with non-negative weights.\n\n```cpp\nvector<long long> dijkstra(int n, vector<vector<pair<int,int>>>& adj, int src) {\n    vector<long long> dist(n, LLONG_MAX);\n    priority_queue<pair<long long,int>, vector<pair<long long,int>>, greater<>> pq;\n    dist[src] = 0; pq.push({0, src});\n    while (!pq.empty()) {\n        auto [d, u] = pq.top(); pq.pop();\n        if (d > dist[u]) continue;                  // stale entry\n        for (auto [v, w] : adj[u])\n            if (dist[u] + w < dist[v]) { dist[v] = dist[u] + w; pq.push({dist[v], v}); }\n    }\n    return dist;\n}\n```\n\n**Disjoint Set Union.** Connected components and cycle detection in undirected graphs.\n\n```cpp\nstruct DSU {\n    vector<int> p, r;\n    DSU(int n) : p(n), r(n, 0) { iota(p.begin(), p.end(), 0); }\n    int find(int x) { return p[x] == x ? x : p[x] = find(p[x]); }      // path compression\n    bool unite(int a, int b) {\n        a = find(a); b = find(b);\n        if (a == b) return false;                   // already joined: this edge closes a cycle\n        if (r[a] < r[b]) swap(a, b);\n        p[b] = a;\n        if (r[a] == r[b]) r[a]++;                   // union by rank\n        return true;\n    }\n};\n```\n\n**Complexity summary.**\n\n| Algorithm | Time | Use |\n|---|---|---|\n| DFS / BFS | O(V + E) | reachability, components, levels |\n| Multi-source BFS | O(V + E) | distance to nearest source |\n| Kahn topological sort | O(V + E) | ordering, DAG cycle detection |\n| DFS colour cycle detection | O(V + E) | directed cycles |\n| Dijkstra | O((V + E) log V) | non-negative weights |\n| Bellman-Ford | O(V · E) | negative weights, negative-cycle detection |\n| Floyd-Warshall | O(V³) | all pairs, V ≤ a few hundred |\n| DSU operation | ~O(1) amortised | components, Kruskal |\n| Kruskal MST | O(E log E) | minimum spanning tree |\n",
+    "depth": "\n**Why BFS gives shortest paths only on unweighted graphs.** BFS dequeues vertices in non-decreasing\ndistance order, so the first time it reaches a vertex is via a minimum-edge-count path. With weights,\na path of two cheap edges can beat one expensive edge, and BFS has no mechanism to reconsider —\nhence Dijkstra's priority queue.\n\nA useful middle case: when all weights are 0 or 1, **0-1 BFS** with a deque gives O(V + E) — push\nzero-weight neighbours to the front and one-weight to the back. This beats Dijkstra's log factor and\nappears in minimum-obstacle-removal problems.\n\n**Mark visited on enqueue.** If you mark on dequeue, a vertex reachable from several frontier\nvertices is enqueued once per incoming edge. The queue grows to O(E) and the constant factor\ncollapses. This is the single most common BFS bug.\n\n**Dijkstra's correctness and why it needs non-negative weights.** The invariant is that when a vertex\nis popped, its distance is final. The proof: any alternative path to it must pass through an\nunfinalised vertex whose tentative distance is already at least as large, and since edge weights are\nnon-negative, extending that path cannot make it shorter. A negative edge breaks the last step — a\nlonger-looking path could later shrink — so the greedy commitment is unsound. Use Bellman-Ford there:\nV−1 rounds of relaxing every edge, and a Vth round that still improves something proves a negative\ncycle.\n\n**The stale-entry check replaces decrease-key.** `std::priority_queue` cannot update a key, so\nDijkstra pushes duplicates and skips any pop whose distance exceeds the recorded one. The queue holds\nO(E) entries rather than O(V), which is why the bound is O((V+E) log V) rather than O(E + V log V).\nAn indexed binary heap or a Fibonacci heap achieves the tighter bound; neither is worth implementing\nin an interview.\n\n**Dijkstra variants change only the relaxation step.** Maximum-probability paths multiply instead of\nadding and use a max-heap. Minimum-effort paths take `max(currentEffort, edgeWeight)` instead of a\nsum — a minimax objective, and it still works because that function is monotone along a path. Spotting\nthat a problem is \"Dijkstra with a different combine operator\" is worth more than memorising the\nvariants.\n\n**Cheapest Flights Within K Stops** is the case where Dijkstra's invariant genuinely fails: a vertex's\ncheapest route may use too many stops, so arriving cheaply is not the same as arriving usefully. Either\nrun Bellman-Ford for exactly K+1 rounds, or run BFS level by level where each level is one additional\nstop. The lesson is that adding a second dimension to the state can invalidate a greedy algorithm.\n\n**Directed cycle detection needs three colours, not two.** A visited vertex is only evidence of a\ncycle if it lies on the *current* recursion path. White, grey and black — unvisited, in-progress,\nfinished — distinguish a back edge from a harmless cross edge. In undirected graphs you instead ignore\nthe edge back to the parent, and must be careful with parallel edges.\n\n**DSU complexity.** Path compression alone gives O(log n) amortised; union by rank alone gives\nO(log n); together they give O(α(n)), where α is the inverse Ackermann function and is below 5 for any\nn you will ever see. Treat it as constant but know the real bound and that it comes from combining\nboth optimisations.\n\nDSU answers connectivity under *additions* only. It cannot delete an edge, which is why dynamic\nconnectivity problems are much harder, and why \"offline, process the queries in reverse\" is a common\ntrick — deletions become additions when time runs backwards.\n\n**Kruskal versus Prim.** Kruskal sorts edges and unions greedily: O(E log E), better on sparse graphs,\nand trivially correct given the cut property. Prim grows one tree with a priority queue: O(E log V),\nbetter on dense graphs. Both rely on the cut property — the lightest edge crossing any partition of\nthe vertices belongs to some MST.\n\n**Bridges and articulation points (Tarjan).** A bridge is an edge whose removal disconnects the graph.\nTrack each vertex's DFS discovery time and the lowest discovery time reachable from its subtree. An\nedge (u, v) is a bridge when `low[v] > disc[u]` — nothing in v's subtree can reach u or above except\nthrough that edge. O(V + E), one DFS. This is Critical Connections, and the `low` array idea also\ngives strongly connected components via Tarjan's SCC algorithm.\n\n**When the graph is implicit.** Word Ladder, Open the Lock and Shortest Path Visiting All Nodes have\nno edge list — states are strings, dial positions, or (vertex, visited-bitmask) pairs, and neighbours\nare generated on demand. Recognising a state space as a graph is usually the whole difficulty; the\nBFS afterwards is routine. When the state includes a bitmask, `n ≤ 20` in the constraints is the tell.\n\n**Eulerian paths.** Reconstruct Itinerary wants a path using every edge exactly once. Hierholzer's\nalgorithm does a DFS that appends a vertex to the answer only after exhausting its edges, then\nreverses. Greedily picking the lexicographically smallest next edge without that post-order append\ngets stuck in a dead end — which is exactly the trap the problem sets.\n\n**The grilling chain.**\n\n- *BFS or Dijkstra here?* — Whether edges are weighted; mention 0-1 BFS for the 0/1 case.\n- *Why does Dijkstra fail on negative weights?* — The finalisation invariant; name Bellman-Ford.\n- *How do you decrease-key in `priority_queue`?* — You do not; push duplicates and skip stale pops.\n- *Detect a cycle in a directed graph.* — Three colours, and why two are insufficient.\n- *What is DSU's real complexity?* — O(α(n)) from path compression plus union by rank.\n- *Can DSU handle edge deletion?* — No. Mention offline reverse processing.\n- *Find all bridges.* — Tarjan's `disc` and `low`, with the `low[v] > disc[u]` condition.\n- *Shortest path with at most K edges.* — Dijkstra's invariant breaks; Bellman-Ford rounds or\n  level-wise BFS.\n",
     "analogy": {
      "Why BFS finds the shortest route": "\nYou are looking for the nearest open shop. Rather than walking one street to its very end, you check\nevery shop one minute away, then every shop two minutes away, then three.\n\nThe first shop you find open is necessarily among the closest, because you never looked further\nbefore looking nearer. Depth-first would send you down a single long road, and you might find an\nopen shop forty minutes away while missing one around the corner.\n",
      "Why Dijkstra breaks on negative edges": "\nYou are budgeting a journey and you finalise each leg as soon as it looks cheapest. Then someone\ntells you a particular road pays you to use it.\n\nNow a route you had already dismissed as too long might end up cheaper than the one you locked in.\nEvery decision you finalised is suspect. Dijkstra's whole speed comes from never revisiting a\nfinalised vertex, and a negative edge destroys that guarantee.\n",
      "Disjoint Set Union": "\nTwo hostels merge. Rather than relabelling everyone, each hostel just names one person as the\nrepresentative, and the smaller hostel's representative starts pointing at the larger one's.\n\nTo ask whether two students share a hostel, each follows the chain of representatives to the top and\nyou compare. Path compression is everyone remembering the final answer so nobody walks the chain\ntwice.\n",
-     "The cut property behind MST": "\nSplit a railway network into two halves any way you like. Among all the lines crossing that split,\nthe cheapest one must be in the optimal network.\n\nIf it were not, you could add it and remove whatever other crossing line the network used \u2014 the\nnetwork stays connected and gets cheaper, so the original was not optimal.\n",
+     "The cut property behind MST": "\nSplit a railway network into two halves any way you like. Among all the lines crossing that split,\nthe cheapest one must be in the optimal network.\n\nIf it were not, you could add it and remove whatever other crossing line the network used — the\nnetwork stays connected and gets cheaper, so the original was not optimal.\n",
      "An implicit graph": "\nA combination lock with four dials is a graph nobody drew for you. Each lock position is a place you\ncan stand, and one click of one dial is a road to a neighbouring position.\n\nOnce you see that, \"fewest clicks to open it\" is just \"shortest route\", and you already know how to\nfind shortest routes.\n"
     }
    }
@@ -535,9 +535,11 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/number-of-distinct-islands/",
+    "article": "https://takeuforward.org/plus/dsa/problems/number-of-islands?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=muncqlKJrH0",
-    "striver_title": "Number of islands"
+    "striver_title": "Number of islands",
+    "legacy_article": "https://takeuforward.org/data-structure/number-of-distinct-islands/",
+    "practice": "https://takeuforward.org/plus/dsa/problems/number-of-islands"
    },
    "pattern": "grid-dfs-flood-fill",
    "template": "T-GRAPH-01",
@@ -558,8 +560,8 @@
      "Only four-directional adjacency; diagonals do not connect."
     ],
     "complexity": {
-     "time": "O(m\u00b7n)",
-     "space": "O(1) sinking, O(m\u00b7n) worst-case recursion",
+     "time": "O(m·n)",
+     "space": "O(1) sinking, O(m·n) worst-case recursion",
      "why": "every cell is visited at most twice - once by the outer scan, once by a traversal. Sinking removes the visited array entirely."
     },
     "siblings": [
@@ -619,7 +621,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "grid-dfs-flood-fill",
    "template": "T-GRAPH-01",
@@ -638,8 +641,8 @@
      "Sink before recursing, or the same cell is counted repeatedly."
     ],
     "complexity": {
-     "time": "O(m\u00b7n)",
-     "space": "O(m\u00b7n) recursion worst case",
+     "time": "O(m·n)",
+     "space": "O(m·n) recursion worst case",
      "why": "one traversal per component, each cell visited once."
     },
     "siblings": [
@@ -693,9 +696,11 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/graph/surrounded-regions-replace-os-with-xs/",
+    "article": "https://takeuforward.org/plus/dsa/problems/surrounded-regions?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=BtdgAys4yMk",
-    "striver_title": "Surrounded Regions"
+    "striver_title": "Surrounded Regions",
+    "legacy_article": "https://takeuforward.org/graph/surrounded-regions-replace-os-with-xs/",
+    "practice": "https://takeuforward.org/plus/dsa/problems/surrounded-regions"
    },
    "pattern": "boundary-first-dfs",
    "template": "T-GRAPH-01",
@@ -714,8 +719,8 @@
      "A 1xN or Nx1 grid is entirely border, so nothing is captured."
     ],
     "complexity": {
-     "time": "O(m\u00b7n)",
-     "space": "O(m\u00b7n) recursion worst case",
+     "time": "O(m·n)",
+     "space": "O(m·n) recursion worst case",
      "why": "one traversal from the border plus one sweep, each linear in the cell count."
     },
     "siblings": [
@@ -767,9 +772,11 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/rotten-oranges-min-time-to-rot-all-oranges-bfs/",
+    "article": "https://takeuforward.org/plus/dsa/problems/rotten-oranges?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=yf3oUhkvqA0",
-    "striver_title": "Rotten Oranges"
+    "striver_title": "Rotten Oranges",
+    "legacy_article": "https://takeuforward.org/data-structure/rotten-oranges-min-time-to-rot-all-oranges-bfs/",
+    "practice": "https://takeuforward.org/plus/dsa/problems/rotten-oranges"
    },
    "pattern": "multi-source-bfs",
    "template": "T-GRAPH-02",
@@ -788,8 +795,8 @@
      "Time is levels minus one if you enqueue sources at level 0 and count levels."
     ],
     "complexity": {
-     "time": "O(m\u00b7n)",
-     "space": "O(m\u00b7n)",
+     "time": "O(m·n)",
+     "space": "O(m·n)",
      "why": "every cell is enqueued once. Running a separate BFS per source would be O((mn)^2)."
     },
     "siblings": [
@@ -842,9 +849,11 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/graph/distance-of-nearest-cell-having-1/",
+    "article": "https://takeuforward.org/plus/dsa/problems/distance-of-nearest-cell-having-one?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=edXdVwkYHF8",
-    "striver_title": "Distance of nearest cell having one"
+    "striver_title": "Distance of nearest cell having one",
+    "legacy_article": "https://takeuforward.org/graph/distance-of-nearest-cell-having-1/",
+    "practice": "https://takeuforward.org/plus/dsa/problems/distance-of-nearest-cell-having-one"
    },
    "pattern": "multi-source-bfs",
    "template": "T-GRAPH-02",
@@ -863,8 +872,8 @@
      "The problem guarantees at least one 0."
     ],
     "complexity": {
-     "time": "O(m\u00b7n)",
-     "space": "O(m\u00b7n)",
+     "time": "O(m·n)",
+     "space": "O(m·n)",
      "why": "each cell enters the queue once."
     },
     "siblings": [
@@ -915,9 +924,11 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/g-36-shortest-distance-in-a-binary-maze/",
+    "article": "https://takeuforward.org/plus/dsa/problems/shortest-path-with-minimum-effort?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=U5Mw4eyUmw4",
-    "striver_title": "Shortest Distance in a Binary Maze"
+    "striver_title": "Shortest Distance in a Binary Maze",
+    "legacy_article": "https://takeuforward.org/data-structure/g-36-shortest-distance-in-a-binary-maze/",
+    "practice": "https://takeuforward.org/plus/dsa/problems/shortest-path-with-minimum-effort"
    },
    "pattern": "bfs-grid-shortest",
    "template": "T-GRAPH-02",
@@ -936,8 +947,8 @@
      "A 1x1 grid with value 0 has path length 1."
     ],
     "complexity": {
-     "time": "O(m\u00b7n)",
-     "space": "O(m\u00b7n)",
+     "time": "O(m·n)",
+     "space": "O(m·n)",
      "why": "each cell is enqueued once, with eight edge checks each."
     },
     "siblings": [
@@ -992,7 +1003,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "traversal-with-mapping",
    "template": "T-GRAPH-01",
@@ -1065,9 +1077,11 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/number-of-provinces/",
+    "article": "https://takeuforward.org/plus/dsa/problems/number-of-provinces?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=ACzkVtewUYA",
-    "striver_title": "Number of provinces"
+    "striver_title": "Number of provinces",
+    "legacy_article": "https://takeuforward.org/data-structure/number-of-provinces/",
+    "practice": "https://takeuforward.org/plus/dsa/problems/number-of-provinces"
    },
    "pattern": "dsu-components",
    "template": "T-GRAPH-05",
@@ -1086,7 +1100,7 @@
      "Counting roots at the end is simpler than maintaining a running component count."
     ],
     "complexity": {
-     "time": "O(n\u00b2 \u00b7 \u03b1(n))",
+     "time": "O(n² · α(n))",
      "space": "O(n)",
      "why": "the matrix scan is O(n^2) and dominates; each union is effectively O(1). A DFS solution is also O(n^2) here because the input is a matrix."
     },
@@ -1103,7 +1117,7 @@
      },
      {
       "q": "What is DSU's actual complexity?",
-      "a": "O(\u03b1(n)) amortised per operation with path compression and union by rank, where \u03b1 is the inverse Ackermann function - under 5 for any n in practice."
+      "a": "O(α(n)) amortised per operation with path compression and union by rank, where α is the inverse Ackermann function - under 5 for any n in practice."
      }
     ]
    },
@@ -1142,7 +1156,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "dsu-cycle-detection",
    "template": "T-GRAPH-05",
@@ -1161,7 +1176,7 @@
      "The graph is undirected; the directed version is substantially harder."
     ],
     "complexity": {
-     "time": "O(n \u00b7 \u03b1(n))",
+     "time": "O(n · α(n))",
      "space": "O(n)",
      "why": "one pass over the edges with near-constant union operations."
     },
@@ -1217,9 +1232,11 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/graph/bipartite-graph-dfs-implementation/",
+    "article": "https://takeuforward.org/plus/dsa/problems/bipartite-graph?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=KG5YFfR0j8A",
-    "striver_title": "Bipartite Graph (DFS)"
+    "striver_title": "Bipartite Graph (DFS)",
+    "legacy_article": "https://takeuforward.org/graph/bipartite-graph-dfs-implementation/",
+    "practice": "https://takeuforward.org/plus/dsa/problems/bipartite-graph"
    },
    "pattern": "two-colouring",
    "template": "T-GRAPH-02",
@@ -1293,9 +1310,11 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/detect-cycle-in-an-undirected-graph-using-dfs/",
+    "article": "https://takeuforward.org/plus/dsa/problems/course-schedule-i?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=zQ3zgFypzX4",
-    "striver_title": "Detect a cycle in an undirected graph"
+    "striver_title": "Detect a cycle in an undirected graph",
+    "legacy_article": "https://takeuforward.org/data-structure/detect-cycle-in-an-undirected-graph-using-dfs/",
+    "practice": "https://takeuforward.org/plus/dsa/problems/course-schedule-i"
    },
    "pattern": "topological-cycle-detection",
    "template": "T-GRAPH-03",
@@ -1370,9 +1389,11 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/detect-cycle-in-a-directed-graph-using-dfs-g-19/",
+    "article": "https://takeuforward.org/plus/dsa/problems/course-schedule-ii?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=9twcmtQj4DU",
-    "striver_title": "Cycle Detection in Directed Graph (DFS)"
+    "striver_title": "Cycle Detection in Directed Graph (DFS)",
+    "legacy_article": "https://takeuforward.org/data-structure/detect-cycle-in-a-directed-graph-using-dfs-g-19/",
+    "practice": "https://takeuforward.org/plus/dsa/problems/course-schedule-ii"
    },
    "pattern": "topological-order",
    "template": "T-GRAPH-03",
@@ -1448,9 +1469,11 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/find-eventual-safe-states-bfs-topological-sort-g-25/",
+    "article": "https://takeuforward.org/plus/dsa/problems/find-eventual-safe-states?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=2gtg3VsDGyc",
-    "striver_title": "Find eventual safe states"
+    "striver_title": "Find eventual safe states",
+    "legacy_article": "https://takeuforward.org/data-structure/find-eventual-safe-states-bfs-topological-sort-g-25/",
+    "practice": "https://takeuforward.org/plus/dsa/problems/find-eventual-safe-states"
    },
    "pattern": "reverse-topological",
    "template": "T-GRAPH-07",
@@ -1524,7 +1547,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "dag-path-enumeration",
    "template": "T-BT-01",
@@ -1542,7 +1566,7 @@
      "The number of paths can be exponential, which is the real bound."
     ],
     "complexity": {
-     "time": "O(2^V \u00b7 V)",
+     "time": "O(2^V · V)",
      "space": "O(V) excluding output",
      "why": "a DAG on V nodes can have exponentially many source-to-target paths, and each costs O(V) to copy."
     },
@@ -1598,9 +1622,11 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/network-delay-time",
+    "article": "https://takeuforward.org/plus/dsa/problems/network-delay-time?tab=editorial",
     "youtube": null,
-    "striver_title": "Network Delay Time"
+    "striver_title": "Network Delay Time",
+    "legacy_article": "https://takeuforward.org/data-structure/network-delay-time",
+    "practice": "https://takeuforward.org/plus/dsa/problems/network-delay-time"
    },
    "pattern": "dijkstra",
    "template": "T-GRAPH-04",
@@ -1637,7 +1663,7 @@
      },
      {
       "q": "Negative weights.",
-      "a": "Dijkstra's finalisation invariant breaks. Bellman-Ford: V-1 rounds of relaxing every edge, and a Vth round that still improves proves a negative cycle. O(V\u00b7E)."
+      "a": "Dijkstra's finalisation invariant breaks. Bellman-Ford: V-1 rounds of relaxing every edge, and a Vth round that still improves proves a negative cycle. O(V·E)."
      },
      {
       "q": "How do you decrease-key?",
@@ -1680,9 +1706,11 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/g-38-cheapest-flights-within-k-stops/",
+    "article": "https://takeuforward.org/plus/dsa/problems/cheapest-flight-within-k-stops?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=9XybHVqTHcQ",
-    "striver_title": "Cheapest flight within K stops"
+    "striver_title": "Cheapest flight within K stops",
+    "legacy_article": "https://takeuforward.org/data-structure/g-38-cheapest-flights-within-k-stops/",
+    "practice": "https://takeuforward.org/plus/dsa/problems/cheapest-flight-within-k-stops"
    },
    "pattern": "bellman-ford-rounds",
    "template": "T-GRAPH-04",
@@ -1701,7 +1729,7 @@
      "Unreachable within the stop limit returns -1, which is different from unreachable at all."
     ],
     "complexity": {
-     "time": "O(K \u00b7 E)",
+     "time": "O(K · E)",
      "space": "O(V)",
      "why": "K+1 rounds, each relaxing every edge once. Level-wise BFS carrying (city, cost) is an equivalent formulation with the same bound."
     },
@@ -1762,9 +1790,11 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/g-37-path-with-minimum-effort/",
+    "article": "https://takeuforward.org/plus/dsa/problems/path-with-minimum-effort?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=0ytpZyiZFhA",
-    "striver_title": "Path with minimum effort"
+    "striver_title": "Path with minimum effort",
+    "legacy_article": "https://takeuforward.org/data-structure/g-37-path-with-minimum-effort/",
+    "practice": "https://takeuforward.org/plus/dsa/problems/path-with-minimum-effort"
    },
    "pattern": "dijkstra-minimax",
    "template": "T-GRAPH-04",
@@ -1782,8 +1812,8 @@
      "Binary search on the answer plus a connectivity check is an equally valid O(mn log(range)) alternative."
     ],
     "complexity": {
-     "time": "O(m\u00b7n\u00b7log(m\u00b7n))",
-     "space": "O(m\u00b7n)",
+     "time": "O(m·n·log(m·n))",
+     "space": "O(m·n)",
      "why": "a grid Dijkstra over mn vertices with four edges each."
     },
     "siblings": [
@@ -1845,9 +1875,11 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/swim-in-rising-water",
+    "article": "https://takeuforward.org/plus/dsa/problems/swim-in-rising-water?tab=editorial",
     "youtube": null,
-    "striver_title": "Swim in Rising Water"
+    "striver_title": "Swim in Rising Water",
+    "legacy_article": "https://takeuforward.org/data-structure/swim-in-rising-water",
+    "practice": "https://takeuforward.org/plus/dsa/problems/swim-in-rising-water"
    },
    "pattern": "dijkstra-minimax",
    "template": "T-GRAPH-04",
@@ -1865,8 +1897,8 @@
      "Eight-direction movement is not allowed here - four only."
     ],
     "complexity": {
-     "time": "O(n\u00b2 log n)",
-     "space": "O(n\u00b2)",
+     "time": "O(n² log n)",
+     "space": "O(n²)",
      "why": "both routes are dominated by a sort or a heap over n^2 cells."
     },
     "siblings": [
@@ -1918,13 +1950,14 @@
      "Minimum Spanning Tree",
      "Prim's Algorithm",
      "Kruskal's Algorithm",
-     "Bor\u016fvka's Algorithm"
+     "Borůvka's Algorithm"
     ]
    },
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "kruskal-mst",
    "template": "T-GRAPH-06",
@@ -1942,8 +1975,8 @@
      "Weights fit in int here, but the total can be large - accumulate in long long."
     ],
     "complexity": {
-     "time": "O(n\u00b2 log n)",
-     "space": "O(n\u00b2)",
+     "time": "O(n² log n)",
+     "space": "O(n²)",
      "why": "generating and sorting n^2 edges dominates. Prim with an adjacency matrix is O(n^2) with no sort, which is strictly better on a complete graph - worth saying."
     },
     "siblings": [
@@ -1999,9 +2032,11 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/accounts-merge-dsu-g-50/",
+    "article": "https://takeuforward.org/plus/dsa/problems/accounts-merge?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=FMwpt_aQOGw",
-    "striver_title": "Accounts merge"
+    "striver_title": "Accounts merge",
+    "legacy_article": "https://takeuforward.org/data-structure/accounts-merge-dsu-g-50/",
+    "practice": "https://takeuforward.org/plus/dsa/problems/accounts-merge"
    },
    "pattern": "dsu-with-mapping",
    "template": "T-GRAPH-05",
@@ -2020,7 +2055,7 @@
      "Two different people can share a name but never an email, which is what makes the merge sound."
     ],
     "complexity": {
-     "time": "O(N\u00b7\u03b1 + N log N)",
+     "time": "O(N·α + N log N)",
      "space": "O(N)",
      "why": "unions are near-constant; the sort of each group dominates. N is the total email count."
     },
@@ -2075,9 +2110,11 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/most-stones-removed-with-same-row-or-column-dsu-g-53/",
+    "article": "https://takeuforward.org/plus/dsa/problems/most-stones-removed-with-same-row-or-column?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=OwMNX8SPavM",
-    "striver_title": "Most stones removed with same row or column"
+    "striver_title": "Most stones removed with same row or column",
+    "legacy_article": "https://takeuforward.org/data-structure/most-stones-removed-with-same-row-or-column-dsu-g-53/",
+    "practice": "https://takeuforward.org/plus/dsa/problems/most-stones-removed-with-same-row-or-column"
    },
    "pattern": "dsu-implicit-edges",
    "template": "T-GRAPH-05",
@@ -2095,7 +2132,7 @@
      "A single stone forms its own component and cannot be removed."
     ],
     "complexity": {
-     "time": "O(n \u00b7 \u03b1(n))",
+     "time": "O(n · α(n))",
      "space": "O(n)",
      "why": "one union per stone with near-constant operations, versus O(n^2) for comparing every pair."
     },
@@ -2149,14 +2186,15 @@
      "Union-Find",
      "Graph Theory",
      "Shortest Path",
-     "Bellman\u2013Ford Algorithm",
-     "Floyd\u2013Warshall Algorithm"
+     "Bellman–Ford Algorithm",
+     "Floyd–Warshall Algorithm"
     ]
    },
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "weighted-graph-path",
    "template": "T-GRAPH-01",
@@ -2175,9 +2213,9 @@
      "Floating-point accumulation drifts; the problem allows a tolerance."
     ],
     "complexity": {
-     "time": "O(Q \u00b7 (V + E))",
+     "time": "O(Q · (V + E))",
      "space": "O(V + E)",
-     "why": "one traversal per query. Weighted DSU answers each query in near-constant time after an O(E\u00b7\u03b1) build, which is the better solution for many queries."
+     "why": "one traversal per query. Weighted DSU answers each query in near-constant time after an O(E·α) build, which is the better solution for many queries."
     },
     "siblings": [
      "accounts-merge",
@@ -2188,7 +2226,7 @@
     "followups": [
      {
       "q": "Many queries over a fixed input.",
-      "a": "Weighted DSU: store each node's ratio to its root and compose during find. Queries become O(\u03b1(n)) instead of O(V+E)."
+      "a": "Weighted DSU: store each node's ratio to its root and compose during find. Queries become O(α(n)) instead of O(V+E)."
      },
      {
       "q": "Floyd-Warshall alternative.",
@@ -2229,9 +2267,11 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/graph/word-ladder-i-g-29/",
+    "article": "https://takeuforward.org/plus/dsa/problems/word-ladder-i?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=tRPda0rcf8E",
-    "striver_title": "Word ladder I"
+    "striver_title": "Word ladder I",
+    "legacy_article": "https://takeuforward.org/graph/word-ladder-i-g-29/",
+    "practice": "https://takeuforward.org/plus/dsa/problems/word-ladder-i"
    },
    "pattern": "implicit-graph-bfs",
    "template": "T-GRAPH-02",
@@ -2244,16 +2284,16 @@
    "campus_oa": "HIGH",
    "learnings": {
     "insight": "There is no edge list. Vertices are words and two words are adjacent when they differ in one character, so neighbours are generated on demand. Recognising a state space as a graph is the whole difficulty; the BFS afterwards is routine.",
-    "trick": "Generate neighbours by trying all 26 letters at each position - O(26L) per word - rather than comparing against every word in the list, which is O(N\u00b7L).",
+    "trick": "Generate neighbours by trying all 26 letters at each position - O(26L) per word - rather than comparing against every word in the list, which is O(N·L).",
     "edge_cases": [
      "endWord must be in the dictionary, or no transformation exists.",
      "Erase words from the set as they are enqueued; a visited set is otherwise mandatory.",
      "The answer counts words including both ends, so a one-step change is length 2."
     ],
     "complexity": {
-     "time": "O(N \u00b7 L \u00b7 26)",
-     "space": "O(N \u00b7 L)",
-     "why": "each word is enqueued once and generates 26L candidate neighbours. Pairwise comparison would be O(N^2 \u00b7 L)."
+     "time": "O(N · L · 26)",
+     "space": "O(N · L)",
+     "why": "each word is enqueued once and generates 26L candidate neighbours. Pairwise comparison would be O(N^2 · L)."
     },
     "siblings": [
      "open-the-lock",
@@ -2312,7 +2352,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "implicit-graph-bfs",
    "template": "T-GRAPH-02",
@@ -2330,8 +2371,8 @@
      "The target may be the start, giving 0."
     ],
     "complexity": {
-     "time": "O(10\u2074 \u00b7 8)",
-     "space": "O(10\u2074)",
+     "time": "O(10⁴ · 8)",
+     "space": "O(10⁴)",
      "why": "the state space is bounded at 10,000 lock positions with 8 transitions each."
     },
     "siblings": [
@@ -2384,7 +2425,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "graph-of-routes",
    "template": "T-GRAPH-02",
@@ -2463,7 +2505,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "eulerian-path",
    "template": "T-GRAPH-01",
@@ -2535,9 +2578,11 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/graph/bridges-in-graph-using-tarjans-algorithm-of-time-in-and-low-time-g-55/",
+    "article": "https://takeuforward.org/plus/dsa/problems/bridges-in-graph?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=qrAub5z8FeA",
-    "striver_title": "Bridges in graph"
+    "striver_title": "Bridges in graph",
+    "legacy_article": "https://takeuforward.org/graph/bridges-in-graph-using-tarjans-algorithm-of-time-in-and-low-time-g-55/",
+    "practice": "https://takeuforward.org/plus/dsa/problems/bridges-in-graph"
    },
    "pattern": "tarjan-bridges",
    "template": "T-GRAPH-01",
@@ -2558,7 +2603,7 @@
     "complexity": {
      "time": "O(V + E)",
      "space": "O(V + E)",
-     "why": "one DFS computing two timestamps per vertex. The naive approach removes each edge and tests connectivity, which is O(E \u00b7 (V+E))."
+     "why": "one DFS computing two timestamps per vertex. The naive approach removes each edge and tests connectivity, which is O(E · (V+E))."
     },
     "siblings": [
      "number-of-provinces",
@@ -2610,14 +2655,16 @@
      "Graph Theory",
      "Shortest Path",
      "Dijkstra's Algorithm",
-     "Bellman\u2013Ford Algorithm",
-     "Floyd\u2013Warshall Algorithm"
+     "Bellman–Ford Algorithm",
+     "Floyd–Warshall Algorithm"
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/find-the-city-with-the-smallest-number-of-neighbours-at-a-threshold-distance-g-43/",
+    "article": "https://takeuforward.org/plus/dsa/problems/find-the-city-with-the-smallest-number-of-neighbors?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=9XybHVqTHcQ",
-    "striver_title": "Find the city with the smallest number of neighbors"
+    "striver_title": "Find the city with the smallest number of neighbors",
+    "legacy_article": "https://takeuforward.org/data-structure/find-the-city-with-the-smallest-number-of-neighbours-at-a-threshold-distance-g-43/",
+    "practice": "https://takeuforward.org/plus/dsa/problems/find-the-city-with-the-smallest-number-of-neighbors"
    },
    "pattern": "floyd-warshall",
    "template": "T-GRAPH-04",
@@ -2635,9 +2682,9 @@
      "Ties on the city count break toward the LARGEST index."
     ],
     "complexity": {
-     "time": "O(n\u00b3)",
-     "space": "O(n\u00b2)",
-     "why": "three nested loops over n = 100 is 10^6 operations. Running Dijkstra from each vertex is O(V\u00b7(V+E) log V), which is also fine here but more code."
+     "time": "O(n³)",
+     "space": "O(n²)",
+     "why": "three nested loops over n = 100 is 10^6 operations. Running Dijkstra from each vertex is O(V·(V+E) log V), which is also fine here but more code."
     },
     "siblings": [
      "network-delay-time",
@@ -2699,7 +2746,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "memoised-dag-dfs",
    "template": "T-DP-02",
@@ -2718,8 +2766,8 @@
      "A single cell has path length 1, not 0."
     ],
     "complexity": {
-     "time": "O(m\u00b7n)",
-     "space": "O(m\u00b7n)",
+     "time": "O(m·n)",
+     "space": "O(m·n)",
      "why": "each cell's answer is computed once and reused, with four edge checks each."
     },
     "siblings": [
@@ -2778,7 +2826,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "indegree-peeling",
    "template": "T-GRAPH-03",
@@ -2798,7 +2847,7 @@
     "complexity": {
      "time": "O(V + E)",
      "space": "O(V + E)",
-     "why": "each vertex is removed once. Running BFS from every vertex is O(V\u00b7(V+E))."
+     "why": "each vertex is removed once. Running BFS from every vertex is O(V·(V+E))."
     },
     "siblings": [
      "course-schedule-ii",
@@ -2852,7 +2901,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "bitmask-bfs",
    "template": "T-BIT-02",
@@ -2870,8 +2920,8 @@
      "n <= 12 in the constraints is the signal that 2^n states are intended."
     ],
     "complexity": {
-     "time": "O(2\u207f \u00b7 n\u00b2)",
-     "space": "O(2\u207f \u00b7 n)",
+     "time": "O(2ⁿ · n²)",
+     "space": "O(2ⁿ · n)",
      "why": "2^n masks times n positions, each expanding to n neighbours."
     },
     "siblings": [

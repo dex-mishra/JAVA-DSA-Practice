@@ -68,7 +68,7 @@ CREATE TABLE oa_problem (
   output_format TEXT NOT NULL,
   constraints   TEXT NOT NULL,
   samples       JSONB NOT NULL,          -- [{input, output, explanation}]
-  hidden_tests  JSONB NOT NULL,          -- [{input, output, marks}]
+  hidden_tests  JSONB NOT NULL,          -- [{desc, marks, input?, gen?, output}]  see 3.1
   -- the review payload, revealed only after submit or timeout
   tests_pattern TEXT NOT NULL,           -- the dsa_problem.pattern it diagnoses
   source_day    INT  NOT NULL,
@@ -91,6 +91,41 @@ CREATE TABLE oa_attempt (
 
 `hidden_tests` must never reach the client before submission. Serve it only from the grading
 endpoint.
+
+### 3.1 Hidden-test shape
+
+Each entry carries `desc`, `marks`, `output`, and **either** `input` **or** `gen`:
+
+```json
+{ "desc": "majority at the very end of the log", "marks": 3,
+  "input": "9\n1 2 3 4 8 8 8 8 8", "output": "8" }
+
+{ "desc": "n ~ 5*10^5, performance", "marks": 6, "output": "7",
+  "gen": { "kind": "formula", "n": 499999,
+           "spec": "first line: 499999. second line: a[i] = 7 when i is even, otherwise (i % 5) + 1.",
+           "builder_js": "function build(){...return n+'\\n'+a.join(' ');}" } }
+```
+
+`gen` exists only for the two performance tests, whose inputs are 1.0 MB and 0.5 MB of digits —
+inlining them would add 1.45 MB to a file that is otherwise 150 KB. Rules:
+
+- `output` is **always** present and is authoritative. It was computed from a verified reference
+  implementation, not from the generator.
+- `builder_js` is a complete pure function returning the input string. **Copy it into the grader as
+  source; never `eval` it at request time.** It is trusted content from the sheet, but a code path
+  that evaluates strings from the content store is a path an attacker only has to reach once.
+- `spec` states the same recipe in prose so it can be reimplemented in C++, Python or anything else
+  if the grader is not JavaScript. The two must agree; they were cross-verified byte for byte.
+- Build each generated input once per grading request and cache it. Do not rebuild per test case.
+
+**Comparison rule.** A test is awarded its marks on an exact match of stdout against `output`, after
+stripping trailing whitespace from each line and from the output as a whole. No tolerance, no
+reordering, no numeric fuzzing. Q3 of mock 01 depends on this: its ordering test distinguishes
+numeric lexicographic order (`1 9` before `10`) from string order, and a lenient comparator would
+silently pass a wrong solution.
+
+**Samples are worth zero marks.** Every mark lives in the hidden tests. Samples exist only so the
+candidate can self-check before spending a submission.
 
 ---
 
@@ -115,20 +150,59 @@ pressure.
 
 ## 5. Code execution
 
-The honest options, in order of preference:
+**Decision: Piston first, behind an adapter. Judge0 is the upgrade, not the starting point.**
 
-1. **Judge0** — self-hostable or hosted API. Takes source, language id, stdin; returns stdout,
-   stderr, exit code, time, memory. Supports C++17. This is what to use.
-2. **Piston** — lighter, self-hosted, no auth. Fine for single-user.
-3. **Local `g++` in a sandboxed child process** — simplest if the app already runs on your own
-   machine. Requires a hard timeout, a memory cap, and no network for the compiled binary.
+The whole surface is one function:
 
-Grading is per test case: compile once, run against each hidden test, award that test's marks on an
-exact stdout match after trimming trailing whitespace. Report compile errors as 0 with the message
-shown — exactly as HackerRank does.
+```
+run({ source, lang, stdin, timeLimitMs, memoryLimitKb })
+  -> { stdout, stderr, exitCode, timeMs, compileError? }
+```
+
+Write that interface first and put Piston behind it. Piston's public API at `emkc.org` needs no key
+and no signup, which means the OAs tab works the day it is built rather than the day an API key
+arrives. Its rate limit is a few requests per second — irrelevant for one candidate submitting one
+problem at a time, and the per-submission loop should be serial anyway so a slow test cannot
+stampede the limiter.
+
+Judge0 via RapidAPI is more reliable and reports memory, which Piston does not. Swap it in behind
+the same adapter when either of two things happens: `emkc.org` starts failing or rate-limiting
+during a real attempt, or a mock needs a memory limit enforced rather than stated. Do not take the
+signup cost up front for a tool with one user.
+
+Three things the adapter must handle regardless of backend:
+
+- **A hard wall-clock timeout** per test, independent of whatever the backend promises. A hung
+  submission must not hang the attempt.
+- **Compile once, run many.** Piston compiles per request, so cache nothing but accept the cost;
+  with Judge0, submit the compiled artefact where the API allows it.
+- **Serial test execution with early exit on compile error.** Report a compile error as 0 marks with
+  the compiler message shown verbatim, exactly as HackerRank does. Do not silently score it as a
+  wrong answer.
 
 **Do not build your own sandbox.** Running arbitrary submitted C++ with no isolation on a machine
-holding your placement data is not a trade worth making, even single-user.
+holding your placement data is not a trade worth making, even single-user. A Cloudflare Worker
+cannot run `g++` at all, which removes the temptation — treat that as a feature.
+
+### 5.1 Where OA content lives
+
+**Decision: bundle OA content into the Worker. Do not put it on the CDN with the sheet content.**
+
+The DSA sheet's phase JSONs are static files because they are meant to be read by the client. OA
+content is the opposite: §3 requires that `hidden_tests` never reach the client before submission,
+and anything in `public/` is world-readable by definition. One curl of the mock's JSON and the
+assessment is worthless.
+
+So the departure from how the rest of the content is served is deliberate and correct:
+
+- The mock's statements, samples, constraints and marks may be served to the client on attempt start.
+- `hidden_tests`, `intended_approach`, `intended_complexity`, `common_wrong_turn` and `related` are
+  served **only** from `/submit` and `/review`, and `/review` 403s until the attempt is finished.
+- The content lives in the Worker bundle (or in the database, if the Worker already talks to one),
+  never in `public/`.
+
+A single mock is ~150 KB, so bundling is cheap; the generated performance inputs are built at
+request time, which is most of why `gen` exists.
 
 ---
 
@@ -201,7 +275,7 @@ pattern, so the hidden tests write themselves.
 ## 9. Build order
 
 1. `oa_mock`, `oa_problem`, `oa_attempt` migrations
-2. Judge0 (or Piston) integration with a `run(source, lang, stdin)` wrapper and a hard timeout
+2. The `run()` adapter from §5, with Piston behind it and a hard timeout
 3. Seed Mock 01 (provided — covers days 1–3)
 4. The assessment screen: timer, tabs, statement pane, editor, run against samples
 5. Submit and grade against hidden tests

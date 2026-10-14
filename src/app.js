@@ -1867,7 +1867,6 @@
        An accordion is the invariant, so it is better expressed as "there is
        at most one" than as a set of booleans that happen to have one true. */
     openId: null,
-    learnOpen: false,  // the open row's learnings panel; resets per row
     part: {},          // theory id + part -> expanded
     theory: null,      // theory id being read
     template: null,    // template id being read
@@ -2194,25 +2193,31 @@
     return out + "</span>";
   }
 
-  /* Striver's two links, on the row beside the LeetCode one.
+  /* Striver's three links, on the row beside the LeetCode one: the written
+     editorial, his own judge for the same problem, and the video.
 
-     Coverage is partial and that is the content, not a bug: of the 261
-     problems imported, 150 have an article, 131 a video, and 104 have
-     neither. So this renders nothing at all rather than a disabled chip --
-     a greyed-out link you can never click is worse than no link. */
+     Coverage is partial and that is the content, not a bug: of the 145
+     problems, 108 have an editorial, 107 a practice page, 100 a video, and
+     37 have none of the three -- they are on the sheet because they isolate
+     a pattern Striver's does not. So a missing link renders nothing at all
+     rather than a disabled chip; a greyed-out link you can never click is
+     worse than no link. */
   function dsaStriverLinks(p) {
-    if (!p.tuf_article && !p.tuf_youtube) return "";
     var hint = p.striver_title ? ' title="Striver: ' + esc(p.striver_title) + '"' : "";
-    return " · " +
-      (p.tuf_article
-        ? '<a class="dsa-tuf" href="' + esc(p.tuf_article) +
-          '" target="_blank" rel="noopener"' + hint + ">TUF article</a>"
-        : "") +
-      (p.tuf_article && p.tuf_youtube ? " " : "") +
-      (p.tuf_youtube
-        ? '<a class="dsa-tuf yt" href="' + esc(p.tuf_youtube) +
-          '" target="_blank" rel="noopener"' + hint + ">video</a>"
-        : "");
+    var chips = [];
+    if (p.tuf_article) {
+      chips.push('<a class="dsa-tuf" href="' + esc(p.tuf_article) +
+        '" target="_blank" rel="noopener"' + hint + ">TUF editorial</a>");
+    }
+    if (p.tuf_practice) {
+      chips.push('<a class="dsa-tuf prac" href="' + esc(p.tuf_practice) +
+        '" target="_blank" rel="noopener"' + hint + ">practice</a>");
+    }
+    if (p.tuf_youtube) {
+      chips.push('<a class="dsa-tuf yt" href="' + esc(p.tuf_youtube) +
+        '" target="_blank" rel="noopener"' + hint + ">video</a>");
+    }
+    return chips.length ? " · " + chips.join(" ") : "";
   }
 
   function dsaRowEl(p) {
@@ -2256,14 +2261,13 @@
 
   function dsaLearnings(doc) {
     var l = doc.learnings || {};
-    /* Starts closed every time a row is opened, and deliberately not
-       remembered: the insight is the one thing on the page you can spoil for
-       yourself, and a panel that reopens where you left it will eventually
-       show it to you before you have tried the problem. */
-    var out = '<details class="dsa-learnwrap"' + (DSAV.learnOpen ? " open" : "") +
-      ' data-dsa-learn="1">' +
-      "<summary>What this teaches you</summary>" +
-      '<div class="dsa-learn">';
+    /* Rendered straight into the row, not behind a second toggle. This used
+       to collapse, on the reasoning that the insight is the one thing on the
+       page you can spoil for yourself -- but opening a row is already the
+       deliberate act, and a dropdown inside a dropdown mostly succeeded at
+       hiding the material this tab exists to show. If you have not tried the
+       problem yet, the title links to LeetCode without expanding anything. */
+    var out = '<div class="dsa-learn">';
 
     out += '<div class="dsa-lblock"><h4>The insight</h4>' + md(l.insight || "") + "</div>";
     if (l.trick) out += '<div class="dsa-lblock"><h4>The trick</h4>' + md(l.trick) + "</div>";
@@ -2298,7 +2302,7 @@
         }).join("") + "</dl></div>";
     }
 
-    return out + "</div></details>";
+    return out + "</div>";
   }
 
   function dsaStuckPanel(id) {
@@ -2388,7 +2392,7 @@
             ? '<div class="dsa-lblock"><h4>Template</h4><p class="muted">' + esc(doc.template) +
               " is referenced by this problem but has not been written yet.</p></div>"
             : "") +
-        ((doc.tuf && (doc.tuf.article || doc.tuf.youtube))
+        ((doc.tuf && (doc.tuf.article || doc.tuf.practice || doc.tuf.youtube))
           ? '<div class="dsa-lblock"><h4>Striver</h4>' +
             (doc.tuf.striver_title && doc.tuf.striver_title !== doc.title
               ? '<p class="muted">Listed on the A2Z sheet as &ldquo;' +
@@ -2396,7 +2400,9 @@
               : "") +
             '<div class="dsa-sibs">' +
             (doc.tuf.article ? '<a class="dsa-sib out" target="_blank" rel="noopener" href="' +
-              esc(doc.tuf.article) + '">TUF article</a>' : "") +
+              esc(doc.tuf.article) + '">TUF editorial</a>' : "") +
+            (doc.tuf.practice ? '<a class="dsa-sib out" target="_blank" rel="noopener" href="' +
+              esc(doc.tuf.practice) + '">Practise on TUF</a>' : "") +
             (doc.tuf.youtube ? '<a class="dsa-sib out" target="_blank" rel="noopener" href="' +
               esc(doc.tuf.youtube) + '">Striver video</a>' : "") + "</div></div>"
           : "") +
@@ -2647,13 +2653,14 @@
          "How well you know it. <b>1</b> = needed the editorial, <b>5</b> = could teach it. " +
          "Click the number you already have to clear it."],
         ["<b>open</b>",
-         "Opens this row and closes whatever was open. Inside: your notes, approach, tags and " +
-         "confidence, the stuck ladder with its timer, the C++ template, and Striver's links."],
-        ["<b>What this teaches you</b>",
-         "A second toggle inside the open row: the insight, the trick, edge cases, complexity " +
-         "with the reason, sibling problems and likely interview follow-ups. Always starts " +
-         "closed, including when you reopen a row you had it open on — the insight is the one " +
-         "thing here you can spoil for yourself."]
+         "Opens this row and closes whatever was open — one problem at a time, so the day stays " +
+         "readable. Everything is laid out in the order you would want it: the insight, the " +
+         "trick, the edge cases that bite, complexity with the reason, sibling problems, likely " +
+         "interview follow-ups, then the C++ template, Striver's links, the stuck ladder with " +
+         "its timer, and your own notes, approach, tags and confidence. Nothing in there " +
+         "is behind a further click — which does mean the insight is on screen the moment you " +
+         "open a row, so if you have not attempted the problem yet, click its <i>title</i> " +
+         "instead — that goes straight to LeetCode and spoils nothing."]
       ]) +
 
       "<h5>The badges</h5>" +
@@ -3199,9 +3206,6 @@
         if (el) before = el.getBoundingClientRect().top;
 
         DSAV.openId = DSAV.openId === id ? null : id;
-        // A newly opened row starts with its learnings closed, whatever the
-        // previous row had.
-        DSAV.learnOpen = false;
         render();
         if (DSAV.openId) dsaFillDetail(DSAV.openId);
 
@@ -3261,7 +3265,6 @@
         ACTIVE = "dsa-sheet";
         DSAV.day = p.day;
         DSAV.openId = id;
-        DSAV.learnOpen = false;
         render();
         dsaFillDetail(id);
         var el = document.querySelector('[data-dsa-row="' + cssEsc(id) + '"]');
@@ -3406,10 +3409,6 @@
         if (q2) { q2.focus(); q2.setSelectionRange(q2.value.length, q2.value.length); }
       };
     }
-
-    document.querySelectorAll("[data-dsa-learn]").forEach(function (d) {
-      d.ontoggle = function () { DSAV.learnOpen = d.open; };
-    });
 
     document.querySelectorAll("[data-dsa-help]").forEach(function (d) {
       d.ontoggle = function () {

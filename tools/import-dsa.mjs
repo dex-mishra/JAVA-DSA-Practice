@@ -240,15 +240,16 @@ function thin(p) {
     template: p.template || "",
     companies: p.companies || [],
     campus_oa: p.campus_oa,
-    /* Striver's article and video sit on the row next to the LeetCode link,
-       so the three places you might start a problem are all one click away
-       without expanding anything.
+    /* Striver's editorial, his own judge and his video sit on the row next
+       to the LeetCode link, so every place you might start a problem is one
+       click away without expanding anything.
        Carried in full rather than as a "has TUF" flag: a flag means the row
        can only say the link exists and still has to fetch to hand it over,
-       which is a request to show a hyperlink. ~65 KB across the full 600.
-       Null where Striver does not cover the problem -- 104 of 261 so far
-       have neither, so the row must read correctly with both missing. */
+       which is a request to show a hyperlink.
+       Null where Striver does not cover the problem -- 37 of the 145 are
+       LeetCode-only, so the row must read correctly with all three missing. */
     tuf_article: (p.tuf && p.tuf.article) || null,
+    tuf_practice: (p.tuf && p.tuf.practice) || null,
     tuf_youtube: (p.tuf && p.tuf.youtube) || null,
     // Striver's name for it, which is often not LeetCode's. Worth a tooltip
     // so a link that looks wrong can be recognised as the same problem.
@@ -262,6 +263,15 @@ function thin(p) {
  *  it. Real progress lives in the console's own blob, keyed by problem id. */
 function content(p) {
   const { user_fields, ...rest } = p;
+  /* `legacy_article` is the pre-October-2026 /data-structure/<slug> URL,
+     kept upstream for provenance. Those pages now serve a shell with the
+     title and no article body, so the one thing that must never happen is
+     one of them reaching the page. Dropping it here -- rather than
+     remembering not to render it -- means it is not in the data at all. */
+  if (rest.tuf && "legacy_article" in rest.tuf) {
+    const { legacy_article, ...tuf } = rest.tuf;
+    rest.tuf = tuf;
+  }
   return rest;
 }
 

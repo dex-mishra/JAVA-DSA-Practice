@@ -1,14 +1,14 @@
 ---
 phase: V4
 title: Core Patterns
-days: 22-30
-problems: 58
+days: 22-29
+problems: 40
 generated: 2026-09-17
 ---
 
 # V4 — Core Patterns
 
-**Days 22–30** &nbsp;·&nbsp; **58 problems** &nbsp;·&nbsp; The remaining high-yield patterns across arrays, binary search, strings, linked lists, stacks, windows, heaps, greedy and bits.
+**Days 22–29** &nbsp;·&nbsp; **40 problems** &nbsp;·&nbsp; The remaining high-yield patterns across arrays, binary search, strings, linked lists, stacks, windows, heaps, greedy and bits.
 
 > **Tier key.** `[CORE]` code it fully, the pattern lives here. `[DRILL]` a variation on a CORE, under 10 minutes. `[SKIM]` read the dropdown, write 3 lines of pseudocode, move on.
 
@@ -1470,13 +1470,13 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 ### Day 22
 
-*7 problems — 7 core, 0 drill, 0 skim.*
+*5 problems — 5 core, 0 drill, 0 skim.*
 
 #### `[CORE]` 1. 3Sum &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 15
 
 <!-- id:arrays-3sum | order:1 | day:22 | pattern:sort-two-pointer | template:T-TP-02 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/3sum/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/3-sum-find-triplets-that-add-up-to-a-zero/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=DhFh8Kw7ymk)
+[Solve on LeetCode](https://leetcode.com/problems/3sum/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/3-sum?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=DhFh8Kw7ymk)
 
 **Asked by:** Amazon, Facebook, Google, Microsoft, Adobe &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `sort-two-pointer`
 
@@ -1512,7 +1512,7 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 <!-- id:arrays-jump-game-ii | order:2 | day:22 | pattern:bfs-levels-greedy | template:T-GREEDY-04 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/jump-game-ii/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/jump-game-2) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=7SBVnw7GSTk)
+[Solve on LeetCode](https://leetcode.com/problems/jump-game-ii/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/jump-game-ii?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=7SBVnw7GSTk)
 
 **Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `bfs-levels-greedy`
 
@@ -1542,81 +1542,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 3. Longest Consecutive Sequence &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 128
+#### `[CORE]` 3. Maximum Product Subarray &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 152
 
-<!-- id:arrays-longest-consecutive-sequence | order:3 | day:22 | pattern:set-sequence-heads | template:T-HASH-02 -->
+<!-- id:arrays-maximum-product-subarray | order:3 | day:22 | pattern:track-min-and-max | template:T-DP-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/longest-consecutive-sequence/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/longest-consecutive-sequence-in-an-array/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=oO5uLE7EUlM)
-
-**Asked by:** Google, Amazon, Facebook, Microsoft &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `set-sequence-heads`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** Sorting gives O(n log n) and is the obvious answer. The O(n) solution needs one observation: only start counting a run from a value that has no predecessor in the set. That makes the apparently nested loop linear overall.
-
-**Trick.** Put everything in a hash set. For each x, skip unless x-1 is absent. When it is absent, x is a sequence head, so walk forward counting while x+1, x+2 ... exist.
-
-**Edge cases that bite.**
-
-- Duplicates must not inflate the count - the set removes them automatically.
-- Empty input returns 0.
-- Negative numbers are fine; nothing here assumes positivity.
-
-**Complexity.** `O(n)` time, `O(n)` space — each value is visited at most twice overall - once as a head candidate and once inside exactly one run - so the inner while contributes O(n) in total, not O(n) per element.
-
-**Same pattern.** [Contains Duplicate](https://leetcode.com/problems/contains-duplicate/), [Missing Number](https://leetcode.com/problems/missing-number/), [Contains Duplicate](https://leetcode.com/problems/contains-duplicate/)
-
-**Interview follow-ups.**
-
-- **Q.** Why is the nested loop not O(n²)?
-  <br>**A.** The inner walk only runs for sequence heads, and each element belongs to exactly one sequence. So across all heads the inner loop performs n steps in total.
-- **Q.** Do it in O(1) extra space.
-  <br>**A.** Sort in place and scan adjacent elements, skipping duplicates. O(n log n) time but no extra memory - the standard trade.
-- **Q.** Union-Find alternative.
-  <br>**A.** Union each value with x+1 when present, then take the largest component. Same bound, more machinery, but it generalises to streaming insertions.
-
-</details>
-
-#### `[CORE]` 4. Max Consecutive Ones III &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 1004
-
-<!-- id:arrays-max-consecutive-ones-iii | order:4 | day:22 | pattern:variable-window | template:T-SW-01 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/max-consecutive-ones-iii/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/max-consecutive-ones-iii) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=3E4JBHSLpYk)
-
-**Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `variable-window`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** Reframe 'flip at most k zeros' as 'longest window containing at most k zeros'. That removes the flipping entirely and turns it into a standard variable-size window with a single counter.
-
-**Trick.** Expand right always, incrementing a zero counter. While the counter exceeds k, advance left, decrementing when the departing element is a zero. The answer is the largest window seen.
-
-**Edge cases that bite.**
-
-- k = 0 degrades correctly to the plain longest-run problem.
-- All zeros with k >= n returns n.
-- The window is never shrunk below validity, so the answer is taken after the shrink loop.
-
-**Complexity.** `O(n)` time, `O(1)` space — each index enters and leaves the window exactly once, so the nested while contributes O(n) in total. One counter, no map needed since there are only two symbols.
-
-**Same pattern.** [Max Consecutive Ones](https://leetcode.com/problems/max-consecutive-ones/), [Longest Subarray of 1's After Deleting One Element](https://leetcode.com/problems/longest-subarray-of-1s-after-deleting-one-element/), [Longest Repeating Character Replacement](https://leetcode.com/problems/longest-repeating-character-replacement/), [Fruit Into Baskets](https://leetcode.com/problems/fruit-into-baskets/)
-
-**Interview follow-ups.**
-
-- **Q.** You must delete exactly one element.
-  <br>**A.** LC 1493 - same window with k = 1, then subtract one because the deletion is compulsory.
-- **Q.** The non-shrinking window variant.
-  <br>**A.** Some implementations never shrink, only slide, keeping the window at its maximum size. It works because the answer only needs the largest window ever achieved, and it removes the inner loop entirely.
-
-</details>
-
-#### `[CORE]` 5. Maximum Product Subarray &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 152
-
-<!-- id:arrays-maximum-product-subarray | order:5 | day:22 | pattern:track-min-and-max | template:T-DP-01 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/maximum-product-subarray/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/maximum-product-subarray-in-an-array/)
+[Solve on LeetCode](https://leetcode.com/problems/maximum-product-subarray/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/maximum-product-subarray-in-an-array?tab=editorial)
 
 **Asked by:** Amazon, LinkedIn, Google, Microsoft &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `track-min-and-max`
 
@@ -1646,11 +1576,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 6. Merge Intervals &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 56
+#### `[CORE]` 4. Merge Intervals &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 56
 
-<!-- id:arrays-merge-intervals | order:6 | day:22 | pattern:sort-by-start-merge | template:T-GREEDY-02 -->
+<!-- id:arrays-merge-intervals | order:4 | day:22 | pattern:sort-by-start-merge | template:T-GREEDY-02 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/merge-intervals/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/merge-overlapping-sub-intervals/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=IexN60k62jo)
+[Solve on LeetCode](https://leetcode.com/problems/merge-intervals/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/merge-intervals?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=IexN60k62jo)
 
 **Asked by:** Amazon, Facebook, Google, Microsoft, Bloomberg &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `sort-by-start-merge`
 
@@ -1682,68 +1612,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 7. Next Permutation &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 31
+#### `[CORE]` 5. Non-overlapping Intervals &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 435
 
-<!-- id:arrays-next-permutation | order:7 | day:22 | pattern:suffix-pivot-reverse | template:T-SORT-02 -->
+<!-- id:arrays-non-overlapping-intervals | order:5 | day:22 | pattern:sort-by-end-schedule | template:T-GREEDY-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/next-permutation/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/next_permutation-find-next-lexicographically-greater-permutation/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=JDOXKqF60RQ)
-
-**Asked by:** Google, Facebook, Amazon, Adobe &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `suffix-pivot-reverse`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** The suffix of any array is already the largest arrangement of its elements when it is non-increasing. So the next permutation must change the first position where that breaks - scanning from the right finds it in one pass.
-
-**Trick.** Three steps. Find the rightmost i with a[i] < a[i+1]. Find the rightmost j > i with a[j] > a[i] and swap. Then REVERSE the suffix after i - reverse, not sort, because it was already non-increasing.
-
-**Edge cases that bite.**
-
-- Fully non-increasing input has no pivot - reverse the whole array to get the smallest permutation, which the algorithm does naturally when i falls to -1.
-- Duplicates work unchanged; the strict inequalities handle them.
-- Must be done in place with O(1) space, which rules out generating permutations.
-
-**Complexity.** `O(n)` time, `O(1)` space — three linear passes - find pivot, find successor, reverse suffix. Generating permutations until you find the next would be O(n!).
-
-**Same pattern.** [Permutations](https://leetcode.com/problems/permutations/), [Rotate Array](https://leetcode.com/problems/rotate-array/), [Reverse String](https://leetcode.com/problems/reverse-string/)
-
-**Interview follow-ups.**
-
-- **Q.** Previous permutation instead.
-  <br>**A.** Mirror every comparison: find the rightmost i with a[i] > a[i+1], swap with the rightmost smaller element, reverse the suffix.
-- **Q.** Why reverse and not sort the suffix?
-  <br>**A.** The suffix is guaranteed non-increasing by the way the pivot was found, so reversing it produces sorted ascending order in O(n) rather than O(n log n).
-
-</details>
-
-### Day 22 — learning checkpoint
-
-*Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
-
-#### New today
-
-- **Decompose a hard rearrangement into reversals.** Rotations and word reversals both follow from reverse(reverse(A) + reverse(B)) = B + A. Two or three reversals achieve in O(1) space what naive shifting does in O(n) space.
-  <br>↳ *Rotate Image* — transpose then reverse each row, which is a 90 degree rotation; *Next Permutation* — reversing the non-increasing suffix rather than sorting it
-- **Scan from the right when the answer depends on the suffix.** A suffix that is already maximal tells you the change must happen before it. Scanning right to left finds that boundary in one pass.
-  <br>↳ *Next Permutation* — finding the rightmost i with a[i] < a[i+1], which is where the suffix stops being maximal
-- **The sort key IS the interval algorithm.** Sort by START to merge overlapping intervals. Sort by END to schedule the maximum number of non-overlapping ones. Choosing the wrong key gives a plausible-looking wrong answer.
-  <br>↳ *Merge Intervals* — sorting by start so each interval need only be compared with the previous output; *Non-overlapping Intervals* — sorting by end, because the earliest finisher leaves the most room
-- **Negatives forbid a sliding window.** A window needs extending to move the aggregate one way only, so that shrinking is a valid correction. Negative values break that, and prefix sums with a hash map are the replacement.
-  <br>↳ *Max Consecutive Ones III* — a window IS valid here, because zeros only ever increase the count being bounded
-- **Carry both extremes when a negative can flip them.** Under multiplication the smallest running value becomes the largest when multiplied by a negative. Tracking only the maximum discards the route to the real answer.
-  <br>↳ *Maximum Product Subarray* — tracking curMax and curMin together and swapping them on a negative
-- **Start only from the heads of a run.** An apparently nested loop is linear when the inner loop can only start at elements with no predecessor, because each element then belongs to exactly one run.
-  <br>↳ *Longest Consecutive Sequence* — counting a run only from values x for which x-1 is absent from the set
-
-### Day 23
-
-*6 problems — 6 core, 0 drill, 0 skim.*
-
-#### `[CORE]` 1. Non-overlapping Intervals &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 435
-
-<!-- id:arrays-non-overlapping-intervals | order:8 | day:23 | pattern:sort-by-end-schedule | template:T-GREEDY-01 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/non-overlapping-intervals/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/non-overlapping-intervals) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=HDHQ8lAWakY)
+[Solve on LeetCode](https://leetcode.com/problems/non-overlapping-intervals/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/non-overlapping-intervals?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=HDHQ8lAWakY)
 
 **Asked by:** Amazon, Facebook, Google, Microsoft &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `sort-by-end-schedule`
 
@@ -1775,81 +1648,26 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 2. Rotate Image &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 48
+### Day 22 — learning checkpoint
 
-<!-- id:arrays-rotate-image | order:9 | day:23 | pattern:transpose-reverse | template:T-SORT-04 -->
+*Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
 
-[Solve on LeetCode](https://leetcode.com/problems/rotate-image/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/rotate-image-by-90-degree/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=Z0R2u6gd3GU)
+#### New today
 
-**Asked by:** Amazon, Microsoft, Apple, Adobe &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `transpose-reverse`
+- **The sort key IS the interval algorithm.** Sort by START to merge overlapping intervals. Sort by END to schedule the maximum number of non-overlapping ones. Choosing the wrong key gives a plausible-looking wrong answer.
+  <br>↳ *Merge Intervals* — sorting by start so each interval need only be compared with the previous output; *Non-overlapping Intervals* — sorting by end, because the earliest finisher leaves the most room
+- **Carry both extremes when a negative can flip them.** Under multiplication the smallest running value becomes the largest when multiplied by a negative. Tracking only the maximum discards the route to the real answer.
+  <br>↳ *Maximum Product Subarray* — tracking curMax and curMin together and swapping them on a negative
 
-<details>
-<summary><b>What this teaches you</b></summary>
+### Day 23
 
-**Insight.** A 90-degree clockwise rotation decomposes into two operations you already know: transpose (reflect across the main diagonal), then reverse each row. Neither needs extra space, and together they are trivially correct.
+*5 problems — 5 core, 0 drill, 0 skim.*
 
-**Trick.** Transpose by swapping a[i][j] with a[j][i] for j > i only - looping over all pairs swaps everything back. Then reverse each row.
+#### `[CORE]` 1. Sort Colors &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 75
 
-**Edge cases that bite.**
+<!-- id:arrays-sort-colors | order:6 | day:23 | pattern:dutch-national-flag | template:T-SORT-07 -->
 
-- The transpose loop must start at j = i + 1, or every swap is undone.
-- 1x1 matrix is a no-op.
-- Anticlockwise is transpose then reverse COLUMNS, or reverse rows then transpose.
-
-**Complexity.** `O(n²)` time, `O(1)` space — every cell is touched a constant number of times and nothing is allocated. Copying to a new matrix is the same time but O(n^2) space, which the problem forbids.
-
-**Same pattern.** [Spiral Matrix](https://leetcode.com/problems/spiral-matrix/), [Transpose Matrix](https://leetcode.com/problems/transpose-matrix/), [Set Matrix Zeroes](https://leetcode.com/problems/set-matrix-zeroes/)
-
-**Interview follow-ups.**
-
-- **Q.** Rotate anticlockwise.
-  <br>**A.** Transpose then reverse each column - or equivalently reverse rows first, then transpose. Deriving it rather than memorising it is the point.
-- **Q.** Rotate a rectangular matrix.
-  <br>**A.** The result has swapped dimensions, so it cannot be done in place at all. The decomposition still holds, just into a new m x n matrix.
-- **Q.** The four-way cyclic swap alternative.
-  <br>**A.** Rotate each concentric ring by moving four cells at a time. Same complexity, one pass, but far more index arithmetic to get wrong.
-
-</details>
-
-#### `[CORE]` 3. Set Matrix Zeroes &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 73
-
-<!-- id:arrays-set-matrix-zeroes | order:10 | day:23 | pattern:in-place-markers | template:T-SORT-04 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/set-matrix-zeroes/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/set-matrix-zero/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=N0MgLvceX7M)
-
-**Asked by:** Amazon, Microsoft, Facebook, Adobe &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `in-place-markers`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** The obvious solution needs O(m+n) space for row and column flags. The O(1) solution notices that the first row and first column are themselves m+n cells that can serve as that flag storage - they just need special handling because they overlap at (0,0).
-
-**Trick.** Use one extra boolean for whether column 0 must be zeroed, since a[0][0] can only encode one of the two overlapping facts. Mark, then apply from the bottom-right backwards so markers are read before being overwritten.
-
-**Edge cases that bite.**
-
-- The cell (0,0) is shared between the row-0 and column-0 markers - hence the extra flag.
-- Applying top-left first destroys markers before they are read; iterate in reverse.
-- A matrix that is already all zeros is handled naturally.
-
-**Complexity.** `O(m·n)` time, `O(1)` space — two passes over the matrix with a single extra boolean. The O(m+n) flag-array solution is the expected first answer; this is the follow-up.
-
-**Same pattern.** [Rotate Image](https://leetcode.com/problems/rotate-image/), [Spiral Matrix](https://leetcode.com/problems/spiral-matrix/), [Game of Life](https://leetcode.com/problems/game-of-life/)
-
-**Interview follow-ups.**
-
-- **Q.** Why can't a[0][0] hold both markers?
-  <br>**A.** It sits in both row 0 and column 0, so zeroing it would be ambiguous. One extra variable breaks the tie.
-- **Q.** Game of Life with the same constraint.
-  <br>**A.** Encode both old and new state in one integer using two bits, then shift at the end. The same idea - reuse existing storage rather than allocating.
-
-</details>
-
-#### `[CORE]` 4. Sort Colors &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 75
-
-<!-- id:arrays-sort-colors | order:11 | day:23 | pattern:dutch-national-flag | template:T-SORT-07 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/sort-colors/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/sort-an-array-of-0s-1s-and-2s/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=tp8JIuCXBaU)
+[Solve on LeetCode](https://leetcode.com/problems/sort-colors/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/sort-an-array-of-0's-1's-and-2's?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=tp8JIuCXBaU)
 
 **Asked by:** Amazon, Microsoft, Facebook, Adobe, Apple &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `dutch-national-flag`
 
@@ -1879,11 +1697,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 5. Binary Search &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 704
+#### `[CORE]` 2. Binary Search &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 704
 
-<!-- id:binary-search-binary-search | order:12 | day:23 | pattern:exact-binary-search | template:T-BS-01 -->
+<!-- id:binary-search-binary-search | order:7 | day:23 | pattern:exact-binary-search | template:T-BS-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/binary-search/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/binary-search-explained/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=MHf6awe89xw)
+[Solve on LeetCode](https://leetcode.com/problems/binary-search/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/search-x-in-sorted-array?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=MHf6awe89xw)
 
 **Asked by:** Amazon, Google, Microsoft &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `exact-binary-search`
 
@@ -1913,11 +1731,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 6. Find First and Last Position of Element in Sorted Array &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 34
+#### `[CORE]` 3. Find First and Last Position of Element in Sorted Array &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 34
 
-<!-- id:binary-search-find-first-and-last-position-of-element-in-sorted-array | order:13 | day:23 | pattern:boundary-search | template:T-BS-01 -->
+<!-- id:binary-search-find-first-and-last-position-of-element-in-sorted-array | order:8 | day:23 | pattern:boundary-search | template:T-BS-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/last-occurrence-in-a-sorted-array/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=hjR1IYVx9lY)
+[Solve on LeetCode](https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/first-and-last-occurrence?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=hjR1IYVx9lY)
 
 **Asked by:** Amazon, Facebook, LinkedIn, Microsoft &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `boundary-search`
 
@@ -1947,39 +1765,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-### Day 23 — learning checkpoint
+#### `[CORE]` 4. Find Peak Element &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 162
 
-*Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
+<!-- id:binary-search-find-peak-element | order:9 | day:23 | pattern:slope-binary-search | template:T-BS-01 -->
 
-#### New today
-
-- **Reuse the input as marker storage for O(1) space.** When the problem forbids extra memory, look for cells whose values you no longer need. The first row and column, or a sign bit, can carry the flags.
-  <br>↳ *Set Matrix Zeroes* — using row 0 and column 0 as the zero flags, plus one extra boolean for their overlap at (0,0)
-- **Three-way partition in one pass.** With exactly three classes, three pointers suffice. The subtlety is that swapping with the high pointer brings in an unexamined value, so the middle pointer must not advance.
-  <br>↳ *Sort Colors* — low, mid and high, with mid held still after the 2-swap
-- **Compute the midpoint as l + (r - l) / 2.** (l + r) / 2 overflows when both bounds are large. The alternative is algebraically identical and cannot overflow - this defect shipped in Java's standard library for nine years.
-  <br>↳ *Binary Search* — the midpoint expression itself; *Median of Two Sorted Arrays* — the same form applied to the partition index
-- **Pick one interval convention and never mix them.** Half-open [l, r) with `while (l < r)` makes boundary searches nearly bug-free, because termination gives l == r which is directly the answer. Closed [l, r] suits exact-match searches.
-  <br>↳ *Find First and Last Position of Element in Sorted Array* — two half-open boundary searches rather than a hit plus expansion
-
-#### From yesterday
-
-- **Decompose a hard rearrangement into reversals.** Rotations and word reversals both follow from reverse(reverse(A) + reverse(B)) = B + A. ↳ *Rotate Image* — transpose then reverse each row, which is a 90 degree rotation
-- **Scan from the right when the answer depends on the suffix.** A suffix that is already maximal tells you the change must happen before it. ↳ *Next Permutation* — finding the rightmost i with a[i] < a[i+1], which is where the suffix stops being maximal
-- **The sort key IS the interval algorithm.** Sort by START to merge overlapping intervals. ↳ *Merge Intervals* — sorting by start so each interval need only be compared with the previous output
-- **Negatives forbid a sliding window.** A window needs extending to move the aggregate one way only, so that shrinking is a valid correction. ↳ *Max Consecutive Ones III* — a window IS valid here, because zeros only ever increase the count being bounded
-- **Carry both extremes when a negative can flip them.** Under multiplication the smallest running value becomes the largest when multiplied by a negative. ↳ *Maximum Product Subarray* — tracking curMax and curMin together and swapping them on a negative
-- **Start only from the heads of a run.** An apparently nested loop is linear when the inner loop can only start at elements with no predecessor, because each element then belongs to exactly one run. ↳ *Longest Consecutive Sequence* — counting a run only from values x for which x-1 is absent from the set
-
-### Day 24
-
-*7 problems — 7 core, 0 drill, 0 skim.*
-
-#### `[CORE]` 1. Find Peak Element &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 162
-
-<!-- id:binary-search-find-peak-element | order:14 | day:24 | pattern:slope-binary-search | template:T-BS-01 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/find-peak-element/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/peak-element-in-array/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=cXxmbemS6XM)
+[Solve on LeetCode](https://leetcode.com/problems/find-peak-element/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/find-peak-element?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=cXxmbemS6XM)
 
 **Asked by:** Google, Facebook, Amazon, Microsoft &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `slope-binary-search`
 
@@ -2011,11 +1801,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 2. Koko Eating Bananas &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 875
+#### `[CORE]` 5. Koko Eating Bananas &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 875
 
-<!-- id:binary-search-koko-eating-bananas | order:15 | day:24 | pattern:binary-search-on-answer | template:T-BS-02 -->
+<!-- id:binary-search-koko-eating-bananas | order:10 | day:23 | pattern:binary-search-on-answer | template:T-BS-02 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/koko-eating-bananas/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/binary-search/koko-eating-bananas/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=qyfekrNni90)
+[Solve on LeetCode](https://leetcode.com/problems/koko-eating-bananas/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/koko-eating-bananas?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=qyfekrNni90)
 
 **Asked by:** Facebook, Amazon, Google &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `binary-search-on-answer`
 
@@ -2048,11 +1838,36 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 3. Median of Two Sorted Arrays &nbsp;·&nbsp; `Hard` &nbsp;·&nbsp; LC 4
+### Day 23 — learning checkpoint
 
-<!-- id:binary-search-median-of-two-sorted-arrays | order:16 | day:24 | pattern:partition-binary-search | template:T-BS-02 -->
+*Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
 
-[Solve on LeetCode](https://leetcode.com/problems/median-of-two-sorted-arrays/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=NTop3VTjmxk)
+#### New today
+
+- **Three-way partition in one pass.** With exactly three classes, three pointers suffice. The subtlety is that swapping with the high pointer brings in an unexamined value, so the middle pointer must not advance.
+  <br>↳ *Sort Colors* — low, mid and high, with mid held still after the 2-swap
+- **Compute the midpoint as l + (r - l) / 2.** (l + r) / 2 overflows when both bounds are large. The alternative is algebraically identical and cannot overflow - this defect shipped in Java's standard library for nine years.
+  <br>↳ *Binary Search* — the midpoint expression itself; *Median of Two Sorted Arrays* — the same form applied to the partition index
+- **Pick one interval convention and never mix them.** Half-open [l, r) with `while (l < r)` makes boundary searches nearly bug-free, because termination gives l == r which is directly the answer. Closed [l, r] suits exact-match searches.
+  <br>↳ *Find First and Last Position of Element in Sorted Array* — two half-open boundary searches rather than a hit plus expansion
+- **Search the answer space when the array is not what is sorted.** 'Minimum X such that a condition holds' is the signature. Feasibility must be monotone in X, and then the same loop applies with a predicate in place of a comparison.
+  <br>↳ *Koko Eating Bananas* — searching eating speed, with feasibility as total hours <= h; *Split Array Largest Sum* — searching the largest allowed part sum
+- **Binary search needs monotonicity, not order.** The real precondition is that the current range provably contains the answer and that one half can be discarded. A sorted array is only the most familiar instance of that.
+  <br>↳ *Find Peak Element* — discarding a half of an unsorted array using the rising-slope invariant
+
+#### Carried forward
+
+- **arrays** — The sort key IS the interval algorithm; Carry both extremes when a negative can flip them; Three-way partition in one pass
+
+### Day 24
+
+*5 problems — 5 core, 0 drill, 0 skim.*
+
+#### `[CORE]` 1. Median of Two Sorted Arrays &nbsp;·&nbsp; `Hard` &nbsp;·&nbsp; LC 4
+
+<!-- id:binary-search-median-of-two-sorted-arrays | order:11 | day:24 | pattern:partition-binary-search | template:T-BS-02 -->
+
+[Solve on LeetCode](https://leetcode.com/problems/median-of-two-sorted-arrays/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/median-of-2-sorted-arrays?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=NTop3VTjmxk)
 
 **Asked by:** Google, Amazon, Microsoft, Adobe, Goldman Sachs &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `partition-binary-search`
 
@@ -2085,11 +1900,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 4. Search a 2D Matrix II &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 240
+#### `[CORE]` 2. Search a 2D Matrix II &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 240
 
-<!-- id:binary-search-search-a-2d-matrix-ii | order:17 | day:24 | pattern:staircase-search | template:T-BS-04 -->
+<!-- id:binary-search-search-a-2d-matrix-ii | order:12 | day:24 | pattern:staircase-search | template:T-BS-04 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/search-a-2d-matrix-ii/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/arrays/search-in-a-row-and-column-wise-sorted-matrix/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=9ZbB397jU4k)
+[Solve on LeetCode](https://leetcode.com/problems/search-a-2d-matrix-ii/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/search-in-2d-matrix-ii?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=9ZbB397jU4k)
 
 **Asked by:** Amazon, Google, Facebook, Apple &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `staircase-search`
 
@@ -2119,11 +1934,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 5. Search in Rotated Sorted Array &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 33
+#### `[CORE]` 3. Search in Rotated Sorted Array &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 33
 
-<!-- id:binary-search-search-in-rotated-sorted-array | order:18 | day:24 | pattern:rotated-binary-search | template:T-BS-03 -->
+<!-- id:binary-search-search-in-rotated-sorted-array | order:13 | day:24 | pattern:rotated-binary-search | template:T-BS-03 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/search-in-rotated-sorted-array/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/search-element-in-a-rotated-sorted-array/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=r3pMQ8-Ad5s)
+[Solve on LeetCode](https://leetcode.com/problems/search-in-rotated-sorted-array/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/search-in-rotated-sorted-array-i?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=r3pMQ8-Ad5s)
 
 **Asked by:** Amazon, Facebook, Microsoft, Google, Bloomberg &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `rotated-binary-search`
 
@@ -2153,45 +1968,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 6. Single Element in a Sorted Array &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 540
+#### `[CORE]` 4. Split Array Largest Sum &nbsp;·&nbsp; `Hard` &nbsp;·&nbsp; LC 410
 
-<!-- id:binary-search-single-element-in-a-sorted-array | order:19 | day:24 | pattern:parity-binary-search | template:T-BS-01 -->
+<!-- id:binary-search-split-array-largest-sum | order:14 | day:24 | pattern:binary-search-on-answer | template:T-BS-02 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/single-element-in-a-sorted-array/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/search-single-element-in-a-sorted-array/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=AZOmHuHadxQ)
-
-**Asked by:** Amazon, Google, Microsoft &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `parity-binary-search`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** Before the unique element, every pair starts at an even index. After it, every pair starts at an odd index. That parity flip is a monotone predicate, which is exactly what binary search needs - the sortedness is almost incidental.
-
-**Trick.** Force m to be even with `m -= m & 1`. If a[m] == a[m+1] the unique element is to the right, so l = m + 2; otherwise r = m. The pairing is what you binary search on.
-
-**Edge cases that bite.**
-
-- m must be even before the comparison, or the pairing logic inverts.
-- l = m + 2, not m + 1 - you are skipping a complete pair.
-- Single-element array returns it immediately.
-
-**Complexity.** `O(log n)` time, `O(1)` space — each step discards half the pairs. XOR-ing the whole array is O(n) and also O(1) space, so the log bound is the only reason to prefer this.
-
-**Same pattern.** [Single Number](https://leetcode.com/problems/single-number/), [Find Peak Element](https://leetcode.com/problems/find-peak-element/), [First Bad Version](https://leetcode.com/problems/first-bad-version/)
-
-**Interview follow-ups.**
-
-- **Q.** Why not just XOR everything?
-  <br>**A.** That is O(n). The array being sorted is the extra information that permits O(log n), and ignoring it is the mistake the problem is testing for.
-- **Q.** The index-XOR trick.
-  <br>**A.** `m ^ 1` gives m's pair partner regardless of m's parity - a neater way to express the same comparison without forcing evenness.
-
-</details>
-
-#### `[CORE]` 7. Split Array Largest Sum &nbsp;·&nbsp; `Hard` &nbsp;·&nbsp; LC 410
-
-<!-- id:binary-search-split-array-largest-sum | order:20 | day:24 | pattern:binary-search-on-answer | template:T-BS-02 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/split-array-largest-sum/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/arrays/split-array-largest-sum/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=thUd_WJn6wk)
+[Solve on LeetCode](https://leetcode.com/problems/split-array-largest-sum/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/split-array---largest-sum?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=thUd_WJn6wk)
 
 **Asked by:** Google, Amazon, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `binary-search-on-answer`
 
@@ -2224,41 +2005,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-### Day 24 — learning checkpoint
+#### `[CORE]` 5. Generate Parentheses &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 22
 
-*Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
+<!-- id:strings-generate-parentheses | order:15 | day:24 | pattern:backtracking-with-invariant | template:T-BT-01 -->
 
-#### New today
-
-- **Search the answer space when the array is not what is sorted.** 'Minimum X such that a condition holds' is the signature. Feasibility must be monotone in X, and then the same loop applies with a predicate in place of a comparison.
-  <br>↳ *Koko Eating Bananas* — searching eating speed, with feasibility as total hours <= h; *Split Array Largest Sum* — searching the largest allowed part sum
-- **Getting lo and hi right is where answer-space searches fail.** hi must be feasible and lo must be at or below the true answer. The loop is rarely the bug; the bounds almost always are.
-  <br>↳ *Split Array Largest Sum* — lo = max(nums) and hi = sum(nums)
-- **One half of a rotated array is always sorted.** A single rotation creates exactly one break point, so any split leaves at least one ordered half. Identify it, then test whether the target lies within its range.
-  <br>↳ *Search in Rotated Sorted Array* — comparing a[l] with a[m] to identify the sorted half, then range-testing the target
-- **Binary search needs monotonicity, not order.** The real precondition is that the current range provably contains the answer and that one half can be discarded. A sorted array is only the most familiar instance of that.
-  <br>↳ *Find Peak Element* — discarding a half of an unsorted array using the rising-slope invariant; *Single Element in a Sorted Array* — binary searching on pair parity rather than on value
-- **Some 2D problems are 1D in disguise.** A matrix whose rows chain end to start is one sorted sequence; index it with mid / n and mid % n. A matrix sorted only within rows and columns needs a corner walk instead.
-  <br>↳ *Search a 2D Matrix II* — the staircase from the top-right, eliminating a row or column per step
-
-#### From yesterday
-
-- **Compute the midpoint as l + (r - l) / 2.** (l + r) / 2 overflows when both bounds are large. ↳ *Binary Search* — the midpoint expression itself
-- **Pick one interval convention and never mix them.** Half-open [l, r) with `while (l < r)` makes boundary searches nearly bug-free, because termination gives l == r which is directly the answer. ↳ *Find First and Last Position of Element in Sorted Array* — two half-open boundary searches rather than a hit plus expansion
-
-#### Carried forward
-
-- **arrays** — Decompose a hard rearrangement into reversals; Scan from the right when the answer depends on the suffix; The sort key IS the interval algorithm; Negatives forbid a sliding window; Reuse the input as marker storage for O(1) space; Carry both extremes when a negative can flip them; Start only from the heads of a run; Three-way partition in one pass
-
-### Day 25
-
-*6 problems — 6 core, 0 drill, 0 skim.*
-
-#### `[CORE]` 1. Generate Parentheses &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 22
-
-<!-- id:strings-generate-parentheses | order:21 | day:25 | pattern:backtracking-with-invariant | template:T-BT-01 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/generate-parentheses/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/generate-parenthesis)
+[Solve on LeetCode](https://leetcode.com/problems/generate-parentheses/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/generate-parentheses?tab=editorial)
 
 **Asked by:** Amazon, Google, Facebook, Microsoft, Uber &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `backtracking-with-invariant`
 
@@ -2290,11 +2041,41 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 2. Longest Palindromic Substring &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 5
+### Day 24 — learning checkpoint
 
-<!-- id:strings-longest-palindromic-substring | order:22 | day:25 | pattern:expand-around-centre | template:T-STR-02 -->
+*Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
 
-[Solve on LeetCode](https://leetcode.com/problems/longest-palindromic-substring/)
+#### New today
+
+- **Getting lo and hi right is where answer-space searches fail.** hi must be feasible and lo must be at or below the true answer. The loop is rarely the bug; the bounds almost always are.
+  <br>↳ *Split Array Largest Sum* — lo = max(nums) and hi = sum(nums)
+- **One half of a rotated array is always sorted.** A single rotation creates exactly one break point, so any split leaves at least one ordered half. Identify it, then test whether the target lies within its range.
+  <br>↳ *Search in Rotated Sorted Array* — comparing a[l] with a[m] to identify the sorted half, then range-testing the target
+- **Some 2D problems are 1D in disguise.** A matrix whose rows chain end to start is one sorted sequence; index it with mid / n and mid % n. A matrix sorted only within rows and columns needs a corner walk instead.
+  <br>↳ *Search a 2D Matrix II* — the staircase from the top-right, eliminating a row or column per step
+- **Prune during construction rather than filtering afterwards.** Enforcing validity as you build eliminates entire invalid subtrees. Generating everything and filtering does exponentially more work for the same output.
+  <br>↳ *Generate Parentheses* — adding ')' only while close < open, so every leaf reached is valid
+
+#### From yesterday
+
+- **Compute the midpoint as l + (r - l) / 2.** (l + r) / 2 overflows when both bounds are large. ↳ *Binary Search* — the midpoint expression itself
+- **Pick one interval convention and never mix them.** Half-open [l, r) with `while (l < r)` makes boundary searches nearly bug-free, because termination gives l == r which is directly the answer. ↳ *Find First and Last Position of Element in Sorted Array* — two half-open boundary searches rather than a hit plus expansion
+- **Search the answer space when the array is not what is sorted.** 'Minimum X such that a condition holds' is the signature. ↳ *Koko Eating Bananas* — searching eating speed, with feasibility as total hours <= h
+- **Binary search needs monotonicity, not order.** The real precondition is that the current range provably contains the answer and that one half can be discarded. ↳ *Find Peak Element* — discarding a half of an unsorted array using the rising-slope invariant
+
+#### Carried forward
+
+- **arrays** — The sort key IS the interval algorithm; Carry both extremes when a negative can flip them; Three-way partition in one pass
+
+### Day 25
+
+*5 problems — 5 core, 0 drill, 0 skim.*
+
+#### `[CORE]` 1. Longest Palindromic Substring &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 5
+
+<!-- id:strings-longest-palindromic-substring | order:16 | day:25 | pattern:expand-around-centre | template:T-STR-02 -->
+
+[Solve on LeetCode](https://leetcode.com/problems/longest-palindromic-substring/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/longest-palindromic-substring?tab=editorial)
 
 **Asked by:** Amazon, Microsoft, Google, Adobe, Bloomberg &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `expand-around-centre`
 
@@ -2326,11 +2107,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 3. Longest Repeating Character Replacement &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 424
+#### `[CORE]` 2. Longest Repeating Character Replacement &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 424
 
-<!-- id:strings-longest-repeating-character-replacement | order:23 | day:25 | pattern:window-with-max-frequency | template:T-SW-03 -->
+<!-- id:strings-longest-repeating-character-replacement | order:17 | day:25 | pattern:window-with-max-frequency | template:T-SW-03 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/longest-repeating-character-replacement/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/longest-repeating-character-replacement) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=_eNhaDCr6P0)
+[Solve on LeetCode](https://leetcode.com/problems/longest-repeating-character-replacement/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/longest-repeating-character-replacement?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=_eNhaDCr6P0)
 
 **Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `window-with-max-frequency`
 
@@ -2360,11 +2141,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 4. Longest Substring Without Repeating Characters &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 3
+#### `[CORE]` 3. Longest Substring Without Repeating Characters &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 3
 
-<!-- id:strings-longest-substring-without-repeating-characters | order:24 | day:25 | pattern:variable-window | template:T-SW-01 -->
+<!-- id:strings-longest-substring-without-repeating-characters | order:18 | day:25 | pattern:variable-window | template:T-SW-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/longest-substring-without-repeating-characters/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/length-of-longest-substring-without-any-repeating-character/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=-zSxTJkcdAo)
+[Solve on LeetCode](https://leetcode.com/problems/longest-substring-without-repeating-characters/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/longest-substring-without-repeating-characters?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=-zSxTJkcdAo)
 
 **Asked by:** Amazon, Google, Facebook, Microsoft, Bloomberg, Adobe &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `variable-window`
 
@@ -2396,11 +2177,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 5. Valid Parentheses &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 20
+#### `[CORE]` 4. Valid Parentheses &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 20
 
-<!-- id:strings-valid-parentheses | order:25 | day:25 | pattern:bracket-stack | template:T-STK-03 -->
+<!-- id:strings-valid-parentheses | order:19 | day:25 | pattern:bracket-stack | template:T-STK-03 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/valid-parentheses/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/check-for-balanced-parentheses/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=xwjS0iZhw4I)
+[Solve on LeetCode](https://leetcode.com/problems/valid-parentheses/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/balanced-paranthesis?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=xwjS0iZhw4I)
 
 **Asked by:** Amazon, Google, Facebook, Microsoft, Bloomberg &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `bracket-stack`
 
@@ -2430,11 +2211,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 6. Add Two Numbers &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 2
+#### `[CORE]` 5. Add Two Numbers &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 2
 
-<!-- id:linked-list-add-two-numbers | order:26 | day:25 | pattern:digit-carry-traversal | template:T-LL-02 -->
+<!-- id:linked-list-add-two-numbers | order:20 | day:25 | pattern:digit-carry-traversal | template:T-LL-02 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/add-two-numbers/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/add-two-numbers-represented-as-linked-lists/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=LBVsXSMOIk4)
+[Solve on LeetCode](https://leetcode.com/problems/add-two-numbers/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/add-two-numbers-in-ll?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=LBVsXSMOIk4)
 
 **Asked by:** Amazon, Microsoft, Facebook, Adobe, Bloomberg &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `digit-carry-traversal`
 
@@ -2478,61 +2259,29 @@ You do not need to search for it. The arithmetic finds it in one step.
   <br>↳ *Longest Palindromic Substring* — calling expand(i, i) and expand(i, i+1) at every index
 - **Nesting means a stack, one bracket type means a counter.** A counter suffices when there is only one kind of bracket, because you never need to know WHICH bracket is open. Several types force a stack.
   <br>↳ *Valid Parentheses* — a stack, because three bracket types must be matched by kind
-- **Prune during construction rather than filtering afterwards.** Enforcing validity as you build eliminates entire invalid subtrees. Generating everything and filtering does exponentially more work for the same output.
-  <br>↳ *Generate Parentheses* — adding ')' only while close < open, so every leaf reached is valid
 - **The stale maximum in a window can be safe.** In Longest Repeating Character Replacement, maxFrequency need never be decreased on shrink. A stale value can extend the apparent validity but can never produce a window longer than one genuinely achievable.
   <br>↳ *Longest Repeating Character Replacement* — never recomputing maxFreq inside the shrink loop
 - **A dummy head removes the head special case.** Any operation that might remove or replace the first node becomes uniform when a sentinel precedes it. This one habit eliminates a whole class of bugs.
   <br>↳ *Remove Nth Node From End of List* — starting both pointers at the dummy so slow lands on the predecessor; *Add Two Numbers* — building the result after a dummy so the first node needs no special case
 
+#### From yesterday
+
+- **Prune during construction rather than filtering afterwards.** Enforcing validity as you build eliminates entire invalid subtrees. ↳ *Generate Parentheses* — adding ')' only while close < open, so every leaf reached is valid
+
 #### Carried forward
 
-- **arrays** — Decompose a hard rearrangement into reversals; Scan from the right when the answer depends on the suffix; The sort key IS the interval algorithm; Negatives forbid a sliding window; Reuse the input as marker storage for O(1) space; Carry both extremes when a negative can flip them; Start only from the heads of a run; Three-way partition in one pass
+- **arrays** — The sort key IS the interval algorithm; Carry both extremes when a negative can flip them; Three-way partition in one pass
 - **binary-search** — Compute the midpoint as l + (r - l) / 2; Pick one interval convention and never mix them; Search the answer space when the array is not what is sorted; Getting lo and hi right is where answer-space searches fail; One half of a rotated array is always sorted; Binary search needs monotonicity, not order; Some 2D problems are 1D in disguise
 
 ### Day 26
 
-*7 problems — 7 core, 0 drill, 0 skim.*
+*5 problems — 5 core, 0 drill, 0 skim.*
 
-#### `[CORE]` 1. Copy List with Random Pointer &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 138
+#### `[CORE]` 1. Linked List Cycle &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 141
 
-<!-- id:linked-list-copy-list-with-random-pointer | order:27 | day:26 | pattern:interleave-and-split | template:T-LL-02 -->
+<!-- id:linked-list-linked-list-cycle | order:21 | day:26 | pattern:fast-slow-pointers | template:T-TP-03 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/copy-list-with-random-pointer/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/clone-linked-list-with-random-and-next-pointer/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=q570bKdrnlw)
-
-**Asked by:** Amazon, Microsoft, Facebook, Bloomberg &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `interleave-and-split`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** The obvious solution maps old nodes to new ones in a hash map, which is O(n) space. The O(1) solution interleaves the copies into the original list, so each node's copy is simply node->next - the list itself becomes the map.
-
-**Trick.** Three passes. First, insert each copy immediately after its original. Second, set copy->random = original->random->next. Third, unweave the two lists, restoring the original.
-
-**Edge cases that bite.**
-
-- A null random pointer must not be dereferenced in pass two.
-- The original list must be restored in pass three, not just the copy extracted.
-- An empty list returns null before any pass runs.
-
-**Complexity.** `O(n)` time, `O(1) excluding the output` space — three linear passes with no auxiliary structure. The hash-map version is one pass but O(n) space, and this problem exists to rule it out.
-
-**Same pattern.** [Clone Graph](https://leetcode.com/problems/clone-graph/), [Flatten a Multilevel Doubly Linked List](https://leetcode.com/problems/flatten-a-multilevel-doubly-linked-list/), [Linked List Cycle II](https://leetcode.com/problems/linked-list-cycle-ii/)
-
-**Interview follow-ups.**
-
-- **Q.** Why does interleaving work as a map?
-  <br>**A.** Because copy(x) is always at x->next by construction, so looking up any original's copy is a single dereference - exactly what the hash map provided.
-- **Q.** Clone an arbitrary graph.
-  <br>**A.** LC 133 - interleaving does not generalise, so you do need a map from original to copy, built during a DFS or BFS.
-
-</details>
-
-#### `[CORE]` 2. Linked List Cycle &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 141
-
-<!-- id:linked-list-linked-list-cycle | order:28 | day:26 | pattern:fast-slow-pointers | template:T-TP-03 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/linked-list-cycle/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/detect-a-cycle-in-a-linked-list/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=wiOo4DC5GGA)
+[Solve on LeetCode](https://leetcode.com/problems/linked-list-cycle/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/detect-a-loop-in-ll?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=wiOo4DC5GGA)
 
 **Asked by:** Amazon, Microsoft, Facebook, Bloomberg &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `fast-slow-pointers`
 
@@ -2564,11 +2313,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 3. Linked List Cycle II &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 142
+#### `[CORE]` 2. Linked List Cycle II &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 142
 
-<!-- id:linked-list-linked-list-cycle-ii | order:29 | day:26 | pattern:floyd-entry-point | template:T-TP-03 -->
+<!-- id:linked-list-linked-list-cycle-ii | order:22 | day:26 | pattern:floyd-entry-point | template:T-TP-03 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/linked-list-cycle-ii/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/starting-point-of-loop-in-a-linked-list/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=2Kd0KKmmHFc)
+[Solve on LeetCode](https://leetcode.com/problems/linked-list-cycle-ii/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/find-the-starting-point-in-ll?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=2Kd0KKmmHFc)
 
 **Asked by:** Amazon, Microsoft, Google &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `floyd-entry-point`
 
@@ -2598,11 +2347,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 4. Palindrome Linked List &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 234
+#### `[CORE]` 3. Palindrome Linked List &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 234
 
-<!-- id:linked-list-palindrome-linked-list | order:30 | day:26 | pattern:reverse-half-compare | template:T-LL-01 -->
+<!-- id:linked-list-palindrome-linked-list | order:23 | day:26 | pattern:reverse-half-compare | template:T-LL-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/palindrome-linked-list/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/check-if-given-linked-list-is-plaindrome/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=lRY_G-u_8jk)
+[Solve on LeetCode](https://leetcode.com/problems/palindrome-linked-list/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/check-if-ll-is-palindrome-or-not?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=lRY_G-u_8jk)
 
 **Asked by:** Amazon, Facebook, Microsoft, Adobe &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `reverse-half-compare`
 
@@ -2632,11 +2381,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 5. Remove Nth Node From End of List &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 19
+#### `[CORE]` 4. Remove Nth Node From End of List &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 19
 
-<!-- id:linked-list-remove-nth-node-from-end-of-list | order:31 | day:26 | pattern:runner-offset | template:T-LL-03 -->
+<!-- id:linked-list-remove-nth-node-from-end-of-list | order:24 | day:26 | pattern:runner-offset | template:T-LL-03 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/remove-nth-node-from-end-of-list/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/remove-n-th-node-from-the-end-of-a-linked-list/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=3kMKYQ2wNIU)
+[Solve on LeetCode](https://leetcode.com/problems/remove-nth-node-from-end-of-list/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/remove-nth-node-from-the-back-of-the-ll?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=3kMKYQ2wNIU)
 
 **Asked by:** Amazon, Facebook, Microsoft, Adobe &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `runner-offset`
 
@@ -2666,11 +2415,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 6. Reverse Linked List &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 206
+#### `[CORE]` 5. Reverse Linked List &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 206
 
-<!-- id:linked-list-reverse-linked-list | order:32 | day:26 | pattern:iterative-reversal | template:T-LL-01 -->
+<!-- id:linked-list-reverse-linked-list | order:25 | day:26 | pattern:iterative-reversal | template:T-LL-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/reverse-linked-list/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/reverse-a-linked-list/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=D2vI2DNJGd8)
+[Solve on LeetCode](https://leetcode.com/problems/reverse-linked-list/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/reverse-a-ll?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=D2vI2DNJGd8)
 
 **Asked by:** Amazon, Microsoft, Google, Facebook, Apple, Adobe &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `iterative-reversal`
 
@@ -2700,11 +2449,40 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 7. Sort List &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 148
+### Day 26 — learning checkpoint
 
-<!-- id:linked-list-sort-list | order:33 | day:26 | pattern:merge-sort-on-list | template:T-SORT-01 -->
+*Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
 
-[Solve on LeetCode](https://leetcode.com/problems/sort-list/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/linked-list/sort-a-linked-list) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=8ocB7a_c-Cc)
+#### New today
+
+- **Save the next pointer before you destroy it.** Every list rewiring needs three pointers in a fixed order, because assigning cur->next discards the only route to the remainder of the list.
+  <br>↳ *Reverse Linked List* — saving nxt before setting cur->next = prev
+- **Two pointers at different speeds expose structure.** A gap of k finds the kth from the end. A speed ratio of two finds the middle, and detects cycles because on a loop the faster pointer must eventually lap the slower.
+  <br>↳ *Linked List Cycle* — slow and fast meeting if and only if a cycle exists; *Remove Nth Node From End of List* — a fixed gap of n between the pointers
+- **Floyd's reset finds the cycle entry.** After the pointers meet, moving one back to the head and advancing both at equal speed brings them together exactly at the entry. The proof turns on the tail length k and the cycle length c.
+  <br>↳ *Linked List Cycle II* — the second phase resetting slow to head
+- **Compose known techniques rather than inventing new ones.** Hard list problems are usually two easy ones stacked. Recognising the composition is faster than solving from first principles.
+  <br>↳ *Palindrome Linked List* — find the middle, reverse the second half, compare, then restore; *Sort List* — split with fast/slow, then merge sort
+
+#### From yesterday
+
+- **A dummy head removes the head special case.** Any operation that might remove or replace the first node becomes uniform when a sentinel precedes it. ↳ *Remove Nth Node From End of List* — starting both pointers at the dummy so slow lands on the predecessor
+
+#### Carried forward
+
+- **arrays** — The sort key IS the interval algorithm; Carry both extremes when a negative can flip them; Three-way partition in one pass
+- **binary-search** — Compute the midpoint as l + (r - l) / 2; Pick one interval convention and never mix them; Search the answer space when the array is not what is sorted; Getting lo and hi right is where answer-space searches fail; One half of a rotated array is always sorted; Binary search needs monotonicity, not order; Some 2D problems are 1D in disguise
+- **strings** — substr copies, so it is never free; A fixed alphabet means an array, and genuinely O(1) space; A palindrome is defined by its centre, and there are 2n-1 of them; Nesting means a stack, one bracket type means a counter; Prune during construction rather than filtering afterwards; The stale maximum in a window can be safe
+
+### Day 27
+
+*5 problems — 5 core, 0 drill, 0 skim.*
+
+#### `[CORE]` 1. Sort List &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 148
+
+<!-- id:linked-list-sort-list | order:26 | day:27 | pattern:merge-sort-on-list | template:T-SORT-01 -->
+
+[Solve on LeetCode](https://leetcode.com/problems/sort-list/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/sort-ll?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=8ocB7a_c-Cc)
 
 **Asked by:** Amazon, Microsoft, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `merge-sort-on-list`
 
@@ -2734,75 +2512,9 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-### Day 26 — learning checkpoint
-
-*Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
-
-#### New today
-
-- **Save the next pointer before you destroy it.** Every list rewiring needs three pointers in a fixed order, because assigning cur->next discards the only route to the remainder of the list.
-  <br>↳ *Reverse Linked List* — saving nxt before setting cur->next = prev; *Copy List with Random Pointer* — unweaving the interleaved lists without losing either chain
-- **Two pointers at different speeds expose structure.** A gap of k finds the kth from the end. A speed ratio of two finds the middle, and detects cycles because on a loop the faster pointer must eventually lap the slower.
-  <br>↳ *Linked List Cycle* — slow and fast meeting if and only if a cycle exists; *Remove Nth Node From End of List* — a fixed gap of n between the pointers
-- **Floyd's reset finds the cycle entry.** After the pointers meet, moving one back to the head and advancing both at equal speed brings them together exactly at the entry. The proof turns on the tail length k and the cycle length c.
-  <br>↳ *Linked List Cycle II* — the second phase resetting slow to head
-- **Compose known techniques rather than inventing new ones.** Hard list problems are usually two easy ones stacked. Recognising the composition is faster than solving from first principles.
-  <br>↳ *Palindrome Linked List* — find the middle, reverse the second half, compare, then restore; *Sort List* — split with fast/slow, then merge sort
-- **Let the structure itself be the map.** Interleaving copies into the original list means each node's copy is simply node->next, which removes the O(n) hash map entirely.
-  <br>↳ *Copy List with Random Pointer* — three passes - interleave, wire the random pointers, unweave
-
-#### From yesterday
-
-- **A dummy head removes the head special case.** Any operation that might remove or replace the first node becomes uniform when a sentinel precedes it. ↳ *Remove Nth Node From End of List* — starting both pointers at the dummy so slow lands on the predecessor
-
-#### Carried forward
-
-- **arrays** — Decompose a hard rearrangement into reversals; Scan from the right when the answer depends on the suffix; The sort key IS the interval algorithm; Negatives forbid a sliding window; Reuse the input as marker storage for O(1) space; Carry both extremes when a negative can flip them; Start only from the heads of a run; Three-way partition in one pass
-- **binary-search** — Compute the midpoint as l + (r - l) / 2; Pick one interval convention and never mix them; Search the answer space when the array is not what is sorted; Getting lo and hi right is where answer-space searches fail; One half of a rotated array is always sorted; Binary search needs monotonicity, not order; Some 2D problems are 1D in disguise
-- **strings** — substr copies, so it is never free; A fixed alphabet means an array, and genuinely O(1) space; A palindrome is defined by its centre, and there are 2n-1 of them; Nesting means a stack, one bracket type means a counter; Prune during construction rather than filtering afterwards; The stale maximum in a window can be safe
-
-### Day 27
-
-*6 problems — 6 core, 0 drill, 0 skim.*
-
-#### `[CORE]` 1. Asteroid Collision &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 735
-
-<!-- id:stack-queue-asteroid-collision | order:34 | day:27 | pattern:stack-simulation | template:T-STK-01 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/asteroid-collision/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/asteroid-collision) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=_eYGqw_VDR4)
-
-**Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `stack-simulation`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** Only a right-moving asteroid already on the stack can collide with an incoming left-moving one. Every other pairing is safe, and that single observation reduces the whole simulation to one stack pass.
-
-**Trick.** Push positives unconditionally. For a negative, loop while the top is positive and smaller in magnitude, popping. Then handle the three outcomes: equal magnitudes destroy both, a larger top survives and the incoming is destroyed, or the stack is clear and it is pushed.
-
-**Edge cases that bite.**
-
-- Equal magnitudes destroy BOTH - pop the top and do not push the incoming.
-- Two negatives never collide, nor do two positives.
-- A negative arriving on an empty stack survives permanently.
-- The alive flag pattern is cleaner than deeply nested branches.
-
-**Complexity.** `O(n)` time, `O(n)` space — each asteroid is pushed and popped at most once. The naive repeated-scan simulation is O(n^2).
-
-**Same pattern.** [Remove All Adjacent Duplicates In String](https://leetcode.com/problems/remove-all-adjacent-duplicates-in-string/), [Valid Parentheses](https://leetcode.com/problems/valid-parentheses/), [Remove K Digits](https://leetcode.com/problems/remove-k-digits/), [Car Fleet](https://leetcode.com/problems/car-fleet/)
-
-**Interview follow-ups.**
-
-- **Q.** Asteroids of equal size pass through instead of destroying each other.
-  <br>**A.** The equality branch becomes a no-op push rather than a mutual destruction - a one-line change, which is the point of isolating the three cases.
-- **Q.** Why can two negatives never collide?
-  <br>**A.** They move in the same direction at the same speed, so the gap between them is constant.
-
-</details>
-
 #### `[CORE]` 2. Daily Temperatures &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 739
 
-<!-- id:stack-queue-daily-temperatures | order:35 | day:27 | pattern:monotonic-stack | template:T-STK-01 -->
+<!-- id:stack-queue-daily-temperatures | order:27 | day:27 | pattern:monotonic-stack | template:T-STK-01 -->
 
 [Solve on LeetCode](https://leetcode.com/problems/daily-temperatures/)
 
@@ -2836,9 +2548,9 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 #### `[CORE]` 3. Largest Rectangle in Histogram &nbsp;·&nbsp; `Hard` &nbsp;·&nbsp; LC 84
 
-<!-- id:stack-queue-largest-rectangle-in-histogram | order:36 | day:27 | pattern:monotonic-stack-boundaries | template:T-STK-01 -->
+<!-- id:stack-queue-largest-rectangle-in-histogram | order:28 | day:27 | pattern:monotonic-stack-boundaries | template:T-STK-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/largest-rectangle-in-histogram/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/area-of-largest-rectangle-in-histogram/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=Bzat9vgD0fs)
+[Solve on LeetCode](https://leetcode.com/problems/largest-rectangle-in-histogram/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/largest-rectangle-in-a-histogram?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=Bzat9vgD0fs)
 
 **Asked by:** Amazon, Google, Facebook, Microsoft &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `monotonic-stack-boundaries`
 
@@ -2872,9 +2584,9 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 #### `[CORE]` 4. Min Stack &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 155
 
-<!-- id:stack-queue-min-stack | order:37 | day:27 | pattern:auxiliary-min-stack | template:T-STK-03 -->
+<!-- id:stack-queue-min-stack | order:29 | day:27 | pattern:auxiliary-min-stack | template:T-STK-03 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/min-stack/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/implement-min-stack-o2n-and-on-space-complexity/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=NdDIaH91P0g)
+[Solve on LeetCode](https://leetcode.com/problems/min-stack/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/implement-min-stack?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=NdDIaH91P0g)
 
 **Asked by:** Amazon, Google, Microsoft, Bloomberg &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `auxiliary-min-stack`
 
@@ -2908,9 +2620,9 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 #### `[CORE]` 5. Remove K Digits &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 402
 
-<!-- id:stack-queue-remove-k-digits | order:38 | day:27 | pattern:greedy-monotonic-stack | template:T-STK-01 -->
+<!-- id:stack-queue-remove-k-digits | order:30 | day:27 | pattern:greedy-monotonic-stack | template:T-STK-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/remove-k-digits/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/remove-k-digits) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=jmbuRzYPGrg)
+[Solve on LeetCode](https://leetcode.com/problems/remove-k-digits/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/remove-k-digits?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=jmbuRzYPGrg)
 
 **Asked by:** Google, Amazon, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `greedy-monotonic-stack`
 
@@ -2942,11 +2654,37 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 6. Sliding Window Maximum &nbsp;·&nbsp; `Hard` &nbsp;·&nbsp; LC 239
+### Day 27 — learning checkpoint
 
-<!-- id:stack-queue-sliding-window-maximum | order:39 | day:27 | pattern:monotonic-deque | template:T-STK-02 -->
+*Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
 
-[Solve on LeetCode](https://leetcode.com/problems/sliding-window-maximum/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/sliding-window-maximum/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=NwBvene4Imo)
+#### New today
+
+- **A monotonic stack discards permanently irrelevant elements.** Once an element has a larger element after it, it can never be anyone's next-greater. Popping it is not a loss - and because each index is pushed and popped once, the pass is linear despite the inner while.
+  <br>↳ *Daily Temperatures* — the same stack, storing indices because the answer is a distance
+- **Store indices, not values.** Distances, widths and spans are all unrecoverable from values alone. Storing indices costs nothing and keeps every variant available.
+  <br>↳ *Daily Temperatures* — i - stackTop giving the waiting time; *Largest Rectangle in Histogram* — the width between the previous smaller and the current index; *Sliding Window Maximum* — indices so that out-of-window eviction is possible
+- **A sentinel drains the stack for you.** Appending a value that pops everything removes the separate cleanup loop and the special cases that come with it.
+  <br>↳ *Largest Rectangle in Histogram* — the trailing zero height that forces every bar to be popped
+- **Greedy removal with a monotonic stack.** To minimise a number, remove any digit followed by a smaller one, because that lowers a more significant place. The increasing stack performs exactly those removals.
+  <br>↳ *Remove K Digits* — popping while the top exceeds the incoming digit and removals remain
+
+#### Carried forward
+
+- **arrays** — The sort key IS the interval algorithm; Carry both extremes when a negative can flip them; Three-way partition in one pass
+- **binary-search** — Compute the midpoint as l + (r - l) / 2; Pick one interval convention and never mix them; Search the answer space when the array is not what is sorted; Getting lo and hi right is where answer-space searches fail; One half of a rotated array is always sorted; Binary search needs monotonicity, not order; Some 2D problems are 1D in disguise
+- **strings** — substr copies, so it is never free; A fixed alphabet means an array, and genuinely O(1) space; A palindrome is defined by its centre, and there are 2n-1 of them; Nesting means a stack, one bracket type means a counter; Prune during construction rather than filtering afterwards; The stale maximum in a window can be safe
+- **linked-list** — Save the next pointer before you destroy it; A dummy head removes the head special case; Two pointers at different speeds expose structure; Floyd's reset finds the cycle entry; Compose known techniques rather than inventing new ones
+
+### Day 28
+
+*5 problems — 5 core, 0 drill, 0 skim.*
+
+#### `[CORE]` 1. Sliding Window Maximum &nbsp;·&nbsp; `Hard` &nbsp;·&nbsp; LC 239
+
+<!-- id:stack-queue-sliding-window-maximum | order:31 | day:28 | pattern:monotonic-deque | template:T-STK-02 -->
+
+[Solve on LeetCode](https://leetcode.com/problems/sliding-window-maximum/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/sliding-window-maximum?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=NwBvene4Imo)
 
 **Asked by:** Amazon, Google, Facebook, Microsoft, Uber &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `monotonic-deque`
 
@@ -2978,39 +2716,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-### Day 27 — learning checkpoint
+#### `[CORE]` 2. Sum of Subarray Minimums &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 907
 
-*Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
+<!-- id:stack-queue-sum-of-subarray-minimums | order:32 | day:28 | pattern:contribution-counting | template:T-STK-01 -->
 
-#### New today
-
-- **A monotonic stack discards permanently irrelevant elements.** Once an element has a larger element after it, it can never be anyone's next-greater. Popping it is not a loss - and because each index is pushed and popped once, the pass is linear despite the inner while.
-  <br>↳ *Daily Temperatures* — the same stack, storing indices because the answer is a distance
-- **Store indices, not values.** Distances, widths and spans are all unrecoverable from values alone. Storing indices costs nothing and keeps every variant available.
-  <br>↳ *Daily Temperatures* — i - stackTop giving the waiting time; *Largest Rectangle in Histogram* — the width between the previous smaller and the current index; *Sliding Window Maximum* — indices so that out-of-window eviction is possible
-- **A sentinel drains the stack for you.** Appending a value that pops everything removes the separate cleanup loop and the special cases that come with it.
-  <br>↳ *Largest Rectangle in Histogram* — the trailing zero height that forces every bar to be popped
-- **A monotonic deque beats a heap for window extremes.** A heap cannot cheaply remove elements leaving the window. A deque can, because anything smaller than a later arrival is permanently irrelevant.
-  <br>↳ *Sliding Window Maximum* — front eviction by index, back eviction by dominance, O(n) rather than O(n log k)
-- **Greedy removal with a monotonic stack.** To minimise a number, remove any digit followed by a smaller one, because that lowers a more significant place. The increasing stack performs exactly those removals.
-  <br>↳ *Remove K Digits* — popping while the top exceeds the incoming digit and removals remain
-
-#### Carried forward
-
-- **arrays** — Decompose a hard rearrangement into reversals; Scan from the right when the answer depends on the suffix; The sort key IS the interval algorithm; Negatives forbid a sliding window; Reuse the input as marker storage for O(1) space; Carry both extremes when a negative can flip them; Start only from the heads of a run; Three-way partition in one pass
-- **binary-search** — Compute the midpoint as l + (r - l) / 2; Pick one interval convention and never mix them; Search the answer space when the array is not what is sorted; Getting lo and hi right is where answer-space searches fail; One half of a rotated array is always sorted; Binary search needs monotonicity, not order; Some 2D problems are 1D in disguise
-- **strings** — substr copies, so it is never free; A fixed alphabet means an array, and genuinely O(1) space; A palindrome is defined by its centre, and there are 2n-1 of them; Nesting means a stack, one bracket type means a counter; Prune during construction rather than filtering afterwards; The stale maximum in a window can be safe
-- **linked-list** — Save the next pointer before you destroy it; A dummy head removes the head special case; Two pointers at different speeds expose structure; Floyd's reset finds the cycle entry; Compose known techniques rather than inventing new ones; Let the structure itself be the map
-
-### Day 28
-
-*7 problems — 7 core, 0 drill, 0 skim.*
-
-#### `[CORE]` 1. Sum of Subarray Minimums &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 907
-
-<!-- id:stack-queue-sum-of-subarray-minimums | order:40 | day:28 | pattern:contribution-counting | template:T-STK-01 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/sum-of-subarray-minimums/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/sum-of-subarray-minimums) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=v0e8p9JCgRc)
+[Solve on LeetCode](https://leetcode.com/problems/sum-of-subarray-minimums/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/sum-of-subarray-minimums?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=v0e8p9JCgRc)
 
 **Asked by:** Amazon, Google &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `contribution-counting`
 
@@ -3040,45 +2750,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 2. Frequency of the Most Frequent Element &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 1838
-
-<!-- id:sliding-window-frequency-of-the-most-frequent-element | order:41 | day:28 | pattern:sort-plus-window | template:T-SW-01 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/frequency-of-the-most-frequent-element/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/arrays/find-the-highest-lowest-frequency-element/)
-
-**Asked by:** Amazon, Google &nbsp;·&nbsp; **Campus OA:** `MEDIUM` &nbsp;·&nbsp; **Pattern:** `sort-plus-window`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** You would always raise smaller elements up to a larger one, never the reverse - so sorting first makes the target the window's right end. The cost of levelling a window is then (windowLength * target) minus the window's sum, which is a prefix-sum computation.
-
-**Trick.** Sort, then slide a window. Shrink while `(long long)a[r] * (r - l + 1) - windowSum > k`. The multiplication overflows int, so cast.
-
-**Edge cases that bite.**
-
-- a[r] * windowLength overflows int at 1e5 elements of 1e5 - cast to long long.
-- k operations are total, not per element.
-- The answer is the window length, not the value.
-
-**Complexity.** `O(n log n)` time, `O(1)` space — the sort dominates; the window pass is linear. Without sorting there is no way to identify the target cheaply.
-
-**Same pattern.** [Max Consecutive Ones III](https://leetcode.com/problems/max-consecutive-ones-iii/), [Longest Repeating Character Replacement](https://leetcode.com/problems/longest-repeating-character-replacement/), [Minimum Operations to Reduce X to Zero](https://leetcode.com/problems/minimum-operations-to-reduce-x-to-zero/)
-
-**Interview follow-ups.**
-
-- **Q.** Why sort first?
-  <br>**A.** Raising a larger element to match a smaller one is never useful, so the target of any optimal window is its maximum. Sorting puts that at the right edge, making the cost formula closed-form.
-- **Q.** Binary search alternative.
-  <br>**A.** The answer is monotone - if a frequency f is achievable, so is f-1 - so you can binary search the answer and check feasibility with a fixed window. Same bound, different route.
-
-</details>
-
 #### `[CORE]` 3. Fruit Into Baskets &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 904
 
-<!-- id:sliding-window-fruit-into-baskets | order:42 | day:28 | pattern:at-most-k-distinct | template:T-SW-03 -->
+<!-- id:sliding-window-fruit-into-baskets | order:33 | day:28 | pattern:at-most-k-distinct | template:T-SW-03 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/fruit-into-baskets/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/fruit-into-baskets) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=e3bs0uA1NhQ)
+[Solve on LeetCode](https://leetcode.com/problems/fruit-into-baskets/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/fruit-into-baskets?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=e3bs0uA1NhQ)
 
 **Asked by:** Google, Amazon &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `at-most-k-distinct`
 
@@ -3108,45 +2784,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 4. Maximum Points You Can Obtain from Cards &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 1423
+#### `[CORE]` 4. Subarrays with K Different Integers &nbsp;·&nbsp; `Hard` &nbsp;·&nbsp; LC 992
 
-<!-- id:sliding-window-maximum-points-you-can-obtain-from-cards | order:43 | day:28 | pattern:complement-window | template:T-SW-02 -->
+<!-- id:sliding-window-subarrays-with-k-different-integers | order:34 | day:28 | pattern:at-most-k-difference | template:T-SW-03 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/maximum-points-you-can-obtain-from-cards/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/maximum-point-you-can-obtain-from-cards) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=pBWCOCS636U)
-
-**Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `complement-window`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** Choosing k cards from the two ends is the same as LEAVING a contiguous window of n-k cards in the middle. Maximising what you take equals minimising what you leave, and the complement is a fixed-size window.
-
-**Trick.** Compute the total, then find the minimum sum of any window of size n-k. The answer is total minus that minimum.
-
-**Edge cases that bite.**
-
-- k = n means taking everything; the complement window has size zero.
-- The direct approach - sliding a prefix/suffix split - also works and is equally valid.
-- Sums fit in int here but long long costs nothing.
-
-**Complexity.** `O(n)` time, `O(1)` space — one pass for the total and one for the minimum window. Enumerating all 2^k choices of ends is exponential; even the prefix/suffix version is O(k).
-
-**Same pattern.** [Maximum Average Subarray I](https://leetcode.com/problems/maximum-average-subarray-i/), [Defuse the Bomb](https://leetcode.com/problems/defuse-the-bomb/), [Sliding Window Maximum](https://leetcode.com/problems/sliding-window-maximum/)
-
-**Interview follow-ups.**
-
-- **Q.** Solve it without the complement.
-  <br>**A.** Take k from the front, then repeatedly swap one front card for one back card, tracking the best. O(k) and arguably more direct.
-- **Q.** Why is the complement a contiguous window?
-  <br>**A.** Taking cards only from the ends means what remains is always an unbroken middle segment - which is exactly a window.
-
-</details>
-
-#### `[CORE]` 5. Subarrays with K Different Integers &nbsp;·&nbsp; `Hard` &nbsp;·&nbsp; LC 992
-
-<!-- id:sliding-window-subarrays-with-k-different-integers | order:44 | day:28 | pattern:at-most-k-difference | template:T-SW-03 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/subarrays-with-k-different-integers/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/subarray-with-k-different-integers) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=7wYGbV_LsX4)
+[Solve on LeetCode](https://leetcode.com/problems/subarrays-with-k-different-integers/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/subarrays-with-k-different-integers?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=7wYGbV_LsX4)
 
 **Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `at-most-k-difference`
 
@@ -3176,11 +2818,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 6. Find Median from Data Stream &nbsp;·&nbsp; `Hard` &nbsp;·&nbsp; LC 295
+#### `[CORE]` 5. Find Median from Data Stream &nbsp;·&nbsp; `Hard` &nbsp;·&nbsp; LC 295
 
-<!-- id:heaps-find-median-from-data-stream | order:45 | day:28 | pattern:two-heaps | template:T-HEAP-02 -->
+<!-- id:heaps-find-median-from-data-stream | order:35 | day:28 | pattern:two-heaps | template:T-HEAP-02 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/find-median-from-data-stream/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/find-median-from-data-stream)
+[Solve on LeetCode](https://leetcode.com/problems/find-median-from-data-stream/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/find-median-from-data-stream?tab=editorial)
 
 **Asked by:** Amazon, Google, Facebook, Microsoft, Goldman Sachs &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `two-heaps`
 
@@ -3212,9 +2854,42 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 7. Kth Largest Element in an Array &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 215
+### Day 28 — learning checkpoint
 
-<!-- id:heaps-kth-largest-element-in-an-array | order:46 | day:28 | pattern:size-k-heap | template:T-HEAP-01 -->
+*Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
+
+#### New today
+
+- **Count contributions instead of enumerating subarrays.** An element is the minimum of exactly left * right subarrays, where left and right are distances to the previous and next smaller elements. Summing contributions is O(n) where enumeration is O(n^2).
+  <br>↳ *Sum of Subarray Minimums* — the two boundary passes and the product formula
+- **A monotonic deque beats a heap for window extremes.** A heap cannot cheaply remove elements leaving the window. A deque can, because anything smaller than a later arrival is permanently irrelevant.
+  <br>↳ *Sliding Window Maximum* — front eviction by index, back eviction by dominance, O(n) rather than O(n log k)
+- **Erase zero-count keys or size() lies.** unordered_map::size() counts keys, not non-zero values. A key left at zero keeps inflating the distinct count and the window stops shrinking correctly.
+  <br>↳ *Fruit Into Baskets* — erasing the key when its count reaches zero during the shrink; *Subarrays with K Different Integers* — the same erasure inside the atMost helper
+- **Two heaps facing inward give order statistics.** A max-heap of the lower half and a min-heap of the upper half put the median at their tops. The push-then-transfer-then-rebalance sequence is what guarantees the ordering invariant.
+  <br>↳ *Find Median from Data Stream* — three unconditional operations per insertion, with no case analysis
+
+#### From yesterday
+
+- **A monotonic stack discards permanently irrelevant elements.** Once an element has a larger element after it, it can never be anyone's next-greater. ↳ *Daily Temperatures* — the same stack, storing indices because the answer is a distance
+- **Store indices, not values.** Distances, widths and spans are all unrecoverable from values alone. ↳ *Daily Temperatures* — i - stackTop giving the waiting time
+- **A sentinel drains the stack for you.** Appending a value that pops everything removes the separate cleanup loop and the special cases that come with it. ↳ *Largest Rectangle in Histogram* — the trailing zero height that forces every bar to be popped
+- **Greedy removal with a monotonic stack.** To minimise a number, remove any digit followed by a smaller one, because that lowers a more significant place. ↳ *Remove K Digits* — popping while the top exceeds the incoming digit and removals remain
+
+#### Carried forward
+
+- **arrays** — The sort key IS the interval algorithm; Carry both extremes when a negative can flip them; Three-way partition in one pass
+- **binary-search** — Compute the midpoint as l + (r - l) / 2; Pick one interval convention and never mix them; Search the answer space when the array is not what is sorted; Getting lo and hi right is where answer-space searches fail; One half of a rotated array is always sorted; Binary search needs monotonicity, not order; Some 2D problems are 1D in disguise
+- **strings** — substr copies, so it is never free; A fixed alphabet means an array, and genuinely O(1) space; A palindrome is defined by its centre, and there are 2n-1 of them; Nesting means a stack, one bracket type means a counter; Prune during construction rather than filtering afterwards; The stale maximum in a window can be safe
+- **linked-list** — Save the next pointer before you destroy it; A dummy head removes the head special case; Two pointers at different speeds expose structure; Floyd's reset finds the cycle entry; Compose known techniques rather than inventing new ones
+
+### Day 29
+
+*5 problems — 5 core, 0 drill, 0 skim.*
+
+#### `[CORE]` 1. Kth Largest Element in an Array &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 215
+
+<!-- id:heaps-kth-largest-element-in-an-array | order:36 | day:29 | pattern:size-k-heap | template:T-HEAP-01 -->
 
 [Solve on LeetCode](https://leetcode.com/problems/kth-largest-element-in-an-array/)
 
@@ -3248,80 +2923,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-### Day 28 — learning checkpoint
-
-*Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
-
-#### New today
-
-- **Count contributions instead of enumerating subarrays.** An element is the minimum of exactly left * right subarrays, where left and right are distances to the previous and next smaller elements. Summing contributions is O(n) where enumeration is O(n^2).
-  <br>↳ *Sum of Subarray Minimums* — the two boundary passes and the product formula
-- **Fixed windows slide, variable windows shrink.** A fixed-size window adds one and removes one per step with no inner loop. A variable window extends always and shrinks conditionally, and is linear because the left pointer never retreats.
-  <br>↳ *Maximum Points You Can Obtain from Cards* — a fixed complement window of size n-k; *Frequency of the Most Frequent Element* — a variable window with a cost condition
-- **Erase zero-count keys or size() lies.** unordered_map::size() counts keys, not non-zero values. A key left at zero keeps inflating the distinct count and the window stops shrinking correctly.
-  <br>↳ *Fruit Into Baskets* — erasing the key when its count reaches zero during the shrink; *Subarrays with K Different Integers* — the same erasure inside the atMost helper
-- **The complement is often the easier window.** Choosing from both ends is the same as leaving a contiguous middle. Maximising what you take equals minimising what you leave.
-  <br>↳ *Maximum Points You Can Obtain from Cards* — minimising the sum of the untaken window of size n-k
-- **Sort first when the target of a window is its extreme.** If you would only ever raise smaller values to match a larger one, sorting puts that target at the window's edge and makes the cost a closed-form prefix computation.
-  <br>↳ *Frequency of the Most Frequent Element* — cost = a[r] * windowLength - windowSum, cast to long long to avoid overflow
-- **For the k largest, use a min-heap.** The inversion is deliberate: you repeatedly discard the WORST of your current best k, and a min-heap keeps that at the root for O(log k) eviction.
-  <br>↳ *Kth Largest Element in an Array* — a size-k min-heap, versus quickselect at O(n) average
-- **Two heaps facing inward give order statistics.** A max-heap of the lower half and a min-heap of the upper half put the median at their tops. The push-then-transfer-then-rebalance sequence is what guarantees the ordering invariant.
-  <br>↳ *Find Median from Data Stream* — three unconditional operations per insertion, with no case analysis
-
-#### Carried forward
-
-- **arrays** — Decompose a hard rearrangement into reversals; Scan from the right when the answer depends on the suffix; The sort key IS the interval algorithm; Negatives forbid a sliding window; Reuse the input as marker storage for O(1) space; Carry both extremes when a negative can flip them; Start only from the heads of a run; Three-way partition in one pass
-- **binary-search** — Compute the midpoint as l + (r - l) / 2; Pick one interval convention and never mix them; Search the answer space when the array is not what is sorted; Getting lo and hi right is where answer-space searches fail; One half of a rotated array is always sorted; Binary search needs monotonicity, not order; Some 2D problems are 1D in disguise
-- **strings** — substr copies, so it is never free; A fixed alphabet means an array, and genuinely O(1) space; A palindrome is defined by its centre, and there are 2n-1 of them; Nesting means a stack, one bracket type means a counter; Prune during construction rather than filtering afterwards; The stale maximum in a window can be safe
-- **linked-list** — Save the next pointer before you destroy it; A dummy head removes the head special case; Two pointers at different speeds expose structure; Floyd's reset finds the cycle entry; Compose known techniques rather than inventing new ones; Let the structure itself be the map
-- **stack-queue** — A monotonic stack discards permanently irrelevant elements; Store indices, not values; Count contributions instead of enumerating subarrays; A sentinel drains the stack for you; A monotonic deque beats a heap for window extremes; Greedy removal with a monotonic stack
-
-### Day 29
-
-*6 problems — 6 core, 0 drill, 0 skim.*
-
-#### `[CORE]` 1. Task Scheduler &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 621
-
-<!-- id:heaps-task-scheduler | order:47 | day:29 | pattern:greedy-slot-filling | template:T-HEAP-01 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/task-scheduler/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/task-scheduler)
-
-**Asked by:** Amazon, Facebook, Google, Uber &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `greedy-slot-filling`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** The heap simulation works, but there is a closed form: the most frequent task builds a skeleton of (maxFreq - 1) blocks each of length (n + 1), and every other task fills the idle slots. Deriving that formula is a far stronger answer than simulating.
-
-**Trick.** answer = max(taskCount, (maxFreq - 1) * (n + 1) + countOfTasksWithMaxFreq). The max() handles the case where there are so many distinct tasks that no idling is ever needed.
-
-**Edge cases that bite.**
-
-- When enough distinct tasks exist, the answer is simply the task count - hence the max().
-- Several tasks may share the maximum frequency; all of them occupy the final block.
-- n = 0 means no cooldown, so the answer is the task count.
-
-**Complexity.** `O(n)` time, `O(1) with a 26-slot counter` space — one counting pass and a formula. The heap simulation is O(total time * log 26), which is correct but slower and harder to reason about.
-
-**Same pattern.** [Reorganize String](https://leetcode.com/problems/reorganize-string/), [Top K Frequent Elements](https://leetcode.com/problems/top-k-frequent-elements/), [Hand of Straights](https://leetcode.com/problems/hand-of-straights/)
-
-**Interview follow-ups.**
-
-- **Q.** Derive the formula.
-  <br>**A.** Lay out the most frequent task maxFreq times, separated by n slots: that is (maxFreq - 1) * (n + 1) time, plus one slot for each task tied at maxFreq in the final block. Other tasks fill idle slots without extending the total.
-- **Q.** Return the actual schedule, not just its length.
-  <br>**A.** Now you need the heap simulation - the formula gives the length but not the ordering.
-- **Q.** Why the max() with task count?
-  <br>**A.** With many distinct tasks the idle slots are all filled and the schedule is fully packed, so the total is just the number of tasks.
-
-</details>
-
 #### `[CORE]` 2. Top K Frequent Elements &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 347
 
-<!-- id:heaps-top-k-frequent-elements | order:48 | day:29 | pattern:count-then-select | template:T-HEAP-01 -->
+<!-- id:heaps-top-k-frequent-elements | order:37 | day:29 | pattern:count-then-select | template:T-HEAP-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/top-k-frequent-elements/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/top-k-frequent-elements)
+[Solve on LeetCode](https://leetcode.com/problems/top-k-frequent-elements/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/top-k-frequent-elements?tab=editorial)
 
 **Asked by:** Amazon, Facebook, Google, Microsoft, Uber &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `count-then-select`
 
@@ -3353,184 +2959,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 3. Ugly Number II &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 264
+#### `[CORE]` 3. Valid Parenthesis String &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 678
 
-<!-- id:heaps-ugly-number-ii | order:49 | day:29 | pattern:three-pointer-merge | template:T-HEAP-03 -->
+<!-- id:greedy-valid-parenthesis-string | order:38 | day:29 | pattern:range-tracking | template:T-GREEDY-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/ugly-number-ii/)
-
-**Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `MEDIUM` &nbsp;·&nbsp; **Pattern:** `three-pointer-merge`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** The nth ugly number cannot be found by testing candidates - they thin out too fast. Instead GENERATE them: every ugly number is a previous one multiplied by 2, 3 or 5, so the sequence is a three-way merge of itself.
-
-**Trick.** Three pointers into the sequence being built, each tracking the next multiple of 2, 3 and 5. Take the minimum and advance EVERY pointer that produced it, which is how duplicates are avoided.
-
-**Edge cases that bite.**
-
-- Advancing only one pointer on a tie produces duplicates - 6 is both 2*3 and 3*2.
-- The first ugly number is 1.
-- Values fit in int for n = 1690, which is the constraint limit.
-
-**Complexity.** `O(n)` time, `O(n)` space — one constant-time step per generated number. The heap version is O(n log n) and needs a set to deduplicate - the pointer version avoids both.
-
-**Same pattern.** [Super Ugly Number](https://leetcode.com/problems/super-ugly-number/), [Ugly Number](https://leetcode.com/problems/ugly-number/), [Find K Pairs with Smallest Sums](https://leetcode.com/problems/find-k-pairs-with-smallest-sums/), [Merge k Sorted Lists](https://leetcode.com/problems/merge-k-sorted-lists/)
-
-**Interview follow-ups.**
-
-- **Q.** Why advance every matching pointer?
-  <br>**A.** Because the same value can be produced by several factors. Advancing only one leaves the others pointing at a value already emitted.
-- **Q.** Arbitrary set of primes.
-  <br>**A.** LC 313 - k pointers instead of three, or a min-heap when k is large enough that scanning the pointers dominates.
-
-</details>
-
-#### `[CORE]` 4. Minimum Number of Arrows to Burst Balloons &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 452
-
-<!-- id:greedy-minimum-number-of-arrows-to-burst-balloons | order:50 | day:29 | pattern:sort-by-end-schedule | template:T-GREEDY-01 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/minimum-number-of-arrows-to-burst-balloons/)
-
-**Asked by:** Amazon, Facebook, Google &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `sort-by-end-schedule`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** Identical to interval scheduling. Shooting at the earliest END point bursts every balloon that overlaps there and leaves the most room for the rest - so sort by end, not by start.
-
-**Trick.** Sort by end. Keep the position of the last arrow; when a balloon starts after it, fire a new arrow at that balloon's end.
-
-**Edge cases that bite.**
-
-- Touching balloons at a shared coordinate are burst by one arrow - use > not >= for the new-arrow test.
-- Coordinates reach INT_MAX, so sorting by end must not compute differences.
-- A single balloon needs one arrow.
-
-**Complexity.** `O(n log n)` time, `O(1)` space — the sort dominates; the sweep is linear. This is the same algorithm as Non-overlapping Intervals, counting kept groups rather than removed ones.
-
-**Same pattern.** [Non-overlapping Intervals](https://leetcode.com/problems/non-overlapping-intervals/), [Merge Intervals](https://leetcode.com/problems/merge-intervals/), [Maximum Length of Pair Chain](https://leetcode.com/problems/maximum-length-of-pair-chain/), [Insert Interval](https://leetcode.com/problems/insert-interval/)
-
-**Interview follow-ups.**
-
-- **Q.** Why does sorting by end work here?
-  <br>**A.** The earliest-ending balloon must be burst by some arrow, and placing that arrow at its end point maximises what else it can catch. Exchange argument as usual.
-- **Q.** Why must you avoid subtracting coordinates in the comparator?
-  <br>**A.** Coordinates span the full int range, so a - b overflows. Compare directly with <.
-
-</details>
-
-#### `[CORE]` 5. Queue Reconstruction by Height &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 406
-
-<!-- id:greedy-queue-reconstruction-by-height | order:51 | day:29 | pattern:insert-by-priority | template:T-GREEDY-01 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/queue-reconstruction-by-height/)
-
-**Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `insert-by-priority`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** Place the tallest people first. Once they are positioned, inserting a shorter person anywhere cannot disturb their counts, because shorter people are invisible to them. That independence is what makes the greedy sound.
-
-**Trick.** Sort by height descending, then by count ascending. Insert each person at the index equal to their count.
-
-**Edge cases that bite.**
-
-- The secondary sort must be ascending by count, or equal-height people are placed wrongly.
-- Vector insertion is O(n), giving O(n^2) overall - acceptable at these constraints.
-- The count refers only to people of greater or equal height.
-
-**Complexity.** `O(n²)` time, `O(n)` space — n insertions into a vector, each O(n) for the shift. A balanced BST or Fenwick tree with order statistics reduces it to O(n log n).
-
-**Same pattern.** [Non-overlapping Intervals](https://leetcode.com/problems/non-overlapping-intervals/), [Merge Intervals](https://leetcode.com/problems/merge-intervals/), [Sort Characters By Frequency](https://leetcode.com/problems/sort-characters-by-frequency/)
-
-**Interview follow-ups.**
-
-- **Q.** Why is the insertion safe?
-  <br>**A.** Everyone already placed is taller or equal, so a shorter person inserted before them does not change their count. Their positions may shift, but their counts do not.
-- **Q.** Make it O(n log n).
-  <br>**A.** Use an order-statistic tree or a Fenwick tree over empty slots to find the kth free position in O(log n) instead of shifting.
-
-</details>
-
-#### `[CORE]` 6. Split Array into Consecutive Subsequences &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 659
-
-<!-- id:greedy-split-array-into-consecutive-subsequences | order:52 | day:29 | pattern:greedy-two-counters | template:T-GREEDY-01 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/split-array-into-consecutive-subsequences/)
-
-**Asked by:** Google, Amazon &nbsp;·&nbsp; **Campus OA:** `MEDIUM` &nbsp;·&nbsp; **Pattern:** `greedy-two-counters`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** Prefer extending an existing run over starting a new one, because a run of length 1 or 2 is invalid and must eventually be extended anyway. Two counters - available values and runs ending here - express that without any search.
-
-**Trick.** Count frequencies. Keep a map of runs ending at each value. For each x in order, extend a run ending at x-1 if one exists; otherwise start a new run needing x+1 and x+2, failing if either is unavailable.
-
-**Edge cases that bite.**
-
-- Runs must be length 3 or more, which is why starting a run consumes three values at once.
-- Extending must be preferred over starting, or you strand short runs.
-- Values must be processed in ascending order.
-
-**Complexity.** `O(n)` time, `O(n)` space — one pass over the sorted values with constant-time map operations.
-
-**Same pattern.** [Hand of Straights](https://leetcode.com/problems/hand-of-straights/), [Longest Consecutive Sequence](https://leetcode.com/problems/longest-consecutive-sequence/), [Task Scheduler](https://leetcode.com/problems/task-scheduler/)
-
-**Interview follow-ups.**
-
-- **Q.** Why prefer extending?
-  <br>**A.** A run you decline to extend must later reach length 3 on its own, consuming values that the existing run would have used anyway. Extending is never worse.
-- **Q.** Hand of Straights, where all groups have a fixed size.
-  <br>**A.** LC 846 - simpler, because the group length is known, so the smallest card's group is fully determined.
-
-</details>
-
-### Day 29 — learning checkpoint
-
-*Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
-
-#### New today
-
-- **A bounded value range removes the log factor.** Frequencies are bounded by n, so bucketing by frequency is O(n) where a heap is O(n log k). Same instinct as counting sort, and it recurs constantly.
-  <br>↳ *Top K Frequent Elements* — bucket sort by frequency rather than a heap
-- **Generate rather than test when candidates thin out.** The nth ugly number cannot be found by testing numbers. Generating the sequence as a merge of itself is O(n), and advancing every pointer that produced the minimum is what avoids duplicates.
-  <br>↳ *Ugly Number II* — three pointers, all advanced on a tie
-- **A closed form can beat a simulation.** Deriving the structure of the optimal schedule gives the answer directly, and explains why the simulation works.
-  <br>↳ *Task Scheduler* — (maxFreq - 1) * (n + 1) + countAtMaxFreq, with a max() against the task count
-- **Sort by end to schedule, by start to merge.** The earliest-finishing interval leaves the most room, which is why scheduling sorts by end. Merging needs positional adjacency, which is why it sorts by start.
-  <br>↳ *Minimum Number of Arrows to Burst Balloons* — sorting by end and firing at each chosen end
-- **Place the constrained items first.** Positioning the tallest people first makes later insertions invisible to them, so counts stay valid. Ordering the work by who constrains whom is the general pattern.
-  <br>↳ *Queue Reconstruction by Height* — sorting by height descending, count ascending, then inserting at the count index
-- **A forced first move makes greedy exact.** When the smallest remaining element has no possible predecessor, its group is determined, leaving a strictly smaller instance of the same problem.
-  <br>↳ *Split Array into Consecutive Subsequences* — preferring to extend an existing run over starting a new one
-
-#### From yesterday
-
-- **For the k largest, use a min-heap.** The inversion is deliberate: you repeatedly discard the WORST of your current best k, and a min-heap keeps that at the root for O(log k) eviction. ↳ *Kth Largest Element in an Array* — a size-k min-heap, versus quickselect at O(n) average
-- **Two heaps facing inward give order statistics.** A max-heap of the lower half and a min-heap of the upper half put the median at their tops. ↳ *Find Median from Data Stream* — three unconditional operations per insertion, with no case analysis
-
-#### Carried forward
-
-- **arrays** — Decompose a hard rearrangement into reversals; Scan from the right when the answer depends on the suffix; The sort key IS the interval algorithm; Negatives forbid a sliding window; Reuse the input as marker storage for O(1) space; Carry both extremes when a negative can flip them; Start only from the heads of a run; Three-way partition in one pass
-- **binary-search** — Compute the midpoint as l + (r - l) / 2; Pick one interval convention and never mix them; Search the answer space when the array is not what is sorted; Getting lo and hi right is where answer-space searches fail; One half of a rotated array is always sorted; Binary search needs monotonicity, not order; Some 2D problems are 1D in disguise
-- **strings** — substr copies, so it is never free; A fixed alphabet means an array, and genuinely O(1) space; A palindrome is defined by its centre, and there are 2n-1 of them; Nesting means a stack, one bracket type means a counter; Prune during construction rather than filtering afterwards; The stale maximum in a window can be safe
-- **linked-list** — Save the next pointer before you destroy it; A dummy head removes the head special case; Two pointers at different speeds expose structure; Floyd's reset finds the cycle entry; Compose known techniques rather than inventing new ones; Let the structure itself be the map
-- **stack-queue** — A monotonic stack discards permanently irrelevant elements; Store indices, not values; Count contributions instead of enumerating subarrays; A sentinel drains the stack for you; A monotonic deque beats a heap for window extremes; Greedy removal with a monotonic stack
-- **sliding-window** — Fixed windows slide, variable windows shrink; Erase zero-count keys or size() lies; The complement is often the easier window; Sort first when the target of a window is its extreme
-
-### Day 30
-
-*6 problems — 6 core, 0 drill, 0 skim.*
-
-#### `[CORE]` 1. Valid Parenthesis String &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 678
-
-<!-- id:greedy-valid-parenthesis-string | order:53 | day:30 | pattern:range-tracking | template:T-GREEDY-01 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/valid-parenthesis-string/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/valid-paranthesis-checker) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=cHT6sG_hUZI)
+[Solve on LeetCode](https://leetcode.com/problems/valid-parenthesis-string/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/valid-paranthesis-checker?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=cHT6sG_hUZI)
 
 **Asked by:** Facebook, Amazon, Google &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `range-tracking`
 
@@ -3560,11 +2993,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 2. Count Primes &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 204
+#### `[CORE]` 4. Count Primes &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 204
 
-<!-- id:bit-manipulation-count-primes | order:54 | day:30 | pattern:sieve-of-eratosthenes | template:T-MATH-03 -->
+<!-- id:bit-manipulation-count-primes | order:39 | day:29 | pattern:sieve-of-eratosthenes | template:T-MATH-03 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/count-primes/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/sieve-of-eratosthenes) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=g5Fuxn_AvSk)
+[Solve on LeetCode](https://leetcode.com/problems/count-primes/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/count-primes-in-range-l-to-r?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=g5Fuxn_AvSk)
 
 **Asked by:** Amazon, Microsoft, Google &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `sieve-of-eratosthenes`
 
@@ -3596,80 +3029,11 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 3. Counting Bits &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 338
-
-<!-- id:bit-manipulation-counting-bits | order:55 | day:30 | pattern:dp-on-bits | template:T-BIT-02 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/counting-bits/)
-
-**Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `dp-on-bits`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** Counting each number independently is O(n log n). The DP observation is that i's bit count is i-without-its-lowest-bit plus one, or equivalently i-shifted-right plus its last bit - either gives O(n) total.
-
-**Trick.** dp[i] = dp[i >> 1] + (i & 1). Right-shifting drops the last bit, whose value you add back directly. dp[i] = dp[i & (i-1)] + 1 is the equivalent Kernighan form.
-
-**Edge cases that bite.**
-
-- dp[0] = 0 seeds the recurrence.
-- The result array has n+1 entries, not n.
-- Both recurrences read a strictly smaller index, so a single forward pass is valid.
-
-**Complexity.** `O(n)` time, `O(n) for the output` space — one constant-time transition per number. Calling popcount n times is O(n log n) or O(n) with hardware support, but the DP is the intended answer.
-
-**Same pattern.** [Number of 1 Bits](https://leetcode.com/problems/number-of-1-bits/), [Power of Two](https://leetcode.com/problems/power-of-two/), [Single Number](https://leetcode.com/problems/single-number/)
-
-**Interview follow-ups.**
-
-- **Q.** Derive both recurrences.
-  <br>**A.** i >> 1 removes the last bit, so add it back with i & 1. i & (i-1) removes the LOWEST SET bit, so add exactly one. Different decompositions, same result.
-- **Q.** Do it without any DP array.
-  <br>**A.** Not possible in O(n) - the output itself is the array. The DP is free given that the output must be materialised anyway.
-
-</details>
-
-#### `[CORE]` 4. Divide Two Integers &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 29
-
-<!-- id:bit-manipulation-divide-two-integers | order:56 | day:30 | pattern:doubling-subtraction | template:T-BIT-02 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/divide-two-integers/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/divide-two-integers-without-using-multiplication-division-and-mod-operator) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=pBD4B1tzgVc)
-
-**Asked by:** Amazon, Microsoft, Facebook &nbsp;·&nbsp; **Campus OA:** `MEDIUM` &nbsp;·&nbsp; **Pattern:** `doubling-subtraction`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** Repeated subtraction is O(quotient) and times out. Doubling the divisor while it still fits - the same idea as binary exponentiation - makes it O(log n). The overflow cases are the real difficulty.
-
-**Trick.** Work in long long and in the negative domain, since INT_MIN has no positive counterpart. Shift the divisor left while it fits, subtract, and accumulate the corresponding power of two.
-
-**Edge cases that bite.**
-
-- INT_MIN / -1 overflows and must be special-cased to INT_MAX.
-- abs(INT_MIN) is undefined behaviour - never call it.
-- Truncation is toward zero, so the sign must be applied after the magnitude is computed.
-- Divisor of 1 or -1 should be handled directly.
-
-**Complexity.** `O(log² n) naive, O(log n) careful` time, `O(1)` space — each outer step at least halves the remaining dividend. Recomputing the shift from scratch each time gives the squared bound; carrying it forward avoids that.
-
-**Same pattern.** [Pow(x, n)](https://leetcode.com/problems/powx-n/), [Reverse Integer](https://leetcode.com/problems/reverse-integer/), [Sqrt(x)](https://leetcode.com/problems/sqrtx/)
-
-**Interview follow-ups.**
-
-- **Q.** Why work in the negative domain?
-  <br>**A.** INT_MIN can be represented but its negation cannot. Negating both operands to negative means every intermediate value is representable.
-- **Q.** Which single input overflows the result?
-  <br>**A.** INT_MIN / -1 = 2147483648, one past INT_MAX. It is the only such case and must return INT_MAX by specification.
-
-</details>
-
 #### `[CORE]` 5. Maximum XOR of Two Numbers in an Array &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 421
 
-<!-- id:bit-manipulation-maximum-xor-of-two-numbers-in-an-array | order:57 | day:30 | pattern:binary-trie | template:T-TRIE-01 -->
+<!-- id:bit-manipulation-maximum-xor-of-two-numbers-in-an-array | order:40 | day:29 | pattern:binary-trie | template:T-TRIE-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/maximum-xor-of-two-numbers-in-an-array/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/maximum-xor-of-two-numbers-in-an-array/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=EIhAwfHubE8)
+[Solve on LeetCode](https://leetcode.com/problems/maximum-xor-of-two-numbers-in-an-array/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/maximum-xor-of-two-numbers-in-an-array?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=EIhAwfHubE8)
 
 **Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `MEDIUM` &nbsp;·&nbsp; **Pattern:** `binary-trie`
 
@@ -3699,66 +3063,32 @@ You do not need to search for it. The arithmetic finds it in one step.
 
 </details>
 
-#### `[CORE]` 6. Number of 1 Bits &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 191
-
-<!-- id:bit-manipulation-number-of-1-bits | order:58 | day:30 | pattern:brian-kernighan | template:T-BIT-02 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/number-of-1-bits/)
-
-**Asked by:** Amazon, Microsoft, Apple &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `brian-kernighan`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** Checking all 32 positions works and is O(32). Brian Kernighan's trick - `x &= x - 1` clears the lowest set bit - makes it O(popcount), which matters when most bits are zero.
-
-**Trick.** Loop `while (x) { x &= x - 1; count++; }`. Subtracting one flips the lowest set bit to zero and everything below it to one; the AND then clears exactly that bit.
-
-**Edge cases that bite.**
-
-- Use unsigned, or a negative input right-shifts arithmetically and loops forever in the shift-based version.
-- x = 0 returns 0 without entering the loop.
-- __builtin_popcount compiles to a single instruction on supporting hardware.
-
-**Complexity.** `O(number of set bits)` time, `O(1)` space — each iteration removes exactly one set bit, so the loop runs popcount times rather than 32.
-
-**Same pattern.** [Counting Bits](https://leetcode.com/problems/counting-bits/), [Power of Two](https://leetcode.com/problems/power-of-two/), [Reverse Bits](https://leetcode.com/problems/reverse-bits/), [Minimum Bit Flips to Convert Number](https://leetcode.com/problems/minimum-bit-flips-to-convert-number/)
-
-**Interview follow-ups.**
-
-- **Q.** Prove why x & (x-1) clears the lowest set bit.
-  <br>**A.** x-1 turns the lowest 1 into 0 and all trailing 0s into 1s, leaving higher bits unchanged. ANDing therefore clears that bit and preserves everything above it.
-- **Q.** Count set bits for every number from 0 to n.
-  <br>**A.** LC 338 - dp[i] = dp[i >> 1] + (i & 1), or dp[i] = dp[i & (i-1)] + 1. O(n) total rather than O(n log n).
-
-</details>
-
-### Day 30 — learning checkpoint
+### Day 29 — learning checkpoint
 
 *Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
 
 #### New today
 
-- **x & (x-1) clears the lowest set bit.** Subtracting one turns the lowest 1 into 0 and everything below into 1s, so the AND clears that bit and preserves the rest. Iterating it counts set bits in O(popcount) rather than O(32).
-  <br>↳ *Number of 1 Bits* — Brian Kernighan's loop; *Counting Bits* — dp[i] = dp[i & (i-1)] + 1 as one of the two recurrences
-- **A forbidden operation points at doubling.** When multiplication or division is banned, the substitute is shifting and adding - the same halving structure as binary exponentiation, applied to a different operator.
-  <br>↳ *Divide Two Integers* — shifting the divisor left while it fits, then subtracting
-- **INT_MIN has no positive counterpart.** Two's complement holds one more negative value than positive, so negating INT_MIN overflows and abs(INT_MIN) is undefined. Work in the negative domain or promote to long long.
-  <br>↳ *Divide Two Integers* — the INT_MIN / -1 case, and computing entirely in negatives
 - **Invert the work when testing each item is too slow.** Instead of asking whether each number has a property, mark the numbers that do. The sieve marks multiples rather than testing primality, which is nearly linear instead of O(n sqrt n).
   <br>↳ *Count Primes* — marking multiples from i*i, since smaller multiples already carry a lower factor
 - **A trie can index bits, not just characters.** Inserting numbers as 32-bit paths and walking greedily toward the opposite bit works because a higher bit outweighs every lower bit combined.
   <br>↳ *Maximum XOR of Two Numbers in an Array* — the binary trie and the greedy opposite-bit descent
+- **For the k largest, use a min-heap.** The inversion is deliberate: you repeatedly discard the WORST of your current best k, and a min-heap keeps that at the root for O(log k) eviction.
+  <br>↳ *Kth Largest Element in an Array* — a size-k min-heap, versus quickselect at O(n) average
+- **A bounded value range removes the log factor.** Frequencies are bounded by n, so bucketing by frequency is O(n) where a heap is O(n log k). Same instinct as counting sort, and it recurs constantly.
+  <br>↳ *Top K Frequent Elements* — bucket sort by frequency rather than a heap
 - **Track a range when a choice is undetermined.** A wildcard makes a single counter insufficient, but the set of reachable counts stays an interval. Carrying lo and hi handles the nondeterminism in one pass.
   <br>↳ *Valid Parenthesis String* — lo clamped at zero, failing when hi goes negative
 
+#### From yesterday
+
+- **Two heaps facing inward give order statistics.** A max-heap of the lower half and a min-heap of the upper half put the median at their tops. ↳ *Find Median from Data Stream* — three unconditional operations per insertion, with no case analysis
+
 #### Carried forward
 
-- **arrays** — Decompose a hard rearrangement into reversals; Scan from the right when the answer depends on the suffix; The sort key IS the interval algorithm; Negatives forbid a sliding window; Reuse the input as marker storage for O(1) space; Carry both extremes when a negative can flip them; Start only from the heads of a run; Three-way partition in one pass
+- **arrays** — The sort key IS the interval algorithm; Carry both extremes when a negative can flip them; Three-way partition in one pass
 - **binary-search** — Compute the midpoint as l + (r - l) / 2; Pick one interval convention and never mix them; Search the answer space when the array is not what is sorted; Getting lo and hi right is where answer-space searches fail; One half of a rotated array is always sorted; Binary search needs monotonicity, not order; Some 2D problems are 1D in disguise
 - **strings** — substr copies, so it is never free; A fixed alphabet means an array, and genuinely O(1) space; A palindrome is defined by its centre, and there are 2n-1 of them; Nesting means a stack, one bracket type means a counter; Prune during construction rather than filtering afterwards; The stale maximum in a window can be safe
-- **linked-list** — Save the next pointer before you destroy it; A dummy head removes the head special case; Two pointers at different speeds expose structure; Floyd's reset finds the cycle entry; Compose known techniques rather than inventing new ones; Let the structure itself be the map
+- **linked-list** — Save the next pointer before you destroy it; A dummy head removes the head special case; Two pointers at different speeds expose structure; Floyd's reset finds the cycle entry; Compose known techniques rather than inventing new ones
 - **stack-queue** — A monotonic stack discards permanently irrelevant elements; Store indices, not values; Count contributions instead of enumerating subarrays; A sentinel drains the stack for you; A monotonic deque beats a heap for window extremes; Greedy removal with a monotonic stack
-- **sliding-window** — Fixed windows slide, variable windows shrink; Erase zero-count keys or size() lies; The complement is often the easier window; Sort first when the target of a window is its extreme
-- **heaps** — For the k largest, use a min-heap; A bounded value range removes the log factor; Two heaps facing inward give order statistics; Generate rather than test when candidates thin out; A closed form can beat a simulation
-- **greedy** — Sort by end to schedule, by start to merge; Track a range when a choice is undetermined; Place the constrained items first; A forced first move makes greedy exact
+- **sliding-window** — Erase zero-count keys or size() lies

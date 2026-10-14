@@ -88,9 +88,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/implement-trie-1/",
+    "article": "https://takeuforward.org/plus/dsa/problems/trie-implementation-and-operations?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=dBGUmUQhjaM",
-    "striver_title": "Trie Implementation and Operations"
+    "striver_title": "Trie Implementation and Operations",
+    "practice": "https://takeuforward.org/plus/dsa/problems/trie-implementation-and-operations"
    },
    "pattern": "trie-insert-search",
    "template": "T-TRIE-01",
@@ -161,7 +162,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "trie-with-wildcard",
    "template": "T-TRIE-01",

@@ -847,7 +847,7 @@ body.domain-dsa::before { background: linear-gradient(rgba(13, 148, 136, .09), t
    where colour on its own does not read as "clickable". */
 .dsa-tuf { color: var(--medium); text-decoration: none; border-bottom: 1px solid currentColor; }
 .dsa-tuf:hover { color: var(--ink); }
-.dsa-tuf.yt { margin-left: 5px; }
+.dsa-tuf.prac, .dsa-tuf.yt { margin-left: 5px; }
 
 /* Tier definitions, in the open above the rows they govern. */
 .dsa-legend {
@@ -1218,20 +1218,6 @@ body.domain-dsa::before { background: linear-gradient(rgba(13, 148, 136, .09), t
 .dsa-patsep { color: var(--line); margin: 0 6px; }
 .dsa-patick { color: var(--ok); font-size: 10px; }
 .dsa-patnotmpl { color: var(--line); font-family: var(--mono); font-size: 10px; }
-
-/* The learnings, now a toggle inside an already-open row rather than the
-   reason the row opens. Closed by default on purpose: the insight should
-   not be readable by accident before you have tried the problem. */
-.dsa-learnwrap { margin-bottom: 4px; }
-.dsa-learnwrap > summary {
-  cursor: pointer; list-style: none; padding: 7px 0;
-  font-family: var(--mono); font-size: 10px; letter-spacing: .16em;
-  text-transform: uppercase; color: var(--dsa); font-weight: 700;
-}
-.dsa-learnwrap > summary::-webkit-details-marker { display: none; }
-.dsa-learnwrap > summary::after { content: " +"; font-size: 12px; }
-.dsa-learnwrap[open] > summary::after { content: " −"; }
-.dsa-learnwrap > summary:hover { color: var(--ink); }
 
 @media (max-width: 720px) {
   .dsa-patlist li { grid-template-columns: 1fr; gap: 2px; }

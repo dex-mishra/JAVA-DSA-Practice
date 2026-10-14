@@ -10,7 +10,7 @@ Everything needed to build the DSA tab on top of the existing inbox-agent / plac
 |---|---|---|
 | `phase-N-*.json` | Content: theory, problems, learnings per phase | **Yes** — the build reads these |
 | `phase-N-*.md` | Same content, human-readable | No — for reading, not parsing |
-| `cpp-pattern-templates.json` | 73 C++ pattern templates | **Yes** |
+| `cpp-pattern-templates.json` | 76 C++ pattern templates | **Yes** |
 | `cpp-pattern-templates.md` | Same, human-readable | No |
 | `SPEC.json` | Phase map, tier definitions, user-field schema, revision rule, stuck ladder | **Yes** |
 | `HANDOFF.md` | This file | Read once |
@@ -78,8 +78,12 @@ CREATE TABLE dsa_problem (
   difficulty  TEXT NOT NULL,             -- 'Easy' | 'Medium' | 'Hard'
   ac_rate     REAL,
   lc_tags     JSONB,
-  tuf_article TEXT,                      -- nullable
+  tuf_article TEXT,                      -- nullable; the /plus/dsa/problems/<slug>?tab=editorial URL
+  tuf_practice TEXT,                     -- nullable; TUF's own judge page for the same problem
   tuf_youtube TEXT,                      -- nullable
+  -- tuf.legacy_article in the JSON is provenance only. Do not import it and never render it:
+  -- those /data-structure/<slug> URLs are the pre-October-2026 scheme and mostly serve an
+  -- empty shell.
   pattern     TEXT NOT NULL,
   template_id TEXT REFERENCES dsa_template(id),
   companies   JSONB,

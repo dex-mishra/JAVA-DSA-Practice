@@ -2,13 +2,13 @@
 phase: V0
 title: Prerequisites
 days: 1-3
-problems: 20
+problems: 14
 generated: 2026-09-17
 ---
 
 # V0 — Prerequisites
 
-**Days 1–3** &nbsp;·&nbsp; **20 problems** &nbsp;·&nbsp; The smallest set that makes trees, graphs and DP tractable: hashing, sorting, recursion, and the array patterns DP is built on.
+**Days 1–3** &nbsp;·&nbsp; **14 problems** &nbsp;·&nbsp; The smallest set that makes trees, graphs and DP tractable: hashing, sorting, recursion, and the array patterns DP is built on.
 
 > **Tier key.** `[CORE]` code it fully, the pattern lives here. `[DRILL]` a variation on a CORE, under 10 minutes. `[SKIM]` read the dropdown, write 3 lines of pseudocode, move on.
 
@@ -1331,13 +1331,13 @@ different, keeping notes would just be extra work.
 
 ### Day 1
 
-*7 problems — 7 core, 0 drill, 0 skim.*
+*5 problems — 5 core, 0 drill, 0 skim.*
 
 #### `[CORE]` 1. Majority Element &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 169
 
 <!-- id:hashing-majority-element | order:1 | day:1 | pattern:boyer-moore-voting | template:T-ARR-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/majority-element/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/find-the-majority-element-that-occurs-more-than-n-2-times/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=nP_ns3uSh80)
+[Solve on LeetCode](https://leetcode.com/problems/majority-element/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/majority-element-i?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=nP_ns3uSh80)
 
 **Asked by:** Amazon, Google, Adobe, Zenefits &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `boyer-moore-voting`
 
@@ -1373,7 +1373,7 @@ different, keeping notes would just be extra work.
 
 <!-- id:hashing-single-number | order:2 | day:1 | pattern:xor-cancellation | template:T-BIT-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/single-number/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/arrays/find-the-number-that-appears-once-and-the-other-numbers-twice/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=bYWLJb3vCWY&t=1369)
+[Solve on LeetCode](https://leetcode.com/problems/single-number/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/single-number---i?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=bYWLJb3vCWY&t=1369)
 
 **Asked by:** Amazon, Google, Airbnb, Palantir &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `xor-cancellation`
 
@@ -1409,7 +1409,7 @@ different, keeping notes would just be extra work.
 
 <!-- id:hashing-two-sum | order:3 | day:1 | pattern:hash-complement | template:T-HASH-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/two-sum/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/two-sum-check-if-a-pair-with-given-sum-exists-in-array/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=UXDSeD9mN-k)
+[Solve on LeetCode](https://leetcode.com/problems/two-sum/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/two-sum?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=UXDSeD9mN-k)
 
 **Asked by:** Amazon, Google, Microsoft, Adobe, Apple &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `hash-complement`
 
@@ -1477,185 +1477,11 @@ different, keeping notes would just be extra work.
 
 </details>
 
-#### `[CORE]` 5. Sort the Matrix Diagonally &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 1329
+#### `[CORE]` 5. Combination Sum &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 39
 
-<!-- id:sorting-sort-the-matrix-diagonally | order:5 | day:1 | pattern:group-by-invariant | template:T-SORT-04 -->
+<!-- id:recursion-combination-sum | order:5 | day:1 | pattern:unbounded-combination | template:T-BT-03 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/sort-the-matrix-diagonally/)
-
-**Asked by:** Amazon, Google &nbsp;·&nbsp; **Campus OA:** `MEDIUM` &nbsp;·&nbsp; **Pattern:** `group-by-invariant`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** Every cell on the same diagonal shares the value `i - j`. Once you notice that, the problem stops being about matrices and becomes 'group by a key, sort each group, write it back' — a pattern you will reuse constantly.
-
-**Trick.** Bucket cells into `map<int, vector<int>>` keyed on `i - j`, sort each bucket, then walk the matrix again popping values back in order. The invariant does all the work.
-
-**Edge cases that bite.**
-
-- `i - j` is negative for cells above the main diagonal — a map handles it, a plain array needs an offset of `+ n`.
-- Single row or single column — every diagonal has length 1 and nothing changes.
-- Write-back must traverse in the same direction as the read, or the sorted order reverses.
-
-**Complexity.** `O(m·n·log(min(m,n)))` time, `O(m·n)` space — every cell is visited twice and each diagonal of length d costs O(d log d) to sort; diagonals are bounded by min(m,n). Space holds all cells across the buckets.
-
-**Same pattern.** [Diagonal Traverse](https://leetcode.com/problems/diagonal-traverse/), [Transpose Matrix](https://leetcode.com/problems/transpose-matrix/), [Spiral Matrix](https://leetcode.com/problems/spiral-matrix/), [Group Anagrams](https://leetcode.com/problems/group-anagrams/)
-
-**Interview follow-ups.**
-
-- **Q.** Use a priority queue per diagonal instead.
-  <br>**A.** Push during the first traversal, pop during the second. Same complexity, but it fuses the sort into the traversal and avoids materialising the vectors.
-- **Q.** Sort anti-diagonals instead.
-  <br>**A.** The invariant becomes `i + j` rather than `i - j`. Nothing else changes, which is the point — the algorithm was never about diagonals, it was about the key.
-
-</details>
-
-#### `[CORE]` 6. Factorial Trailing Zeroes &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 172
-
-<!-- id:math-factorial-trailing-zeroes | order:6 | day:1 | pattern:prime-factor-counting | template:T-MATH-03 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/factorial-trailing-zeroes/)
-
-**Asked by:** Amazon, Bloomberg, Microsoft &nbsp;·&nbsp; **Campus OA:** `MEDIUM` &nbsp;·&nbsp; **Pattern:** `prime-factor-counting`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** Computing n! and counting zeros is impossible past n = 20 — the value overflows everything. The problem is asking you to count a specific prime factor without ever constructing the number, which is a habit worth far more than this problem.
-
-**Trick.** A trailing zero needs a factor of 10 = 2 x 5. Factors of 2 are strictly more plentiful, so the count of 5s is binding. Answer is n/5 + n/25 + n/125 + ..., each term counting numbers contributing an additional 5.
-
-**Edge cases that bite.**
-
-- n = 0 gives 0, since 0! = 1.
-- Use `n /= 5` in a loop rather than `pow(5, i)`, which overflows and introduces floating-point error.
-- Integer division is doing the flooring — do not add rounding.
-
-**Complexity.** `O(log₅ n)` time, `O(1)` space — the loop divides n by 5 each iteration, so it runs about log₅n times. For n = 10⁹ that is 13 iterations.
-
-**Same pattern.** [Count Primes](https://leetcode.com/problems/count-primes/), [Ugly Number](https://leetcode.com/problems/ugly-number/), [Add Digits](https://leetcode.com/problems/add-digits/), [Nth Digit](https://leetcode.com/problems/nth-digit/)
-
-**Interview follow-ups.**
-
-- **Q.** Why are there always more 2s than 5s?
-  <br>**A.** Every second integer contributes a 2 but only every fifth contributes a 5, so the count of 2s exceeds the count of 5s for all n >= 1. The pairs are therefore limited by the 5s.
-- **Q.** Trailing zeros of n! in base 12.
-  <br>**A.** 12 = 2² x 3. Count factors of 2 and of 3 by Legendre's formula, then the answer is min(count₂ / 2, count₃). The generalisation is what is being tested.
-- **Q.** Find the smallest n whose factorial has exactly k trailing zeros.
-  <br>**A.** The zero count is monotonic in n, so binary search on n. Note that some k have no solution, because the count jumps by more than one at multiples of 25.
-
-</details>
-
-#### `[CORE]` 7. Happy Number &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 202
-
-<!-- id:math-happy-number | order:7 | day:1 | pattern:cycle-detection | template:T-MATH-02 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/happy-number/)
-
-**Asked by:** Google, Uber, Airbnb &nbsp;·&nbsp; **Campus OA:** `MEDIUM` &nbsp;·&nbsp; **Pattern:** `cycle-detection`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** This looks like a maths problem and is actually a **linked list** problem in disguise. Each number points to exactly one successor, so you are walking a chain. It either reaches 1 or loops forever - and 'detect a loop' has a known answer.
-
-**Trick.** Floyd's tortoise and hare. Slow advances one step, fast advances two. If they meet, there is a cycle and the answer is false. O(1) space, versus a hash set's O(log n). Recognising the disguise is the whole skill here.
-
-**Edge cases that bite.**
-
-- n = 1 is happy by definition - handle before entering the loop.
-- Single-digit numbers other than 1 and 7 all fall into the same 4-16-37... cycle.
-- The chain is guaranteed finite: any number above 999 shrinks, so values are bounded.
-
-**Complexity.** `O(log n)` time, `O(1)` space — digit-sum collapses large numbers fast - anything above 999 drops below itself, so the walk is short and bounded. Floyd's uses two pointers and nothing else.
-
-**Same pattern.** [Linked List Cycle](https://leetcode.com/problems/linked-list-cycle/), [Linked List Cycle II](https://leetcode.com/problems/linked-list-cycle-ii/), [Find the Duplicate Number](https://leetcode.com/problems/find-the-duplicate-number/), [Add Digits](https://leetcode.com/problems/add-digits/)
-
-**Interview follow-ups.**
-
-- **Q.** Why does this terminate at all?
-  <br>**A.** For any n with d digits, the max digit-square-sum is 81d, which is smaller than n once d >= 4. So every number eventually falls below 1000, and there are finitely many states below 1000 - so it must cycle or hit 1.
-- **Q.** Find the length of the cycle.
-  <br>**A.** After the pointers meet, hold one still and advance the other until they meet again, counting steps. Same trick as LC 142.
-- **Q.** Where else have you seen a value-points-to-value chain?
-  <br>**A.** LC 287, Find the Duplicate Number. Recognising that an array of values in [1,n] IS a linked list is the single highest-leverage disguise in all of DSA.
-
-</details>
-
-### Day 1 — learning checkpoint
-
-*Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
-
-#### New today
-
-- **Store what you have seen, look up what you need.** A nested loop whose inner loop is a search can almost always be collapsed by recording elements as you pass them and querying that record in O(1). This is the single most common route from O(n^2) to O(n).
-  <br>↳ *Two Sum* — keeping a map of value→index and querying `target - x` on arrival
-- **Query before you insert.** When an element could pair with itself, the order of query and insert decides correctness. Querying first makes self-pairing impossible without a special case.
-  <br>↳ *Two Sum* — checking `target - x` before storing `x`, so `[3,3]` with target 6 still works and `x` never matches itself
-- **The merge step is reusable, so learn it properly once.** Merge sort's combine phase walks two sorted halves with two pointers. Any quantity that can be counted while those pointers move - inversions, qualifying pairs - comes free, which is how several otherwise-hard problems are solved.
-  <br>↳ *Sort an Array* — the `merge` routine itself, written from scratch because `std::sort` is disallowed here
-- **Naive quicksort dies on sorted input.** Choosing the first or last element as pivot degrades to O(n^2) precisely when the array is already sorted or reverse-sorted, which is a common test case. Randomising the pivot or taking a median-of-three removes the failure mode.
-  <br>↳ *Sort an Array* — why merge sort is the safe submission here, and why `std::sort` uses introsort rather than plain quicksort
-- **`n % 10` reads a digit, `n /= 10` advances.** Those two operations are the whole of digit manipulation. Any problem that forbids string conversion is asking you to use them, and the same pair works in any base once 10 is replaced by that base.
-  <br>↳ *Happy Number* — extracting each digit to square and sum it
-- **A value that maps to exactly one successor is a linked list.** If every state has exactly one next state, you are walking a chain, so it either terminates or cycles - and cycle detection has a known O(1)-space answer in Floyd's tortoise and hare. Recognising this disguise is worth more than the algorithm.
-  <br>↳ *Happy Number* — treating digit-square-sum as the next pointer and running slow/fast pointers instead of storing a seen-set
-- **A forbidden data structure is a hint, not an obstacle.** When a problem bans extra space, it is naming the technique it wants. Constant-space constraints on counting problems point at XOR, at voting arguments, or at arithmetic identities - never at a cleverer hash map.
-  <br>↳ *Single Number* — the O(1) space requirement ruling out the map and forcing XOR, where x^x = 0 makes duplicates annihilate; *Majority Element* — the same constraint forcing Boyer-Moore voting instead of a frequency map
-- **Group by an invariant, then solve each group.** When elements fall into classes defined by a shared computed value, bucket them on that value and the problem reduces to solving one small independent instance per bucket.
-  <br>↳ *Sort the Matrix Diagonally* — every cell on a diagonal sharing `i - j`, so the matrix becomes a map of independent lists to sort
-- **Count a factor without constructing the number.** Large values need not be built to be analysed. Counting occurrences of a prime across a range, or dividing out permitted factors, answers questions about numbers far beyond any integer type.
-  <br>↳ *Factorial Trailing Zeroes* — summing n/5 + n/25 + n/125 rather than computing n!
-- **Floyd's reset finds the cycle entry.** After the pointers meet, moving one back to the head and advancing both at equal speed brings them together exactly at the entry. The proof turns on the tail length k and the cycle length c.
-  <br>↳ *Happy Number* — the same structure applied to a value-to-value chain rather than nodes
-
-### Day 2
-
-*7 problems — 7 core, 0 drill, 0 skim.*
-
-#### `[CORE]` 1. Reverse Integer &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 7
-
-<!-- id:math-reverse-integer | order:8 | day:2 | pattern:digit-reversal | template:T-MATH-01 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/reverse-integer/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/maths/reverse-digits-of-a-number) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=1xNbjMdbjug&t=930)
-
-**Asked by:** Amazon, Apple, Bloomberg, Adobe &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `digit-reversal`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** The reversal itself is four lines. The problem is entirely about overflow: the result may exceed the 32-bit range even though the input never does, and you are forbidden from using a 64-bit type to detect it. So the check must happen BEFORE the multiply.
-
-**Trick.** Before `rev = rev * 10 + d`, test whether `rev > INT_MAX / 10`, or `rev == INT_MAX / 10` with `d > 7`. Same on the negative side with INT_MIN and 8. Checking after the fact is already undefined behaviour.
-
-**Edge cases that bite.**
-
-- 1534236469 reverses to 9646324351, which overflows — the canonical failing test.
-- Trailing zeros vanish: 120 becomes 21, which is correct.
-- INT_MIN has no positive counterpart, so negating it is undefined. Work in the negative domain or use long long internally if permitted.
-- 0 reverses to 0.
-
-**Complexity.** `O(log n)` time, `O(1)` space — one operation per digit, and a 32-bit integer has at most 10 of them. No storage beyond two scalars.
-
-**Same pattern.** [Palindrome Number](https://leetcode.com/problems/palindrome-number/), [Add Digits](https://leetcode.com/problems/add-digits/), [Nth Digit](https://leetcode.com/problems/nth-digit/), [Divide Two Integers](https://leetcode.com/problems/divide-two-integers/)
-
-**Interview follow-ups.**
-
-- **Q.** Why 7 and 8 specifically?
-  <br>**A.** INT_MAX is 2147483647, whose last digit is 7; INT_MIN is -2147483648, ending in 8. When rev already equals INT_MAX/10, only a final digit at or below that last digit keeps the result in range.
-- **Q.** Reverse the bits instead of the digits.
-  <br>**A.** LC 190. Shift out of the source and into the result 32 times. Same shape, base 2 instead of base 10 — which is the general lesson about digit extraction.
-- **Q.** Detect overflow without any comparison at all.
-  <br>**A.** Reverse back and check for equality: if `newRev / 10 != rev` then the multiply overflowed. Elegant, though it relies on well-defined wraparound that C++ does not guarantee for signed types.
-
-</details>
-
-#### `[CORE]` 2. Combination Sum &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 39
-
-<!-- id:recursion-combination-sum | order:9 | day:2 | pattern:unbounded-combination | template:T-BT-03 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/combination-sum/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/combination-sum-1/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=OyZFFqQtu98)
+[Solve on LeetCode](https://leetcode.com/problems/combination-sum/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/combination-sum?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=OyZFFqQtu98)
 
 **Asked by:** Amazon, Facebook, Google, Uber &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `unbounded-combination`
 
@@ -1685,11 +1511,36 @@ different, keeping notes would just be extra work.
 
 </details>
 
-#### `[CORE]` 3. Combination Sum II &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 40
+### Day 1 — learning checkpoint
 
-<!-- id:recursion-combination-sum-ii | order:10 | day:2 | pattern:bounded-combination-dedup | template:T-BT-03 -->
+*Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
 
-[Solve on LeetCode](https://leetcode.com/problems/combination-sum-ii/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/combination-sum-ii-find-all-unique-combinations/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=G1fRTGRxXU8)
+#### New today
+
+- **Store what you have seen, look up what you need.** A nested loop whose inner loop is a search can almost always be collapsed by recording elements as you pass them and querying that record in O(1). This is the single most common route from O(n^2) to O(n).
+  <br>↳ *Two Sum* — keeping a map of value→index and querying `target - x` on arrival
+- **Query before you insert.** When an element could pair with itself, the order of query and insert decides correctness. Querying first makes self-pairing impossible without a special case.
+  <br>↳ *Two Sum* — checking `target - x` before storing `x`, so `[3,3]` with target 6 still works and `x` never matches itself
+- **The merge step is reusable, so learn it properly once.** Merge sort's combine phase walks two sorted halves with two pointers. Any quantity that can be counted while those pointers move - inversions, qualifying pairs - comes free, which is how several otherwise-hard problems are solved.
+  <br>↳ *Sort an Array* — the `merge` routine itself, written from scratch because `std::sort` is disallowed here
+- **Naive quicksort dies on sorted input.** Choosing the first or last element as pivot degrades to O(n^2) precisely when the array is already sorted or reverse-sorted, which is a common test case. Randomising the pivot or taking a median-of-three removes the failure mode.
+  <br>↳ *Sort an Array* — why merge sort is the safe submission here, and why `std::sort` uses introsort rather than plain quicksort
+- **A forbidden data structure is a hint, not an obstacle.** When a problem bans extra space, it is naming the technique it wants. Constant-space constraints on counting problems point at XOR, at voting arguments, or at arithmetic identities - never at a cleverer hash map.
+  <br>↳ *Single Number* — the O(1) space requirement ruling out the map and forcing XOR, where x^x = 0 makes duplicates annihilate; *Majority Element* — the same constraint forcing Boyer-Moore voting instead of a frequency map
+- **`i` versus `i + 1` is the whole reuse question.** Passing the current index permits an element to be used again; passing the next forbids it. One character separates two otherwise identical problems.
+  <br>↳ *Combination Sum* — recursing with i, since candidates may be reused; *Combination Sum II* — recursing with i + 1, since each element is used at most once
+- **Prune before recursing, not at the leaf.** Validity checks placed before the recursive call eliminate entire subtrees. Sorting often enables an even stronger `break`, which is frequently the difference between accepting and timing out.
+  <br>↳ *Combination Sum* — breaking as soon as a[i] > target, which requires the sorted input; *N-Queens* — three marker arrays making the conflict test O(1) instead of an O(n) board scan
+
+### Day 2
+
+*5 problems — 5 core, 0 drill, 0 skim.*
+
+#### `[CORE]` 1. Combination Sum II &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 40
+
+<!-- id:recursion-combination-sum-ii | order:6 | day:2 | pattern:bounded-combination-dedup | template:T-BT-03 -->
+
+[Solve on LeetCode](https://leetcode.com/problems/combination-sum-ii/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/combination-sum-ii?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=G1fRTGRxXU8)
 
 **Asked by:** Amazon, Facebook, Microsoft &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `bounded-combination-dedup`
 
@@ -1719,11 +1570,11 @@ different, keeping notes would just be extra work.
 
 </details>
 
-#### `[CORE]` 4. N-Queens &nbsp;·&nbsp; `Hard` &nbsp;·&nbsp; LC 51
+#### `[CORE]` 2. N-Queens &nbsp;·&nbsp; `Hard` &nbsp;·&nbsp; LC 51
 
-<!-- id:recursion-n-queens | order:11 | day:2 | pattern:constraint-backtracking | template:T-BT-05 -->
+<!-- id:recursion-n-queens | order:7 | day:2 | pattern:constraint-backtracking | template:T-BT-05 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/n-queens/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/n-queen-problem-return-all-distinct-solutions-to-the-n-queens-puzzle/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=i05Ju7AftcM)
+[Solve on LeetCode](https://leetcode.com/problems/n-queens/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/n-queen?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=i05Ju7AftcM)
 
 **Asked by:** Amazon, Google, Facebook, Adobe &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `constraint-backtracking`
 
@@ -1753,9 +1604,9 @@ different, keeping notes would just be extra work.
 
 </details>
 
-#### `[CORE]` 5. Permutations &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 46
+#### `[CORE]` 3. Permutations &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 46
 
-<!-- id:recursion-permutations | order:12 | day:2 | pattern:swap-permutation | template:T-BT-02 -->
+<!-- id:recursion-permutations | order:8 | day:2 | pattern:swap-permutation | template:T-BT-02 -->
 
 [Solve on LeetCode](https://leetcode.com/problems/permutations/)
 
@@ -1787,11 +1638,11 @@ different, keeping notes would just be extra work.
 
 </details>
 
-#### `[CORE]` 6. Subsets &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 78
+#### `[CORE]` 4. Subsets &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 78
 
-<!-- id:recursion-subsets | order:13 | day:2 | pattern:include-exclude | template:T-BT-01 -->
+<!-- id:recursion-subsets | order:9 | day:2 | pattern:include-exclude | template:T-BT-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/subsets/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/bit-manipulation/power-set-bit-manipulation) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=LqKaUv1G3_I)
+[Solve on LeetCode](https://leetcode.com/problems/subsets/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/power-set-bit-manipulation?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=LqKaUv1G3_I)
 
 **Asked by:** Amazon, Facebook, Google, Microsoft &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `include-exclude`
 
@@ -1821,11 +1672,11 @@ different, keeping notes would just be extra work.
 
 </details>
 
-#### `[CORE]` 7. Subsets II &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 90
+#### `[CORE]` 5. Subsets II &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 90
 
-<!-- id:recursion-subsets-ii | order:14 | day:2 | pattern:include-exclude-dedup | template:T-BT-01 -->
+<!-- id:recursion-subsets-ii | order:10 | day:2 | pattern:include-exclude-dedup | template:T-BT-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/subsets-ii/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/subset-ii-print-all-the-unique-subsets/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=RIn3gOkbhQE)
+[Solve on LeetCode](https://leetcode.com/problems/subsets-ii/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/subsets-ii?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=RIn3gOkbhQE)
 
 **Asked by:** Amazon, Facebook, Google &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `include-exclude-dedup`
 
@@ -1861,32 +1712,30 @@ different, keeping notes would just be extra work.
 
 #### New today
 
-- **Check overflow before the operation, not after.** Once a signed multiply has overflowed the behaviour is undefined, so the result cannot be inspected to detect it. The test must be a division or comparison performed on the operands beforehand.
-  <br>↳ *Reverse Integer* — testing `rev > INT_MAX / 10` before `rev = rev * 10 + d`, with the digit-7 and digit-8 boundary cases
 - **Include or exclude gives 2^n, choose-one-of-many gives n!.** The shape of the choice at each level determines the complexity class. Recognising which you are in tells you the bound before you write a line.
   <br>↳ *Subsets* — two branches per index, giving 2^n leaves; *Permutations* — n choices at the first level, n-1 at the next, giving n!
 - **Sort, then skip equal siblings to dedupe.** Equal values at the same recursion level generate identical subtrees. Skipping them with `i > start && a[i] == a[i-1]` removes duplicates without a set. The condition is i > start, not i > 0, because equal values may legitimately appear along a single path.
   <br>↳ *Subsets II* — the sibling skip after sorting; *Combination Sum II* — the same skip, combined with i + 1 to forbid reuse
-- **`i` versus `i + 1` is the whole reuse question.** Passing the current index permits an element to be used again; passing the next forbids it. One character separates two otherwise identical problems.
-  <br>↳ *Combination Sum* — recursing with i, since candidates may be reused; *Combination Sum II* — recursing with i + 1, since each element is used at most once
-- **Prune before recursing, not at the leaf.** Validity checks placed before the recursive call eliminate entire subtrees. Sorting often enables an even stronger `break`, which is frequently the difference between accepting and timing out.
-  <br>↳ *Combination Sum* — breaking as soon as a[i] > target, which requires the sorted input; *N-Queens* — three marker arrays making the conflict test O(1) instead of an O(n) board scan
+
+#### From yesterday
+
+- **`i` versus `i + 1` is the whole reuse question.** Passing the current index permits an element to be used again. ↳ *Combination Sum* — recursing with i, since candidates may be reused
+- **Prune before recursing, not at the leaf.** Validity checks placed before the recursive call eliminate entire subtrees. ↳ *Combination Sum* — breaking as soon as a[i] > target, which requires the sorted input
 
 #### Carried forward
 
 - **hashing** — Store what you have seen, look up what you need; Query before you insert; A forbidden data structure is a hint, not an obstacle
-- **sorting** — The merge step is reusable, so learn it properly once; Naive quicksort dies on sorted input; Group by an invariant, then solve each group
-- **math** — `n % 10` reads a digit, `n /= 10` advances; A value that maps to exactly one successor is a linked list; Check overflow before the operation, not after; Count a factor without constructing the number
+- **sorting** — The merge step is reusable, so learn it properly once; Naive quicksort dies on sorted input
 
 ### Day 3
 
-*6 problems — 6 core, 0 drill, 0 skim.*
+*4 problems — 4 core, 0 drill, 0 skim.*
 
 #### `[CORE]` 1. Word Search &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 79
 
-<!-- id:recursion-word-search | order:15 | day:3 | pattern:grid-backtracking | template:T-BT-04 -->
+<!-- id:recursion-word-search | order:11 | day:3 | pattern:grid-backtracking | template:T-BT-04 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/word-search/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/word-search-leetcode/)
+[Solve on LeetCode](https://leetcode.com/problems/word-search/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/word-search?tab=editorial)
 
 **Asked by:** Amazon, Microsoft, Facebook, Bloomberg &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `grid-backtracking`
 
@@ -1918,9 +1767,9 @@ different, keeping notes would just be extra work.
 
 #### `[CORE]` 2. Best Time to Buy and Sell Stock &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 121
 
-<!-- id:arrays-best-time-to-buy-and-sell-stock | order:16 | day:3 | pattern:running-minimum | template:T-DP-05 -->
+<!-- id:arrays-best-time-to-buy-and-sell-stock | order:12 | day:3 | pattern:running-minimum | template:T-DP-05 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/best-time-to-buy-and-sell-stock/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/stock-buy-and-sell/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=excAOvwF_Wk)
+[Solve on LeetCode](https://leetcode.com/problems/best-time-to-buy-and-sell-stock/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/best-time-to-buy-and-sell-stock?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=excAOvwF_Wk)
 
 **Asked by:** Amazon, Microsoft, Google, Goldman Sachs, Morgan Stanley &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `running-minimum`
 
@@ -1954,9 +1803,9 @@ different, keeping notes would just be extra work.
 
 #### `[CORE]` 3. Maximum Subarray &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 53
 
-<!-- id:arrays-maximum-subarray | order:17 | day:3 | pattern:kadane | template:T-DP-01 -->
+<!-- id:arrays-maximum-subarray | order:13 | day:3 | pattern:kadane | template:T-DP-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/maximum-subarray/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/kadanes-algorithm-maximum-subarray-sum-in-an-array/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=AHZpyENo7k4)
+[Solve on LeetCode](https://leetcode.com/problems/maximum-subarray/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/kadane's-algorithm?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=AHZpyENo7k4)
 
 **Asked by:** Amazon, Microsoft, Google, LinkedIn, Goldman Sachs &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `kadane`
 
@@ -1988,79 +1837,11 @@ different, keeping notes would just be extra work.
 
 </details>
 
-#### `[CORE]` 4. Merge Sorted Array &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 88
+#### `[CORE]` 4. Subarray Sum Equals K &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 560
 
-<!-- id:arrays-merge-sorted-array | order:18 | day:3 | pattern:merge-from-back | template:T-SORT-01 -->
+<!-- id:arrays-subarray-sum-equals-k | order:14 | day:3 | pattern:prefix-sum-hashmap | template:T-HASH-04 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/merge-sorted-array/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/merge-two-sorted-arrays-without-extra-space/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=n7uwj04E0I4)
-
-**Asked by:** Amazon, Microsoft, Facebook, Adobe &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `merge-from-back`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** Merging forward requires somewhere to put displaced elements, which costs O(n) space. Merging BACKWARD does not, because the tail of nums1 is guaranteed empty - the free space is exactly where the largest elements belong.
-
-**Trick.** Three pointers starting at the ends: i at m-1, j at n-1, k at m+n-1. Write the larger of the two candidates to position k and step backward.
-
-**Edge cases that bite.**
-
-- When nums1 is exhausted first, the remaining nums2 elements must still be copied. When nums2 is exhausted first, nothing needs doing - those elements are already in place.
-- m = 0 means the whole answer is nums2.
-- Duplicates between the arrays are kept, not deduplicated.
-
-**Complexity.** `O(m + n)` time, `O(1)` space — each element is written exactly once, and the write happens into space that already exists. Forward merging into a temporary is the same time but O(m+n) space.
-
-**Same pattern.** [Sort an Array](https://leetcode.com/problems/sort-an-array/), [Merge Intervals](https://leetcode.com/problems/merge-intervals/), [Intersection of Two Arrays II](https://leetcode.com/problems/intersection-of-two-arrays-ii/)
-
-**Interview follow-ups.**
-
-- **Q.** Merge k sorted arrays instead of two.
-  <br>**A.** A min-heap holding one head per array gives O(N log k). Pairwise merging in a tournament gives the same bound without a heap.
-- **Q.** Why does backward merging avoid the extra space?
-  <br>**A.** The free slots are at the end and the largest elements belong at the end, so every write lands in space that is guaranteed unused. Forward merging would overwrite unread input.
-
-</details>
-
-#### `[CORE]` 5. Remove Duplicates from Sorted Array &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 26
-
-<!-- id:arrays-remove-duplicates-from-sorted-array | order:19 | day:3 | pattern:two-pointer-write | template:T-SORT-02 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/remove-duplicates-from-sorted-array/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/remove-duplicates-in-place-from-sorted-array/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=37E9ckMDdTk&t=1887)
-
-**Asked by:** Amazon, Microsoft, Adobe &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `two-pointer-write`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** Sorted input means duplicates are adjacent, so you never need to search for them. A read pointer scans and a write pointer trails, and the gap between them is exactly the number of duplicates removed so far.
-
-**Trick.** Write pointer starts at 1. Advance the read pointer over everything; write only when a[read] differs from a[write-1]. Return the write index as the new length.
-
-**Edge cases that bite.**
-
-- Empty array must return 0 before the loop touches a[0].
-- All identical returns 1, with the write pointer never advancing.
-- Elements past the returned length are allowed to be anything - do not waste time clearing.
-
-**Complexity.** `O(n)` time, `O(1)` space — one pass, two indices. In-place modification is the point - copying to a new array would be O(n) space and is what the problem forbids.
-
-**Same pattern.** [Remove Duplicates from Sorted Array II](https://leetcode.com/problems/remove-duplicates-from-sorted-array-ii/), [Move Zeroes](https://leetcode.com/problems/move-zeroes/), [Remove Element](https://leetcode.com/problems/remove-element/), [Sort Colors](https://leetcode.com/problems/sort-colors/)
-
-**Interview follow-ups.**
-
-- **Q.** At most two duplicates allowed.
-  <br>**A.** Compare against a[write-2] instead of a[write-1]. The generalisation to k duplicates is a[write-k], which is the whole family in one line.
-- **Q.** The array is unsorted.
-  <br>**A.** Adjacency no longer holds, so you need a hash set and O(n) space, or an O(n log n) sort first. The sortedness was doing all the work.
-
-</details>
-
-#### `[CORE]` 6. Subarray Sum Equals K &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 560
-
-<!-- id:arrays-subarray-sum-equals-k | order:20 | day:3 | pattern:prefix-sum-hashmap | template:T-HASH-04 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/subarray-sum-equals-k/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/arrays/count-subarray-sum-equals-k/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=xvNwoz-ufXA)
+[Solve on LeetCode](https://leetcode.com/problems/subarray-sum-equals-k/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/count-subarrays-with-given-sum?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=xvNwoz-ufXA)
 
 **Asked by:** Facebook, Amazon, Google, Microsoft, Goldman Sachs &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `prefix-sum-hashmap`
 
@@ -2098,12 +1879,6 @@ different, keeping notes would just be extra work.
 
 #### New today
 
-- **A read pointer and a write pointer beat a second array.** Whenever elements must be removed or reordered in place, one pointer scans and another marks where the next kept element belongs. The gap between them is exactly what has been discarded.
-  <br>↳ *Remove Duplicates from Sorted Array* — the write index trailing the read index by the number of duplicates seen
-- **Sortedness turns a search into an adjacency check.** In a sorted array, anything you would otherwise search for is next to you. Duplicate detection, nearest-neighbour questions and merging all collapse to comparing neighbours.
-  <br>↳ *Remove Duplicates from Sorted Array* — comparing a[read] against the last written value rather than scanning for a match; *Merge Sorted Array* — comparing only the two current tails, since everything behind them is already ordered
-- **Write into free space from the end when merging in place.** Merging forward needs somewhere to put displaced elements. Merging backward does not, when the free space happens to sit where the largest elements belong.
-  <br>↳ *Merge Sorted Array* — three pointers walking backwards so every write lands in guaranteed-empty tail space
 - **A running extreme replaces an inner loop.** If the best answer at index i depends only on some aggregate of everything before it, carry that aggregate forward in a scalar. The nested loop disappears.
   <br>↳ *Best Time to Buy and Sell Stock* — tracking the minimum price seen so far instead of trying every earlier buy day
 - **Extend or restart is the whole of Kadane.** The best subarray ending at i either extends the best one ending at i-1 or begins fresh at i. It can never extend a suboptimal predecessor, because swapping in the optimal one would improve it.
@@ -2120,6 +1895,5 @@ different, keeping notes would just be extra work.
 #### Carried forward
 
 - **hashing** — Store what you have seen, look up what you need; Query before you insert; A forbidden data structure is a hint, not an obstacle
-- **sorting** — The merge step is reusable, so learn it properly once; Naive quicksort dies on sorted input; Group by an invariant, then solve each group
-- **math** — `n % 10` reads a digit, `n /= 10` advances; A value that maps to exactly one successor is a linked list; Check overflow before the operation, not after; Count a factor without constructing the number
+- **sorting** — The merge step is reusable, so learn it properly once; Naive quicksort dies on sorted input
 - **recursion** — Include or exclude gives 2^n, choose-one-of-many gives n!; Sort, then skip equal siblings to dedupe; `i` versus `i + 1` is the whole reuse question; Prune before recursing, not at the leaf; Mark in place and restore on the way out

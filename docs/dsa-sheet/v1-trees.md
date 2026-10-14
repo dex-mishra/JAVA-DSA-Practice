@@ -1,14 +1,14 @@
 ---
 phase: V1
 title: Trees & BST
-days: 4-9
-problems: 26
+days: 4-7
+problems: 20
 generated: 2026-09-17
 ---
 
 # V1 — Trees & BST
 
-**Days 4–9** &nbsp;·&nbsp; **26 problems** &nbsp;·&nbsp; Binary trees and BSTs. Traversals, the bottom-up pattern, tree DP, and the BST invariant.
+**Days 4–7** &nbsp;·&nbsp; **20 problems** &nbsp;·&nbsp; Binary trees and BSTs. Traversals, the bottom-up pattern, tree DP, and the BST invariant.
 
 > **Tier key.** `[CORE]` code it fully, the pattern lives here. `[DRILL]` a variation on a CORE, under 10 minutes. `[SKIM]` read the dropdown, write 3 lines of pseudocode, move on.
 
@@ -441,7 +441,7 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 <!-- id:binary-trees-all-nodes-distance-k-in-binary-tree | order:1 | day:4 | pattern:tree-as-graph | template:T-GRAPH-02 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/all-nodes-distance-k-in-binary-tree/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/print-all-the-nodes-at-a-distance-of-k-in-a-binary-tree) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=i9ORlEy6EsI)
+[Solve on LeetCode](https://leetcode.com/problems/all-nodes-distance-k-in-binary-tree/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/print-all-nodes-at-a-distance-of-k-in-bt?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=i9ORlEy6EsI)
 
 **Asked by:** Amazon, Facebook, Google, Microsoft &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `tree-as-graph`
 
@@ -471,45 +471,11 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 </details>
 
-#### `[CORE]` 2. Binary Tree Cameras &nbsp;·&nbsp; `Hard` &nbsp;·&nbsp; LC 968
+#### `[CORE]` 2. Binary Tree Inorder Traversal &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 94
 
-<!-- id:binary-trees-binary-tree-cameras | order:2 | day:4 | pattern:tree-dp-three-states | template:T-DP-01 -->
+<!-- id:binary-trees-binary-tree-inorder-traversal | order:2 | day:4 | pattern:dfs-traversal | template:T-TREE-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/binary-tree-cameras/)
-
-**Asked by:** Google, Amazon &nbsp;·&nbsp; **Campus OA:** `MEDIUM` &nbsp;·&nbsp; **Pattern:** `tree-dp-three-states`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** Greedy from the leaves upward: never place a camera on a leaf, because its parent covers strictly more. Three states per node - needs cover, has camera, is covered - encode the decision, and the bottom-up order is what makes the greedy exact.
-
-**Trick.** Return one of three states. If either child needs cover, place a camera here. If either child has a camera, this node is covered. Otherwise it needs cover.
-
-**Edge cases that bite.**
-
-- The root may end in the needs-cover state and require one final camera.
-- Null must return 'covered', or every leaf's parent is forced to place a camera.
-- Leaves must never hold cameras - the state machine enforces this implicitly.
-
-**Complexity.** `O(n)` time, `O(h)` space — one traversal with a constant-size state. The DP over all placements would be exponential.
-
-**Same pattern.** [House Robber III](https://leetcode.com/problems/house-robber-iii/), [Distribute Coins in Binary Tree](https://leetcode.com/problems/distribute-coins-in-binary-tree/), [Binary Tree Maximum Path Sum](https://leetcode.com/problems/binary-tree-maximum-path-sum/)
-
-**Interview follow-ups.**
-
-- **Q.** Why must null return 'covered'?
-  <br>**A.** Returning 'needs cover' would force a camera at every leaf, which is exactly the suboptimal placement the greedy avoids.
-- **Q.** Prove the leaf rule.
-  <br>**A.** Any camera on a leaf covers the leaf and its parent. Moving it to the parent covers the leaf, the parent, the parent's other child and the grandparent - strictly more, never less.
-
-</details>
-
-#### `[CORE]` 3. Binary Tree Inorder Traversal &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 94
-
-<!-- id:binary-trees-binary-tree-inorder-traversal | order:3 | day:4 | pattern:dfs-traversal | template:T-TREE-01 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/binary-tree-inorder-traversal/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/inorder-traversal-of-binary-tree/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=Z_NEgBgbRVI)
+[Solve on LeetCode](https://leetcode.com/problems/binary-tree-inorder-traversal/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/morris-inorder-traversal-?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=Z_NEgBgbRVI)
 
 **Asked by:** Amazon, Microsoft, Google &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `dfs-traversal`
 
@@ -539,11 +505,11 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 </details>
 
-#### `[CORE]` 4. Binary Tree Level Order Traversal &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 102
+#### `[CORE]` 3. Binary Tree Level Order Traversal &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 102
 
-<!-- id:binary-trees-binary-tree-level-order-traversal | order:4 | day:4 | pattern:bfs-levels | template:T-TREE-02 -->
+<!-- id:binary-trees-binary-tree-level-order-traversal | order:3 | day:4 | pattern:bfs-levels | template:T-TREE-02 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/binary-tree-level-order-traversal/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/level-order-traversal-of-a-binary-tree/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=EoAsWbO7sqg)
+[Solve on LeetCode](https://leetcode.com/problems/binary-tree-level-order-traversal/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/level-order-traversal?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=EoAsWbO7sqg)
 
 **Asked by:** Amazon, Microsoft, Facebook, LinkedIn, Bloomberg &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `bfs-levels`
 
@@ -573,11 +539,11 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 </details>
 
-#### `[CORE]` 5. Binary Tree Maximum Path Sum &nbsp;·&nbsp; `Hard` &nbsp;·&nbsp; LC 124
+#### `[CORE]` 4. Binary Tree Maximum Path Sum &nbsp;·&nbsp; `Hard` &nbsp;·&nbsp; LC 124
 
-<!-- id:binary-trees-binary-tree-maximum-path-sum | order:5 | day:4 | pattern:bottom-up-return | template:T-TREE-03 -->
+<!-- id:binary-trees-binary-tree-maximum-path-sum | order:4 | day:4 | pattern:bottom-up-return | template:T-TREE-03 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/binary-tree-maximum-path-sum/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/maximum-sum-path-in-binary-tree/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=WszrfSwMz58)
+[Solve on LeetCode](https://leetcode.com/problems/binary-tree-maximum-path-sum/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/maximum-path-sum-?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=WszrfSwMz58)
 
 **Asked by:** Amazon, Facebook, Google, Microsoft, Adobe &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `bottom-up-return`
 
@@ -608,30 +574,11 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 </details>
 
-### Day 4 — learning checkpoint
+#### `[CORE]` 5. Binary Tree Right Side View &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 199
 
-*Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
+<!-- id:binary-trees-binary-tree-right-side-view | order:5 | day:4 | pattern:bfs-levels | template:T-TREE-02 -->
 
-#### New today
-
-- **The three DFS traversals differ only in when the node is emitted.** The walk is identical. Preorder writes on arrival, inorder between the two children, postorder on the way out. Which one a problem needs follows from when the node's answer becomes known.
-  <br>↳ *Binary Tree Inorder Traversal* — the dive-left-then-pop-and-go-right stack loop
-- **Capture the queue size before the level loop.** The queue holds a mixture of levels at any instant. Snapshotting its size fixes the boundary; reading it inside the loop sees it grow as children are pushed and merges the levels.
-  <br>↳ *Binary Tree Level Order Traversal* — int sz = q.size() outside the inner for-loop
-- **Tree DP returns a tuple of states.** When a node's optimum depends on a choice it makes, return one value per choice and let the parent combine them. This removes exponential recomputation without a memo table.
-  <br>↳ *House Robber III* — returning {robbed, notRobbed} per node; *Binary Tree Cameras* — three states - needs cover, has camera, is covered
-- **A tree is a graph once you add parent edges.** Any problem needing upward movement becomes BFS or DFS on an undirected graph. Build a parent map first, and remember the visited set.
-  <br>↳ *All Nodes Distance K in Binary Tree* — a parent map plus BFS bounded at k levels
-
-### Day 5
-
-*4 problems — 4 core, 0 drill, 0 skim.*
-
-#### `[CORE]` 1. Binary Tree Right Side View &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 199
-
-<!-- id:binary-trees-binary-tree-right-side-view | order:6 | day:5 | pattern:bfs-levels | template:T-TREE-02 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/binary-tree-right-side-view/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/right-left-view-of-binary-tree/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=KV4mRzTjlAk)
+[Solve on LeetCode](https://leetcode.com/problems/binary-tree-right-side-view/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/right-left-view-of-bt?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=KV4mRzTjlAk)
 
 **Asked by:** Amazon, Facebook, Google, Microsoft &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `bfs-levels`
 
@@ -661,11 +608,28 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 </details>
 
-#### `[CORE]` 2. Construct Binary Tree from Preorder and Inorder Traversal &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 105
+### Day 4 — learning checkpoint
 
-<!-- id:binary-trees-construct-binary-tree-from-preorder-and-inorder-traversal | order:7 | day:5 | pattern:traversal-reconstruction | template:T-TREE-04 -->
+*Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
 
-[Solve on LeetCode](https://leetcode.com/problems/construct-binary-tree-from-preorder-and-inorder-traversal/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/construct-a-binary-tree-from-inorder-and-preorder-traversal/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=aZNaLrVebKQ)
+#### New today
+
+- **The three DFS traversals differ only in when the node is emitted.** The walk is identical. Preorder writes on arrival, inorder between the two children, postorder on the way out. Which one a problem needs follows from when the node's answer becomes known.
+  <br>↳ *Binary Tree Inorder Traversal* — the dive-left-then-pop-and-go-right stack loop
+- **Capture the queue size before the level loop.** The queue holds a mixture of levels at any instant. Snapshotting its size fixes the boundary; reading it inside the loop sees it grow as children are pushed and merges the levels.
+  <br>↳ *Binary Tree Level Order Traversal* — int sz = q.size() outside the inner for-loop
+- **A tree is a graph once you add parent edges.** Any problem needing upward movement becomes BFS or DFS on an undirected graph. Build a parent map first, and remember the visited set.
+  <br>↳ *All Nodes Distance K in Binary Tree* — a parent map plus BFS bounded at k levels
+
+### Day 5
+
+*5 problems — 5 core, 0 drill, 0 skim.*
+
+#### `[CORE]` 1. Construct Binary Tree from Preorder and Inorder Traversal &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 105
+
+<!-- id:binary-trees-construct-binary-tree-from-preorder-and-inorder-traversal | order:6 | day:5 | pattern:traversal-reconstruction | template:T-TREE-04 -->
+
+[Solve on LeetCode](https://leetcode.com/problems/construct-binary-tree-from-preorder-and-inorder-traversal/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/construct-a-bt-from-preorder-and-inorder?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=aZNaLrVebKQ)
 
 **Asked by:** Amazon, Facebook, Microsoft, Bloomberg &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `traversal-reconstruction`
 
@@ -697,11 +661,11 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 </details>
 
-#### `[CORE]` 3. Diameter of Binary Tree &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 543
+#### `[CORE]` 2. Diameter of Binary Tree &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 543
 
-<!-- id:binary-trees-diameter-of-binary-tree | order:8 | day:5 | pattern:bottom-up-return | template:T-TREE-03 -->
+<!-- id:binary-trees-diameter-of-binary-tree | order:7 | day:5 | pattern:bottom-up-return | template:T-TREE-03 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/diameter-of-binary-tree/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/calculate-the-diameter-of-a-binary-tree/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=Rezetez59Nk)
+[Solve on LeetCode](https://leetcode.com/problems/diameter-of-binary-tree/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/diameter-of-binary-tree?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=Rezetez59Nk)
 
 **Asked by:** Amazon, Facebook, Google, Microsoft &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `bottom-up-return`
 
@@ -731,69 +695,9 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 </details>
 
-#### `[CORE]` 4. Flatten Binary Tree to Linked List &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 114
+#### `[CORE]` 3. House Robber III &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 337
 
-<!-- id:binary-trees-flatten-binary-tree-to-linked-list | order:9 | day:5 | pattern:reverse-preorder-rewire | template:T-TREE-01 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/flatten-binary-tree-to-linked-list/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/flatten-binary-tree-to-linked-list/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=sWf7k1x9XR4)
-
-**Asked by:** Amazon, Facebook, Microsoft, Adobe &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `reverse-preorder-rewire`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** Flattening in preorder order looks like it needs the successor of each node, which is awkward forward. Traversing in REVERSE preorder - right, left, node - means the previously visited node is always exactly the successor you need.
-
-**Trick.** Traverse right, then left, then the node. Keep a `prev` pointer; set `r->right = prev`, `r->left = nullptr`, then `prev = r`.
-
-**Edge cases that bite.**
-
-- Left must be nulled, or the result is not a proper list.
-- prev starts as nullptr so the last node in preorder terminates the list.
-- The Morris-style O(1) version rewires using the left subtree's rightmost node.
-
-**Complexity.** `O(n)` time, `O(h)` space — one traversal rewiring two pointers per node. The O(1)-space version threads instead of recursing.
-
-**Same pattern.** [Binary Tree Preorder Traversal](https://leetcode.com/problems/binary-tree-preorder-traversal/), [Invert Binary Tree](https://leetcode.com/problems/invert-binary-tree/), [Binary Tree Inorder Traversal](https://leetcode.com/problems/binary-tree-inorder-traversal/)
-
-**Interview follow-ups.**
-
-- **Q.** Do it in O(1) space.
-  <br>**A.** For each node with a left child, find that subtree's rightmost node, attach the current right subtree there, move left to right, and null the left. Move on. This is Morris threading applied to flattening.
-- **Q.** Why reverse preorder?
-  <br>**A.** Forward preorder would overwrite the right pointer before its subtree was processed. Reversing means everything to the right is already flattened when you arrive.
-
-</details>
-
-### Day 5 — learning checkpoint
-
-*Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
-
-#### New today
-
-- **Return one value upward, accumulate another locally.** The answer AT a node often uses both children, but the value a parent can extend uses only one. Conflating them is the most common bug in tree problems.
-  <br>↳ *Diameter of Binary Tree* — best gets l + r, but the return is 1 + max(l, r); *Maximum Depth of Binary Tree* — the simplest instance, where the two happen to coincide
-- **Ask whether the answer depends on ancestors or descendants.** Descendants means return values upward. Ancestors means pass state downward. Naming which one a problem is before writing code saves rewriting it.
-  <br>↳ *Diameter of Binary Tree* — the contrasting case, where heights flow upward
-- **Two traversals pin down a tree, one does not.** Preorder gives the root; inorder says how many nodes sit on each side of it. A value-to-index hash map keeps the construction linear instead of quadratic.
-  <br>↳ *Construct Binary Tree from Preorder and Inorder Traversal* — the inorder index map and building left before right
-- **Traverse in the order that makes the successor already known.** Flattening in forward preorder would overwrite pointers still needed. Reverse preorder means everything to the right is already processed when you arrive.
-  <br>↳ *Flatten Binary Tree to Linked List* — right, left, node with a trailing prev pointer
-
-#### From yesterday
-
-- **The three DFS traversals differ only in when the node is emitted.** The walk is identical. ↳ *Binary Tree Inorder Traversal* — the dive-left-then-pop-and-go-right stack loop
-- **Capture the queue size before the level loop.** The queue holds a mixture of levels at any instant. ↳ *Binary Tree Level Order Traversal* — int sz = q.size() outside the inner for-loop
-- **Tree DP returns a tuple of states.** When a node's optimum depends on a choice it makes, return one value per choice and let the parent combine them. ↳ *House Robber III* — returning {robbed, notRobbed} per node
-- **A tree is a graph once you add parent edges.** Any problem needing upward movement becomes BFS or DFS on an undirected graph. ↳ *All Nodes Distance K in Binary Tree* — a parent map plus BFS bounded at k levels
-
-### Day 6
-
-*4 problems — 4 core, 0 drill, 0 skim.*
-
-#### `[CORE]` 1. House Robber III &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 337
-
-<!-- id:binary-trees-house-robber-iii | order:10 | day:6 | pattern:tree-dp-two-states | template:T-DP-01 -->
+<!-- id:binary-trees-house-robber-iii | order:8 | day:5 | pattern:tree-dp-two-states | template:T-DP-01 -->
 
 [Solve on LeetCode](https://leetcode.com/problems/house-robber-iii/)
 
@@ -825,11 +729,11 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 </details>
 
-#### `[CORE]` 2. Lowest Common Ancestor of a Binary Tree &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 236
+#### `[CORE]` 4. Lowest Common Ancestor of a Binary Tree &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 236
 
-<!-- id:binary-trees-lowest-common-ancestor-of-a-binary-tree | order:11 | day:6 | pattern:lca-recursion | template:T-TREE-03 -->
+<!-- id:binary-trees-lowest-common-ancestor-of-a-binary-tree | order:9 | day:5 | pattern:lca-recursion | template:T-TREE-03 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-tree/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/lowest-common-ancestor-for-two-given-nodes/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=_-QHfMDde90)
+[Solve on LeetCode](https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-tree/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/lca-in-bt?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=_-QHfMDde90)
 
 **Asked by:** Amazon, Facebook, Google, Microsoft, LinkedIn &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `lca-recursion`
 
@@ -861,11 +765,11 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 </details>
 
-#### `[CORE]` 3. Maximum Depth of Binary Tree &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 104
+#### `[CORE]` 5. Maximum Depth of Binary Tree &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 104
 
-<!-- id:binary-trees-maximum-depth-of-binary-tree | order:12 | day:6 | pattern:bottom-up-return | template:T-TREE-03 -->
+<!-- id:binary-trees-maximum-depth-of-binary-tree | order:10 | day:5 | pattern:bottom-up-return | template:T-TREE-03 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/maximum-depth-of-binary-tree/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/maximum-depth-of-a-binary-tree/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=eD3tmO66aBA)
+[Solve on LeetCode](https://leetcode.com/problems/maximum-depth-of-binary-tree/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/maximum-depth-in-bt?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=eD3tmO66aBA)
 
 **Asked by:** Amazon, Microsoft, Google, LinkedIn &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `bottom-up-return`
 
@@ -895,72 +799,36 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 </details>
 
-#### `[CORE]` 4. Maximum Width of Binary Tree &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 662
-
-<!-- id:binary-trees-maximum-width-of-binary-tree | order:13 | day:6 | pattern:index-arithmetic-bfs | template:T-TREE-02 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/maximum-width-of-binary-tree/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/maximum-width-of-a-binary-tree/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=ZbybYvcVLks)
-
-**Asked by:** Amazon, Microsoft, Bloomberg &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `index-arithmetic-bfs`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** Width counts the null gaps between the outermost nodes, so you must track positions rather than counts. Indexing nodes as in a heap - children at 2i and 2i+1 - gives the positions for free.
-
-**Trick.** BFS carrying (node, index). Width per level is lastIndex - firstIndex + 1. Normalise indices by subtracting the level's first index, or they overflow.
-
-**Edge cases that bite.**
-
-- Indices overflow at depth ~60 without normalisation - subtract the level's first index from every node in it.
-- Use unsigned long long or normalise; a degenerate right-leaning tree hits this fast.
-- Nulls are not enqueued, but their positions are still implied by the index arithmetic.
-
-**Complexity.** `O(n)` time, `O(w)` space — one BFS with constant work per node. The index arithmetic is what accounts for gaps without enqueuing nulls.
-
-**Same pattern.** [Binary Tree Level Order Traversal](https://leetcode.com/problems/binary-tree-level-order-traversal/), [Count Complete Tree Nodes](https://leetcode.com/problems/count-complete-tree-nodes/), [Check Completeness of a Binary Tree](https://leetcode.com/problems/check-completeness-of-a-binary-tree/)
-
-**Interview follow-ups.**
-
-- **Q.** Why does normalisation prevent overflow?
-  <br>**A.** Indices double each level, so depth 60 exceeds 2^60. Subtracting the level's first index keeps every value small while preserving differences.
-- **Q.** Where else does heap indexing appear?
-  <br>**A.** Binary heaps themselves, and segment trees - any complete structure stored in a flat array.
-
-</details>
-
-### Day 6 — learning checkpoint
+### Day 5 — learning checkpoint
 
 *Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
 
 #### New today
 
+- **Return one value upward, accumulate another locally.** The answer AT a node often uses both children, but the value a parent can extend uses only one. Conflating them is the most common bug in tree problems.
+  <br>↳ *Diameter of Binary Tree* — best gets l + r, but the return is 1 + max(l, r); *Maximum Depth of Binary Tree* — the simplest instance, where the two happen to coincide
 - **Minimum depth is not maximum depth with min substituted.** A node with one null child has no root-to-leaf path through the null side, so min would wrongly return 1. BFS sidesteps it entirely and stops at the first leaf.
   <br>↳ *Maximum Depth of Binary Tree* — where max needs no such special case
-- **Normalise indices before they overflow.** Heap-style indexing doubles each level, so depth 60 exceeds 64 bits. Subtracting the level's first index preserves differences while keeping values small.
-  <br>↳ *Maximum Width of Binary Tree* — subtracting the level's first index from every node in it
+- **Ask whether the answer depends on ancestors or descendants.** Descendants means return values upward. Ancestors means pass state downward. Naming which one a problem is before writing code saves rewriting it.
+  <br>↳ *Diameter of Binary Tree* — the contrasting case, where heights flow upward
+- **Two traversals pin down a tree, one does not.** Preorder gives the root; inorder says how many nodes sit on each side of it. A value-to-index hash map keeps the construction linear instead of quadratic.
+  <br>↳ *Construct Binary Tree from Preorder and Inorder Traversal* — the inorder index map and building left before right
+- **Tree DP returns a tuple of states.** When a node's optimum depends on a choice it makes, return one value per choice and let the parent combine them. This removes exponential recomputation without a memo table.
+  <br>↳ *House Robber III* — returning {robbed, notRobbed} per node
 
 #### From yesterday
 
-- **Return one value upward, accumulate another locally.** The answer AT a node often uses both children, but the value a parent can extend uses only one. ↳ *Diameter of Binary Tree* — best gets l + r, but the return is 1 + max(l, r)
-- **Ask whether the answer depends on ancestors or descendants.** Descendants means return values upward. ↳ *Diameter of Binary Tree* — the contrasting case, where heights flow upward
-- **Two traversals pin down a tree, one does not.** Preorder gives the root. ↳ *Construct Binary Tree from Preorder and Inorder Traversal* — the inorder index map and building left before right
-- **Traverse in the order that makes the successor already known.** Flattening in forward preorder would overwrite pointers still needed. ↳ *Flatten Binary Tree to Linked List* — right, left, node with a trailing prev pointer
+- **The three DFS traversals differ only in when the node is emitted.** The walk is identical. ↳ *Binary Tree Inorder Traversal* — the dive-left-then-pop-and-go-right stack loop
+- **Capture the queue size before the level loop.** The queue holds a mixture of levels at any instant. ↳ *Binary Tree Level Order Traversal* — int sz = q.size() outside the inner for-loop
+- **A tree is a graph once you add parent edges.** Any problem needing upward movement becomes BFS or DFS on an undirected graph. ↳ *All Nodes Distance K in Binary Tree* — a parent map plus BFS bounded at k levels
 
-#### Two days back
-
-- **The three DFS traversals differ only in when the node is emitted** — Binary Tree Inorder Traversal
-- **Capture the queue size before the level loop** — Binary Tree Level Order Traversal
-- **Tree DP returns a tuple of states** — House Robber III
-- **A tree is a graph once you add parent edges** — All Nodes Distance K in Binary Tree
-
-### Day 7
+### Day 6
 
 *5 problems — 5 core, 0 drill, 0 skim.*
 
 #### `[CORE]` 1. Path Sum III &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 437
 
-<!-- id:binary-trees-path-sum-iii | order:14 | day:7 | pattern:prefix-sum-on-path | template:T-HASH-04 -->
+<!-- id:binary-trees-path-sum-iii | order:11 | day:6 | pattern:prefix-sum-on-path | template:T-HASH-04 -->
 
 [Solve on LeetCode](https://leetcode.com/problems/path-sum-iii/)
 
@@ -995,7 +863,7 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 #### `[CORE]` 2. Populating Next Right Pointers in Each Node II &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 117
 
-<!-- id:binary-trees-populating-next-right-pointers-in-each-node-ii | order:15 | day:7 | pattern:level-linking | template:T-TREE-02 -->
+<!-- id:binary-trees-populating-next-right-pointers-in-each-node-ii | order:12 | day:6 | pattern:level-linking | template:T-TREE-02 -->
 
 [Solve on LeetCode](https://leetcode.com/problems/populating-next-right-pointers-in-each-node-ii/)
 
@@ -1029,9 +897,9 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 #### `[CORE]` 3. Serialize and Deserialize Binary Tree &nbsp;·&nbsp; `Hard` &nbsp;·&nbsp; LC 297
 
-<!-- id:binary-trees-serialize-and-deserialize-binary-tree | order:16 | day:7 | pattern:preorder-with-sentinels | template:T-TREE-01 -->
+<!-- id:binary-trees-serialize-and-deserialize-binary-tree | order:13 | day:6 | pattern:preorder-with-sentinels | template:T-TREE-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/serialize-and-deserialize-binary-tree/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/serialize-and-deserialize-a-binary-tree/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=-YbXySKJsX8)
+[Solve on LeetCode](https://leetcode.com/problems/serialize-and-deserialize-binary-tree/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/serialize-and-de-serialize-bt?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=-YbXySKJsX8)
 
 **Asked by:** Amazon, Facebook, Google, Microsoft, LinkedIn &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `preorder-with-sentinels`
 
@@ -1065,9 +933,9 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 #### `[CORE]` 4. Symmetric Tree &nbsp;·&nbsp; `Easy` &nbsp;·&nbsp; LC 101
 
-<!-- id:binary-trees-symmetric-tree | order:17 | day:7 | pattern:mirror-recursion | template:T-TREE-03 -->
+<!-- id:binary-trees-symmetric-tree | order:14 | day:6 | pattern:mirror-recursion | template:T-TREE-03 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/symmetric-tree/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/check-for-symmetrical-binary-tree/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=nKggNAiEpBE)
+[Solve on LeetCode](https://leetcode.com/problems/symmetric-tree/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/check-for-symmetrical-bts?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=nKggNAiEpBE)
 
 **Asked by:** Amazon, Microsoft, LinkedIn, Bloomberg &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `mirror-recursion`
 
@@ -1099,9 +967,9 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 #### `[CORE]` 5. Binary Search Tree Iterator &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 173
 
-<!-- id:bst-binary-search-tree-iterator | order:18 | day:7 | pattern:controlled-inorder | template:T-TREE-01 -->
+<!-- id:bst-binary-search-tree-iterator | order:15 | day:6 | pattern:controlled-inorder | template:T-TREE-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/binary-search-tree-iterator/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/bst-iterator) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=D2jMcmxU4bs)
+[Solve on LeetCode](https://leetcode.com/problems/binary-search-tree-iterator/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/bst-iterator?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=D2jMcmxU4bs)
 
 **Asked by:** Amazon, Facebook, Google, Microsoft, LinkedIn &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `controlled-inorder`
 
@@ -1133,7 +1001,7 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 </details>
 
-### Day 7 — learning checkpoint
+### Day 6 — learning checkpoint
 
 *Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
 
@@ -1152,99 +1020,27 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 #### From yesterday
 
+- **Return one value upward, accumulate another locally.** The answer AT a node often uses both children, but the value a parent can extend uses only one. ↳ *Diameter of Binary Tree* — best gets l + r, but the return is 1 + max(l, r)
 - **Minimum depth is not maximum depth with min substituted.** A node with one null child has no root-to-leaf path through the null side, so min would wrongly return 1. ↳ *Maximum Depth of Binary Tree* — where max needs no such special case
-- **Normalise indices before they overflow.** Heap-style indexing doubles each level, so depth 60 exceeds 64 bits. ↳ *Maximum Width of Binary Tree* — subtracting the level's first index from every node in it
+- **Ask whether the answer depends on ancestors or descendants.** Descendants means return values upward. ↳ *Diameter of Binary Tree* — the contrasting case, where heights flow upward
+- **Two traversals pin down a tree, one does not.** Preorder gives the root. ↳ *Construct Binary Tree from Preorder and Inorder Traversal* — the inorder index map and building left before right
+- **Tree DP returns a tuple of states.** When a node's optimum depends on a choice it makes, return one value per choice and let the parent combine them. ↳ *House Robber III* — returning {robbed, notRobbed} per node
 
 #### Two days back
 
-- **Return one value upward, accumulate another locally** — Diameter of Binary Tree
-- **Ask whether the answer depends on ancestors or descendants** — Diameter of Binary Tree
-- **Two traversals pin down a tree, one does not** — Construct Binary Tree from Preorder and Inorder Traversal
-- **Traverse in the order that makes the successor already known** — Flatten Binary Tree to Linked List
+- **The three DFS traversals differ only in when the node is emitted** — Binary Tree Inorder Traversal
+- **Capture the queue size before the level loop** — Binary Tree Level Order Traversal
+- **A tree is a graph once you add parent edges** — All Nodes Distance K in Binary Tree
 
-#### Earlier in binary-trees
+### Day 7
 
-- The three DFS traversals differ only in when the node is emitted · Capture the queue size before the level loop · Tree DP returns a tuple of states · A tree is a graph once you add parent edges
+*5 problems — 5 core, 0 drill, 0 skim.*
 
-### Day 8
+#### `[CORE]` 1. Delete Node in a BST &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 450
 
-*4 problems — 4 core, 0 drill, 0 skim.*
+<!-- id:bst-delete-node-in-a-bst | order:16 | day:7 | pattern:bst-delete | template:T-BST-01 -->
 
-#### `[CORE]` 1. Construct Binary Search Tree from Preorder Traversal &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 1008
-
-<!-- id:bst-construct-binary-search-tree-from-preorder-traversal | order:19 | day:8 | pattern:bound-carrying-construction | template:T-BST-01 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/construct-binary-search-tree-from-preorder-traversal/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=UmJT3j26t1I)
-
-**Asked by:** Amazon, Google, Microsoft &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `bound-carrying-construction`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** Preorder alone is enough for a BST, because the invariant supplies the shape that a second traversal would otherwise provide. Carrying an upper bound down the recursion makes the construction linear rather than quadratic.
-
-**Trick.** Consume preorder with a shared index. Recurse with an upper bound; stop as soon as the next value exceeds it. Left gets the current node's value as its bound; right inherits the parent's.
-
-**Edge cases that bite.**
-
-- Without the bound, splitting by scanning for the first larger element is O(n^2) on a degenerate tree.
-- The index must be shared by reference across all calls.
-- A strictly increasing preorder produces a right-leaning chain.
-
-**Complexity.** `O(n)` time, `O(h)` space — each value is consumed exactly once, with the bound test doing the splitting in O(1).
-
-**Same pattern.** [Construct Binary Tree from Preorder and Inorder Traversal](https://leetcode.com/problems/construct-binary-tree-from-preorder-and-inorder-traversal/), [Validate Binary Search Tree](https://leetcode.com/problems/validate-binary-search-tree/), [Convert Sorted Array to Binary Search Tree](https://leetcode.com/problems/convert-sorted-array-to-binary-search-tree/), [Serialize and Deserialize Binary Tree](https://leetcode.com/problems/serialize-and-deserialize-binary-tree/)
-
-**Interview follow-ups.**
-
-- **Q.** Why does a BST need only one traversal?
-  <br>**A.** The ordering invariant determines which side each value belongs on, which is exactly the information inorder supplies for a general tree.
-- **Q.** Serialise a BST compactly.
-  <br>**A.** Preorder alone, no null sentinels - LC 449. That is this construction run in reverse.
-- **Q.** The same bound idea appears where else?
-  <br>**A.** Validating a BST. Construction and validation are the same range propagation, used to build versus to check.
-
-</details>
-
-#### `[CORE]` 2. Convert BST to Greater Tree &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 538
-
-<!-- id:bst-convert-bst-to-greater-tree | order:20 | day:8 | pattern:reverse-inorder-accumulate | template:T-TREE-01 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/convert-bst-to-greater-tree/)
-
-**Asked by:** Amazon, Google, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `reverse-inorder-accumulate`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** Each node must be increased by the sum of everything larger, so traverse in REVERSE inorder - right, node, left - accumulating as you go. The reversal is the entire insight.
-
-**Trick.** Keep a running sum. Recurse right, add the node's value to the sum, assign the sum back to the node, then recurse left.
-
-**Edge cases that bite.**
-
-- The running sum must persist across calls - a member or reference parameter.
-- The node's new value is the sum AFTER adding its own value.
-- LC 1038 is the identical problem.
-
-**Complexity.** `O(n)` time, `O(h)` space — one traversal with constant work per node. Computing each node's greater-sum independently would be O(n^2).
-
-**Same pattern.** [Binary Search Tree to Greater Sum Tree](https://leetcode.com/problems/binary-search-tree-to-greater-sum-tree/), [Binary Tree Inorder Traversal](https://leetcode.com/problems/binary-tree-inorder-traversal/), [Kth Smallest Element in a BST](https://leetcode.com/problems/kth-smallest-element-in-a-bst/), [Range Sum of BST](https://leetcode.com/problems/range-sum-of-bst/)
-
-**Interview follow-ups.**
-
-- **Q.** Why reverse inorder specifically?
-  <br>**A.** It visits values in descending order, so when you arrive at a node every larger value has already been accumulated.
-- **Q.** LC 1038 is the same problem.
-  <br>**A.** Identical. Another duplicate worth recognising rather than re-solving.
-
-</details>
-
-#### `[CORE]` 3. Delete Node in a BST &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 450
-
-<!-- id:bst-delete-node-in-a-bst | order:21 | day:8 | pattern:bst-delete | template:T-BST-01 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/delete-node-in-a-bst/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=kouxiP_H5WE)
+[Solve on LeetCode](https://leetcode.com/problems/delete-node-in-a-bst/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/delete-a-node-in-bst?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=kouxiP_H5WE)
 
 **Asked by:** Amazon, Microsoft, Facebook &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `bst-delete`
 
@@ -1275,11 +1071,11 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 </details>
 
-#### `[CORE]` 4. Kth Smallest Element in a BST &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 230
+#### `[CORE]` 2. Kth Smallest Element in a BST &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 230
 
-<!-- id:bst-kth-smallest-element-in-a-bst | order:22 | day:8 | pattern:inorder-with-counter | template:T-TREE-01 -->
+<!-- id:bst-kth-smallest-element-in-a-bst | order:17 | day:7 | pattern:inorder-with-counter | template:T-TREE-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/kth-smallest-element-in-a-bst/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/kth-largest-smallest-element-in-binary-search-tree/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=9TJYWh0adfk)
+[Solve on LeetCode](https://leetcode.com/problems/kth-smallest-element-in-a-bst/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/kth-smallest-and-largest-element-in-bst?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=9TJYWh0adfk)
 
 **Asked by:** Amazon, Facebook, Google, Uber &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `inorder-with-counter`
 
@@ -1309,38 +1105,11 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 </details>
 
-### Day 8 — learning checkpoint
+#### `[CORE]` 3. Lowest Common Ancestor of a Binary Search Tree &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 235
 
-*Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
+<!-- id:bst-lowest-common-ancestor-of-a-binary-search-tree | order:18 | day:7 | pattern:bst-split-point | template:T-BST-01 -->
 
-#### New today
-
-- **Inorder on a BST is sorted, which solves most BST problems.** Validation, kth smallest, mode finding, minimum gap and recovery are all one inorder pass with a little bookkeeping.
-  <br>↳ *Kth Smallest Element in a BST* — an inorder counter with early return; *Validate Binary Search Tree* — the alternative strictly-increasing formulation
-- **Delete by replacing with the inorder successor.** Zero or one child is a splice. Two children means copying the smallest value from the right subtree, which by construction has no left child and is therefore easy to remove.
-  <br>↳ *Delete Node in a BST* — finding the leftmost node of the right subtree and recursively deleting it
-- **Reverse inorder visits values in descending order.** When a node's answer depends on everything LARGER than it, traverse right, node, left, and accumulate as you go.
-  <br>↳ *Convert BST to Greater Tree* — a running sum added before assigning back to the node
-- **The BST invariant replaces the second traversal.** Preorder alone determines a BST, because the ordering supplies the shape. Carrying an upper bound down the recursion makes construction linear.
-  <br>↳ *Construct Binary Search Tree from Preorder Traversal* — consuming values while they stay below the inherited bound
-
-#### From yesterday
-
-- **Keep only the left spine to pause an inorder traversal.** An iterator is a recursion whose state has been made explicit. ↳ *Binary Search Tree Iterator* — pushing the left spine in the constructor and again after each pop
-
-#### Carried forward
-
-- **binary-trees** — The three DFS traversals differ only in when the node is emitted; Capture the queue size before the level loop; Return one value upward, accumulate another locally; Parallel recursion compares or combines two trees at once; Minimum depth is not maximum depth with min substituted; Ask whether the answer depends on ancestors or descendants; A root-to-node path is an array, so array techniques apply; Two traversals pin down a tree, one does not; Traverse in the order that makes the successor already known; Tree DP returns a tuple of states; A tree is a graph once you add parent edges; Null sentinels make one traversal sufficient; A dummy head removes the first-element case in any structure; Normalise indices before they overflow
-
-### Day 9
-
-*4 problems — 4 core, 0 drill, 0 skim.*
-
-#### `[CORE]` 1. Lowest Common Ancestor of a Binary Search Tree &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 235
-
-<!-- id:bst-lowest-common-ancestor-of-a-binary-search-tree | order:23 | day:9 | pattern:bst-split-point | template:T-BST-01 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-search-tree/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=cX_kPV_foZc)
+[Solve on LeetCode](https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-search-tree/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/lca-in-bst?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=cX_kPV_foZc)
 
 **Asked by:** Amazon, Facebook, Microsoft, LinkedIn &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `bst-split-point`
 
@@ -1370,44 +1139,9 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 </details>
 
-#### `[CORE]` 2. Recover Binary Search Tree &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 99
+#### `[CORE]` 4. Unique Binary Search Trees &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 96
 
-<!-- id:bst-recover-binary-search-tree | order:24 | day:9 | pattern:inorder-descent-detection | template:T-TREE-01 -->
-
-[Solve on LeetCode](https://leetcode.com/problems/recover-binary-search-tree/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=ZWGW7FminDM)
-
-**Asked by:** Amazon, Facebook, Microsoft &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `inorder-descent-detection`
-
-<details>
-<summary><b>What this teaches you</b></summary>
-
-**Insight.** An inorder traversal of a valid BST is strictly increasing. Two swapped nodes create either one descent, when they are adjacent, or two. Recording the right elements of those descents identifies both culprits.
-
-**Trick.** Track prev during inorder. On the FIRST descent record both prev and cur; on any LATER descent record only cur. Then swap the two recorded values.
-
-**Edge cases that bite.**
-
-- Adjacent swaps produce exactly one descent - the second node is cur of that same descent.
-- Non-adjacent swaps produce two descents; take the first's prev and the last's cur.
-- Swap VALUES, not nodes, unless the problem requires structural preservation.
-- Morris traversal gives the O(1) space follow-up.
-
-**Complexity.** `O(n)` time, `O(h), or O(1) with Morris` space — one traversal detecting at most two anomalies.
-
-**Same pattern.** [Validate Binary Search Tree](https://leetcode.com/problems/validate-binary-search-tree/), [Binary Tree Inorder Traversal](https://leetcode.com/problems/binary-tree-inorder-traversal/), [Kth Smallest Element in a BST](https://leetcode.com/problems/kth-smallest-element-in-a-bst/)
-
-**Interview follow-ups.**
-
-- **Q.** Do it in O(1) space.
-  <br>**A.** Morris traversal - thread each node's predecessor to it, detect descents during the threaded walk, and undo the threads. That is the stated follow-up.
-- **Q.** Why does an adjacent swap give only one descent?
-  <br>**A.** Swapping neighbours in sorted order creates a single inversion. Non-adjacent swaps break the order at two separate points.
-
-</details>
-
-#### `[CORE]` 3. Unique Binary Search Trees &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 96
-
-<!-- id:bst-unique-binary-search-trees | order:25 | day:9 | pattern:catalan-dp | template:T-DP-01 -->
+<!-- id:bst-unique-binary-search-trees | order:19 | day:7 | pattern:catalan-dp | template:T-DP-01 -->
 
 [Solve on LeetCode](https://leetcode.com/problems/unique-binary-search-trees/)
 
@@ -1439,11 +1173,11 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 </details>
 
-#### `[CORE]` 4. Validate Binary Search Tree &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 98
+#### `[CORE]` 5. Validate Binary Search Tree &nbsp;·&nbsp; `Medium` &nbsp;·&nbsp; LC 98
 
-<!-- id:bst-validate-binary-search-tree | order:26 | day:9 | pattern:range-propagation | template:T-BST-01 -->
+<!-- id:bst-validate-binary-search-tree | order:20 | day:7 | pattern:range-propagation | template:T-BST-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/validate-binary-search-tree/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=f-sj7I5oXEI)
+[Solve on LeetCode](https://leetcode.com/problems/validate-binary-search-tree/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/check-if-a-tree-is-a-bst-or-not?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=f-sj7I5oXEI)
 
 **Asked by:** Amazon, Facebook, Microsoft, Google, Bloomberg &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `range-propagation`
 
@@ -1473,7 +1207,7 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 </details>
 
-### Day 9 — learning checkpoint
+### Day 7 — learning checkpoint
 
 *Read this before you close the day. If any line below does not ring a bell, reopen the problem it cites — that is cheaper than meeting it cold in an OA.*
 
@@ -1481,24 +1215,19 @@ That is why so many BST problems turn out to be "do an inorder walk and count".
 
 - **Validate with a propagated range, never a parent comparison.** A node in a left subtree must be smaller than every ancestor above it, not just its parent. [10, 5, 15, null, null, 6, 20] passes every parent check and is not a BST.
   <br>↳ *Validate Binary Search Tree* — carrying (lo, hi) downward with long bounds
+- **Inorder on a BST is sorted, which solves most BST problems.** Validation, kth smallest, mode finding, minimum gap and recovery are all one inorder pass with a little bookkeeping.
+  <br>↳ *Kth Smallest Element in a BST* — an inorder counter with early return; *Validate Binary Search Tree* — the alternative strictly-increasing formulation
 - **The invariant lets you skip subtrees without inspecting them.** If a node's value is below the range, every value in its left subtree is smaller still. That is a proof, not a heuristic, and it is what makes BST operations O(h).
   <br>↳ *Lowest Common Ancestor of a Binary Search Tree* — descending to the first node that splits the two targets
-- **An inversion in a sorted sequence is detectable in one pass.** A valid BST's inorder is strictly increasing. Two swapped nodes create one descent if adjacent, two otherwise - so record the first descent's prev and the last descent's cur.
-  <br>↳ *Recover Binary Search Tree* — tracking prev and capturing both nodes across at most two descents
+- **Delete by replacing with the inorder successor.** Zero or one child is a splice. Two children means copying the smallest value from the right subtree, which by construction has no left child and is therefore easy to remove.
+  <br>↳ *Delete Node in a BST* — finding the leftmost node of the right subtree and recursively deleting it
 - **Choosing a root splits the count multiplicatively.** Left and right subtree arrangements are independent, so their counts multiply. Summing over every root gives the Catalan recurrence.
   <br>↳ *Unique Binary Search Trees* — dp[n] = sum of dp[i] * dp[n-1-i]
 
 #### From yesterday
 
-- **Inorder on a BST is sorted, which solves most BST problems.** Validation, kth smallest, mode finding, minimum gap and recovery are all one inorder pass with a little bookkeeping. ↳ *Kth Smallest Element in a BST* — an inorder counter with early return
-- **Delete by replacing with the inorder successor.** Zero or one child is a splice. ↳ *Delete Node in a BST* — finding the leftmost node of the right subtree and recursively deleting it
-- **Reverse inorder visits values in descending order.** When a node's answer depends on everything LARGER than it, traverse right, node, left, and accumulate as you go. ↳ *Convert BST to Greater Tree* — a running sum added before assigning back to the node
-- **The BST invariant replaces the second traversal.** Preorder alone determines a BST, because the ordering supplies the shape. ↳ *Construct Binary Search Tree from Preorder Traversal* — consuming values while they stay below the inherited bound
-
-#### Two days back
-
-- **Keep only the left spine to pause an inorder traversal** — Binary Search Tree Iterator
+- **Keep only the left spine to pause an inorder traversal.** An iterator is a recursion whose state has been made explicit. ↳ *Binary Search Tree Iterator* — pushing the left spine in the constructor and again after each pop
 
 #### Carried forward
 
-- **binary-trees** — The three DFS traversals differ only in when the node is emitted; Capture the queue size before the level loop; Return one value upward, accumulate another locally; Parallel recursion compares or combines two trees at once; Minimum depth is not maximum depth with min substituted; Ask whether the answer depends on ancestors or descendants; A root-to-node path is an array, so array techniques apply; Two traversals pin down a tree, one does not; Traverse in the order that makes the successor already known; Tree DP returns a tuple of states; A tree is a graph once you add parent edges; Null sentinels make one traversal sufficient; A dummy head removes the first-element case in any structure; Normalise indices before they overflow
+- **binary-trees** — The three DFS traversals differ only in when the node is emitted; Capture the queue size before the level loop; Return one value upward, accumulate another locally; Parallel recursion compares or combines two trees at once; Minimum depth is not maximum depth with min substituted; Ask whether the answer depends on ancestors or descendants; A root-to-node path is an array, so array techniques apply; Two traversals pin down a tree, one does not; Tree DP returns a tuple of states; A tree is a graph once you add parent edges; Null sentinels make one traversal sufficient; A dummy head removes the first-element case in any structure

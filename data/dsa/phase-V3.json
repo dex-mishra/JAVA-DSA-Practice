@@ -477,9 +477,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/dynamic-programming-climbing-stairs/",
+    "article": "https://takeuforward.org/plus/dsa/problems/climbing-stairs?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=mLfjzJsN8us",
-    "striver_title": "Climbing stairs"
+    "striver_title": "Climbing stairs",
+    "practice": "https://takeuforward.org/plus/dsa/problems/climbing-stairs"
    },
    "pattern": "1d-dp",
    "template": "T-DP-01",
@@ -544,9 +545,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/maximum-sum-of-non-adjacent-elements-dp-5/",
+    "article": "https://takeuforward.org/plus/dsa/problems/maximum-sum-of-non-adjacent-elements?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=GrMBfJNk_NY",
-    "striver_title": "Maximum sum of non adjacent elements"
+    "striver_title": "Maximum sum of non adjacent elements",
+    "practice": "https://takeuforward.org/plus/dsa/problems/maximum-sum-of-non-adjacent-elements"
    },
    "pattern": "1d-dp-skip",
    "template": "T-DP-01",
@@ -612,9 +614,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/dynamic-programming-house-robber-dp-6/",
+    "article": "https://takeuforward.org/plus/dsa/problems/house-robber?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=3WaxQMELSkw",
-    "striver_title": "House robber"
+    "striver_title": "House robber",
+    "practice": "https://takeuforward.org/plus/dsa/problems/house-robber"
    },
    "pattern": "circular-reduction",
    "template": "T-DP-01",
@@ -676,7 +679,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "1d-dp-with-validity",
    "template": "T-DP-01",
@@ -740,9 +744,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/grid-unique-paths-dp-on-grids-dp8/",
+    "article": "https://takeuforward.org/plus/dsa/problems/grid-unique-paths?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=sdE0A2Oxofw",
-    "striver_title": "Grid Unique Paths : DP on Grids (DP8)"
+    "striver_title": "Grid Unique Paths : DP on Grids (DP8)",
+    "practice": "https://takeuforward.org/plus/dsa/problems/grid-unique-paths"
    },
    "pattern": "2d-grid-dp",
    "template": "T-DP-02",
@@ -805,9 +810,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/grid-unique-paths-2-dp-9/",
+    "article": "https://takeuforward.org/plus/dsa/problems/unique-paths-ii?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=TmhpgXScLyY",
-    "striver_title": "Unique paths II"
+    "striver_title": "Unique paths II",
+    "practice": "https://takeuforward.org/plus/dsa/problems/unique-paths-ii"
    },
    "pattern": "2d-grid-dp",
    "template": "T-DP-02",
@@ -869,9 +875,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/minimum-path-sum-in-a-grid-dp-10/",
+    "article": "https://takeuforward.org/plus/dsa/problems/minimum-falling-path-sum?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=_rgTlyky1uQ",
-    "striver_title": "Minimum Falling Path Sum"
+    "striver_title": "Minimum Falling Path Sum",
+    "practice": "https://takeuforward.org/plus/dsa/problems/minimum-falling-path-sum"
    },
    "pattern": "2d-grid-dp",
    "template": "T-DP-02",
@@ -933,9 +940,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/minimum-path-sum-in-triangular-grid-dp-11/",
+    "article": "https://takeuforward.org/plus/dsa/problems/triangle?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=SrP-PiLSYC0",
-    "striver_title": "Triangle"
+    "striver_title": "Triangle",
+    "practice": "https://takeuforward.org/plus/dsa/problems/triangle"
    },
    "pattern": "2d-grid-dp",
    "template": "T-DP-02",
@@ -997,7 +1005,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "2d-grid-dp",
    "template": "T-DP-02",
@@ -1060,7 +1069,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "dp-on-squares",
    "template": "T-DP-02",
@@ -1129,7 +1139,8 @@
    "tuf": {
     "article": "https://takeuforward.org/data-structure/count-square-submatrices-with-all-1s-dp-on-rectangles-dp-56/",
     "youtube": "https://www.youtube.com/watch?v=auS1fynpnjo",
-    "striver_title": "Count Square Submatrices with All Ones|(DP-56)"
+    "striver_title": "Count Square Submatrices with All Ones|(DP-56)",
+    "practice": null
    },
    "pattern": "dp-on-squares",
    "template": "T-DP-02",
@@ -1186,9 +1197,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/partition-equal-subset-sum-dp-15/",
+    "article": "https://takeuforward.org/plus/dsa/problems/partition-equal-subset-sum?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=7win3dcgo3k",
-    "striver_title": "Partition equal subset sum"
+    "striver_title": "Partition equal subset sum",
+    "practice": "https://takeuforward.org/plus/dsa/problems/partition-equal-subset-sum"
    },
    "pattern": "0-1-knapsack",
    "template": "T-DP-03",
@@ -1254,9 +1266,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/target-sum-dp-21/",
+    "article": "https://takeuforward.org/plus/dsa/problems/target-sum?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=b3GD8263-PQ",
-    "striver_title": "Target sum"
+    "striver_title": "Target sum",
+    "practice": "https://takeuforward.org/plus/dsa/problems/target-sum"
    },
    "pattern": "knapsack-transformation",
    "template": "T-DP-03",
@@ -1321,7 +1334,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "knapsack-minimise-difference",
    "template": "T-DP-03",
@@ -1383,9 +1397,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/minimum-coins-dp-20/",
+    "article": "https://takeuforward.org/plus/dsa/problems/minimum-coins?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=myPeWb3Y68A",
-    "striver_title": "Minimum Coins (DP - 20)"
+    "striver_title": "Minimum Coins (DP - 20)",
+    "practice": "https://takeuforward.org/plus/dsa/problems/minimum-coins"
    },
    "pattern": "unbounded-knapsack-min",
    "template": "T-DP-03",
@@ -1452,7 +1467,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "unbounded-knapsack-count",
    "template": "T-DP-03",
@@ -1515,7 +1531,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "unbounded-knapsack-permutations",
    "template": "T-DP-03",
@@ -1581,7 +1598,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "two-dimensional-knapsack",
    "template": "T-DP-03",
@@ -1645,7 +1663,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "unbounded-knapsack-min",
    "template": "T-DP-03",
@@ -1708,7 +1727,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "two-string-dp",
    "template": "T-DP-04",
@@ -1774,9 +1794,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/edit-distance-dp-33/",
+    "article": "https://takeuforward.org/plus/dsa/problems/edit-distance?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=fJaKO8FbDdo",
-    "striver_title": "Edit distance"
+    "striver_title": "Edit distance",
+    "practice": "https://takeuforward.org/plus/dsa/problems/edit-distance"
    },
    "pattern": "two-string-dp",
    "template": "T-DP-04",
@@ -1843,9 +1864,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/distinct-subsequences-dp-32/",
+    "article": "https://takeuforward.org/plus/dsa/problems/distinct-subsequences?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=nVG7eTiD2bY",
-    "striver_title": "Distinct subsequences"
+    "striver_title": "Distinct subsequences",
+    "practice": "https://takeuforward.org/plus/dsa/problems/distinct-subsequences"
    },
    "pattern": "two-string-dp-count",
    "template": "T-DP-04",
@@ -1906,9 +1928,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/longest-palindromic-subsequence-dp-28/",
+    "article": "https://takeuforward.org/plus/dsa/problems/longest-palindromic-subsequence?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=6i_T5kkfv4A",
-    "striver_title": "Longest palindromic subsequence"
+    "striver_title": "Longest palindromic subsequence",
+    "practice": "https://takeuforward.org/plus/dsa/problems/longest-palindromic-subsequence"
    },
    "pattern": "lcs-reduction",
    "template": "T-DP-04",
@@ -1980,7 +2003,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "front-partition-dp",
    "template": "T-DP-01",
@@ -2049,7 +2073,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "two-string-dp",
    "template": "T-DP-04",
@@ -2113,7 +2138,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "two-string-dp-with-wildcards",
    "template": "T-DP-04",
@@ -2176,9 +2202,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/buy-and-sell-stock-iii-dp-37/",
+    "article": "https://takeuforward.org/plus/dsa/problems/best-time-to-buy-and-sell-stock-iii?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=-uQGzhYj8BQ",
-    "striver_title": "Best time to buy and sell stock III"
+    "striver_title": "Best time to buy and sell stock III",
+    "practice": "https://takeuforward.org/plus/dsa/problems/best-time-to-buy-and-sell-stock-iii"
    },
    "pattern": "state-machine-dp",
    "template": "T-DP-05",
@@ -2240,9 +2267,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/buy-and-sell-stock-iv-dp-38/",
+    "article": "https://takeuforward.org/plus/dsa/problems/best-time-to-buy-and-sell-stock-iv?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=IV1dHbk5CDc",
-    "striver_title": "Best time to buy and sell stock IV"
+    "striver_title": "Best time to buy and sell stock IV",
+    "practice": "https://takeuforward.org/plus/dsa/problems/best-time-to-buy-and-sell-stock-iv"
    },
    "pattern": "state-machine-dp",
    "template": "T-DP-05",
@@ -2302,9 +2330,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/buy-and-sell-stocks-with-cooldown-dp-39/",
+    "article": "https://takeuforward.org/plus/dsa/problems/best-time-to-buy-and-sell-stock-with-cooldown?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=IGIe46xw3YY",
-    "striver_title": "Best Time to Buy and Sell Stock with Cooldown"
+    "striver_title": "Best Time to Buy and Sell Stock with Cooldown",
+    "practice": "https://takeuforward.org/plus/dsa/problems/best-time-to-buy-and-sell-stock-with-cooldown"
    },
    "pattern": "state-machine-dp",
    "template": "T-DP-05",
@@ -2364,9 +2393,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/buy-and-sell-stocks-with-transaction-fees-dp-40/",
+    "article": "https://takeuforward.org/plus/dsa/problems/best-time-to-buy-and-sell-stock-with-cooldown-and-transaction-fees?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=k4eK-vEmnKg",
-    "striver_title": "Best time to buy and sell stock with transaction fees"
+    "striver_title": "Best time to buy and sell stock with transaction fees",
+    "practice": "https://takeuforward.org/plus/dsa/problems/best-time-to-buy-and-sell-stock-with-cooldown-and-transaction-fees"
    },
    "pattern": "state-machine-dp",
    "template": "T-DP-05",
@@ -2430,7 +2460,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "lis",
    "template": "T-DP-06",
@@ -2501,7 +2532,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "lis-after-sort",
    "template": "T-DP-06",
@@ -2565,9 +2597,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/longest-string-chain-dp-45/",
+    "article": "https://takeuforward.org/plus/dsa/problems/longest-string-chain?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=YY8iBaYcc4g",
-    "striver_title": "Longest String Chain"
+    "striver_title": "Longest String Chain",
+    "practice": "https://takeuforward.org/plus/dsa/problems/longest-string-chain"
    },
    "pattern": "lis-on-predecessors",
    "template": "T-DP-06",
@@ -2626,9 +2659,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/burst-balloons-partition-dp-dp-51/",
+    "article": "https://takeuforward.org/plus/dsa/problems/burst-balloons?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=Yz4LlDSlkns",
-    "striver_title": "Burst balloons"
+    "striver_title": "Burst balloons",
+    "practice": "https://takeuforward.org/plus/dsa/problems/burst-balloons"
    },
    "pattern": "interval-dp",
    "template": "T-DP-07",
@@ -2694,9 +2728,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/minimum-cost-to-cut-the-stick-dp-50/",
+    "article": "https://takeuforward.org/plus/dsa/problems/minimum-cost-to-cut-the-stick?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=xwomavsC86c",
-    "striver_title": "Minimum cost to cut the stick"
+    "striver_title": "Minimum cost to cut the stick",
+    "practice": "https://takeuforward.org/plus/dsa/problems/minimum-cost-to-cut-the-stick"
    },
    "pattern": "interval-dp",
    "template": "T-DP-07",
@@ -2755,9 +2790,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/palindrome-partitioning-ii-front-partition-dp-53/",
+    "article": "https://takeuforward.org/plus/dsa/problems/palindrome-partitioning-ii-?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=_H8V5hJUGd0",
-    "striver_title": "Palindrome partitioning II"
+    "striver_title": "Palindrome partitioning II",
+    "practice": "https://takeuforward.org/plus/dsa/problems/palindrome-partitioning-ii-"
    },
    "pattern": "front-partition-dp",
    "template": "T-DP-07",
@@ -2824,7 +2860,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "game-dp",
    "template": "T-DP-08",
@@ -2892,7 +2929,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "3d-grid-dp",
    "template": "T-DP-02",

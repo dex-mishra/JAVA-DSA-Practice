@@ -171,7 +171,7 @@ opposite bit greedily, from the top down, cannot be improved on.
 
 <!-- id:tries-implement-trie-prefix-tree | order:1 | day:30 | pattern:trie-insert-search | template:T-TRIE-01 -->
 
-[Solve on LeetCode](https://leetcode.com/problems/implement-trie-prefix-tree/) &nbsp;·&nbsp; [TUF article](https://takeuforward.org/data-structure/implement-trie-1/) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=dBGUmUQhjaM)
+[Solve on LeetCode](https://leetcode.com/problems/implement-trie-prefix-tree/) &nbsp;·&nbsp; [TUF editorial](https://takeuforward.org/plus/dsa/problems/trie-implementation-and-operations?tab=editorial) &nbsp;·&nbsp; [Striver video](https://www.youtube.com/watch?v=dBGUmUQhjaM)
 
 **Asked by:** Amazon, Google, Facebook, Microsoft, Bloomberg &nbsp;·&nbsp; **Campus OA:** `HIGH` &nbsp;·&nbsp; **Pattern:** `trie-insert-search`
 

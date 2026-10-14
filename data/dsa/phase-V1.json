@@ -310,9 +310,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/print-all-the-nodes-at-a-distance-of-k-in-a-binary-tree",
+    "article": "https://takeuforward.org/plus/dsa/problems/print-all-nodes-at-a-distance-of-k-in-bt?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=i9ORlEy6EsI",
-    "striver_title": "Print all nodes at a distance of K in BT"
+    "striver_title": "Print all nodes at a distance of K in BT",
+    "practice": "https://takeuforward.org/plus/dsa/problems/print-all-nodes-at-a-distance-of-k-in-bt"
    },
    "pattern": "tree-as-graph",
    "template": "T-GRAPH-02",
@@ -376,9 +377,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/inorder-traversal-of-binary-tree/",
+    "article": "https://takeuforward.org/plus/dsa/problems/morris-inorder-traversal-?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=Z_NEgBgbRVI",
-    "striver_title": "Inorder Traversal of Binary Tree"
+    "striver_title": "Inorder Traversal of Binary Tree",
+    "practice": "https://takeuforward.org/plus/dsa/problems/morris-inorder-traversal-"
    },
    "pattern": "dfs-traversal",
    "template": "T-TREE-01",
@@ -440,9 +442,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/level-order-traversal-of-a-binary-tree/",
+    "article": "https://takeuforward.org/plus/dsa/problems/level-order-traversal?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=EoAsWbO7sqg",
-    "striver_title": "Level Order Traversal"
+    "striver_title": "Level Order Traversal",
+    "practice": "https://takeuforward.org/plus/dsa/problems/level-order-traversal"
    },
    "pattern": "bfs-levels",
    "template": "T-TREE-02",
@@ -508,9 +511,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/maximum-sum-path-in-binary-tree/",
+    "article": "https://takeuforward.org/plus/dsa/problems/maximum-path-sum-?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=WszrfSwMz58",
-    "striver_title": "Maximum path sum"
+    "striver_title": "Maximum path sum",
+    "practice": "https://takeuforward.org/plus/dsa/problems/maximum-path-sum-"
    },
    "pattern": "bottom-up-return",
    "template": "T-TREE-03",
@@ -576,9 +580,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/right-left-view-of-binary-tree/",
+    "article": "https://takeuforward.org/plus/dsa/problems/right-left-view-of-bt?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=KV4mRzTjlAk",
-    "striver_title": "Right/Left View of Binary Tree"
+    "striver_title": "Right/Left View of Binary Tree",
+    "practice": "https://takeuforward.org/plus/dsa/problems/right-left-view-of-bt"
    },
    "pattern": "bfs-levels",
    "template": "T-TREE-02",
@@ -643,9 +648,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/construct-a-binary-tree-from-inorder-and-preorder-traversal/",
+    "article": "https://takeuforward.org/plus/dsa/problems/construct-a-bt-from-preorder-and-inorder?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=aZNaLrVebKQ",
-    "striver_title": "Construct a BT from Preorder and Inorder"
+    "striver_title": "Construct a BT from Preorder and Inorder",
+    "practice": "https://takeuforward.org/plus/dsa/problems/construct-a-bt-from-preorder-and-inorder"
    },
    "pattern": "traversal-reconstruction",
    "template": "T-TREE-04",
@@ -712,9 +718,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/calculate-the-diameter-of-a-binary-tree/",
+    "article": "https://takeuforward.org/plus/dsa/problems/diameter-of-binary-tree?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=Rezetez59Nk",
-    "striver_title": "Diameter of Binary Tree"
+    "striver_title": "Diameter of Binary Tree",
+    "practice": "https://takeuforward.org/plus/dsa/problems/diameter-of-binary-tree"
    },
    "pattern": "bottom-up-return",
    "template": "T-TREE-03",
@@ -781,7 +788,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "tree-dp-two-states",
    "template": "T-DP-01",
@@ -845,9 +853,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/lowest-common-ancestor-for-two-given-nodes/",
+    "article": "https://takeuforward.org/plus/dsa/problems/lca-in-bt?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=_-QHfMDde90",
-    "striver_title": "LCA in BT"
+    "striver_title": "LCA in BT",
+    "practice": "https://takeuforward.org/plus/dsa/problems/lca-in-bt"
    },
    "pattern": "lca-recursion",
    "template": "T-TREE-03",
@@ -915,9 +924,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/maximum-depth-of-a-binary-tree/",
+    "article": "https://takeuforward.org/plus/dsa/problems/maximum-depth-in-bt?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=eD3tmO66aBA",
-    "striver_title": "Maximum Depth in BT"
+    "striver_title": "Maximum Depth in BT",
+    "practice": "https://takeuforward.org/plus/dsa/problems/maximum-depth-in-bt"
    },
    "pattern": "bottom-up-return",
    "template": "T-TREE-03",
@@ -982,7 +992,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "prefix-sum-on-path",
    "template": "T-HASH-04",
@@ -1049,7 +1060,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "level-linking",
    "template": "T-TREE-02",
@@ -1113,9 +1125,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/serialize-and-deserialize-a-binary-tree/",
+    "article": "https://takeuforward.org/plus/dsa/problems/serialize-and-de-serialize-bt?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=-YbXySKJsX8",
-    "striver_title": "Serialize and De-serialize BT"
+    "striver_title": "Serialize and De-serialize BT",
+    "practice": "https://takeuforward.org/plus/dsa/problems/serialize-and-de-serialize-bt"
    },
    "pattern": "preorder-with-sentinels",
    "template": "T-TREE-01",
@@ -1183,9 +1196,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/check-for-symmetrical-binary-tree/",
+    "article": "https://takeuforward.org/plus/dsa/problems/check-for-symmetrical-bts?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=nKggNAiEpBE",
-    "striver_title": "Symmetric Binary Tree"
+    "striver_title": "Symmetric Binary Tree",
+    "practice": "https://takeuforward.org/plus/dsa/problems/check-for-symmetrical-bts"
    },
    "pattern": "mirror-recursion",
    "template": "T-TREE-03",
@@ -1250,9 +1264,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/bst-iterator",
+    "article": "https://takeuforward.org/plus/dsa/problems/bst-iterator?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=D2jMcmxU4bs",
-    "striver_title": "Merge 2 BST's"
+    "striver_title": "Merge 2 BST's",
+    "practice": "https://takeuforward.org/plus/dsa/problems/bst-iterator"
    },
    "pattern": "controlled-inorder",
    "template": "T-TREE-01",
@@ -1320,9 +1335,10 @@
     ]
    },
    "tuf": {
-    "article": null,
+    "article": "https://takeuforward.org/plus/dsa/problems/delete-a-node-in-bst?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=kouxiP_H5WE",
-    "striver_title": "Delete a node in BST"
+    "striver_title": "Delete a node in BST",
+    "practice": "https://takeuforward.org/plus/dsa/problems/delete-a-node-in-bst"
    },
    "pattern": "bst-delete",
    "template": "T-BST-01",
@@ -1386,9 +1402,10 @@
     ]
    },
    "tuf": {
-    "article": "https://takeuforward.org/data-structure/kth-largest-smallest-element-in-binary-search-tree/",
+    "article": "https://takeuforward.org/plus/dsa/problems/kth-smallest-and-largest-element-in-bst?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=9TJYWh0adfk",
-    "striver_title": "Kth Smallest and Largest element in BST"
+    "striver_title": "Kth Smallest and Largest element in BST",
+    "practice": "https://takeuforward.org/plus/dsa/problems/kth-smallest-and-largest-element-in-bst"
    },
    "pattern": "inorder-with-counter",
    "template": "T-TREE-01",
@@ -1454,9 +1471,10 @@
     ]
    },
    "tuf": {
-    "article": null,
+    "article": "https://takeuforward.org/plus/dsa/problems/lca-in-bst?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=cX_kPV_foZc",
-    "striver_title": "LCA in BST"
+    "striver_title": "LCA in BST",
+    "practice": "https://takeuforward.org/plus/dsa/problems/lca-in-bst"
    },
    "pattern": "bst-split-point",
    "template": "T-BST-01",
@@ -1522,7 +1540,8 @@
    "tuf": {
     "article": null,
     "youtube": null,
-    "striver_title": null
+    "striver_title": null,
+    "practice": null
    },
    "pattern": "catalan-dp",
    "template": "T-DP-01",
@@ -1584,9 +1603,10 @@
     ]
    },
    "tuf": {
-    "article": null,
+    "article": "https://takeuforward.org/plus/dsa/problems/check-if-a-tree-is-a-bst-or-not?tab=editorial",
     "youtube": "https://www.youtube.com/watch?v=f-sj7I5oXEI",
-    "striver_title": "Check if a tree is a BST or not"
+    "striver_title": "Check if a tree is a BST or not",
+    "practice": "https://takeuforward.org/plus/dsa/problems/check-if-a-tree-is-a-bst-or-not"
    },
    "pattern": "range-propagation",
    "template": "T-BST-01",
