@@ -1150,7 +1150,8 @@
    "pattern_name": "Presence counting with a 26-array",
    "approach": "Mark each letter seen in a bool[26] (or set); true iff all 26 marked.",
    "trigger": "\"every letter / all characters\" over a fixed alphabet.",
-   "complexity": "O(n)"
+   "complexity": "O(n)",
+   "details": "**Task.** A sentence contains only lowercase English letters. Is every one of the 26 letters present at least once?\n\n**Input:** a string `sentence`. **Output:** a boolean.\n\n**Constraints:** 1 ≤ length ≤ 1000; lowercase letters only.\n\n**Example:** `\"thequickbrownfoxjumpsoverthelazydog\"` → `true`. `\"leetcode\"` → `false`."
   },
   {
    "id": "isomorphic-strings",
@@ -1166,7 +1167,8 @@
    "pattern_name": "Two-way character mapping",
    "approach": "Keep two maps s→t and t→s; at each position both must agree with earlier mappings (or both be new). Equivalent: compare the \"first occurrence index\" patterns of both strings.",
    "trigger": "\"one-to-one mapping / same pattern\" between two sequences.",
-   "complexity": "O(n)"
+   "complexity": "O(n)",
+   "details": "**Task.** Two strings `s` and `t` of equal length. Can every character of `s` be replaced by some character so that `s` becomes `t`? All occurrences of a character must get the same replacement, and two different characters may not map to the same one. A character may map to itself.\n\n**Input:** strings `s`, `t`. **Output:** a boolean.\n\n**Constraints:** 1 ≤ length ≤ 5·10⁴; `s` and `t` have the same length and contain any valid ASCII characters.\n\n**Example:** `\"egg\"`, `\"add\"` → `true`. `\"foo\"`, `\"bar\"` → `false` (o would need to become both a and r). `\"paper\"`, `\"title\"` → `true`."
   },
   {
    "id": "word-pattern",
@@ -1182,7 +1184,8 @@
    "pattern_name": "Bijection with two maps",
    "approach": "Split the sentence; lengths must match; maintain char→word and word→char maps and reject any conflict.",
    "trigger": "\"follows the same pattern\" → bijection check with two hash maps.",
-   "complexity": "O(n + total word length)"
+   "complexity": "O(n + total word length)",
+   "details": "**Task.** A pattern of letters and a sentence of words. Does the sentence follow the pattern? That means the k-th letter corresponds to the k-th word, equal letters always correspond to the same word, and different letters always correspond to different words.\n\n**Input:** a string `pattern` and a string `s` of words separated by single spaces. **Output:** a boolean.\n\n**Constraints:** 1 ≤ `pattern` length ≤ 300; 1 ≤ `s` length ≤ 3000; lowercase letters only; no leading or trailing spaces.\n\n**Example:** `\"abba\"`, `\"dog cat cat dog\"` → `true`. `\"abba\"`, `\"dog cat cat fish\"` → `false`. `\"aaaa\"`, `\"dog cat cat dog\"` → `false`."
   },
   {
    "id": "unique-number-of-occurrences",
@@ -1198,7 +1201,8 @@
    "pattern_name": "Count, then check the counts are distinct",
    "approach": "Frequency map; insert every count into a set; true iff the set size equals the number of distinct values.",
    "trigger": "question is about the counts themselves → count first, then reason about counts.",
-   "complexity": "O(n)"
+   "complexity": "O(n)",
+   "details": "**Task.** Look at how many times each distinct value occurs in the array. Return true if no two distinct values occur the same number of times.\n\n**Input:** an integer array `arr`. **Output:** a boolean.\n\n**Constraints:** 1 ≤ length ≤ 1000; −1000 ≤ `arr[i]` ≤ 1000.\n\n**Example:** `[1, 2, 2, 1, 1, 3]` → `true` (1 occurs 3 times, 2 occurs twice, 3 once). `[1, 2]` → `false` (both occur once)."
   },
   {
    "id": "how-many-numbers-are-smaller-than-the-current-number",
@@ -1214,7 +1218,8 @@
    "pattern_name": "Counting array + prefix of counts",
    "approach": "Values are small → count each value, take a running prefix of counts; answer for x is the total count of values < x.",
    "trigger": "small value range (0..100) → counting array instead of sorting or nested loops.",
-   "complexity": "O(n + 101)"
+   "complexity": "O(n + 101)",
+   "details": "**Task.** For every position i, count the positions j with `nums[j] < nums[i]`. Return those counts as an array, in the original order.\n\n**Input:** an integer array `nums`. **Output:** an integer array of the same length.\n\n**Constraints:** 2 ≤ length ≤ 500; 0 ≤ `nums[i]` ≤ 100.\n\n**Example:** `[8, 1, 2, 2, 3]` → `[4, 0, 1, 1, 3]`. Four values are below 8; none are below 1; one (the 1) is below each 2."
   }
  ],
  "cs_core": {

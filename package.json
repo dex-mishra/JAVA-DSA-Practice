@@ -15,8 +15,8 @@
     "test": "node --test worker/*.test.mjs tools/*.test.mjs",
     "check": "node --check src/app.js && node tools/import-dsa.mjs --check && npm test && node tools/verify-dsa.mjs --if-gxx",
     "verify:dsa": "node tools/verify-dsa.mjs",
-    "db:migrate": "wrangler d1 execute launch-console --remote --file=./migrations/0003_dsa_v3.sql",
-    "db:migrate:local": "wrangler d1 execute launch-console --local --file=./migrations/0003_dsa_v3.sql"
+    "db:migrate": "wrangler d1 execute launch-console --remote --file=./migrations/0004_dsa_ai.sql",
+    "db:migrate:local": "wrangler d1 execute launch-console --local --file=./migrations/0004_dsa_ai.sql"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

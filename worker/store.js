@@ -240,7 +240,7 @@ export async function readDsaLedgers(db) {
   const drillOut = {};
   for (const r of drill.results || []) {
     drillOut[r.item_id] = { day: r.day, guess: r.guess || "", correct: r.correct === null ? null : !!r.correct,
-      answered_on: r.answered_on || null };
+      answered_on: r.answered_on || null, ai_verdict: r.ai_verdict || null, ai_feedback: r.ai_feedback || "" };
   }
   const dayOut = {};
   for (const r of days.results || []) {
@@ -285,6 +285,22 @@ export async function patchDrill(db, id, patch, { now = Date.now() } = {}) {
   ).bind(id, next.day, next.guess, next.correct === null ? null : next.correct ? 1 : 0, next.answered_on, now / 1000).run();
   await writeDoc(db, DOC.DSA_META, { updated_ts: now / 1000 });
   return next;
+}
+
+/** Store a Groq verdict: the guess it judged, the verdict, its feedback, and
+ *  `correct` set from it (only "correct" counts -- "partial" is a miss worth
+ *  revising). The ✓/✗ buttons can still override `correct` afterwards. */
+export async function saveDrillCheck(db, id, day, guess, check, { now = Date.now() } = {}) {
+  const correct = check.verdict === "correct" ? 1 : 0;
+  await db.prepare(
+    `INSERT INTO dsa_drill (item_id, day, guess, correct, answered_on, updated_at, ai_verdict, ai_feedback)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(item_id) DO UPDATE SET day = excluded.day, guess = excluded.guess, correct = excluded.correct,
+       answered_on = excluded.answered_on, updated_at = excluded.updated_at,
+       ai_verdict = excluded.ai_verdict, ai_feedback = excluded.ai_feedback`
+  ).bind(id, day, guess, correct, istDate(now), now / 1000, check.verdict, check.feedback).run();
+  await writeDoc(db, DOC.DSA_META, { updated_ts: now / 1000 });
+  return { day, guess, correct: !!correct, answered_on: istDate(now), ai_verdict: check.verdict, ai_feedback: check.feedback };
 }
 
 export async function patchDay(db, day, patch, { now = Date.now() } = {}) {

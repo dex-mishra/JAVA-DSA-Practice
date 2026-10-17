@@ -1678,3 +1678,17 @@ a.dsa-theorycard { text-decoration: none; color: inherit; }
 .oa-card.st-missed, .oa-card.st-submitted { opacity: .85; }
 .oa-chip.st { font-weight: 700; }
 .oa-card.st-unlocked .oa-chip.st { background: var(--dsa); color: #fff; border-color: var(--dsa); }
+
+/* drill, full statement + Groq verdict */
+.dsa-drills { grid-template-columns: 1fr; }
+.dsa-drill-full { font-size: 13px; line-height: 1.55; color: var(--ink-2); }
+.dsa-drill-full p { margin: 0 0 6px; }
+.dsa-drill-full code { font-family: var(--mono); font-size: 11.5px; background: var(--raise); padding: 1px 4px; border-radius: 3px; }
+.dsa-drill-lc { margin: 0 0 8px; font-size: 12px; }
+.dsa-drill-lc a { color: var(--ink-3); }
+textarea.dsa-drill-guess { resize: vertical; font-family: inherit; }
+.dsa-drill-do { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+.dsa-drill-verdict { font-size: 13px; padding: 8px 10px; border-radius: 4px; margin-bottom: 8px; border-left: 3px solid; }
+.dsa-drill-verdict.ok { background: #f0fdf4; border-color: var(--ok); }
+.dsa-drill-verdict.part { background: #fffbeb; border-color: var(--warn); }
+.dsa-drill-verdict.bad { background: #fef2f2; border-color: var(--crit); }

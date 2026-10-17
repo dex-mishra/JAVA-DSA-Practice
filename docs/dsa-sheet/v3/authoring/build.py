@@ -256,17 +256,23 @@ for path in sorted(glob.glob(os.path.join(HERE, "days", "day-*.txt"))):
                 if sslug in all_slugs_seen:
                     errors.append(f"{w}: slug already used elsewhere")
                 all_slugs_seen.add(sslug)
-                h, _ = parse_sections(it[1:], w)
+                h, isecs = parse_sections(it[1:], w)
                 for k in ("statement", "pattern", "approach", "trigger"):
                     if not h.get(k):
                         errors.append(f"{w}: missing {k}")
                 check_ref(h.get("pattern", ""), w)
+                # Optional full statement (input, output, constraints, an
+                # example), in original words -- never LeetCode's text.
+                details = next((x["body"] for x in isecs if x["id"] == "details"), None)
+                if [x["id"] for x in isecs if x["id"] != "details"]:
+                    errors.append(f"{w}: the only section a drill item may have is 'details'")
                 doc["drill"].append(dict(id=sslug, title=stitle,
                                          lc=dict(id=lcid, slug=sslug, url=f"https://leetcode.com/problems/{sslug}/", difficulty=sdiff),
                                          statement=h.get("statement"), pattern_page=h.get("pattern"),
                                          pattern_name=h.get("pattern_name", ""),
                                          approach=h.get("approach"), trigger=h.get("trigger"),
-                                         complexity=h.get("complexity", "")))
+                                         complexity=h.get("complexity", ""),
+                                         **({"details": details} if details else {})))
         elif hdr.startswith("cs_core:"):
             cid = hdr.split(":", 1)[1].strip()
             h, secs = parse_sections(blk[1:], f"day {dn} cs_core")

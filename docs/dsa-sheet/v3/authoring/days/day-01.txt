@@ -834,6 +834,14 @@ pattern_name: Single pass with a counter
 approach: One pass; for each number count its digits (divide by 10, or check ranges 10–99, 1000–9999, …) and increment a counter if the count is even.
 trigger: "count how many elements satisfy …" with an independent per-element test.
 complexity: O(n · digits)
+--- details | Full statement | screenshot
+**Task.** You get an array of positive integers. Count the numbers whose decimal representation has an even number of digits.
+
+**Input:** an integer array `nums`. **Output:** an integer.
+
+**Constraints:** 1 ≤ length ≤ 500; 1 ≤ `nums[i]` ≤ 10⁵.
+
+**Example:** `[12, 345, 2, 6, 7896]` → `2`. 12 has two digits and 7896 has four; the others have an odd count.
 +++ item: 1672 | richest-customer-wealth | Richest Customer Wealth | Easy
 statement: A grid lists, for each customer (row), the money they hold in each bank (column). Return the largest total wealth of any single customer.
 pattern: arr-single-pass-running-state
@@ -841,6 +849,14 @@ pattern_name: Running sum per row + best so far
 approach: For each row, sum it with a running total, then update a global maximum.
 trigger: "maximum total of …" → sum + best-so-far.
 complexity: O(R·C)
+--- details | Full statement | screenshot
+**Task.** An m × n grid `accounts` gives, for customer i (a row), the amount they keep in bank j (a column). A customer's wealth is the total across all their banks. Return the wealth of the richest customer.
+
+**Input:** a 2-D integer array. **Output:** an integer.
+
+**Constraints:** 1 ≤ m, n ≤ 50; 1 ≤ `accounts[i][j]` ≤ 100.
+
+**Example:** `[[1,5],[7,3],[3,5]]` → `10`. The totals are 6, 10 and 8.
 +++ item: 1287 | element-appearing-more-than-25-in-sorted-array | Element Appearing More Than 25% In Sorted Array | Easy
 statement: A sorted array has exactly one value that occurs in more than a quarter of the positions. Return it.
 pattern: arr-single-pass-running-state
@@ -848,6 +864,14 @@ pattern_name: Streak in a sorted array
 approach: Duplicates are adjacent in sorted input, so track the length of the current run of equal values and return the value when the run exceeds n/4. (Clever version: check if a[i] == a[i + n/4].)
 trigger: "sorted" + "appears more than …" → equal values sit together, count runs.
 complexity: O(n)
+--- details | Full statement | screenshot
+**Task.** An array sorted in non-decreasing order contains exactly one value that fills more than 25% of its positions. Return that value.
+
+**Input:** a sorted integer array `arr`. **Output:** an integer.
+
+**Constraints:** 1 ≤ length ≤ 10⁴; 0 ≤ `arr[i]` ≤ 10⁵.
+
+**Example:** `[1, 2, 2, 6, 6, 6, 6, 7, 10]` → `6`. It fills 4 of the 9 positions, which is more than a quarter.
 +++ item: 1550 | three-consecutive-odds | Three Consecutive Odds | Easy
 statement: Return true if the array contains three odd numbers in a row.
 pattern: arr-single-pass-running-state
@@ -855,6 +879,14 @@ pattern_name: Streak that resets
 approach: Streak counter that increments on odd and resets on even; return true when it reaches 3.
 trigger: "in a row / consecutive".
 complexity: O(n)
+--- details | Full statement | screenshot
+**Task.** Return true if somewhere in the array there are three odd numbers at consecutive positions, otherwise false.
+
+**Input:** an integer array `arr`. **Output:** a boolean.
+
+**Constraints:** 1 ≤ length ≤ 1000; 1 ≤ `arr[i]` ≤ 1000.
+
+**Example:** `[1, 2, 34, 3, 4, 5, 7, 23, 12]` → `true` (5, 7, 23). `[2, 6, 4, 1]` → `false`.
 +++ item: 1909 | remove-one-element-to-make-the-array-strictly-increasing | Remove One Element to Make the Array Strictly Increasing | Easy
 statement: Decide whether deleting exactly one element can leave the array strictly increasing.
 pattern: arr-single-pass-running-state
@@ -862,6 +894,14 @@ pattern_name: Single pass counting violations
 approach: Walk once counting positions where a[i] ≤ a[i−1]. More than one → false. At the single violation, check whether removing a[i−1] or a[i] fixes it by comparing with a[i−2] / a[i+1].
 trigger: "remove one element" + "strictly increasing" → scan once for the violation, decide locally.
 complexity: O(n)
+--- details | Full statement | screenshot
+**Task.** Remove exactly one element from the array. Can the remaining elements, in their original order, be strictly increasing? (An array that is already strictly increasing also counts: removing any one element keeps it so.)
+
+**Input:** an integer array `nums`. **Output:** a boolean.
+
+**Constraints:** 2 ≤ length ≤ 1000; 1 ≤ `nums[i]` ≤ 1000.
+
+**Example:** `[1, 2, 10, 5, 7]` → `true`: remove 10 to get `[1, 2, 5, 7]`. `[2, 3, 1, 2]` → `false`. `[1, 1, 1]` → `false`.
 
 === cs_core: oop-01-classes-objects
 subject: OOP

@@ -876,6 +876,14 @@ pattern_name: Fixed window over the "extra gain"
 approach: Base = customers on non-grumpy minutes. Slide a window of size m summing customers on grumpy minutes inside it (the extra gained); answer = base + max window.
 trigger: "choose one block of exactly m consecutive minutes" → fixed window.
 complexity: O(n)
+--- details | Full statement | screenshot
+**Task.** A shop is open for n minutes. In minute i, `customers[i]` people come in. If `grumpy[i]` is 1 the owner is grumpy that minute and those customers leave unsatisfied; otherwise they are satisfied. Once, the owner can force themselves to stay calm for `minutes` consecutive minutes. Return the maximum number of satisfied customers.
+
+**Input:** integer arrays `customers` and `grumpy` of length n, and an integer `minutes`. **Output:** an integer.
+
+**Constraints:** 1 ≤ minutes ≤ n ≤ 2·10⁴; 0 ≤ `customers[i]` ≤ 1000; `grumpy[i]` is 0 or 1.
+
+**Example:** `customers = [1,0,1,2,1,1,7,5]`, `grumpy = [0,1,0,1,0,1,0,1]`, minutes = 3 → `16`. Staying calm for the last three minutes adds 1 + 5 to the 10 who were already satisfied.
 +++ item: 1876 | substrings-of-size-three-with-distinct-characters | Substrings of Size Three with Distinct Characters | Easy
 statement: Count the length-3 substrings whose three characters are all different.
 pattern: sw-fixed-window
@@ -883,6 +891,14 @@ pattern_name: Fixed window of size 3
 approach: For each i ≥ 2 check s[i], s[i−1], s[i−2] are pairwise different (or keep counts in a size-3 window).
 trigger: "substrings of length k" with a per-window property.
 complexity: O(n)
+--- details | Full statement | screenshot
+**Task.** Count the substrings of length exactly 3 in which all three characters are different. The same substring counts each time it occurs.
+
+**Input:** a string `s`. **Output:** an integer.
+
+**Constraints:** 1 ≤ length ≤ 100; lowercase letters only.
+
+**Example:** `"xyzzaz"` → `1`: of `xyz`, `yzz`, `zza` and `zaz`, only `xyz` qualifies. `"aababcabc"` → `4`.
 +++ item: 2461 | maximum-sum-of-distinct-subarrays-with-length-k | Maximum Sum of Distinct Subarrays With Length K | Medium
 statement: Among windows of length k whose elements are all distinct, return the largest sum (0 if none).
 pattern: sw-frequency-map-window
@@ -890,6 +906,14 @@ pattern_name: Fixed window with a count map and a distinct counter
 approach: Slide a window of size k keeping sum and a frequency map; the window qualifies when the number of distinct keys equals k.
 trigger: "length k" + "all distinct" → fixed window + frequency map.
 complexity: O(n)
+--- details | Full statement | screenshot
+**Task.** Look at every contiguous subarray of length exactly k whose elements are all different. Return the largest sum among them, or 0 if no such subarray exists.
+
+**Input:** an integer array `nums` and an integer `k`. **Output:** an integer (can exceed 32 bits).
+
+**Constraints:** 1 ≤ k ≤ length ≤ 10⁵; 1 ≤ `nums[i]` ≤ 10⁵.
+
+**Example:** `[1, 5, 4, 2, 9, 9, 9]`, k = 3 → `15`, from `[4, 2, 9]`. The windows containing two 9s do not qualify. `[4, 4, 4]`, k = 3 → `0`.
 +++ item: 1695 | maximum-erasure-value | Maximum Erasure Value | Medium
 statement: Pick one contiguous block with no repeated values; your score is its sum. Maximise the score.
 pattern: sw-variable-window
@@ -897,6 +921,14 @@ pattern_name: Variable window with no repeats (sum instead of length)
 approach: Exactly Longest Substring Without Repeating Characters, but record the window sum instead of the length.
 trigger: "contiguous + unique elements + maximise" → variable window.
 complexity: O(n)
+--- details | Full statement | screenshot
+**Task.** Erase exactly one contiguous block of the array in which every value is different. You score the sum of the erased values. Return the maximum possible score.
+
+**Input:** an integer array `nums`. **Output:** an integer.
+
+**Constraints:** 1 ≤ length ≤ 10⁵; 1 ≤ `nums[i]` ≤ 10⁴.
+
+**Example:** `[4, 2, 4, 5, 6]` → `17`, from `[2, 4, 5, 6]`. `[5, 2, 1, 2, 5, 2, 1, 2, 5]` → `8`, from `[5, 2, 1]` or `[1, 2, 5]`.
 +++ item: 2215 | find-the-difference-of-two-arrays | Find the Difference of Two Arrays | Easy
 statement: Return the distinct values that appear only in the first array, and those that appear only in the second.
 pattern: hash-set-runs
@@ -904,6 +936,14 @@ pattern_name: Set membership across two inputs
 approach: Build a set for each array; collect values of set A not in set B, and of set B not in set A.
 trigger: "present in one but not the other" → two hash sets.
 complexity: O(n + m)
+--- details | Full statement | screenshot
+**Task.** Given two arrays, return two lists. The first holds the distinct values that occur in `nums1` but not in `nums2`; the second holds the distinct values that occur in `nums2` but not in `nums1`. Order within each list does not matter.
+
+**Input:** integer arrays `nums1`, `nums2`. **Output:** a pair of integer lists.
+
+**Constraints:** 1 ≤ lengths ≤ 1000; −1000 ≤ values ≤ 1000.
+
+**Example:** `[1, 2, 3]`, `[2, 4, 6]` → `[[1, 3], [4, 6]]`. `[1, 2, 3, 3]`, `[1, 1, 2, 2]` → `[[3], []]`.
 
 === cs_core: oop-05-abstraction
 subject: OOP

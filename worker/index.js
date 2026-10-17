@@ -20,8 +20,9 @@ import { curriculum, ratedTopics, rankFor } from "./curriculum.js";
 import {
   DOC, readDoc, writeDoc, mutateDoc,
   readDsaProgress, patchDsaProgress, DSA_DEFAULTS,
-  readDsaLedgers, patchSibling, patchDrill, patchDay, rowToProgress
+  readDsaLedgers, patchSibling, patchDrill, patchDay, rowToProgress, saveDrillCheck
 } from "./store.js";
+import { drillItem, checkDrill, AiError } from "./ai.js";
 import { istDate, afterResolve } from "../shared/dsa-core.mjs";
 import {
   emptyCustom, readCustom, allItems, cleanTags, refusal, sameTag,
@@ -488,7 +489,7 @@ route("GET", /^\/api\/overview$/, async (_m, _r, env) => {
    trip instead of four. */
 route("GET", /^\/api\/dsa\/progress$/, async (_m, request, env) => {
   const [progress, ledgers] = await Promise.all([readDsaProgress(env.DB), readDsaLedgers(env.DB)]);
-  return json({ ...progress, ...ledgers, today: istDate(clock(env, request)) });
+  return json({ ...progress, ...ledgers, today: istDate(clock(env, request)), ai: !!env.GROQ_API_KEY });
 });
 
 route("PATCH", /^\/api\/dsa\/progress\/([^/]+)$/, async (match, request, env) => {
@@ -614,6 +615,29 @@ route("PATCH", /^\/api\/dsa\/drill\/([^/]+)$/, async (match, request, env) => {
     return json({ id, drill: await patchDrill(env.DB, id, patch, { now: clock(env, request) }) });
   } catch (e) {
     return bad(e.message);
+  }
+});
+
+/* Groq checks a drill answer against the reference (worker/ai.js). The
+   answer key never goes to the model's output -- it judges, it does not
+   explain the solution. 503 when no key is configured, 429 when the
+   free-tier guard says wait; the page falls back to reveal + self-mark. */
+route("POST", /^\/api\/dsa\/drill\/([^/]+)\/check$/, async (match, request, env) => {
+  const id = decodeURIComponent(match[1]);
+  const item = drillItem(id);
+  if (!item) return bad("unknown drill item", 404);
+  const payload = await body(request);
+  const guess = String(payload.guess || "").trim().slice(0, MAX_GUESS);
+  if (guess.length < 3) return bad("write the pattern and a one-line approach first");
+  const now = clock(env, request);
+  try {
+    const check = await checkDrill(env, item, guess);
+    const drill = await saveDrillCheck(env.DB, id, item.day, guess, check, { now });
+    return json({ id, drill, check });
+  } catch (e) {
+    if (!(e instanceof AiError)) throw e;
+    const status = e.kind === "config" ? 503 : e.kind === "rate" ? 429 : 502;
+    return json({ error: e.message, kind: e.kind, retry_after: e.retryAfter }, status);
   }
 });
 

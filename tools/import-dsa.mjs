@@ -280,6 +280,8 @@ export function importDsa({ src, today = new Date().toISOString().slice(0, 10) }
       const iw = `${where} drill ${it.id}`;
       claim(it.id, iw);
       if (!it.statement) fail(`${iw}: no statement`);
+      if (it.details !== undefined && (typeof it.details !== "string" || !it.details.trim())) fail(`${iw}: details is present but empty`);
+      inlineLinks(`${iw} details`, it.details, null);
       ref(`${iw} pattern_page`, it.pattern_page, null, { kind: "drill", id: it.id, day: d.day, stage: "drill", at: it.pattern_name || "" });
     }
     drillTotal += drill.length;
@@ -524,7 +526,18 @@ export function importDsa({ src, today = new Date().toISOString().slice(0, 10) }
     errors,
     warnings,
     outputs,
-    worker: { "oa-content.json": { count: oaMocks.length, mocks: oaMocks }, "dsa-plan.json": workerPlan },
+    worker: {
+      "oa-content.json": { count: oaMocks.length, mocks: oaMocks },
+      "dsa-plan.json": workerPlan,
+      // The drill with its answers, for the Groq check: the grader has to
+      // know the reference pattern and approach to compare against.
+      "dsa-drill.json": {
+        items: Object.fromEntries([...dayOut.values()].flatMap((d) => d.drill.map((it) => [it.id, {
+          day: d.day, title: it.title, statement: it.statement, details: it.details || "",
+          pattern_name: it.pattern_name, approach: it.approach, trigger: it.trigger, complexity: it.complexity
+        }])))
+      }
+    },
     stats: {
       problems: rows.length, ready_days: dayOut.size, pending_days: pendingDays,
       skims: planOut.days.reduce((n, d) => n + d.skims.length, 0),

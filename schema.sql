@@ -70,9 +70,18 @@ CREATE TABLE IF NOT EXISTS dsa_drill (
   item_id     TEXT PRIMARY KEY,
   day         INTEGER NOT NULL,
   guess       TEXT NOT NULL DEFAULT '',
-  correct     INTEGER,                  -- null until self-marked
+  correct     INTEGER,                  -- null until marked (by Groq or by hand)
   answered_on TEXT,
-  updated_at  REAL NOT NULL
+  updated_at  REAL NOT NULL,
+  ai_verdict  TEXT,                     -- correct | partial | wrong (migrations/0004_dsa_ai.sql)
+  ai_feedback TEXT NOT NULL DEFAULT ''
+);
+
+-- The Groq free-tier guard: requests and tokens per minute and per day.
+CREATE TABLE IF NOT EXISTS ai_usage (
+  minute_key TEXT PRIMARY KEY,
+  requests   INTEGER NOT NULL,
+  tokens     INTEGER NOT NULL
 );
 
 -- One row per plan day: was the floor met, and the two once-a-day ticks.

@@ -1688,6 +1688,20 @@ a.dsa-theorycard { text-decoration: none; color: inherit; }
 .oa-card.st-missed, .oa-card.st-submitted { opacity: .85; }
 .oa-chip.st { font-weight: 700; }
 .oa-card.st-unlocked .oa-chip.st { background: var(--dsa); color: #fff; border-color: var(--dsa); }
+
+/* drill, full statement + Groq verdict */
+.dsa-drills { grid-template-columns: 1fr; }
+.dsa-drill-full { font-size: 13px; line-height: 1.55; color: var(--ink-2); }
+.dsa-drill-full p { margin: 0 0 6px; }
+.dsa-drill-full code { font-family: var(--mono); font-size: 11.5px; background: var(--raise); padding: 1px 4px; border-radius: 3px; }
+.dsa-drill-lc { margin: 0 0 8px; font-size: 12px; }
+.dsa-drill-lc a { color: var(--ink-3); }
+textarea.dsa-drill-guess { resize: vertical; font-family: inherit; }
+.dsa-drill-do { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+.dsa-drill-verdict { font-size: 13px; padding: 8px 10px; border-radius: 4px; margin-bottom: 8px; border-left: 3px solid; }
+.dsa-drill-verdict.ok { background: #f0fdf4; border-color: var(--ok); }
+.dsa-drill-verdict.part { background: #fffbeb; border-color: var(--warn); }
+.dsa-drill-verdict.bad { background: #fef2f2; border-color: var(--crit); }
 </style>
 </head>
 <body>
@@ -2265,7 +2279,7 @@ return { IST_OFFSET_MS, istDate, istMinutes, istInstant, addDays, daysBetween, p
   /* v3 key: the v2 cache holds rows for ids the plan no longer has. */
   var DSA_KEY = "launch-console-dsa-v3";
   var DSA_S = { problems: {}, siblings: {}, drill: {}, days: {} };
-  var DSA_SYNC = { on: false, ts: 0 };
+  var DSA_SYNC = { on: false, ts: 0, ai: false };
 
   var DSA_DEFAULTS = {
     status: "todo", revision: false, notes: "", tags: [],
@@ -2386,6 +2400,7 @@ return { IST_OFFSET_MS, istDate, istMinutes, istInstant, addDays, daysBetween, p
       .then(function (res) {
         DSA_SYNC.on = true;
         DSA_SYNC.ts = res.updated_ts || 0;
+        DSA_SYNC.ai = !!res.ai;
         if (res.updated_ts) {
           dsaAdopt(res);
           dsaCache();
@@ -4649,36 +4664,100 @@ return { IST_OFFSET_MS, istDate, istMinutes, istInstant, addDays, daysBetween, p
     }).join("") + "</dl>";
   }
 
+  /* The explainer at the top of Today. Written for someone opening the tab
+     for the first time: what to do, in order, and what every label means --
+     plain words first, the plan's own terms second. */
   function dsaTodayHelp() {
     var roles = DSA_PLAN.roles || {};
-    var blocks = DSA_PLAN.daily_blocks || [];
     var rules = DSA_PLAN.mock_rules || {};
-    return dsaHelp("today-v3", "How this plan works",
-      "<p>Thirty days, 120 problems, four a day, foundations first. Day N is a date: it does not " +
-      "move if you fall behind, and nothing here re-plans. Open the tab and do the first thing that " +
-      "is expanded.</p>" +
-      "<h4>The four roles</h4>" +
-      dl(Object.keys(roles).map(function (k) { return [dsaRoleBadge(k), esc(roles[k].meaning)]; })) +
-      "<h4>A day, in order</h4><ol class=\"dsa-loop\">" +
-      blocks.map(function (b) {
-        return "<li><b>" + esc(b.title) + "</b> <span class=\"muted\">" + b.minutes + " min</span> — " + esc(b.note) + "</li>";
-      }).join("") + "</ol>" +
-      "<h4>Bad days</h4>" +
+    var win = (rules.unlock_time_window_ist || ["09:00", "17:00"]).join(" and ");
+    var hours = String(rules.start_window_hours || 3);
+    var role = function (k, plain) {
+      return [dsaRoleBadge(k), "<b>" + plain + "</b> " + esc((roles[k] || {}).meaning || "")];
+    };
+    return dsaHelp("today-v3b", "How this plan works — read this once",
+      "<p><b>The short version.</b> 30 days, 4 problems a day, easiest topics first. Every day has a date " +
+      "(Day 1 is " + esc(dsaShortDate(DSA_PLAN.start_date)) + "). Open this tab, do whatever is already " +
+      "expanded, then work down the page. You never have to decide what to do next.</p>" +
+
+      "<h4>Your day, top to bottom</h4><ol class=\"dsa-loop\">" +
+      "<li><b>Re-solves</b> (only on some days). A problem you solved 2, 7 and 14 days ago comes back. " +
+      "Solve it again on LeetCode from an empty file, without looking at notes, then click how confident " +
+      "you felt (1 = had to peek, 5 = easy). A 3 or lower brings it back again in 2 days.</li>" +
+      "<li><b>Siblings to study</b> (from Day 2). Every problem has one closely related “sibling”. The day " +
+      "after you solve a problem, its sibling appears here: read its short breakdown, write its " +
+      "pseudocode on paper, and click <i>studied</i>. Solving it on LeetCode too is optional.</li>" +
+      "<li><b>Micro-theory and pattern card.</b> 10 minutes of reading on today's idea. Copy the pattern " +
+      "card into GoodNotes, then tick <i>read</i>.</li>" +
+      "<li><b>Today's 4 problems.</b> Click <i>open</i> on a problem to see its step-by-step breakdown. " +
+      "Solve it on LeetCode, then click the grey <i>todo</i> button to change it to <i>solved</i> (or " +
+      "<i>revisit</i> if you solved it but want to see it again). Type your pseudocode into the box at the bottom.</li>" +
+      "<li><b>Recognition drill.</b> 5 short problems you have not seen. Do not solve them — just write which " +
+      "pattern each one is and how you would approach it, in one line. Check your answer with Groq, or " +
+      "reveal it and mark yourself.</li>" +
+      "<li><b>CS core card.</b> One OOP / DBMS / OS / networks topic for interviews. Read it, tick <i>done</i>.</li>" +
+      "</ol>" +
+
+      "<h4>Inside a problem: the 10 steps</h4>" +
+      "<p>Each problem is broken into the steps you would go through in an interview: <i>Understand</i> (what is " +
+      "asked), <i>Analyse</i> (what the input size allows), <i>Brainstorm</i> (slow idea first, then why it is " +
+      "slow and how to fix it), <i>Algorithm in words</i>, <i>Pseudocode</i>, <i>Reference C++</i>, a <i>Dry run</i> " +
+      "on an example, <i>Edge cases</i>, <i>Carry forward</i> (the lesson to remember) and <i>Interview follow-ups</i>. " +
+      "Green links under a step open the exact theory section it relies on.</p>" +
+
+      "<h4>The four labels on each problem</h4>" +
       dl([
-        ["<b>Floor</b>", "Due re-solves plus the day's first LEARN problem. Meeting it keeps the day and the streak."],
-        ["<b>Never twice</b>", esc(DSA_PLAN.never_miss_twice || "")],
-        ["<b>Behind</b>", esc(DSA_PLAN.carry_over || "")],
-        ["<b>Cut order</b>", (DSA_PLAN.cut_order || []).map(function (c) { return c.step + ". " + esc(c.action); }).join("<br>")]
+        role("LEARN", "A new idea."),
+        role("APPLY", "The same idea, worded differently."),
+        role("TWIST", "The idea with one change."),
+        role("DISGUISE", "The idea hidden inside an unfamiliar story.")
       ]) +
-      "<h4>✍️ and 📸</h4>" +
-      "<p>Every stage and theory section is tagged. ✍️ is for writing by hand in GoodNotes; 📸 is " +
-      "reading material to screenshot. In a ✍️ 📸 section, only the marked lines are for writing. " +
-      "The <b>✍️ only</b> switch in an open problem hides everything else.</p>" +
-      "<h4>Mocks</h4>" +
-      "<p>Dates are fixed and shown in the header from Day 1. On the morning, at 08:45, the exact " +
-      "unlock time (somewhere " + esc((rules.unlock_time_window_ist || ["09:00", "17:00"]).join("–")) +
-      " IST) is revealed; from then you have " + esc(String(rules.start_window_hours || 3)) + " hours to start it. " +
-      "A missed window turns it into an unscored practice attempt.</p>");
+      "<p class=\"muted\">So on a LEARN problem all the steps are open — read them, then close the page and " +
+      "code it yourself. On the others the steps are hidden: try first, and if you get stuck, reveal one step at a time.</p>" +
+
+      "<h4>If you get stuck on a problem</h4>" +
+      "<p>Click <i>start timer</i> when you begin. The <b>stuck ladder</b> under the steps tells you what to do at " +
+      "10, 20, 30 and 40 minutes — first write a brute force, then read the linked theory, then reveal one step, " +
+      "and so on. Don't reveal everything at minute 5; the struggle is what makes it stick.</p>" +
+
+      "<h4>✍️ and 📸 — what to copy by hand</h4>" +
+      "<p>Every step and theory section has a tag. <b>✍️</b> means write it by hand in GoodNotes. <b>📸</b> means " +
+      "it's reading material: screenshot it, don't copy it. In a section tagged ✍️ 📸, only the lines with a " +
+      "green bar are for writing. Tick <b>✍️ only</b> inside an open problem to hide everything else — what's " +
+      "left is exactly what goes on paper.</p>" +
+
+      "<h4>If you miss a day or fall behind</h4>" +
+      "<p>The plan never moves. When the date changes, Today shows the new day. What you didn't finish is not lost:</p>" +
+      "<ul>" +
+      "<li>Unfinished LEARN and APPLY problems appear under <b>Carried over</b> above today's problems (up to 4 at a time).</li>" +
+      "<li>The <b>behind by N</b> number at the top counts every past problem still marked todo.</li>" +
+      "<li>Your <b>daily minimum</b> (the “floor”) is: any due re-solves + the first LEARN problem of the day. " +
+      "Do at least that and the day counts as kept, and your <b>streak</b> continues.</li>" +
+      "<li>If you miss a day completely, the next day opens with a red banner: do the minimum first, before anything else.</li>" +
+      "<li>You can always go back to any day with <i>‹ prev</i>, or from the <b>Plan</b> tab.</li>" +
+      "</ul>" +
+
+      "<h4>Mocks (timed tests)</h4>" +
+      "<p>There are 7 mocks on fixed dates — the next one is always shown at the top of this page. Each one tests " +
+      "every day before it. On the morning of a mock, at 08:45, you get an email with the exact time it opens " +
+      "(somewhere between " + esc(win) + "). From that time you have " + esc(hours) + " hours to start it in the " +
+      "<b>OAs</b> tab; once started, you have 90 minutes (120 for the last one). If you don't start in time, it's " +
+      "marked missed, but you can still take it as unscored practice. On a mock day you only get 3 problems — the " +
+      "4th moves to the <b>Revision</b> tab.</p>" +
+
+      "<h4>Emails</h4>" +
+      "<p>While today isn't finished, you get a short email at 9, 11, 13, 15, 17 and 19:00 naming the one next " +
+      "thing to do, with a link straight to it. At 21:00 you get one if you haven't done the daily minimum. They " +
+      "stop for the day once everything is done.</p>" +
+
+      "<h4>The other tabs</h4>" +
+      dl([
+        ["<b>Plan</b>", "All 30 days at a glance. Each dot is a problem: green solved, orange revisit, grey todo."],
+        ["<b>Theory</b>", "161 short pages, searchable. <i>Patterns</i> lists every pattern and the problems that use it."],
+        ["<b>Revision</b>", "Re-solves that are due, low-confidence and starred problems, drill misses, and siblings you've studied."],
+        ["<b>Browse</b>", "Every problem with filters, including your own notes and tags."],
+        ["<b>OAs</b>", "The mocks: when each opens, and your past scores by pattern."]
+      ]));
   }
 
   /* ------------------------------------------------------ header strip */
@@ -4784,27 +4863,74 @@ return { IST_OFFSET_MS, istDate, istMinutes, istInstant, addDays, daysBetween, p
         (led.micro_read ? " checked" : "") + "> read</label>");
   }
 
+  var DSA_VERDICT = {
+    correct: { label: "✓ correct", cls: "ok" },
+    partial: { label: "≈ partly", cls: "part" },
+    wrong: { label: "✗ not quite", cls: "bad" }
+  };
+
+  /* A drill card. The full statement (input, output, constraints, an
+     example) comes first, with LeetCode one click away; then you name the
+     pattern and the approach in one line. Groq checks it against the
+     reference when a key is configured; otherwise, or as well, you reveal
+     the answer and mark yourself. */
   function dsaDrillCard(it, n) {
     var g = DSA_S.drill[it.id] || {};
-    var shown = DSAV.drillShown[it.id] || g.correct !== null && g.correct !== undefined;
+    var marked = g.correct !== null && g.correct !== undefined;
+    var shown = DSAV.drillShown[it.id] || marked;
+    var busy = DSAV.drillBusy && DSAV.drillBusy[it.id];
+    var v = g.ai_verdict && DSA_VERDICT[g.ai_verdict];
     return '<div class="dsa-drill' + (g.correct === true ? " right" : g.correct === false ? " wrong" : "") + '">' +
-      '<p class="dsa-drill-q">' + mdInline(it.statement) + "</p>" +
-      '<input type="text" class="dsa-drill-guess" data-dsa-guess="' + esc(it.id) + '" data-day="' + n + '" value="' +
-        esc(g.guess || "") + '" placeholder="pattern + one-line approach">' +
+      '<p class="dsa-drill-q"><b>' + mdInline(it.statement) + "</b></p>" +
+      (it.details ? '<div class="dsa-drill-full">' + md(it.details) + "</div>" : "") +
+      '<p class="dsa-drill-lc"><a href="' + esc(it.lc.url) + '" target="_blank" rel="noopener" ' +
+        'title="Opens the original problem — its title may hint at the pattern">LeetCode ↗</a></p>' +
+      '<textarea class="dsa-drill-guess" rows="2" data-dsa-guess="' + esc(it.id) + '" data-day="' + n + '" ' +
+        'placeholder="Pattern + one-line approach, e.g. “sliding window: grow right, shrink left while a duplicate is inside”">' +
+        esc(g.guess || "") + "</textarea>" +
+      '<div class="dsa-drill-do">' +
+        (DSA_SYNC.ai
+          ? '<button type="button" class="btn tiny" data-dsa-drillcheck="' + esc(it.id) + '" data-day="' + n + '"' +
+            (busy ? " disabled" : "") + ">" + (busy ? "checking…" : g.ai_verdict ? "check again" : "check with Groq") + "</button>"
+          : "") +
+        (shown ? "" : '<button type="button" class="btn tiny ghost" data-dsa-drillshow="' + esc(it.id) + '">reveal answer</button>') +
+        (!DSA_SYNC.ai && DSA_SYNC.on ? '<span class="muted tiny">Groq checking turns on once GROQ_API_KEY is set.</span>' : "") +
+      "</div>" +
+      (v ? '<div class="dsa-drill-verdict ' + v.cls + '"><b>' + v.label + "</b> " + esc(g.ai_feedback || "") + "</div>" : "") +
       (shown
         ? '<div class="dsa-drill-a">' +
-            '<p><b>' + esc(it.pattern_name) + "</b> — " + mdInline(it.approach) + "</p>" +
+            '<p><span class="muted tiny">' + esc(it.title) + "</span><br><b>" + esc(it.pattern_name) + "</b> — " + mdInline(it.approach) + "</p>" +
             '<p class="muted tiny"><b>Trigger:</b> ' + mdInline(it.trigger) + " · <b>" + esc(it.complexity) + "</b></p>" +
-            '<div class="dsa-chips">' + dsaTheoryChip(it.pattern_page, null) +
-              '<a class="dsa-chip out" href="' + esc(it.lc.url) + '" target="_blank" rel="noopener">' + esc(it.title) + " on LeetCode</a></div>" +
-            '<div class="dsa-drill-mark"><span class="muted tiny">Did you get it?</span>' +
+            '<div class="dsa-chips">' + dsaTheoryChip(it.pattern_page, null) + "</div>" +
+            '<div class="dsa-drill-mark"><span class="muted tiny">' + (v ? "Disagree with the check? Mark it yourself:" : "Did you get it?") + "</span>" +
               '<button type="button" class="dsa-check' + (g.correct === true ? " on" : "") + '" data-dsa-drillmark="' + esc(it.id) +
                 '" data-day="' + n + '" data-v="1">✓ got it</button>' +
               '<button type="button" class="dsa-check' + (g.correct === false ? " on bad" : "") + '" data-dsa-drillmark="' + esc(it.id) +
                 '" data-day="' + n + '" data-v="0">✗ missed</button></div>' +
           "</div>"
-        : '<button type="button" class="btn tiny" data-dsa-drillshow="' + esc(it.id) + '">reveal</button>') +
+        : "") +
       "</div>";
+  }
+
+  function dsaCheckDrill(id, day) {
+    var ta = document.querySelector('[data-dsa-guess="' + cssEsc(id) + '"]');
+    var guess = ta ? ta.value.trim() : "";
+    if (guess.length < 3) { toast("Write the pattern and a one-line approach first."); return; }
+    DSAV.drillBusy = DSAV.drillBusy || {};
+    DSAV.drillBusy[id] = true;
+    render();
+    api("/api/dsa/drill/" + encodeURIComponent(id) + "/check", { method: "POST", body: JSON.stringify({ guess: guess }) })
+      .then(function (res) {
+        DSA_S.drill[id] = res.drill;
+        DSAV.drillShown[id] = true;
+        dsaCache();
+      })
+      .catch(function (e) {
+        // The api() helper turns the server's JSON error into the message.
+        if (/GROQ_API_KEY/.test(e.message)) DSA_SYNC.ai = false;
+        toast("Groq check failed: " + e.message + ". Reveal the answer and mark it yourself.");
+      })
+      .then(function () { delete DSAV.drillBusy[id]; render(); });
   }
 
   function dsaDrillBlock(n, doc) {
@@ -4814,8 +4940,8 @@ return { IST_OFFSET_MS, istDate, istMinutes, istInstant, addDays, daysBetween, p
       var g = DSA_S.drill[it.id]; return g && g.correct !== null && g.correct !== undefined;
     }).length;
     return dsaBlock("drill", meta.title, meta.minutes,
-      '<p class="muted tiny">Unseen problems. Name the pattern and the approach in one line before revealing — ' +
-      "recognition is the skill the mocks test.</p>" +
+      '<p class="muted tiny">Five problems you have not seen. Read each one, then write which pattern it is and the approach in one line — ' +
+      "before looking anything up. Recognising the pattern quickly is exactly what the mocks test.</p>" +
       '<div class="dsa-drills">' + (doc.drill || []).map(function (it) { return dsaDrillCard(it, n); }).join("") + "</div>",
       '<span class="muted tiny">' + answered + " / " + (doc.drill || []).length + "</span>");
   }
@@ -5550,6 +5676,9 @@ return { IST_OFFSET_MS, istDate, istMinutes, istInstant, addDays, daysBetween, p
       };
     });
 
+    document.querySelectorAll("[data-dsa-drillcheck]").forEach(function (b) {
+      b.onclick = function () { dsaCheckDrill(b.dataset.dsaDrillcheck, +b.dataset.day); };
+    });
     document.querySelectorAll("[data-dsa-drillshow]").forEach(function (b) {
       b.onclick = function () { DSAV.drillShown[b.dataset.dsaDrillshow] = true; render(); };
     });

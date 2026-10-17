@@ -833,6 +833,14 @@ pattern_name: Prefix sums (or per-element contribution counting)
 approach: With prefix sums, each odd-length subarray sum is O(1) → O(n²) total. O(n) trick: element i appears in ((i+1)(n−i)+1)/2 odd-length subarrays; sum a[i] × that count.
 trigger: "sum over many subarrays" → prefix sums, or count how many subarrays each element belongs to.
 complexity: O(n²) or O(n)
+--- details | Full statement | screenshot
+**Task.** Consider every contiguous subarray whose length is odd (1, 3, 5, …). Return the sum of all their sums.
+
+**Input:** an integer array `arr`. **Output:** an integer.
+
+**Constraints:** 1 ≤ length ≤ 100; 1 ≤ `arr[i]` ≤ 1000. Follow-up: O(n).
+
+**Example:** `[1, 4, 2, 5, 3]` → `58`. The length-1 subarrays add up to 15. The length-3 ones are 7, 11 and 10, so 28. The length-5 one is 15. 15 + 28 + 15 = 58.
 +++ item: 2485 | find-the-pivot-integer | Find the Pivot Integer | Easy
 statement: Find x in 1..n such that 1 + … + x equals x + … + n, or −1.
 pattern: ps-prefix-sum-basics
@@ -840,6 +848,14 @@ pattern_name: Left sum vs right sum
 approach: Left = x(x+1)/2, right = total − left + x; scan x, or solve x² = n(n+1)/2 directly.
 trigger: "sum on the left equals sum on the right" → prefix sum + total (Pivot Index).
 complexity: O(n) or O(1)
+--- details | Full statement | screenshot
+**Task.** Given a positive integer n, find the integer x with 1 ≤ x ≤ n such that the sum 1 + 2 + … + x equals the sum x + (x+1) + … + n. Return x, or −1 if there is none. There is at most one such x.
+
+**Input:** an integer `n`. **Output:** an integer.
+
+**Constraints:** 1 ≤ n ≤ 1000.
+
+**Example:** `n = 8` → `6` (1+…+6 = 21 = 6+7+8). `n = 1` → `1`. `n = 4` → `-1`.
 +++ item: 1422 | maximum-score-after-splitting-a-string | Maximum Score After Splitting a String | Easy
 statement: Split a binary string into two non-empty parts; score = zeros in the left part + ones in the right part. Return the best score.
 pattern: ps-prefix-sum-basics
@@ -847,6 +863,14 @@ pattern_name: Running count + total
 approach: Count all ones first; walk split points keeping zeros-so-far and ones-so-far; score = zerosLeft + (totalOnes − onesLeft). Keep both parts non-empty.
 trigger: "split into left and right, score each side" → one running prefix and one total.
 complexity: O(n)
+--- details | Full statement | screenshot
+**Task.** A string of 0s and 1s is cut into a non-empty left part and a non-empty right part. The score is the number of 0s in the left part plus the number of 1s in the right part. Return the best score over all possible cuts.
+
+**Input:** a binary string `s`. **Output:** an integer.
+
+**Constraints:** 2 ≤ length ≤ 500.
+
+**Example:** `"011101"` → `5`. Cutting after the first character gives `"0"` + `"11101"`: one zero plus four ones. `"00111"` → `5`.
 +++ item: 2270 | number-of-ways-to-split-array | Number of Ways to Split Array | Medium
 statement: Count split points where the sum of the left part is at least the sum of the right part (both parts non-empty).
 pattern: ps-prefix-sum-basics
@@ -854,6 +878,14 @@ pattern_name: Prefix sum + total, in long long
 approach: Total first; running left sum; at each split i (0..n−2) check left ≥ total − left. Sums up to 10¹⁰ → long long.
 trigger: "left sum vs right sum at every split" → running prefix + total.
 complexity: O(n)
+--- details | Full statement | screenshot
+**Task.** A split at index i (0 ≤ i < n − 1) divides the array into `nums[0..i]` and `nums[i+1..n−1]`, so both parts are non-empty. It is valid when the left part's sum is at least the right part's sum. Count the valid splits.
+
+**Input:** an integer array `nums`. **Output:** an integer.
+
+**Constraints:** 2 ≤ length ≤ 10⁵; −10⁵ ≤ `nums[i]` ≤ 10⁵.
+
+**Example:** `[10, 4, -8, 7]` → `2`. The splits give 10 vs 3 (valid), 14 vs −1 (valid) and 6 vs 7 (not valid).
 +++ item: 1189 | maximum-number-of-balloons | Maximum Number of Balloons | Easy
 statement: Using each letter of a text at most once, how many copies of the word "balloon" can be formed?
 pattern: hash-frequency-counting
@@ -861,6 +893,14 @@ pattern_name: Frequency counting (supply / demand)
 approach: Count letters of the text; answer = min(b, a, l/2, o/2, n).
 trigger: "how many times can a word be built from these letters" → counts divided by the word's own counts.
 complexity: O(n)
+--- details | Full statement | screenshot
+**Task.** You may use each character of `text` at most once. How many complete copies of the word `"balloon"` can you form?
+
+**Input:** a string `text`. **Output:** an integer.
+
+**Constraints:** 1 ≤ length ≤ 10⁴; lowercase letters only.
+
+**Example:** `"nlaebolko"` → `1`. `"loonbalxballpoon"` → `2`. `"leetcode"` → `0`.
 
 === cs_core: oop-04-polymorphism
 subject: OOP
