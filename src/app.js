@@ -1509,6 +1509,7 @@
     ACTIVE = tab.id;
     document.body.classList.toggle("domain-mba", tab.domain === "mba");
     document.body.classList.toggle("domain-dsa", tab.domain === "dsa");
+    if (typeof dsaApplyTheme === "function") dsaApplyTheme();
 
     var panel = document.getElementById("panel");
     /* Re-rendering replaces the whole panel. Content that fills in a moment
@@ -1582,9 +1583,60 @@
     var st = stats();
     var rank = rankFor(st.rating);
     var left = DSA_CORE.daysBetween(dsaToday(), DSA_PLAN.placement_day);
+    var dark = document.body.classList.contains("dsa-dark");
     el.innerHTML = '<span>Rating <b>' + st.rating + "</b> · " + esc(rank.n) + "</span>" +
       "<span><b>" + left + "</b> days to placements</span>" +
-      "<span>DSA <b>" + st.dsa.done + "</b> / " + DSA_POOL + "</span>";
+      "<span>DSA <b>" + st.dsa.done + "</b> / " + DSA_POOL + "</span>" +
+      '<button type="button" class="dsa-theme-toggle" id="dsaThemeToggle" aria-pressed="' + dark + '" ' +
+        'title="' + (dsaThemePref() ? "Your choice — click to switch" : "Following your system setting — click to choose") + '">' +
+        '<span class="sw" aria-hidden="true"></span>Dark mode' + (dark ? " on" : " off") + "</button>";
+    document.getElementById("dsaThemeToggle").onclick = dsaToggleTheme;
+  }
+
+  /* ------------------------------------------------------ dark mode
+
+     The DSA section follows the system light/dark setting until you choose;
+     the choice is remembered per browser. Choosing the same as the system
+     goes back to following it, so changing the OS setting later still
+     works. Only the DSA section has a dark register (body.domain-dsa). */
+  var DSA_THEME_KEY = "launch-console-dsa-theme";
+  var DSA_DARK_MQ = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+
+  function dsaThemePref() {
+    try { return localStorage.getItem(DSA_THEME_KEY) || DSAV.themeOverride || null; } catch (e) { return DSAV.themeOverride || null; }
+  }
+
+  function dsaWantsDark() {
+    var pref = dsaThemePref();
+    if (pref === "dark") return true;
+    if (pref === "light") return false;
+    return !!(DSA_DARK_MQ && DSA_DARK_MQ.matches);
+  }
+
+  function dsaApplyTheme() {
+    var inDsa = document.body.classList.contains("domain-dsa");
+    var dark = inDsa && dsaWantsDark();
+    document.body.classList.toggle("dsa-dark", dark);
+    // Scrollbars, form controls and the canvas follow the register.
+    document.documentElement.style.colorScheme = dark ? "dark" : "light";
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) { meta = document.createElement("meta"); meta.name = "theme-color"; document.head.appendChild(meta); }
+    meta.content = dark ? "#12100e" : inDsa ? "#f5f1ea" : "#f2f4f7";
+  }
+
+  function dsaToggleTheme() {
+    var next = dsaWantsDark() ? "light" : "dark";
+    var system = DSA_DARK_MQ && DSA_DARK_MQ.matches ? "dark" : "light";
+    try {
+      if (next === system) localStorage.removeItem(DSA_THEME_KEY); else localStorage.setItem(DSA_THEME_KEY, next);
+    } catch (e) { /* storage blocked: the switch still works for this visit */ DSAV.themeOverride = next; }
+    dsaApplyTheme();
+    dsaSlimHeader();
+    var btn = document.getElementById("dsaThemeToggle");
+    if (btn) btn.focus();
+  }
+  if (DSA_DARK_MQ && DSA_DARK_MQ.addEventListener) {
+    DSA_DARK_MQ.addEventListener("change", function () { dsaApplyTheme(); if (SECTION === "dsa") dsaSlimHeader(); });
   }
 
   /* The streak counts days you actually moved something, so reverting the

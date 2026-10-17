@@ -2198,6 +2198,164 @@ body.domain-dsa .dsa-stepbtn { display: inline-flex; align-items: center; }
 @media (max-width: 720px) {
   body.domain-dsa .dsa-code pre { padding-top: 38px; }
 }
+
+/* ============================================================
+   DSA DARK MODE — the house "ink" register.
+
+   Every text/background pair below was checked against WCAG 2.2: body
+   text 11–16:1, secondary text ≥ 5.5:1, accents and status colours
+   ≥ 5.8:1 on every surface they sit on (AA needs 4.5:1); form-field and
+   outline-button edges ≥ 3:1 (1.4.11). Status colours are lightened, not
+   just reused, because the light-mode ones drop under 3:1 on ink.
+   ============================================================ */
+
+/* Form fields need a 3:1 edge in light mode too (the hairline was 1.5:1). */
+body.domain-dsa textarea, body.domain-dsa input[type="text"], body.domain-dsa input[type="search"],
+body.domain-dsa select, body.domain-dsa .dsa-drill-guess { border-color: #8c8478; }
+body.domain-dsa .btn.ghost, body.domain-dsa a.btn.ghost { border-color: #8c8478; }
+
+body.domain-dsa.dsa-dark {
+  color-scheme: dark;
+  --ink: #f2ede5;
+  --paper: #12100e;
+  --white: #1c1916;
+  --grey: #aaa297;
+  --hairline: #4a443c;
+  --dsa: #45cdb9;
+  --dsa-soft: rgba(69, 205, 185, .12);
+  --ink-a08: rgba(0, 0, 0, .35);
+  --ink-a12: rgba(0, 0, 0, .45);
+  --ink-a20: rgba(242, 237, 229, .22);
+  --bg: var(--paper);
+  --surface: var(--white);
+  --raise: #25211d;
+  --line: var(--hairline);
+  --line-soft: #2e2924;
+  --ink-2: #d6cfc4;
+  --ink-3: var(--grey);
+  --accent: var(--dsa);
+  --ok: #6fd497; --warn: #f2ad5e; --crit: #f48a7a;
+  --easy: #6fd497; --medium: #f2ad5e; --hard: #f48a7a;
+  --amber: #f2ad5e;
+  --action: #45cdb9;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* fields + outline buttons: 3:1 edges on ink */
+body.domain-dsa.dsa-dark textarea, body.domain-dsa.dsa-dark input[type="text"], body.domain-dsa.dsa-dark input[type="search"],
+body.domain-dsa.dsa-dark select, body.domain-dsa.dsa-dark .dsa-drill-guess {
+  background: #161411; color: var(--ink); border-color: #7a7268;
+}
+body.domain-dsa.dsa-dark ::placeholder { color: #8f877b; opacity: 1; }
+
+
+/* the loud action inverts: a light pill with dark text */
+body.domain-dsa.dsa-dark .btn { background: var(--ink); color: #12100e; border-color: var(--ink); }
+body.domain-dsa.dsa-dark .btn:hover { background: #ffffff; color: #12100e; }
+/* Outline buttons stay outlines: transparent fill, light label, 3:1 edge.
+   (Declared after the solid .btn rule so it wins.) */
+body.domain-dsa.dsa-dark .btn.ghost, body.domain-dsa.dsa-dark a.btn.ghost { background: transparent; border-color: #6f675d; color: var(--ink); }
+body.domain-dsa.dsa-dark .btn.ghost:hover { background: var(--ink); color: #12100e; border-color: var(--ink); }
+body.domain-dsa.dsa-dark .btn:disabled, body.domain-dsa.dsa-dark .btn[disabled] { background: #2b2722; color: #9a9286; border-color: #3b352e; }
+body.domain-dsa.dsa-dark .seg[aria-selected="true"] { background: var(--ink); color: #12100e; }
+body.domain-dsa.dsa-dark .dsa-mode.on, body.domain-dsa.dsa-dark .dsa-stepbtn.now { background: var(--ink); color: #12100e; border-color: var(--ink); }
+body.domain-dsa.dsa-dark .dsa-stepbtn.now .dot { background: #0f766e; border-color: #0f766e; }
+body.domain-dsa.dsa-dark .dsa-stepbtn.past .dot { background: var(--dsa); border-color: var(--dsa); }
+
+/* sticky glass bars over ink */
+body.domain-dsa.dsa-dark nav.tabs { background: color-mix(in srgb, #12100e 84%, transparent); border-bottom-color: var(--hairline); }
+body.domain-dsa.dsa-dark .dsa-stepbar { background: color-mix(in srgb, #1c1916 90%, transparent); }
+
+/* surfaces that were light tints */
+body.domain-dsa.dsa-dark .card, body.domain-dsa.dsa-dark .dsa-detail, body.domain-dsa.dsa-dark .dsa-drill,
+body.domain-dsa.dsa-dark .dsa-mcq, body.domain-dsa.dsa-dark .dsa-revq, body.domain-dsa.dsa-dark .dsa-stage,
+body.domain-dsa.dsa-dark .dsa-theorycard, body.domain-dsa.dsa-dark .dsa-pday, body.domain-dsa.dsa-dark .dsa-strip-item,
+body.domain-dsa.dsa-dark .dsa-sib-row, body.domain-dsa.dsa-dark .dsa-map, body.domain-dsa.dsa-dark .dsa-stuckmini,
+body.domain-dsa.dsa-dark .dsa-tablewrap, body.domain-dsa.dsa-dark .dsa-shot-card { background: var(--white); border-color: var(--hairline); }
+body.domain-dsa.dsa-dark .dsa-stage.covered, body.domain-dsa.dsa-dark .dsa-pday.pending { background: var(--raise); }
+body.domain-dsa.dsa-dark .dsa-row.open { background: #191613; }
+body.domain-dsa.dsa-dark .dsa-check-line:hover, body.domain-dsa.dsa-dark .dsa-pathstep:hover { background: #24201c; }
+body.domain-dsa.dsa-dark .dsa-helper { background: #26221d; color: var(--ink-2); }
+body.domain-dsa.dsa-dark .dsa-why { background: rgba(69, 205, 185, .10); color: var(--ink); }
+body.domain-dsa.dsa-dark .dsa-detour { background: rgba(69, 205, 185, .07); border-color: rgba(69, 205, 185, .5); }
+body.domain-dsa.dsa-dark p.wl { background: linear-gradient(90deg, rgba(69, 205, 185, .12), transparent 60%); }
+body.domain-dsa.dsa-dark .dsa-returnbar { background: color-mix(in srgb, #362b1f 94%, transparent); border-color: #7a5a30; color: var(--ink); }
+body.domain-dsa.dsa-dark .dsa-alert { background: #362722; border-color: var(--crit); color: var(--ink); }
+body.domain-dsa.dsa-dark .dsa-alert.soft, body.domain-dsa.dsa-dark .dsa-pending-notes { background: #362b1f; border-color: #7a5a30; color: var(--ink); }
+body.domain-dsa.dsa-dark .dsa-drill-verdict.ok { background: #262f25; }
+body.domain-dsa.dsa-dark .dsa-drill-verdict.part { background: #362b1f; }
+body.domain-dsa.dsa-dark .dsa-drill-verdict.bad { background: #362722; }
+body.domain-dsa.dsa-dark .dsa-drill-verdict { color: var(--ink); }
+body.domain-dsa.dsa-dark .dsa-mcq-opt { background: #191613; color: var(--ink); border-color: #4a443c; }
+body.domain-dsa.dsa-dark .dsa-mcq-opt.correct { background: #262f25; border-color: var(--ok); }
+body.domain-dsa.dsa-dark .dsa-mcq-opt.picked { background: #362722; border-color: var(--crit); }
+
+/* tables */
+body.domain-dsa.dsa-dark .dsa-table thead th { background: #25211d; color: var(--ink); border-bottom-color: var(--hairline); }
+body.domain-dsa.dsa-dark .dsa-table tbody tr:nth-child(even) td { background: #211e1a; }
+body.domain-dsa.dsa-dark .dsa-table tbody tr:hover td { background: rgba(69, 205, 185, .10); }
+body.domain-dsa.dsa-dark .dsa-table td { color: var(--ink); }
+
+/* code: a deeper panel so it still reads as a separate surface */
+body.domain-dsa.dsa-dark .dsa-code pre { background: #0e0d0b; border-color: #3b352e; color: #ece6dc; }
+body.domain-dsa.dsa-dark .dsa-stage code, body.domain-dsa.dsa-dark .dsa-tsec code, body.domain-dsa.dsa-dark .dsa-drill code,
+body.domain-dsa.dsa-dark .dsa-sheet code, body.domain-dsa.dsa-dark .dsa-table code, body.domain-dsa.dsa-dark .dsa-mcq code,
+body.domain-dsa.dsa-dark .dsa-why code, body.domain-dsa.dsa-dark .ol-1 code, body.domain-dsa.dsa-dark .ol-2 code, body.domain-dsa.dsa-dark .ol-3 code {
+  background: #2b2621; color: #f5d9b0; border-color: #3f3830;
+}
+
+/* note sheets: dark paper */
+body.domain-dsa.dsa-dark .dsa-sheet { background: #1f1b16; border-color: #3f3830; box-shadow: none; color: var(--ink); }
+body.domain-dsa.dsa-dark .dsa-sheet-hd { border-bottom-color: #3f3830; }
+body.domain-dsa.dsa-dark .ol-write-line { border-bottom-color: #8f877b; }
+body.domain-dsa.dsa-dark .dsa-gn input { color: var(--ink); border-bottom-color: #8f877b; }
+
+/* badges + chips */
+body.domain-dsa.dsa-dark .dsa-role.r-LEARN { background: var(--ink); color: #12100e; border-color: var(--ink); }
+body.domain-dsa.dsa-dark .dsa-role.r-APPLY { background: rgba(69, 205, 185, .12); color: #7fe0d0; border-color: rgba(69, 205, 185, .5); }
+body.domain-dsa.dsa-dark .dsa-role.r-TWIST { background: #2c2216; color: #f5c185; border-color: #7a5a30; }
+body.domain-dsa.dsa-dark .dsa-role.r-DISGUISE { background: #231d36; color: #c9b8ff; border-color: #5a4b8f; }
+body.domain-dsa.dsa-dark .dsa-role.r-MUST, body.domain-dsa.dsa-dark .dsa-must { background: var(--ink); color: #12100e; }
+body.domain-dsa.dsa-dark .dsa-when { background: #2b2621; color: var(--ink-2); }
+body.domain-dsa.dsa-dark .dsa-when.w-before { background: #262f25; color: #8fe0ad; }
+body.domain-dsa.dsa-dark .dsa-when.w-stuck { background: #362722; color: #f6a497; }
+body.domain-dsa.dsa-dark .dsa-when.w-after { background: #231d36; color: #c9b8ff; }
+body.domain-dsa.dsa-dark .dsa-kind.k-meta { color: #c9b8ff; border-color: #6e5fb0; }
+body.domain-dsa.dsa-dark .dsa-kind.k-core { color: #f5c185; border-color: #8a6a3e; }
+body.domain-dsa.dsa-dark .dsa-kind.k-cpp { color: #9cc3ff; border-color: #4f6fa8; }
+body.domain-dsa.dsa-dark .dsa-nstatus.ready { color: var(--ok); border-color: var(--ok); }
+body.domain-dsa.dsa-dark .dsa-chip { color: #7fe0d0; background: rgba(69, 205, 185, .10); border-color: rgba(69, 205, 185, .4); }
+body.domain-dsa.dsa-dark .dsa-chip.out { color: var(--ink-2); background: transparent; border-color: #5a534a; }
+body.domain-dsa.dsa-dark .dsa-pday .mk { background: var(--ink); color: #12100e; }
+body.domain-dsa.dsa-dark .dot { background: #5a534a; }
+body.domain-dsa.dsa-dark .dot.queued { background: #a78bfa; }
+body.domain-dsa.dsa-dark .dot.skim { background: transparent; border-color: var(--grey); }
+body.domain-dsa.dsa-dark .dsa-status.s-solved, body.domain-dsa.dsa-dark .dsa-status.s-revisit,
+body.domain-dsa.dsa-dark .dsa-check.on, body.domain-dsa.dsa-dark .dsa-conf button.on, body.domain-dsa.dsa-dark .dsa-tagb.on { color: #12100e; }
+body.domain-dsa.dsa-dark .dsa-oa { background: #f48a7a; color: #12100e; }
+body.domain-dsa.dsa-dark .oa-card.st-unlocked .oa-chip.st { background: var(--dsa); color: #12100e; }
+
+/* OA tab tints */
+body.domain-dsa.dsa-dark .oa-v.passed, body.domain-dsa.dsa-dark .oa-band.b-strong { background: #262f25; }
+body.domain-dsa.dsa-dark .oa-v.failed, body.domain-dsa.dsa-dark .oa-v.errored, body.domain-dsa.dsa-dark .oa-v.compile-error,
+body.domain-dsa.dsa-dark .oa-band.b-not-yet, body.domain-dsa.dsa-dark .oa-expired, body.domain-dsa.dsa-dark .oa-compile pre,
+body.domain-dsa.dsa-dark .oa-chip.warn { background: #362722; }
+body.domain-dsa.dsa-dark .oa-v.timed-out, body.domain-dsa.dsa-dark .oa-band.b-partial, body.domain-dsa.dsa-dark .oa-warn { background: #362b1f; }
+
+/* the theme toggle itself */
+.dsa-theme-toggle {
+  appearance: none; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  font: inherit; font-size: 11.5px; color: var(--ink); background: transparent;
+  border: 1px solid #8c8478; border-radius: 999px; padding: 3px 10px 3px 8px; margin-left: auto;
+}
+.dsa-theme-toggle:hover { background: var(--raise); }
+.dsa-theme-toggle .sw { width: 12px; height: 12px; border-radius: 50%; background: linear-gradient(90deg, var(--ink) 50%, transparent 50%); border: 1.5px solid var(--ink); }
+body.domain-dsa.dsa-dark .dsa-theme-toggle { border-color: #7a7268; }
+/* code inside a block is not inline code: no pill, inherit the panel colours */
+body.domain-dsa.dsa-dark .dsa-code pre code, body.domain-dsa .dsa-code pre code {
+  background: none; border: 0; padding: 0; color: inherit; font-size: inherit; border-radius: 0;
+}
 </style>
 </head>
 <body>
@@ -4399,6 +4557,7 @@ var COPY = {
     ACTIVE = tab.id;
     document.body.classList.toggle("domain-mba", tab.domain === "mba");
     document.body.classList.toggle("domain-dsa", tab.domain === "dsa");
+    if (typeof dsaApplyTheme === "function") dsaApplyTheme();
 
     var panel = document.getElementById("panel");
     /* Re-rendering replaces the whole panel. Content that fills in a moment
@@ -4472,9 +4631,60 @@ var COPY = {
     var st = stats();
     var rank = rankFor(st.rating);
     var left = DSA_CORE.daysBetween(dsaToday(), DSA_PLAN.placement_day);
+    var dark = document.body.classList.contains("dsa-dark");
     el.innerHTML = '<span>Rating <b>' + st.rating + "</b> · " + esc(rank.n) + "</span>" +
       "<span><b>" + left + "</b> days to placements</span>" +
-      "<span>DSA <b>" + st.dsa.done + "</b> / " + DSA_POOL + "</span>";
+      "<span>DSA <b>" + st.dsa.done + "</b> / " + DSA_POOL + "</span>" +
+      '<button type="button" class="dsa-theme-toggle" id="dsaThemeToggle" aria-pressed="' + dark + '" ' +
+        'title="' + (dsaThemePref() ? "Your choice — click to switch" : "Following your system setting — click to choose") + '">' +
+        '<span class="sw" aria-hidden="true"></span>Dark mode' + (dark ? " on" : " off") + "</button>";
+    document.getElementById("dsaThemeToggle").onclick = dsaToggleTheme;
+  }
+
+  /* ------------------------------------------------------ dark mode
+
+     The DSA section follows the system light/dark setting until you choose;
+     the choice is remembered per browser. Choosing the same as the system
+     goes back to following it, so changing the OS setting later still
+     works. Only the DSA section has a dark register (body.domain-dsa). */
+  var DSA_THEME_KEY = "launch-console-dsa-theme";
+  var DSA_DARK_MQ = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+
+  function dsaThemePref() {
+    try { return localStorage.getItem(DSA_THEME_KEY) || DSAV.themeOverride || null; } catch (e) { return DSAV.themeOverride || null; }
+  }
+
+  function dsaWantsDark() {
+    var pref = dsaThemePref();
+    if (pref === "dark") return true;
+    if (pref === "light") return false;
+    return !!(DSA_DARK_MQ && DSA_DARK_MQ.matches);
+  }
+
+  function dsaApplyTheme() {
+    var inDsa = document.body.classList.contains("domain-dsa");
+    var dark = inDsa && dsaWantsDark();
+    document.body.classList.toggle("dsa-dark", dark);
+    // Scrollbars, form controls and the canvas follow the register.
+    document.documentElement.style.colorScheme = dark ? "dark" : "light";
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) { meta = document.createElement("meta"); meta.name = "theme-color"; document.head.appendChild(meta); }
+    meta.content = dark ? "#12100e" : inDsa ? "#f5f1ea" : "#f2f4f7";
+  }
+
+  function dsaToggleTheme() {
+    var next = dsaWantsDark() ? "light" : "dark";
+    var system = DSA_DARK_MQ && DSA_DARK_MQ.matches ? "dark" : "light";
+    try {
+      if (next === system) localStorage.removeItem(DSA_THEME_KEY); else localStorage.setItem(DSA_THEME_KEY, next);
+    } catch (e) { /* storage blocked: the switch still works for this visit */ DSAV.themeOverride = next; }
+    dsaApplyTheme();
+    dsaSlimHeader();
+    var btn = document.getElementById("dsaThemeToggle");
+    if (btn) btn.focus();
+  }
+  if (DSA_DARK_MQ && DSA_DARK_MQ.addEventListener) {
+    DSA_DARK_MQ.addEventListener("change", function () { dsaApplyTheme(); if (SECTION === "dsa") dsaSlimHeader(); });
   }
 
   /* The streak counts days you actually moved something, so reverting the
