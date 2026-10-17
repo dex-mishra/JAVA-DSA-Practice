@@ -620,7 +620,11 @@ export function importDsa({ src, today = new Date().toISOString().slice(0, 10) }
     count: theoryPages.length,
     topics: theoryIndex.topics,
     pages: (theoryIndex.pages || []).map((row) => ({
-      ...row, notes_status: pages.get(row.id).notes_status, used: (usedBy.get(row.id) || []).length
+      ...row, notes_status: pages.get(row.id).notes_status, used: (usedBy.get(row.id) || []).length,
+      // What the Library search looks through besides title and summary
+      // (v3.1 §9): the outline note and the recall questions, flattened.
+      search: [pages.get(row.id).note || "", ...(pages.get(row.id).recall || []).map((r) => r.q)]
+        .join(" ").replace(/[`*_#>\[\]•◦✎]/g, " ").replace(/\s+/g, " ").trim().toLowerCase().slice(0, 4000)
     }))
   };
 

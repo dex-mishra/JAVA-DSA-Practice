@@ -6827,10 +6827,27 @@ var COPY = {
   function dsaTheoryList() {
     if (!DSA_TINDEX) return '<div class="dsa-loading">Loading…</div>';
     var q = DSAV.theoryQ.trim().toLowerCase();
+    // Hyphens count as spaces both here and in the page text ("self-pairing"
+    // finds the section with that id; "two-sum" finds "two sum").
+    var words = q.split(/[\s-]+/).filter(Boolean);
+    q = words.join(" ");
     var byId = {};
     DSA_TINDEX.pages.forEach(function (r) { byId[r.id] = r; });
+    /* Every word has to appear somewhere: title, summary, topic, section
+       titles, or the page's note and recall text. "sliding window" finds the
+       window pages; "two sum" finds the page whose note works Two Sum. */
+    var haystack = function (r) {
+      if (!r._hay) {
+        r._hay = [r.title, r.summary || "", r.id.replace(/-/g, " "), r.topic || "", r.kind || "",
+          (r.sections || []).map(function (x) { return x.title + " " + x.id.replace(/-/g, " "); }).join(" "),
+          r.search || ""].join(" ").toLowerCase();
+      }
+      return r._hay;
+    };
     var match = function (r) {
-      return !q || r.title.toLowerCase().indexOf(q) !== -1 || (r.summary || "").toLowerCase().indexOf(q) !== -1 || r.id.indexOf(q) !== -1;
+      if (!words.length) return true;
+      var h = haystack(r);
+      return words.every(function (w) { return h.indexOf(w) !== -1; });
     };
     var topics = dsaTopicOrder();
     var group = function (title, list) {
@@ -6844,9 +6861,30 @@ var COPY = {
     };
     var isCore = function (t) { return (DSA_TINDEX.topics[t] || []).some(function (id) { return (byId[id] || {}).kind === "core"; }); };
     var pinned = q ? [] : dsaTodayPages().map(function (id) { return byId[id]; }).filter(Boolean);
+    var hits = q ? DSA_TINDEX.pages.filter(match).length : 0;
     var plan = (DSA_PLAN.core_plan && DSA_PLAN.core_plan.days) || [];
     var upcoming = q ? [] : plan.filter(function (d) { return d.content !== "ready"; }).slice(0, 8);
-    return (pinned.length ? '<h4 class="dsa-sub">Used today</h4><div class="dsa-theorylist">' + pinned.map(dsaPageCard).join("") + "</div>" : "") +
+    if (q && !hits) {
+      return '<div class="empty">No page mentions “' + esc(DSAV.theoryQ.trim()) + '”. Try fewer words, or a pattern name like “window” or “prefix”.</div>';
+    }
+    /* While searching: one list, best match first -- a page whose title has
+       the words beats one whose sections do, which beats one that only
+       mentions them in its notes. */
+    if (q) {
+      var score = function (r) {
+        var t = (r.title + " " + r.id.replace(/-/g, " ")).toLowerCase();
+        var secs = (r.sections || []).map(function (x) { return x.title + " " + x.id.replace(/-/g, " "); }).join(" ").toLowerCase();
+        var sum = (r.summary || "").toLowerCase();
+        return words.reduce(function (n, w) {
+          return n + (t.indexOf(w) !== -1 ? 6 : secs.indexOf(w) !== -1 ? 3 : sum.indexOf(w) !== -1 ? 2 : 1);
+        }, 0) + (t.indexOf(q) !== -1 ? 5 : 0);
+      };
+      var ranked = DSA_TINDEX.pages.filter(match).sort(function (a, b) { return score(b) - score(a) || a.title.localeCompare(b.title); });
+      return '<p class="muted tiny dsa-hits" role="status">' + hits + (hits === 1 ? " page matches “" : " pages match “") + esc(DSAV.theoryQ.trim()) + "” · best first</p>" +
+        '<div class="dsa-theorylist">' + ranked.map(dsaPageCard).join("") + "</div>";
+    }
+    return (q ? '<p class="muted tiny dsa-hits" role="status">' + hits + (hits === 1 ? " page matches “" : " pages match “") + esc(DSAV.theoryQ.trim()) + "”</p>" : "") +
+      (pinned.length ? '<h4 class="dsa-sub">Used today</h4><div class="dsa-theorylist">' + pinned.map(dsaPageCard).join("") + "</div>" : "") +
       group("DSA", topics.filter(function (t) { return !isCore(t); })) +
       group("CS core", topics.filter(isCore)) +
       (upcoming.length ? '<h4 class="dsa-sub">CS core still to come</h4><div class="dsa-coming">' + upcoming.map(function (d) {
@@ -6878,7 +6916,8 @@ var COPY = {
       "</div>" +
       (DSAV.theoryView === "patterns" ? dsaPatternList()
         : '<input type="search" class="dsa-tsearch" id="dsaTheoryQ" value="' + esc(DSAV.theoryQ) +
-          '" placeholder="search titles and summaries">' + '<div id="dsaTheoryList">' + dsaTheoryList() + "</div>") +
+          '" placeholder="Search pages, sections and notes — e.g. sliding window" aria-label="Search the library" aria-controls="dsaTheoryList">' +
+          '<div id="dsaTheoryList" aria-live="polite">' + dsaTheoryList() + "</div>") +
       "</section>";
   }
 
@@ -8094,6 +8133,22 @@ var COPY = {
     document.querySelectorAll("[data-dsa-theory-back]").forEach(function (b) {
       b.onclick = function () { dsaGo("#dsa/library"); };
     });
+    document.querySelectorAll("[data-dsa-tview]").forEach(function (b) {
+      b.onclick = function () { DSAV.theoryView = b.dataset.dsaTview; render(); };
+    });
+    /* Library search: repaint only the list, so the box keeps focus and the
+       caret stays where you are typing. */
+    var tq = document.getElementById("dsaTheoryQ");
+    if (tq) {
+      tq.oninput = function () {
+        DSAV.theoryQ = tq.value;
+        var host = document.getElementById("dsaTheoryList");
+        if (host) { host.innerHTML = dsaTheoryList(); bindDsa(); }
+      };
+      tq.onkeydown = function (e) {
+        if (e.key === "Escape" && tq.value) { e.stopPropagation(); tq.value = ""; tq.oninput(); }
+      };
+    }
     document.querySelectorAll("[data-copy]").forEach(function (b) {
       b.onclick = function () {
         var pre = document.getElementById(b.dataset.copy);
