@@ -7,7 +7,10 @@
 <meta name="description" content="Unified tracker: placement mastery rating and MBA application windows.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Anton&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<!-- General Sans (ISOCODELABS body face), used by the DSA section. -->
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600&display=swap" rel="stylesheet">
 <style>/* ============================================================
    LAUNCH CONSOLE — unified shell for the placement and MBA systems.
 
@@ -1881,6 +1884,320 @@ body.domain-dsa .dsa-slim { display: flex; gap: 18px; flex-wrap: wrap; font-fami
 .dsa-mcqnav { display: flex; gap: 8px; margin-top: 8px; }
 .dsa-coresum { font-size: 13.5px; }
 .dsa-keypoints { font-size: 13px; margin-top: 8px; }
+
+/* ============================================================
+   DSA THEME — the ISOCODELABS house system, applied to the DSA section.
+
+   Type, space, shape, depth and the quiet-glass recipe are the house
+   tokens; the palette is this app's own (light register, one teal accent).
+   No anchor image: a solid warm paper background instead, as asked.
+   Scoped to body.domain-dsa so Placement and MBA keep their own look.
+
+   Reading comfort is the brief: body in General Sans at 15.5/1.65, prose
+   capped at ~72 characters, tables with a header band and zebra rows, code
+   on an ink panel, and a sticky tab bar so navigation is always one click.
+   ============================================================ */
+
+body.domain-dsa {
+  /* palette (5 slots + 1 accent) */
+  --ink: #141210;
+  --paper: #f5f1ea;
+  --white: #ffffff;
+  --grey: #6b655e;
+  --hairline: #d8d2c8;
+  --dsa: #0f766e;
+  --dsa-soft: rgba(15, 118, 110, .09);
+  --ink-a08: rgba(20, 18, 16, .08);
+  --ink-a12: rgba(20, 18, 16, .12);
+  --ink-a20: rgba(20, 18, 16, .20);
+
+  /* map the app's variables onto the house palette */
+  --bg: var(--paper);
+  --surface: var(--white);
+  --raise: #efe9df;
+  --line: var(--hairline);
+  --line-soft: #e7e1d7;
+  --ink-2: #48433d;
+  --ink-3: var(--grey);
+  --accent: var(--dsa);
+  --r: 10px;
+
+  /* house type */
+  --font-display: "Anton", "Impact", "Arial Narrow", sans-serif;
+  --font-sans: "General Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-label: "Space Mono", ui-monospace, Menlo, monospace;
+  --font-code: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --e1: 0 1px 2px var(--ink-a08), 0 4px 12px var(--ink-a08);
+  --e2: 0 2px 4px var(--ink-a08), 0 12px 32px var(--ink-a12);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  background: var(--paper);
+  font-family: var(--font-sans);
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+/* Solid colour, no wash. */
+body.domain-dsa::before { background: none !important; }
+
+body.domain-dsa .muted { color: var(--grey); }
+body.domain-dsa .muted.tiny, body.domain-dsa .tiny { font-family: var(--font-label); font-size: 11px; letter-spacing: .02em; }
+body.domain-dsa a.linkish, body.domain-dsa .linkish { color: var(--dsa); text-decoration-color: rgba(15, 118, 110, .35); }
+
+/* Keyboard focus is always visible. */
+body.domain-dsa :focus-visible { outline: 2px solid var(--dsa); outline-offset: 2px; border-radius: 4px; }
+
+/* ---- header + navigation ---- */
+body.domain-dsa .dsa-slim { font-family: var(--font-label); font-size: 11.5px; letter-spacing: .04em; color: var(--grey); }
+body.domain-dsa .dsa-slim b { color: var(--ink); }
+body.domain-dsa .seg { font-family: var(--font-label); border-radius: 999px; padding: 10px 18px; }
+body.domain-dsa .seg[aria-selected="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+/* The sub-tab bar sticks, on quiet glass, so the other views are always one
+   click away however far down a problem you are. */
+body.domain-dsa nav.tabs {
+  position: sticky; top: 0; z-index: 30;
+  background: color-mix(in srgb, var(--paper) 82%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(1.05); backdrop-filter: blur(14px) saturate(1.05);
+  border-bottom: 1px solid var(--hairline);
+  margin-left: -6px; margin-right: -6px; padding: 0 6px;
+}
+body.domain-dsa .tab { font-family: var(--font-label); font-size: 11.5px; letter-spacing: .14em; padding: 14px 14px 12px; color: var(--grey); }
+body.domain-dsa .tab:hover { color: var(--ink); }
+body.domain-dsa .tab[aria-selected="true"] { color: var(--ink); border-bottom: 2px solid var(--ink); }
+
+/* ---- cards: white, hairline, small radius, ink-tinted shadow ---- */
+body.domain-dsa .card {
+  background: var(--white); border: 1px solid var(--hairline); border-radius: 10px;
+  box-shadow: 0 1px 2px var(--ink-a08); padding: 20px 22px;
+}
+body.domain-dsa .card + .card, body.domain-dsa .dsa-block { margin-top: 16px; }
+body.domain-dsa .card h2 {
+  font-family: var(--font-display); text-transform: uppercase; font-weight: 400;
+  letter-spacing: .005em; line-height: 1.02; font-size: clamp(1.45rem, 1.2rem + 1vw, 2rem); margin: 0 0 6px;
+}
+body.domain-dsa .card h3, body.domain-dsa .dsa-blockhd h3 {
+  font-family: var(--font-label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; color: var(--ink);
+}
+body.domain-dsa .dsa-dayhd h2 { font-size: clamp(1.6rem, 1.25rem + 1.4vw, 2.4rem); }
+body.domain-dsa .dsa-dayhd .muted { font-family: var(--font-label); font-size: 11.5px; margin-top: 4px; }
+body.domain-dsa .dsa-sub, body.domain-dsa .dsa-libgroup {
+  font-family: var(--font-label); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--grey);
+}
+body.domain-dsa .dsa-libgroup { font-size: 12px; color: var(--ink); margin-top: 26px; padding-bottom: 6px; border-bottom: 1px solid var(--hairline); }
+
+/* ---- buttons: ink pill for the one loud action, outline for the rest ---- */
+body.domain-dsa .btn {
+  font-family: var(--font-sans); font-size: 13.5px; font-weight: 500; letter-spacing: 0; text-transform: none;
+  background: var(--ink); color: var(--paper); border: 1px solid var(--ink); border-radius: 999px;
+  padding: 9px 18px; transition: transform .18s var(--ease-out), box-shadow .18s var(--ease-out), background .18s;
+}
+body.domain-dsa .btn:hover { background: #2a2622; color: var(--paper); box-shadow: var(--e2); transform: translateY(-1px); }
+body.domain-dsa .btn:active { transform: scale(.98); }
+body.domain-dsa .btn.tiny { font-size: 12.5px; padding: 6px 13px; }
+body.domain-dsa .btn.ghost, body.domain-dsa a.btn.ghost {
+  background: transparent; color: var(--ink); border-color: var(--ink-a20);
+}
+body.domain-dsa .btn.ghost:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+body.domain-dsa .btn:disabled, body.domain-dsa .btn[disabled] { background: var(--raise); color: var(--grey); border-color: var(--hairline); box-shadow: none; transform: none; cursor: default; }
+
+/* ---- prose: the stages, theory sections, notes ---- */
+body.domain-dsa .dsa-stage, body.domain-dsa .dsa-tsec { max-width: 76ch; }
+body.domain-dsa .dsa-stage p, body.domain-dsa .dsa-tsec p, body.domain-dsa .dsa-sib-body p,
+body.domain-dsa .dsa-stage li, body.domain-dsa .dsa-tsec li {
+  font-size: 15px; line-height: 1.68; color: var(--ink);
+}
+body.domain-dsa .dsa-stage p, body.domain-dsa .dsa-tsec p { margin: 0 0 10px; }
+body.domain-dsa .dsa-stage ul, body.domain-dsa .dsa-stage ol, body.domain-dsa .dsa-tsec ul, body.domain-dsa .dsa-tsec ol { padding-left: 22px; margin: 4px 0 12px; }
+body.domain-dsa .dsa-stage li + li, body.domain-dsa .dsa-tsec li + li { margin-top: 4px; }
+body.domain-dsa .dsa-stage b, body.domain-dsa .dsa-tsec b { font-weight: 600; }
+body.domain-dsa .dsa-stage h3, body.domain-dsa .dsa-stage h4:not(.dsa-stagehd h4), body.domain-dsa .dsa-tsec h3 {
+  font-family: var(--font-sans); font-weight: 600; font-size: 15.5px; margin: 16px 0 6px; letter-spacing: 0; text-transform: none;
+}
+body.domain-dsa .dsa-stage { border-color: var(--line-soft); border-radius: 10px; padding: 14px 18px; }
+body.domain-dsa .dsa-stagehd h4, body.domain-dsa .dsa-tsec .dsa-stagehd h4 {
+  font-family: var(--font-label); font-size: 11px; letter-spacing: .14em; color: var(--grey); font-weight: 700;
+}
+body.domain-dsa .dsa-tsec { padding: 18px 0; }
+body.domain-dsa .dsa-tsec > .dsa-stagehd { margin-bottom: 8px; }
+/* Write-lines: what to copy by hand, marked by the accent rule. */
+body.domain-dsa p.wl { border-left: 3px solid var(--dsa); padding: 2px 0 2px 12px; background: linear-gradient(90deg, var(--dsa-soft), transparent 60%); border-radius: 0 4px 4px 0; }
+
+/* inline code in prose */
+body.domain-dsa .dsa-stage code, body.domain-dsa .dsa-tsec code, body.domain-dsa .dsa-drill code,
+body.domain-dsa .dsa-sheet code, body.domain-dsa .dsa-table code, body.domain-dsa .dsa-mcq code, body.domain-dsa .dsa-why code {
+  font-family: var(--font-code); font-size: .86em; background: #f1ece3; color: #3b2f22;
+  border: 1px solid #e6dfd3; padding: 1px 5px; border-radius: 4px;
+}
+
+/* ---- code blocks: an ink panel, readable at a glance ---- */
+body.domain-dsa .dsa-code { margin: 12px 0 14px; }
+body.domain-dsa .dsa-code pre {
+  background: #181614; color: #ece6dc; border: 1px solid #000; border-radius: 10px;
+  font-family: var(--font-code); font-size: 13px; line-height: 1.65; padding: 16px 18px;
+  box-shadow: var(--e1); tab-size: 4;
+}
+body.domain-dsa .dsa-code pre code { background: none; border: 0; color: inherit; padding: 0; font-size: inherit; }
+body.domain-dsa .dsa-copy {
+  font-family: var(--font-label); font-size: 10.5px; background: #2a2622; color: #cfc6b8; border: 1px solid #3a352f; border-radius: 999px; padding: 3px 10px; top: 9px; right: 9px;
+}
+body.domain-dsa .dsa-copy:hover { color: #fff; border-color: #6b655e; }
+body.domain-dsa .c-kw { color: #7dd3c8; }
+body.domain-dsa .c-str { color: #e6c07b; }
+body.domain-dsa .c-com { color: #8c8478; font-style: italic; }
+body.domain-dsa .c-num { color: #f2a97f; }
+body.domain-dsa .c-pre { color: #b9a8e8; }
+
+/* ---- tables: header band, zebra rows, comfortable cells, scroll if wide ---- */
+body.domain-dsa .dsa-tablewrap {
+  overflow-x: auto; margin: 12px 0 14px; border: 1px solid var(--hairline); border-radius: 10px; background: var(--white);
+  -webkit-overflow-scrolling: touch;
+}
+body.domain-dsa .dsa-table { border-collapse: separate; border-spacing: 0; font-size: 14px; line-height: 1.5; width: 100%; min-width: max-content; }
+body.domain-dsa .dsa-table th, body.domain-dsa .dsa-table td {
+  border: 0; border-bottom: 1px solid var(--line-soft); padding: 10px 14px; text-align: left; vertical-align: top;
+}
+body.domain-dsa .dsa-table td + td, body.domain-dsa .dsa-table th + th { border-left: 1px solid var(--line-soft); }
+body.domain-dsa .dsa-table thead th {
+  background: #efe9df; color: var(--ink); font-family: var(--font-label); font-size: 11px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; border-bottom: 1px solid var(--hairline); white-space: nowrap;
+}
+body.domain-dsa .dsa-table tbody tr:nth-child(even) td { background: #faf8f4; }
+body.domain-dsa .dsa-table tbody tr:hover td { background: var(--dsa-soft); }
+body.domain-dsa .dsa-table tbody tr:last-child td { border-bottom: 0; }
+body.domain-dsa .dsa-table td:first-child { font-weight: 600; color: var(--ink); }
+body.domain-dsa .dsa-table td { max-width: 46ch; }
+
+/* ---- Today: next-up, checklist ---- */
+body.domain-dsa .dsa-nextup { border-left: 4px solid var(--dsa); padding: 22px 24px; box-shadow: var(--e1); }
+body.domain-dsa .dsa-nextup h3 { font-family: var(--font-sans); font-size: 21px; font-weight: 600; letter-spacing: 0; text-transform: none; margin: 6px 0 4px; }
+body.domain-dsa .dsa-nextup p { color: var(--ink-2); margin: 0 0 4px; }
+body.domain-dsa .dsa-nextup-kind { font-family: var(--font-label); font-size: 11px; letter-spacing: .14em; color: var(--dsa); }
+body.domain-dsa .dsa-checklist { padding: 8px 22px 16px; }
+body.domain-dsa .dsa-check-line {
+  min-height: 48px; padding: 10px 8px; border-bottom: 1px solid var(--line-soft); font-size: 15px; border-radius: 6px;
+  transition: background .15s;
+}
+body.domain-dsa .dsa-check-line:hover { background: #f7f3ec; }
+body.domain-dsa .dsa-check-line:last-of-type { border-bottom: 0; }
+body.domain-dsa .dsa-check-box { color: var(--ink); font-size: 17px; }
+body.domain-dsa .dsa-check-line.done .dsa-check-box { color: var(--dsa); }
+body.domain-dsa .dsa-check-line.done .dsa-check-label { color: var(--grey); text-decoration: none; }
+body.domain-dsa .dsa-check-line.done .dsa-check-label::after { content: "done"; font-family: var(--font-label); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--dsa); margin-left: 6px; }
+body.domain-dsa .dsa-check-meta { font-family: var(--font-label); font-size: 11px; color: var(--grey); }
+body.domain-dsa .dsa-minimum { font-size: 13.5px; padding-top: 10px; border-top: 1px dashed var(--hairline); }
+
+/* header strip as quiet pills */
+body.domain-dsa .dsa-strip-item { font-family: var(--font-label); font-size: 11px; background: var(--white); border-color: var(--hairline); padding: 5px 12px; }
+body.domain-dsa .dsa-strip-item.mock { color: var(--dsa); border-color: rgba(15, 118, 110, .45); }
+
+/* role badges: one shape, quiet fills, readable labels */
+body.domain-dsa .dsa-role { font-family: var(--font-label); font-size: 10px; letter-spacing: .08em; border-radius: 999px; padding: 3px 9px; }
+body.domain-dsa .dsa-role.r-LEARN { background: var(--ink); color: var(--paper); border: 1px solid var(--ink); }
+body.domain-dsa .dsa-role.r-APPLY { background: var(--dsa-soft); color: var(--dsa); border: 1px solid rgba(15, 118, 110, .4); }
+body.domain-dsa .dsa-role.r-TWIST { background: #fdf3e4; color: #8a4b0c; border: 1px solid #e8c08a; }
+body.domain-dsa .dsa-role.r-DISGUISE { background: #f1edfb; color: #4c2f99; border: 1px solid #cdbff0; }
+
+/* ---- problem rows + step bar ---- */
+body.domain-dsa .dsa-row { padding: 14px 4px 14px 14px; border-left-width: 3px; }
+body.domain-dsa .dsa-row.open { background: #fbf9f5; border-radius: 0 10px 10px 0; }
+body.domain-dsa .dsa-title { font-family: var(--font-sans); font-weight: 600; font-size: 16px; }
+body.domain-dsa .dsa-title:hover { color: var(--dsa); }
+body.domain-dsa .dsa-detail { background: var(--white); border: 1px solid var(--hairline); border-radius: 10px; padding: 18px 20px; }
+
+/* The step bar sticks under the tab bar while you work through a problem. */
+body.domain-dsa .dsa-stepbar {
+  position: sticky; top: 46px; z-index: 20; padding: 8px 0;
+  background: color-mix(in srgb, var(--white) 88%, transparent);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line-soft);
+}
+body.domain-dsa .dsa-stepbtn { font-family: var(--font-sans); font-size: 13px; padding: 5px 12px; border-color: var(--hairline); color: var(--grey); }
+body.domain-dsa .dsa-stepbtn.now { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+body.domain-dsa .dsa-stepbtn.now .dot { color: #7dd3c8; }
+body.domain-dsa .dsa-stepbtn.past { color: var(--ink); border-color: rgba(15, 118, 110, .45); }
+body.domain-dsa .dsa-helper { font-size: 14px; background: #f7f3ec; border-left-color: var(--dsa); color: var(--ink-2); padding: 9px 12px; border-radius: 0 6px 6px 0; }
+body.domain-dsa .dsa-refrow { font-size: 13.5px; padding: 3px 0; }
+body.domain-dsa .dsa-refrow a { color: var(--dsa); }
+
+/* ---- reader ---- */
+body.domain-dsa .dsa-reader { max-width: 880px; margin-left: auto; margin-right: auto; padding: 24px 30px; }
+body.domain-dsa .dsa-readtitle h2 { font-size: clamp(1.4rem, 1.15rem + 1vw, 2rem); }
+body.domain-dsa .dsa-readtitle h2 .muted { font-family: var(--font-sans); text-transform: none; font-size: .62em; color: var(--grey); letter-spacing: 0; }
+body.domain-dsa .dsa-why { font-size: 15px; background: var(--dsa-soft); border-left: 3px solid var(--dsa); padding: 12px 14px; border-radius: 0 8px 8px 0; }
+body.domain-dsa .dsa-returnbar {
+  top: 46px; background: color-mix(in srgb, #fff7e6 92%, transparent); border-color: #e8c08a;
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border-radius: 999px; padding: 8px 10px 8px 16px; box-shadow: var(--e1);
+}
+body.domain-dsa .dsa-mode { font-family: var(--font-sans); font-size: 13px; padding: 6px 14px; }
+body.domain-dsa .dsa-mode.on { background: var(--ink); color: var(--paper); }
+body.domain-dsa .dsa-modes, body.domain-dsa .dsa-paneltabs, body.domain-dsa .dsa-codetabs { border-radius: 999px; border-color: var(--hairline); }
+body.domain-dsa .dsa-detour { border-color: rgba(15, 118, 110, .55); background: #f3faf8; border-radius: 10px; padding: 12px 14px; }
+body.domain-dsa .dsa-readfoot { border-top-color: var(--hairline); }
+body.domain-dsa .dsa-pathstep { font-size: 14.5px; padding: 7px 8px; }
+body.domain-dsa .dsa-pathstep.now { background: var(--dsa-soft); }
+
+/* note sheets read like paper */
+body.domain-dsa .dsa-sheet { background: #fffdf7; border-color: #e9e1cd; font-size: 15px; line-height: 1.8; box-shadow: 0 1px 0 #efe7d2; }
+body.domain-dsa .dsa-sheet-hd b { font-family: var(--font-sans); font-weight: 600; }
+body.domain-dsa .ol-1 b { font-weight: 600; }
+
+/* drill + MCQs */
+body.domain-dsa .dsa-drill, body.domain-dsa .dsa-mcq, body.domain-dsa .dsa-revq { border-color: var(--hairline); border-radius: 10px; padding: 14px 16px; background: var(--white); }
+body.domain-dsa .dsa-drill-q { font-size: 15.5px; }
+body.domain-dsa .dsa-drill-full { font-size: 14.5px; line-height: 1.65; }
+body.domain-dsa .dsa-drill-guess, body.domain-dsa textarea, body.domain-dsa input[type="text"], body.domain-dsa input[type="search"], body.domain-dsa select {
+  font-family: var(--font-sans); font-size: 14.5px; border: 1px solid var(--hairline); border-radius: 8px; background: #fffefb; color: var(--ink);
+}
+body.domain-dsa textarea:focus, body.domain-dsa input:focus, body.domain-dsa select:focus { outline: 2px solid var(--dsa); outline-offset: 1px; border-color: transparent; }
+body.domain-dsa .dsa-mcq-opt { font-family: var(--font-sans); font-size: 14.5px; padding: 9px 12px; border-radius: 8px; border-color: var(--hairline); }
+
+/* library cards */
+body.domain-dsa .dsa-theorycard { border-color: var(--hairline); border-radius: 10px; padding: 14px 16px; transition: transform .18s var(--ease-out), box-shadow .18s var(--ease-out); }
+body.domain-dsa .dsa-theorycard:hover { transform: translateY(-2px); box-shadow: var(--e2); border-color: var(--hairline); }
+body.domain-dsa .dsa-theorycard b { font-family: var(--font-sans); font-weight: 600; font-size: 15px; }
+
+/* plan grid */
+body.domain-dsa .dsa-pday { border-color: var(--hairline); border-radius: 10px; }
+body.domain-dsa .dsa-pday.today { outline-color: var(--ink); }
+body.domain-dsa .dsa-pday .mk { background: var(--ink); }
+body.domain-dsa .dsa-pcluster h4 { font-family: var(--font-label); font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; }
+
+@media (max-width: 720px) {
+  body.domain-dsa { font-size: 15px; }
+  body.domain-dsa .card { padding: 16px; }
+  body.domain-dsa .dsa-reader { padding: 18px 16px; }
+  body.domain-dsa .dsa-detail { padding: 14px 12px; }
+  body.domain-dsa .dsa-stepbar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  body.domain-dsa .dsa-stepbar::-webkit-scrollbar { display: none; }
+  body.domain-dsa .dsa-stepbtn { white-space: nowrap; }
+  body.domain-dsa .dsa-stage p, body.domain-dsa .dsa-tsec p, body.domain-dsa .dsa-stage li, body.domain-dsa .dsa-tsec li { font-size: 15px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.domain-dsa .btn, body.domain-dsa .dsa-theorycard { transition: none; }
+  body.domain-dsa .btn:hover, body.domain-dsa .dsa-theorycard:hover { transform: none; }
+}
+body.domain-dsa .dsa-dayhd h2, body.domain-dsa .dsa-readtitle h2, body.domain-dsa .dsa-tpage h2 {
+  font-family: var(--font-display); text-transform: uppercase; font-weight: 400; letter-spacing: .005em; line-height: 1.02;
+}
+body.domain-dsa .dsa-dayhd h2 { font-size: clamp(1.7rem, 1.3rem + 1.6vw, 2.6rem); margin: 0; }
+/* step dots drawn, not typed: no glyph fallback surprises */
+.dsa-stepbtn .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid currentColor; margin-right: 6px; vertical-align: 1px; opacity: .55; }
+.dsa-stepbtn.past .dot { background: var(--dsa); border-color: var(--dsa); opacity: 1; }
+.dsa-stepbtn.now .dot { background: #7dd3c8; border-color: #7dd3c8; opacity: 1; }
+body.domain-dsa .dsa-stepbtn { display: inline-flex; align-items: center; }
+@media (max-width: 720px) {
+  /* Fewer nested frames on a phone: the text column gets the width. */
+  body.domain-dsa .dsa-row { padding: 12px 0 12px 8px; }
+  body.domain-dsa .dsa-row.open { background: transparent; }
+  body.domain-dsa .dsa-detail { border: 0; padding: 10px 0 0; background: transparent; }
+  body.domain-dsa .dsa-stage { padding: 12px 12px; }
+  body.domain-dsa section.card:has(.dsa-row.open) { padding: 12px; }
+  body.domain-dsa .dsa-stepbar { top: 42px; }
+}
+@media (max-width: 720px) {
+  body.domain-dsa .dsa-code pre { padding-top: 38px; }
+}
 </style>
 </head>
 <body>
@@ -3580,8 +3897,11 @@ var COPY = {
         var live = liveOpps().length;
         pc = live ? ' <span class="pc">' + live + "</span>" : "";
       }
+      // The reader is not a tab of its own: light the tab it was reached from,
+      // so the bar still says where you are.
+      var on = ACTIVE === t.id || (ACTIVE === "dsa-read" && t.id === dsaReaderHomeTab());
       return '<button class="tab" role="tab" data-tab="' + t.id + '" data-domain="' + t.domain +
-        '" aria-selected="' + (ACTIVE === t.id) + '">' + esc(t.label) + pc + "</button>";
+        '" aria-selected="' + on + '">' + esc(t.label) + pc + "</button>";
     }).join("");
 
     document.querySelectorAll(".tab").forEach(function (b) {
@@ -4081,6 +4401,17 @@ var COPY = {
     document.body.classList.toggle("domain-dsa", tab.domain === "dsa");
 
     var panel = document.getElementById("panel");
+    /* Re-rendering replaces the whole panel. Content that fills in a moment
+       later (a problem's notes, a theory page) would leave the page briefly
+       shorter, and the browser answers a shorter page by moving the scroll
+       position -- which is how a click on a button deep in a problem used to
+       land you somewhere else. So the panel keeps its height until the async
+       fills have landed, and the scroll position is put back. Callers that
+       mean to go to the top still do (they scroll after render). */
+    var keepY = window.scrollY;
+    panel.style.minHeight = panel.offsetHeight ? panel.offsetHeight + "px" : "";
+    clearTimeout(RENDER_HOLD);
+    RENDER_HOLD = setTimeout(function () { panel.style.minHeight = ""; }, 1200);
     if (tab.id === "overview") panel.innerHTML = renderOverview();
     else if (tab.id === "mba") panel.innerHTML = renderMba();
     else if (tab.id === "career") panel.innerHTML = renderCareer();
@@ -4128,7 +4459,10 @@ var COPY = {
       if (DSAV.openId) dsaFillDetail(DSAV.openId);
       dsaApplyPendingAnchor();
     }
+    if (window.scrollY !== keepY && !DSAV.pendingAnchor) window.scrollTo(0, keepY);
   }
+
+  var RENDER_HOLD = null;
 
   /* Inside the DSA section the placement/MBA tile grid collapses into one
      line (v3.1 §3); the full grid stays on the Placement tab. */
@@ -4492,6 +4826,13 @@ var COPY = {
 
   /* Relative, not rooted, so the page still resolves them when it is opened
      from a directory rather than a domain root. */
+  /* Already fetched? Then paint it now, in the same frame, instead of after a
+     promise tick -- no "Loading…" flash and no momentary collapse. */
+  function dsaCached(kind, id) {
+    var store = DSA_CACHE[kind];
+    return (store && store[id]) || null;
+  }
+
   function dsaGet(kind, id) {
     var store = DSA_CACHE[kind];
     if (store && store[id]) return Promise.resolve(store[id]);
@@ -4995,11 +5336,21 @@ var COPY = {
     var p = DSA_BY_ID[id];
     if (!host || !p) return;
     if (p.content !== "ready") { host.innerHTML = dsaPendingPanel(p); bindDsa(); return; }
+    var cached = dsaCached("problem", id);
+    if (cached) {
+      host.innerHTML = dsaPanel(p, cached);
+      bindDsa();
+      dsaFillOpenNote();
+      dsaCenterStep();
+      dsaApplyPendingAnchor();
+      return;
+    }
     dsaGet("problem", id).then(function (doc) {
       if (DSAV.openId !== id) return;
       host.innerHTML = dsaPanel(p, doc);
       bindDsa();
       dsaFillOpenNote();
+      dsaCenterStep();
       dsaApplyPendingAnchor();
     }).catch(function () {
       host.innerHTML = '<div class="dsa-lblock"><p class="muted">The notes for this problem are a static file ' +
@@ -5713,6 +6064,13 @@ var COPY = {
     }, 1000);
   }
 
+  function dsaReaderHomeTab() {
+    var r = DSAV.read;
+    if (!r) return "dsa-today";
+    if (r.kind === "path") return /^page-/.test(r.key) ? "dsa-theory" : "dsa-today";
+    return DSAV.reader.stack.length ? "dsa-today" : "dsa-theory";
+  }
+
   function dsaPageMeta(id) { return (DSA_INDEX.theory || {})[id] || { t: titleCase(id), k: "", s: {}, n: 0 }; }
   function dsaFirstSection(id) { return Object.keys(dsaPageMeta(id).s || {})[0] || null; }
 
@@ -5785,15 +6143,28 @@ var COPY = {
 
   /* ------------------------------------------------------ navigation */
 
+  /* Scroll position per route, so Back lands where you were, not at the top. */
+  var DSA_SCROLLS = {};
+  try { history.scrollRestoration = "manual"; } catch (e) { /* older browsers */ }
+
   function dsaGo(hash, opts) {
     var o = opts || {};
+    DSA_SCROLLS[location.hash || "#dsa"] = window.scrollY;
     if (location.hash !== hash) {
       if (o.replace) history.replaceState(null, "", hash); else history.pushState(null, "", hash);
     }
     dsaRoute(hash);
     if (o.why !== undefined && DSAV.read && DSAV.read.kind === "detour") DSAV.read.why = o.why;
     render();
-    if (!DSAV.pendingAnchor) window.scrollTo({ top: 0 });
+    // A new view starts at its own top -- just under the tabs, not above the
+    // whole page header.
+    if (!DSAV.pendingAnchor) dsaToViewTop();
+  }
+
+  function dsaToViewTop() {
+    var panel = document.getElementById("panel");
+    var y = panel ? panel.getBoundingClientRect().top + window.scrollY - dsaStickyOffset() - 12 : 0;
+    window.scrollTo({ top: Math.max(0, y) });
   }
 
   /* Where you are now, as a route a Return can come back to. On Today with a
@@ -5973,7 +6344,7 @@ var COPY = {
     var host = document.getElementById("dsaReadBody");
     if (!host) return;
     var page = host.dataset.page, section = host.dataset.section || null;
-    dsaGet("theory", page).then(function (doc) {
+    var paint = function (doc) {
       if (!document.getElementById("dsaReadBody") || host.dataset.page !== page) return;
       // In the CS core flow a topic is read whole, all sections open.
       var inCore = DSAV.read && DSAV.read.kind === "path" && /^core-/.test(DSAV.read.key);
@@ -5984,7 +6355,10 @@ var COPY = {
       if (section) { DSAV.reader.lastAnchorByPage[page] = section; dsaReaderSave(); }
       bindDsa();
       dsaApplyPendingAnchor();
-    }).catch(function () {
+    };
+    var have = dsaCached("theory", page);
+    if (have) { paint(have); return; }
+    dsaGet("theory", page).then(paint).catch(function () {
       host.innerHTML = '<p class="muted">That page is not reachable from here.</p>';
     });
   }
@@ -6773,7 +7147,7 @@ var COPY = {
       '<div class="dsa-stepbar">' + steps.map(function (s, i) {
         var state = i < idx ? "past" : i === idx ? "now" : "";
         return '<button type="button" class="dsa-stepbtn ' + state + (dsaStepCovered(p, s) ? " covered" : "") + '" data-dsa-step="' + esc(s.id) + '">' +
-          '<span class="dot">' + (i <= idx ? "●" : "○") + "</span>" + esc(s.label) + "</button>";
+          '<span class="dot" aria-hidden="true"></span>' + esc(s.label) + "</button>";
       }).join("") + "</div>" +
       '<p class="dsa-helper"><b>' + esc(cur.label) + ".</b> " + esc(COPY[cur.copy] || "") + "</p>" +
       '<div class="dsa-stepbody">' + dsaStepBody(p, doc, cur) + "</div>" +
@@ -7037,6 +7411,58 @@ var COPY = {
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  /* Run `fn` (anything that re-renders) and keep `el` -- the thing that was
+     clicked -- at the same height on screen. If the click removed it (a
+     collapse), keep its nearest surviving container instead. This is what
+     stops a toggle far down the page from moving the page under you. */
+  function dsaKeepPlace(el, fn) {
+    var sel = dsaSelectorFor(el);
+    var holder = el && el.closest && el.closest("[data-dsa-row],[data-block],.dsa-reader,.dsa-checklist,section.card");
+    var holderSel = dsaSelectorFor(holder);
+    var top = el && el.getBoundingClientRect ? el.getBoundingClientRect().top : null;
+    var htop = holder ? holder.getBoundingClientRect().top : null;
+    fn();
+    var again = sel ? document.querySelector(sel) : null;
+    if (again && top !== null) { window.scrollBy(0, again.getBoundingClientRect().top - top); return; }
+    var h2 = holderSel ? document.querySelector(holderSel) : null;
+    if (h2 && htop !== null) window.scrollBy(0, h2.getBoundingClientRect().top - htop);
+  }
+
+  /* A selector that finds "the same" element after a re-render: its first
+     data-dsa-* attribute (and value), or its data-block / data-dsa-row. */
+  function dsaSelectorFor(el) {
+    if (!el || !el.attributes) return null;
+    for (var i = 0; i < el.attributes.length; i++) {
+      var a = el.attributes[i];
+      if (/^data-(dsa-[a-z-]+|block|anchor)$/.test(a.name)) return "[" + a.name + '="' + cssEsc(a.value) + '"]';
+    }
+    return null;
+  }
+
+  /* After a step change, the step bar should be on screen: if it scrolled
+     off the top, bring it back to just under the sticky tabs. */
+  function dsaStepBarIntoView() {
+    var bar = document.querySelector(".dsa-row.open .dsa-stepbar");
+    if (!bar) return;
+    var top = bar.getBoundingClientRect().top;
+    var offset = dsaStickyOffset();
+    if (top < offset || top > window.innerHeight * 0.6) window.scrollBy(0, top - offset - 8);
+  }
+
+  /* On a narrow screen the step bar scrolls sideways; keep the current
+     step in its middle so you can always see where you are. */
+  function dsaCenterStep() {
+    var bar = document.querySelector(".dsa-row.open .dsa-stepbar");
+    var now = bar && bar.querySelector(".dsa-stepbtn.now");
+    if (!now || bar.scrollWidth <= bar.clientWidth) return;
+    bar.scrollLeft = Math.max(0, now.offsetLeft - (bar.clientWidth - now.offsetWidth) / 2);
+  }
+
+  function dsaStickyOffset() {
+    var tabs = document.getElementById("tabs");
+    return tabs && getComputedStyle(tabs).position === "sticky" ? tabs.getBoundingClientRect().height : 0;
+  }
+
   /* Repaint just the open problem's panel, keeping the scroll position --
      used by reveal, cover and the ✍️ toggle, which change one panel and
      should not jump the page. */
@@ -7082,8 +7508,12 @@ var COPY = {
         render();
         if (before !== null) {
           var now = document.querySelector('[data-dsa-row="' + cssEsc(id) + '"]');
+          // In the focus view a collapsed problem leaves the page; land on its
+          // line in the checklist instead of wherever the page happens to end.
+          if (!now) now = document.querySelector('.dsa-check-line[data-dsa-goto="' + cssEsc(id) + '"]');
           if (now) {
-            var drift = now.getBoundingClientRect().top - before;
+            var target = Math.max(dsaStickyOffset() + 12, Math.min(before, window.innerHeight * 0.4));
+            var drift = now.getBoundingClientRect().top - target;
             if (Math.abs(drift) > 1) window.scrollBy(0, drift);
           }
         }
@@ -7167,8 +7597,8 @@ var COPY = {
     document.querySelectorAll("[data-dsa-sib-open]").forEach(function (b) {
       b.onclick = function () {
         DSAV.openSib = DSAV.openSib === b.dataset.dsaSibOpen ? null : b.dataset.dsaSibOpen;
-        if (DSAV.openId && document.querySelector('[data-dsa-detail="' + cssEsc(DSAV.openId) + '"] [data-dsa-sib-open="' + cssEsc(b.dataset.dsaSibOpen) + '"]')) dsaRepaintOpen();
-        else render();
+        var inPanel = DSAV.openId && document.querySelector('[data-dsa-detail="' + cssEsc(DSAV.openId) + '"] [data-dsa-sib-open="' + cssEsc(b.dataset.dsaSibOpen) + '"]');
+        dsaKeepPlace(b, inPanel ? dsaRepaintOpen : render);
       };
     });
     document.querySelectorAll("[data-dsa-sib-studied],[data-dsa-sib-solved]").forEach(function (b) {
@@ -7189,7 +7619,7 @@ var COPY = {
       b.onclick = function () { dsaCheckDrill(b.dataset.dsaDrillcheck, +b.dataset.day); };
     });
     document.querySelectorAll("[data-dsa-drillshow]").forEach(function (b) {
-      b.onclick = function () { DSAV.drillShown[b.dataset.dsaDrillshow] = true; render(); };
+      b.onclick = function () { DSAV.drillShown[b.dataset.dsaDrillshow] = true; dsaKeepPlace(b.closest(".dsa-drill") || b, render); };
     });
     document.querySelectorAll("[data-dsa-drillmark]").forEach(function (b) {
       b.onclick = function () {
@@ -7244,10 +7674,22 @@ var COPY = {
       };
     });
     document.querySelectorAll("[data-dsa-panelmode]").forEach(function (b) {
-      b.onclick = function () { DSAV.panelMode = b.dataset.dsaPanelmode; dsaRepaintOpen(); };
+      b.onclick = function (e) {
+        if (e && e.preventDefault) e.preventDefault();
+        DSAV.panelMode = b.dataset.dsaPanelmode;
+        dsaKeepPlace(document.querySelector(".dsa-row.open .dsa-paneltabs") || b, dsaRepaintOpen);
+      };
     });
     document.querySelectorAll("[data-dsa-expand]").forEach(function (a) {
-      a.onclick = function (e) { e.preventDefault(); DSAV.readExpand = a.dataset.dsaExpand === "1"; dsaFillRead(); };
+      a.onclick = function (e) {
+        e.preventDefault();
+        var opening = a.dataset.dsaExpand === "1";
+        DSAV.readExpand = opening;
+        // Expanding grows the page below you; collapsing keeps the first
+        // section's end in view rather than dropping you at the page bottom.
+        var first = document.querySelector("#dsaReadBody .dsa-tsec");
+        dsaKeepPlace(opening ? a : (first || a), dsaFillRead);
+      };
     });
     document.querySelectorAll("[data-dsa-step-done],[data-dsa-step-skip]").forEach(function (b) {
       b.onclick = function (e) {
@@ -7280,7 +7722,12 @@ var COPY = {
       };
     });
     document.querySelectorAll("[data-dsa-recall-show]").forEach(function (b) {
-      b.onclick = function (e) { e.preventDefault(); DSAV.recallShown[b.dataset.dsaRecallShow] = true; if (ACTIVE === "dsa-read") dsaFillRead(); else dsaRepaintOpen(); };
+      b.onclick = function (e) {
+        e.preventDefault();
+        DSAV.recallShown[b.dataset.dsaRecallShow] = true;
+        var box = b.closest(".dsa-revq,li");
+        dsaKeepPlace(box && box.previousElementSibling ? box : b, ACTIVE === "dsa-read" ? dsaFillRead : dsaRepaintOpen);
+      };
     });
     document.querySelectorAll("[data-dsa-recall-mark]").forEach(function (b) {
       b.onclick = function () {
@@ -7309,7 +7756,7 @@ var COPY = {
       a.onclick = function (e) {
         e.preventDefault();
         DSAV.openNote = DSAV.openNote === a.dataset.dsaOpennote ? null : a.dataset.dsaOpennote;
-        dsaRepaintOpen();
+        dsaKeepPlace(a, dsaRepaintOpen);
       };
     });
     document.querySelectorAll("[data-dsa-coretopic]").forEach(function (c) {
@@ -7370,11 +7817,15 @@ var COPY = {
     document.querySelectorAll("[data-dsa-focus]").forEach(function (a) {
       a.onclick = function (e) {
         e.preventDefault();
-        DSAV.focusOpen = DSAV.focusOpen === a.dataset.dsaFocus ? null : a.dataset.dsaFocus;
+        var opening = DSAV.focusOpen !== a.dataset.dsaFocus;
+        DSAV.focusOpen = opening ? a.dataset.dsaFocus : null;
         DSAV.openId = null;
-        render();
-        var el = document.querySelector('[data-block="' + (DSAV.focusOpen === "core" ? "core" : DSAV.focusOpen) + '"]') || document.querySelector('[data-block="cs_core"]');
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        // Closing: stay exactly where you are. Opening: go to what opened.
+        dsaKeepPlace(a, render);
+        if (!opening) return;
+        var key = DSAV.focusOpen === "core" ? "core" : DSAV.focusOpen;
+        var el = document.querySelector('[data-block="' + key + '"]') || (key === "core" ? document.querySelector('[data-block="cs_core"]') : null);
+        if (el) window.scrollBy({ top: el.getBoundingClientRect().top - dsaStickyOffset() - 8, behavior: "smooth" });
       };
     });
     document.querySelectorAll("[data-dsa-gosib]").forEach(function (a) {
@@ -7389,7 +7840,12 @@ var COPY = {
       };
     });
     document.querySelectorAll("[data-dsa-step]").forEach(function (b) {
-      b.onclick = function () { if (!DSAV.openId) return; DSAV.step[DSAV.openId] = b.dataset.dsaStep; dsaRepaintOpen(); };
+      b.onclick = function () {
+        if (!DSAV.openId) return;
+        DSAV.step[DSAV.openId] = b.dataset.dsaStep;
+        dsaRepaintOpen();
+        dsaStepBarIntoView();
+      };
     });
     document.querySelectorAll("[data-dsa-revealstep]").forEach(function (b) {
       b.onclick = function () {
@@ -7397,22 +7853,32 @@ var COPY = {
         (st && st.stages || []).forEach(function (s) { DSAV.revealed[s] = true; });
         if (b.dataset.dsaAndgo && DSAV.openId) DSAV.step[DSAV.openId] = st.id;
         dsaRepaintOpen();
+        if (b.dataset.dsaAndgo) dsaStepBarIntoView();
       };
     });
     document.querySelectorAll("[data-dsa-codetab]").forEach(function (b) {
-      b.onclick = function () { DSAV.codeTab = b.dataset.dsaCodetab; dsaRepaintOpen(); };
+      b.onclick = function () { DSAV.codeTab = b.dataset.dsaCodetab; dsaKeepPlace(b, dsaRepaintOpen); };
     });
     document.querySelectorAll("[data-dsa-map]").forEach(function (b) {
-      b.onclick = function (e) { e.preventDefault(); DSAV.mapOpen = b.dataset.dsaMap === "1"; DSAV.stuckOpen = false; dsaRepaintOpen(); };
+      b.onclick = function (e) {
+        e.preventDefault();
+        DSAV.mapOpen = b.dataset.dsaMap === "1"; DSAV.stuckOpen = false;
+        // Keep the problem's header row still while the panel opens or closes.
+        dsaKeepPlace(document.querySelector(".dsa-row.open .dsa-stephead") || b, dsaRepaintOpen);
+      };
     });
     document.querySelectorAll("[data-dsa-stuck]").forEach(function (b) {
-      b.onclick = function (e) { e.preventDefault(); DSAV.stuckOpen = b.dataset.dsaStuck === "1"; DSAV.mapOpen = false; dsaRepaintOpen(); };
+      b.onclick = function (e) {
+        e.preventDefault();
+        DSAV.stuckOpen = b.dataset.dsaStuck === "1"; DSAV.mapOpen = false;
+        dsaKeepPlace(document.querySelector(".dsa-row.open .dsa-stephead") || b, dsaRepaintOpen);
+      };
     });
     document.querySelectorAll("[data-dsa-mcqgo]").forEach(function (b) {
-      b.onclick = function () { DSAV.mcqIdx[+b.dataset.day] = +b.dataset.dsaMcqgo; render(); };
+      b.onclick = function () { DSAV.mcqIdx[+b.dataset.day] = +b.dataset.dsaMcqgo; dsaKeepPlace(b.closest(".dsa-reader") || b, render); };
     });
     document.querySelectorAll("[data-dsa-guide]").forEach(function (b) {
-      b.onclick = function (e) { e.preventDefault(); DSAV.showGuide = !DSAV.showGuide; render(); };
+      b.onclick = function (e) { e.preventDefault(); DSAV.showGuide = !DSAV.showGuide; render(); if (DSAV.showGuide) { var g = document.querySelector(".dsa-guide"); if (g) g.scrollIntoView({ behavior: "smooth", block: "start" }); } };
     });
     document.querySelectorAll("[data-dsa-drawer-close]").forEach(function (b) { b.onclick = dsaCloseDrawer; });
     document.querySelectorAll("[data-dsa-theory-back]").forEach(function (b) {
@@ -8372,7 +8838,17 @@ var COPY = {
       SECTION = wanted;
       ACTIVE = sectionTabs()[0].id;
     }
-    window.addEventListener("popstate", function () { if (dsaRoute(location.hash)) render(); });
+    window.addEventListener("popstate", function () {
+      if (!dsaRoute(location.hash)) return;
+      render();
+      var y = DSA_SCROLLS[location.hash];
+      if (y !== undefined && !DSAV.pendingAnchor) setTimeout(function () { window.scrollTo(0, y); }, 0);
+    });
+    /* An href="#" that is only a button must never jump to the top. */
+    document.getElementById("panel").addEventListener("click", function (e) {
+      var a = e.target.closest && e.target.closest('a[href="#"]');
+      if (a) e.preventDefault();
+    });
     document.addEventListener("keydown", function (e) {
       if (e.key !== "Escape" || SECTION !== "dsa" || !DSAV.reader.stack.length) return;
       if (/^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || "")) return;

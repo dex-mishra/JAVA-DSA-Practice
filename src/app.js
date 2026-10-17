@@ -1007,8 +1007,11 @@
         var live = liveOpps().length;
         pc = live ? ' <span class="pc">' + live + "</span>" : "";
       }
+      // The reader is not a tab of its own: light the tab it was reached from,
+      // so the bar still says where you are.
+      var on = ACTIVE === t.id || (ACTIVE === "dsa-read" && t.id === dsaReaderHomeTab());
       return '<button class="tab" role="tab" data-tab="' + t.id + '" data-domain="' + t.domain +
-        '" aria-selected="' + (ACTIVE === t.id) + '">' + esc(t.label) + pc + "</button>";
+        '" aria-selected="' + on + '">' + esc(t.label) + pc + "</button>";
     }).join("");
 
     document.querySelectorAll(".tab").forEach(function (b) {
@@ -1508,6 +1511,17 @@
     document.body.classList.toggle("domain-dsa", tab.domain === "dsa");
 
     var panel = document.getElementById("panel");
+    /* Re-rendering replaces the whole panel. Content that fills in a moment
+       later (a problem's notes, a theory page) would leave the page briefly
+       shorter, and the browser answers a shorter page by moving the scroll
+       position -- which is how a click on a button deep in a problem used to
+       land you somewhere else. So the panel keeps its height until the async
+       fills have landed, and the scroll position is put back. Callers that
+       mean to go to the top still do (they scroll after render). */
+    var keepY = window.scrollY;
+    panel.style.minHeight = panel.offsetHeight ? panel.offsetHeight + "px" : "";
+    clearTimeout(RENDER_HOLD);
+    RENDER_HOLD = setTimeout(function () { panel.style.minHeight = ""; }, 1200);
     if (tab.id === "overview") panel.innerHTML = renderOverview();
     else if (tab.id === "mba") panel.innerHTML = renderMba();
     else if (tab.id === "career") panel.innerHTML = renderCareer();
@@ -1555,7 +1569,10 @@
       if (DSAV.openId) dsaFillDetail(DSAV.openId);
       dsaApplyPendingAnchor();
     }
+    if (window.scrollY !== keepY && !DSAV.pendingAnchor) window.scrollTo(0, keepY);
   }
+
+  var RENDER_HOLD = null;
 
   /* Inside the DSA section the placement/MBA tile grid collapses into one
      line (v3.1 §3); the full grid stays on the Placement tab. */
@@ -1919,6 +1936,13 @@
 
   /* Relative, not rooted, so the page still resolves them when it is opened
      from a directory rather than a domain root. */
+  /* Already fetched? Then paint it now, in the same frame, instead of after a
+     promise tick -- no "Loading…" flash and no momentary collapse. */
+  function dsaCached(kind, id) {
+    var store = DSA_CACHE[kind];
+    return (store && store[id]) || null;
+  }
+
   function dsaGet(kind, id) {
     var store = DSA_CACHE[kind];
     if (store && store[id]) return Promise.resolve(store[id]);
@@ -2422,11 +2446,21 @@
     var p = DSA_BY_ID[id];
     if (!host || !p) return;
     if (p.content !== "ready") { host.innerHTML = dsaPendingPanel(p); bindDsa(); return; }
+    var cached = dsaCached("problem", id);
+    if (cached) {
+      host.innerHTML = dsaPanel(p, cached);
+      bindDsa();
+      dsaFillOpenNote();
+      dsaCenterStep();
+      dsaApplyPendingAnchor();
+      return;
+    }
     dsaGet("problem", id).then(function (doc) {
       if (DSAV.openId !== id) return;
       host.innerHTML = dsaPanel(p, doc);
       bindDsa();
       dsaFillOpenNote();
+      dsaCenterStep();
       dsaApplyPendingAnchor();
     }).catch(function () {
       host.innerHTML = '<div class="dsa-lblock"><p class="muted">The notes for this problem are a static file ' +
@@ -3140,6 +3174,13 @@
     }, 1000);
   }
 
+  function dsaReaderHomeTab() {
+    var r = DSAV.read;
+    if (!r) return "dsa-today";
+    if (r.kind === "path") return /^page-/.test(r.key) ? "dsa-theory" : "dsa-today";
+    return DSAV.reader.stack.length ? "dsa-today" : "dsa-theory";
+  }
+
   function dsaPageMeta(id) { return (DSA_INDEX.theory || {})[id] || { t: titleCase(id), k: "", s: {}, n: 0 }; }
   function dsaFirstSection(id) { return Object.keys(dsaPageMeta(id).s || {})[0] || null; }
 
@@ -3212,15 +3253,28 @@
 
   /* ------------------------------------------------------ navigation */
 
+  /* Scroll position per route, so Back lands where you were, not at the top. */
+  var DSA_SCROLLS = {};
+  try { history.scrollRestoration = "manual"; } catch (e) { /* older browsers */ }
+
   function dsaGo(hash, opts) {
     var o = opts || {};
+    DSA_SCROLLS[location.hash || "#dsa"] = window.scrollY;
     if (location.hash !== hash) {
       if (o.replace) history.replaceState(null, "", hash); else history.pushState(null, "", hash);
     }
     dsaRoute(hash);
     if (o.why !== undefined && DSAV.read && DSAV.read.kind === "detour") DSAV.read.why = o.why;
     render();
-    if (!DSAV.pendingAnchor) window.scrollTo({ top: 0 });
+    // A new view starts at its own top -- just under the tabs, not above the
+    // whole page header.
+    if (!DSAV.pendingAnchor) dsaToViewTop();
+  }
+
+  function dsaToViewTop() {
+    var panel = document.getElementById("panel");
+    var y = panel ? panel.getBoundingClientRect().top + window.scrollY - dsaStickyOffset() - 12 : 0;
+    window.scrollTo({ top: Math.max(0, y) });
   }
 
   /* Where you are now, as a route a Return can come back to. On Today with a
@@ -3400,7 +3454,7 @@
     var host = document.getElementById("dsaReadBody");
     if (!host) return;
     var page = host.dataset.page, section = host.dataset.section || null;
-    dsaGet("theory", page).then(function (doc) {
+    var paint = function (doc) {
       if (!document.getElementById("dsaReadBody") || host.dataset.page !== page) return;
       // In the CS core flow a topic is read whole, all sections open.
       var inCore = DSAV.read && DSAV.read.kind === "path" && /^core-/.test(DSAV.read.key);
@@ -3411,7 +3465,10 @@
       if (section) { DSAV.reader.lastAnchorByPage[page] = section; dsaReaderSave(); }
       bindDsa();
       dsaApplyPendingAnchor();
-    }).catch(function () {
+    };
+    var have = dsaCached("theory", page);
+    if (have) { paint(have); return; }
+    dsaGet("theory", page).then(paint).catch(function () {
       host.innerHTML = '<p class="muted">That page is not reachable from here.</p>';
     });
   }
@@ -4200,7 +4257,7 @@
       '<div class="dsa-stepbar">' + steps.map(function (s, i) {
         var state = i < idx ? "past" : i === idx ? "now" : "";
         return '<button type="button" class="dsa-stepbtn ' + state + (dsaStepCovered(p, s) ? " covered" : "") + '" data-dsa-step="' + esc(s.id) + '">' +
-          '<span class="dot">' + (i <= idx ? "●" : "○") + "</span>" + esc(s.label) + "</button>";
+          '<span class="dot" aria-hidden="true"></span>' + esc(s.label) + "</button>";
       }).join("") + "</div>" +
       '<p class="dsa-helper"><b>' + esc(cur.label) + ".</b> " + esc(COPY[cur.copy] || "") + "</p>" +
       '<div class="dsa-stepbody">' + dsaStepBody(p, doc, cur) + "</div>" +
@@ -4464,6 +4521,58 @@
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  /* Run `fn` (anything that re-renders) and keep `el` -- the thing that was
+     clicked -- at the same height on screen. If the click removed it (a
+     collapse), keep its nearest surviving container instead. This is what
+     stops a toggle far down the page from moving the page under you. */
+  function dsaKeepPlace(el, fn) {
+    var sel = dsaSelectorFor(el);
+    var holder = el && el.closest && el.closest("[data-dsa-row],[data-block],.dsa-reader,.dsa-checklist,section.card");
+    var holderSel = dsaSelectorFor(holder);
+    var top = el && el.getBoundingClientRect ? el.getBoundingClientRect().top : null;
+    var htop = holder ? holder.getBoundingClientRect().top : null;
+    fn();
+    var again = sel ? document.querySelector(sel) : null;
+    if (again && top !== null) { window.scrollBy(0, again.getBoundingClientRect().top - top); return; }
+    var h2 = holderSel ? document.querySelector(holderSel) : null;
+    if (h2 && htop !== null) window.scrollBy(0, h2.getBoundingClientRect().top - htop);
+  }
+
+  /* A selector that finds "the same" element after a re-render: its first
+     data-dsa-* attribute (and value), or its data-block / data-dsa-row. */
+  function dsaSelectorFor(el) {
+    if (!el || !el.attributes) return null;
+    for (var i = 0; i < el.attributes.length; i++) {
+      var a = el.attributes[i];
+      if (/^data-(dsa-[a-z-]+|block|anchor)$/.test(a.name)) return "[" + a.name + '="' + cssEsc(a.value) + '"]';
+    }
+    return null;
+  }
+
+  /* After a step change, the step bar should be on screen: if it scrolled
+     off the top, bring it back to just under the sticky tabs. */
+  function dsaStepBarIntoView() {
+    var bar = document.querySelector(".dsa-row.open .dsa-stepbar");
+    if (!bar) return;
+    var top = bar.getBoundingClientRect().top;
+    var offset = dsaStickyOffset();
+    if (top < offset || top > window.innerHeight * 0.6) window.scrollBy(0, top - offset - 8);
+  }
+
+  /* On a narrow screen the step bar scrolls sideways; keep the current
+     step in its middle so you can always see where you are. */
+  function dsaCenterStep() {
+    var bar = document.querySelector(".dsa-row.open .dsa-stepbar");
+    var now = bar && bar.querySelector(".dsa-stepbtn.now");
+    if (!now || bar.scrollWidth <= bar.clientWidth) return;
+    bar.scrollLeft = Math.max(0, now.offsetLeft - (bar.clientWidth - now.offsetWidth) / 2);
+  }
+
+  function dsaStickyOffset() {
+    var tabs = document.getElementById("tabs");
+    return tabs && getComputedStyle(tabs).position === "sticky" ? tabs.getBoundingClientRect().height : 0;
+  }
+
   /* Repaint just the open problem's panel, keeping the scroll position --
      used by reveal, cover and the ✍️ toggle, which change one panel and
      should not jump the page. */
@@ -4509,8 +4618,12 @@
         render();
         if (before !== null) {
           var now = document.querySelector('[data-dsa-row="' + cssEsc(id) + '"]');
+          // In the focus view a collapsed problem leaves the page; land on its
+          // line in the checklist instead of wherever the page happens to end.
+          if (!now) now = document.querySelector('.dsa-check-line[data-dsa-goto="' + cssEsc(id) + '"]');
           if (now) {
-            var drift = now.getBoundingClientRect().top - before;
+            var target = Math.max(dsaStickyOffset() + 12, Math.min(before, window.innerHeight * 0.4));
+            var drift = now.getBoundingClientRect().top - target;
             if (Math.abs(drift) > 1) window.scrollBy(0, drift);
           }
         }
@@ -4594,8 +4707,8 @@
     document.querySelectorAll("[data-dsa-sib-open]").forEach(function (b) {
       b.onclick = function () {
         DSAV.openSib = DSAV.openSib === b.dataset.dsaSibOpen ? null : b.dataset.dsaSibOpen;
-        if (DSAV.openId && document.querySelector('[data-dsa-detail="' + cssEsc(DSAV.openId) + '"] [data-dsa-sib-open="' + cssEsc(b.dataset.dsaSibOpen) + '"]')) dsaRepaintOpen();
-        else render();
+        var inPanel = DSAV.openId && document.querySelector('[data-dsa-detail="' + cssEsc(DSAV.openId) + '"] [data-dsa-sib-open="' + cssEsc(b.dataset.dsaSibOpen) + '"]');
+        dsaKeepPlace(b, inPanel ? dsaRepaintOpen : render);
       };
     });
     document.querySelectorAll("[data-dsa-sib-studied],[data-dsa-sib-solved]").forEach(function (b) {
@@ -4616,7 +4729,7 @@
       b.onclick = function () { dsaCheckDrill(b.dataset.dsaDrillcheck, +b.dataset.day); };
     });
     document.querySelectorAll("[data-dsa-drillshow]").forEach(function (b) {
-      b.onclick = function () { DSAV.drillShown[b.dataset.dsaDrillshow] = true; render(); };
+      b.onclick = function () { DSAV.drillShown[b.dataset.dsaDrillshow] = true; dsaKeepPlace(b.closest(".dsa-drill") || b, render); };
     });
     document.querySelectorAll("[data-dsa-drillmark]").forEach(function (b) {
       b.onclick = function () {
@@ -4671,10 +4784,22 @@
       };
     });
     document.querySelectorAll("[data-dsa-panelmode]").forEach(function (b) {
-      b.onclick = function () { DSAV.panelMode = b.dataset.dsaPanelmode; dsaRepaintOpen(); };
+      b.onclick = function (e) {
+        if (e && e.preventDefault) e.preventDefault();
+        DSAV.panelMode = b.dataset.dsaPanelmode;
+        dsaKeepPlace(document.querySelector(".dsa-row.open .dsa-paneltabs") || b, dsaRepaintOpen);
+      };
     });
     document.querySelectorAll("[data-dsa-expand]").forEach(function (a) {
-      a.onclick = function (e) { e.preventDefault(); DSAV.readExpand = a.dataset.dsaExpand === "1"; dsaFillRead(); };
+      a.onclick = function (e) {
+        e.preventDefault();
+        var opening = a.dataset.dsaExpand === "1";
+        DSAV.readExpand = opening;
+        // Expanding grows the page below you; collapsing keeps the first
+        // section's end in view rather than dropping you at the page bottom.
+        var first = document.querySelector("#dsaReadBody .dsa-tsec");
+        dsaKeepPlace(opening ? a : (first || a), dsaFillRead);
+      };
     });
     document.querySelectorAll("[data-dsa-step-done],[data-dsa-step-skip]").forEach(function (b) {
       b.onclick = function (e) {
@@ -4707,7 +4832,12 @@
       };
     });
     document.querySelectorAll("[data-dsa-recall-show]").forEach(function (b) {
-      b.onclick = function (e) { e.preventDefault(); DSAV.recallShown[b.dataset.dsaRecallShow] = true; if (ACTIVE === "dsa-read") dsaFillRead(); else dsaRepaintOpen(); };
+      b.onclick = function (e) {
+        e.preventDefault();
+        DSAV.recallShown[b.dataset.dsaRecallShow] = true;
+        var box = b.closest(".dsa-revq,li");
+        dsaKeepPlace(box && box.previousElementSibling ? box : b, ACTIVE === "dsa-read" ? dsaFillRead : dsaRepaintOpen);
+      };
     });
     document.querySelectorAll("[data-dsa-recall-mark]").forEach(function (b) {
       b.onclick = function () {
@@ -4736,7 +4866,7 @@
       a.onclick = function (e) {
         e.preventDefault();
         DSAV.openNote = DSAV.openNote === a.dataset.dsaOpennote ? null : a.dataset.dsaOpennote;
-        dsaRepaintOpen();
+        dsaKeepPlace(a, dsaRepaintOpen);
       };
     });
     document.querySelectorAll("[data-dsa-coretopic]").forEach(function (c) {
@@ -4797,11 +4927,15 @@
     document.querySelectorAll("[data-dsa-focus]").forEach(function (a) {
       a.onclick = function (e) {
         e.preventDefault();
-        DSAV.focusOpen = DSAV.focusOpen === a.dataset.dsaFocus ? null : a.dataset.dsaFocus;
+        var opening = DSAV.focusOpen !== a.dataset.dsaFocus;
+        DSAV.focusOpen = opening ? a.dataset.dsaFocus : null;
         DSAV.openId = null;
-        render();
-        var el = document.querySelector('[data-block="' + (DSAV.focusOpen === "core" ? "core" : DSAV.focusOpen) + '"]') || document.querySelector('[data-block="cs_core"]');
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        // Closing: stay exactly where you are. Opening: go to what opened.
+        dsaKeepPlace(a, render);
+        if (!opening) return;
+        var key = DSAV.focusOpen === "core" ? "core" : DSAV.focusOpen;
+        var el = document.querySelector('[data-block="' + key + '"]') || (key === "core" ? document.querySelector('[data-block="cs_core"]') : null);
+        if (el) window.scrollBy({ top: el.getBoundingClientRect().top - dsaStickyOffset() - 8, behavior: "smooth" });
       };
     });
     document.querySelectorAll("[data-dsa-gosib]").forEach(function (a) {
@@ -4816,7 +4950,12 @@
       };
     });
     document.querySelectorAll("[data-dsa-step]").forEach(function (b) {
-      b.onclick = function () { if (!DSAV.openId) return; DSAV.step[DSAV.openId] = b.dataset.dsaStep; dsaRepaintOpen(); };
+      b.onclick = function () {
+        if (!DSAV.openId) return;
+        DSAV.step[DSAV.openId] = b.dataset.dsaStep;
+        dsaRepaintOpen();
+        dsaStepBarIntoView();
+      };
     });
     document.querySelectorAll("[data-dsa-revealstep]").forEach(function (b) {
       b.onclick = function () {
@@ -4824,22 +4963,32 @@
         (st && st.stages || []).forEach(function (s) { DSAV.revealed[s] = true; });
         if (b.dataset.dsaAndgo && DSAV.openId) DSAV.step[DSAV.openId] = st.id;
         dsaRepaintOpen();
+        if (b.dataset.dsaAndgo) dsaStepBarIntoView();
       };
     });
     document.querySelectorAll("[data-dsa-codetab]").forEach(function (b) {
-      b.onclick = function () { DSAV.codeTab = b.dataset.dsaCodetab; dsaRepaintOpen(); };
+      b.onclick = function () { DSAV.codeTab = b.dataset.dsaCodetab; dsaKeepPlace(b, dsaRepaintOpen); };
     });
     document.querySelectorAll("[data-dsa-map]").forEach(function (b) {
-      b.onclick = function (e) { e.preventDefault(); DSAV.mapOpen = b.dataset.dsaMap === "1"; DSAV.stuckOpen = false; dsaRepaintOpen(); };
+      b.onclick = function (e) {
+        e.preventDefault();
+        DSAV.mapOpen = b.dataset.dsaMap === "1"; DSAV.stuckOpen = false;
+        // Keep the problem's header row still while the panel opens or closes.
+        dsaKeepPlace(document.querySelector(".dsa-row.open .dsa-stephead") || b, dsaRepaintOpen);
+      };
     });
     document.querySelectorAll("[data-dsa-stuck]").forEach(function (b) {
-      b.onclick = function (e) { e.preventDefault(); DSAV.stuckOpen = b.dataset.dsaStuck === "1"; DSAV.mapOpen = false; dsaRepaintOpen(); };
+      b.onclick = function (e) {
+        e.preventDefault();
+        DSAV.stuckOpen = b.dataset.dsaStuck === "1"; DSAV.mapOpen = false;
+        dsaKeepPlace(document.querySelector(".dsa-row.open .dsa-stephead") || b, dsaRepaintOpen);
+      };
     });
     document.querySelectorAll("[data-dsa-mcqgo]").forEach(function (b) {
-      b.onclick = function () { DSAV.mcqIdx[+b.dataset.day] = +b.dataset.dsaMcqgo; render(); };
+      b.onclick = function () { DSAV.mcqIdx[+b.dataset.day] = +b.dataset.dsaMcqgo; dsaKeepPlace(b.closest(".dsa-reader") || b, render); };
     });
     document.querySelectorAll("[data-dsa-guide]").forEach(function (b) {
-      b.onclick = function (e) { e.preventDefault(); DSAV.showGuide = !DSAV.showGuide; render(); };
+      b.onclick = function (e) { e.preventDefault(); DSAV.showGuide = !DSAV.showGuide; render(); if (DSAV.showGuide) { var g = document.querySelector(".dsa-guide"); if (g) g.scrollIntoView({ behavior: "smooth", block: "start" }); } };
     });
     document.querySelectorAll("[data-dsa-drawer-close]").forEach(function (b) { b.onclick = dsaCloseDrawer; });
     document.querySelectorAll("[data-dsa-theory-back]").forEach(function (b) {
@@ -5799,7 +5948,17 @@
       SECTION = wanted;
       ACTIVE = sectionTabs()[0].id;
     }
-    window.addEventListener("popstate", function () { if (dsaRoute(location.hash)) render(); });
+    window.addEventListener("popstate", function () {
+      if (!dsaRoute(location.hash)) return;
+      render();
+      var y = DSA_SCROLLS[location.hash];
+      if (y !== undefined && !DSAV.pendingAnchor) setTimeout(function () { window.scrollTo(0, y); }, 0);
+    });
+    /* An href="#" that is only a button must never jump to the top. */
+    document.getElementById("panel").addEventListener("click", function (e) {
+      var a = e.target.closest && e.target.closest('a[href="#"]');
+      if (a) e.preventDefault();
+    });
     document.addEventListener("keydown", function (e) {
       if (e.key !== "Escape" || SECTION !== "dsa" || !DSAV.reader.stack.length) return;
       if (/^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || "")) return;
