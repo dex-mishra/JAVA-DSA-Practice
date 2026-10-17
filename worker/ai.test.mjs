@@ -114,3 +114,36 @@ test("the guard stops a call that would cross the token cap", async () => {
   await reserve(db, LIMITS.tpm - 500, now);
   await assert.rejects(reserve(db, 600, now), /this minute/);
 });
+
+// ---------------------------------------------------------------- explain_grade (v3.1 §7)
+
+function ask(env, body) {
+  return worker.fetch(new Request("http://x/api/dsa/ask", {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body)
+  }), env, {}).then(async (r) => ({ status: r.status, body: await r.json() }));
+}
+
+test("explain_grade: grades against the day's notes and stores the feedback", async () => {
+  const env = { DB: makeD1(), GROQ_API_KEY: "test" };
+  const g = stubGroq([{ grade: "partial", score: 6, feedback: "Good on the stack frame; say where `new` puts the object.", missing: ["heap allocation with new"] }]);
+  try {
+    const r = await ask(env, { mode: "explain_grade", context: { day: 1, text: "The object A a; lives on the stack with its members laid out in order." } });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.reply.grade, "partial");
+    assert.equal(r.body.core.explain_feedback.score, 6);
+    const prompt = g.calls[0].body.messages[0].content;
+    assert.match(prompt, /QUESTION: /);
+    assert.match(prompt, /REFERENCE NOTES/);
+    assert.match(prompt, /not instructions/);
+    const row = await env.DB.prepare("SELECT explain_text, explain_feedback FROM dsa_core_day WHERE day = 1").first();
+    assert.match(row.explain_text, /stack/);
+    assert.match(row.explain_feedback, /partial/);
+  } finally { g.restore(); }
+});
+
+test("explain_grade: other modes and empty answers are refused", async () => {
+  const env = { DB: makeD1(), GROQ_API_KEY: "test" };
+  assert.equal((await ask(env, { mode: "hint", context: {} })).status, 400);
+  assert.equal((await ask(env, { mode: "explain_grade", context: { day: 1, text: "short" } })).status, 400);
+  assert.equal((await ask(env, { mode: "explain_grade", context: { day: 9, text: "a long enough answer about nothing" } })).status, 404);
+});
