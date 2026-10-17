@@ -1,0 +1,514 @@
+=== page: tree-terminology-and-representation
+title: Binary trees — terms and representation
+topic: binary-trees
+kind: concept
+summary: Nodes, root, leaves, depth vs height, complete/full/balanced trees, and the TreeNode struct you will use everywhere.
+prereqs: rec-how-recursion-works
+related: tree-dfs-traversals, heap-binary-heap-internals
+--- node | The node | write
+✍️ `struct TreeNode { int val; TreeNode *left, *right; };` A tree is reached through its `root`; an empty tree is `nullptr`.
+✍️ Every subtree is itself a tree. That is why almost every tree solution is recursive: solve for the left subtree, solve for the right, combine.
+
+--- terms | Terms | write
+✍️ **Leaf**: node with no children. **Depth** of a node: edges from the root down to it (root has depth 0). **Height** of a node: edges (or nodes, by convention in LeetCode's "maximum depth") on the longest path down to a leaf.
+✍️ **Balanced** (as in LeetCode 110): for every node, the heights of its two subtrees differ by at most 1. Height of a balanced tree is O(log n).
+✍️ **Complete**: every level full except possibly the last, filled left to right (heaps are complete). **Full**: every node has 0 or 2 children. **Perfect**: all leaves at the same depth.
+
+--- sizes | Sizes worth knowing | screenshot
+- A perfect tree of height h has 2^(h+1) − 1 nodes.
+- A tree with n nodes has n − 1 edges.
+- Height ranges from log₂ n (balanced) to n − 1 (a chain) — which is why recursion depth on trees can be O(n).
+
+--- leetcode-format | LeetCode's array format | mixed
+✍️ `[3,9,20,null,null,15,7]` is level order with `null` for missing children. Draw the tree from it before solving — reading the array directly causes mistakes.
+
+=== page: tree-dfs-traversals
+title: DFS traversals — preorder, inorder, postorder
+topic: binary-trees
+kind: pattern
+summary: Three orders that differ only in when the node itself is processed relative to its subtrees. Which one you need depends on whether the node's answer needs its children's answers.
+prereqs: tree-terminology-and-representation, rec-how-recursion-works
+related: tree-iterative-traversals, tree-bottom-up-return-values, tree-top-down-parameters
+--- orders | The three orders | write
+✍️ **Preorder**: node, left, right. Process a node before its children → top-down information (depth so far, path so far).
+✍️ **Inorder**: left, node, right. For a BST this visits values in **sorted** order ([[bst-inorder-sorted-property]]).
+✍️ **Postorder**: left, right, node. Process a node after its children → bottom-up answers (heights, sizes, sums).
+
+```cpp
+void dfs(TreeNode* root, vector<int>& out) {
+    if (!root) return;
+    // out.push_back(root->val);   ← preorder
+    dfs(root->left, out);
+    out.push_back(root->val);      // ← inorder
+    dfs(root->right, out);
+    // out.push_back(root->val);   ← postorder
+}
+```
+
+--- which | Which order do I need? | write
+✍️ Does the node need information from its **parent** (depth, running sum, allowed range)? → preorder / pass it down as a parameter ([[tree-top-down-parameters]]).
+✍️ Does the node need its **children's** results (height, balanced?, max path)? → postorder / return values up ([[tree-bottom-up-return-values]]).
+✍️ BST and you need sorted order → inorder.
+
+--- paired | Paired recursion (Symmetric Tree, Same Tree) | write
+✍️ Some problems compare two trees (or two subtrees) at once: recurse on **pairs** of nodes.
+```cpp
+bool mirror(TreeNode* a, TreeNode* b) {
+    if (!a || !b) return a == b;                 // both null → true; one null → false
+    return a->val == b->val && mirror(a->left, b->right) && mirror(a->right, b->left);
+}
+bool isSymmetric(TreeNode* root) { return !root || mirror(root->left, root->right); }
+```
+✍️ Same Tree compares (left, left) and (right, right); Symmetric compares (left, right) and (right, left).
+
+--- complexity | Complexity | screenshot
+O(n) time (each node visited once), O(h) recursion stack, where h is the height (O(log n) balanced, O(n) skewed).
+
+=== page: tree-iterative-traversals
+title: Iterative traversals with an explicit stack
+topic: binary-trees
+kind: pattern
+summary: Replace the call stack with your own: inorder pushes all left children then visits; preorder pops and pushes right before left.
+prereqs: tree-dfs-traversals, cpp-stack-queue-deque
+related: cpp-recursion-stack-limits
+--- inorder | Iterative inorder | write
+```cpp
+vector<int> inorder(TreeNode* root) {
+    vector<int> out; stack<TreeNode*> st; TreeNode* cur = root;
+    while (cur || !st.empty()) {
+        while (cur) { st.push(cur); cur = cur->left; }   // go as far left as possible
+        cur = st.top(); st.pop();
+        out.push_back(cur->val);                          // visit
+        cur = cur->right;                                 // then the right subtree
+    }
+    return out;
+}
+```
+✍️ The stack holds the nodes whose left subtree is being processed and whose own visit is still pending.
+
+--- preorder | Iterative preorder | write
+✍️ Pop a node, visit it, push **right** then **left** (so left is popped first).
+
+--- postorder | Iterative postorder (recognition) | screenshot
+Do a modified preorder (node, right, left) and reverse the output → (left, right, node). Or use one stack with a "last visited" pointer.
+
+--- why | Why learn these | mixed
+✍️ Interviewers ask "can you do it without recursion?" for inorder (LeetCode 94 follow-up). Also needed when recursion depth could overflow ([[cpp-recursion-stack-limits]]).
+- BST iterator (LeetCode 173) is exactly the iterative inorder split into `next()` calls.
+
+=== page: tree-bfs-level-order
+title: BFS level order — processing a tree level by level
+topic: binary-trees
+kind: pattern
+summary: A queue visits nodes in order of depth. Reading q.size() at the start of each round gives exactly one level, which solves level lists, right side view, averages and zigzags.
+prereqs: tree-terminology-and-representation, cpp-stack-queue-deque
+related: graph-bfs
+--- idea | Idea | write
+✍️ A queue processes nodes first-in first-out. Push the root; repeatedly pop a node and push its children. Nodes come out in order of depth.
+✍️ To know where one level ends: at the start of each round, `sz = q.size()` is the number of nodes on the current level. Pop exactly `sz` nodes in that round.
+
+--- template | Template | write
+```cpp
+vector<vector<int>> levelOrder(TreeNode* root) {
+    vector<vector<int>> res;
+    if (!root) return res;
+    queue<TreeNode*> q; q.push(root);
+    while (!q.empty()) {
+        int sz = q.size();                    // freeze the level size BEFORE pushing children
+        vector<int> level;
+        for (int i = 0; i < sz; i++) {
+            TreeNode* x = q.front(); q.pop();
+            level.push_back(x->val);
+            if (x->left) q.push(x->left);
+            if (x->right) q.push(x->right);
+        }
+        res.push_back(level);
+    }
+    return res;
+}
+```
+
+--- variations | Variations | screenshot
+- Right side view (LeetCode 199): the last node of each level (`i == sz − 1`).
+- Average of levels, largest value per level: aggregate inside the round.
+- Zigzag (LeetCode 103): reverse every other level.
+- Minimum depth: return the level number at the first leaf found — BFS finds the shallowest first.
+- Right side view by DFS: visit right before left, record the first node seen at each new depth.
+
+--- pitfalls | Pitfalls | write
+✍️ Using `q.size()` in the for-loop condition (`i < q.size()`) — it grows as children are pushed. Store it in `sz` first.
+✍️ Pushing `nullptr` children; check before pushing.
+
+--- complexity | Complexity | screenshot
+O(n) time, O(w) space where w is the maximum width (up to n/2 for a perfect tree).
+
+=== page: tree-bottom-up-return-values
+title: Bottom-up recursion — returning answers from subtrees
+topic: binary-trees
+kind: pattern
+summary: Define what the function returns for a subtree, get it for both children, combine into the answer for the current node. Height, size, balanced, sums.
+prereqs: tree-dfs-traversals, rec-how-recursion-works
+related: tree-global-answer-pattern, tree-top-down-parameters
+--- idea | Idea | write
+✍️ Write one sentence: "`f(node)` returns ___ for the subtree rooted at node". Base case: `f(nullptr)`. Recursive case: combine `f(node->left)` and `f(node->right)` with the node itself.
+✍️ This is postorder: children first, then the node.
+
+--- template | Template | write
+```cpp
+// f(node) = number of nodes on the longest path from node down to a leaf
+int maxDepth(TreeNode* node) {
+    if (!node) return 0;                                   // empty subtree
+    return 1 + max(maxDepth(node->left), maxDepth(node->right));
+}
+```
+
+--- sentinel | Returning a sentinel for "invalid" | write
+✍️ Balanced tree check: return the height if the subtree is balanced, **−1** if it is not. One pass instead of computing heights again at every node.
+```cpp
+int h(TreeNode* n) {
+    if (!n) return 0;
+    int l = h(n->left);  if (l < 0) return -1;
+    int r = h(n->right); if (r < 0) return -1;
+    if (abs(l - r) > 1) return -1;
+    return 1 + max(l, r);
+}
+bool isBalanced(TreeNode* root) { return h(root) >= 0; }
+```
+✍️ The naive version calls `height()` from every node → O(n²) on a chain. The sentinel version is O(n).
+
+--- recognise | Recognise it | write
+✍️ The answer for a node depends on answers for its children: height, size, sum, min/max value, "is this subtree a BST/balanced/symmetric", count of good nodes below.
+
+--- complexity | Complexity | screenshot
+O(n) time, O(h) stack.
+
+=== page: tree-global-answer-pattern
+title: Return one thing, record another — the global answer pattern
+topic: binary-trees
+kind: pattern
+summary: When the best answer can bend through a node (diameter, max path sum), the function returns the best straight downward path, while a global variable records the best bent path through each node.
+prereqs: tree-bottom-up-return-values
+related: tree-bottom-up-return-values
+--- idea | Idea | write
+✍️ A path that **passes through** a node uses both its left and right arms. But a parent can only extend a path that goes **straight down** one side.
+✍️ So the recursive function returns the best straight-down path (one arm), and at every node it updates a global best with the bent path (left arm + node + right arm).
+✍️ Two different quantities: **what you return** (useful to the parent) ≠ **what you record** (the answer).
+
+--- diameter | Example: diameter | write
+```cpp
+int best = 0;
+int depth(TreeNode* n) {                     // returns: NODES on the longest downward path from n
+    if (!n) return 0;
+    int L = depth(n->left), R = depth(n->right);
+    best = max(best, L + R);                 // L nodes down-left = L edges from n; so L + R = edges of the bent path
+    return 1 + max(L, R);                    // straight path offered to the parent
+}
+int diameterOfBinaryTree(TreeNode* root) { best = 0; depth(root); return best; }
+```
+
+--- max-path-sum | Example: maximum path sum | write
+```cpp
+int best = INT_MIN;
+int gain(TreeNode* n) {                       // best sum of a downward path starting at n
+    if (!n) return 0;
+    int L = max(0, gain(n->left));            // a negative arm is better left out
+    int R = max(0, gain(n->right));
+    best = max(best, n->val + L + R);         // bent path through n
+    return n->val + max(L, R);                // one arm only for the parent
+}
+```
+✍️ `max(0, …)` drops arms that would reduce the sum. `best` starts at INT_MIN because all values may be negative.
+
+--- pitfalls | Pitfalls | write
+✍️ Returning `L + R + node` to the parent — a parent cannot use a bent path (it would visit the node twice).
+✍️ Global variable not reset between test cases (LeetCode reuses the object) — reset it in the main function.
+
+=== page: tree-top-down-parameters
+title: Top-down recursion — passing information down
+topic: binary-trees
+kind: pattern
+summary: Pass what the node needs from above (running sum, depth, current path, allowed range) as parameters. Root-to-leaf path problems use choose → recurse → undo on a path vector.
+prereqs: tree-dfs-traversals, bt-pick-or-skip
+related: bst-invariant-and-validation
+--- idea | Idea | write
+✍️ Some answers depend on the path from the root: "does any root-to-leaf path sum to target?", "list all such paths", "max depth seen", "valid BST range".
+✍️ Carry that information as a **parameter** that changes on the way down. The base case usually checks it at a leaf.
+
+--- template | Template: all root-to-leaf paths with sum | write
+```cpp
+void dfs(TreeNode* n, int remain, vector<int>& path, vector<vector<int>>& res) {
+    if (!n) return;
+    path.push_back(n->val);                                      // choose
+    remain -= n->val;
+    if (!n->left && !n->right && remain == 0) res.push_back(path);   // check at a LEAF
+    dfs(n->left, remain, path, res);
+    dfs(n->right, remain, path, res);
+    path.pop_back();                                             // undo
+}
+```
+✍️ `remain` is passed by value (each call has its own copy, nothing to undo); `path` is shared by reference and must be undone.
+
+--- pitfalls | Pitfalls | write
+✍️ Checking the sum at `nullptr` instead of at a leaf counts a node with one child as a path end.
+✍️ Forgetting `pop_back` → paths accumulate nodes from other branches.
+
+--- variations | Variations | screenshot
+- Path sum III (any downward path): prefix sums along the root path + hash map, with undo of the map count on the way back ([[ps-prefix-sum-hashmap]]).
+- Count good nodes: pass the maximum seen so far.
+- Sum root-to-leaf numbers: pass `cur * 10 + val`.
+
+=== page: tree-lca
+title: Lowest common ancestor in a binary tree
+topic: binary-trees
+kind: pattern
+summary: Return the node if it is p or q; otherwise ask both subtrees. If both return non-null, this node is the LCA; else pass up whichever is non-null.
+prereqs: tree-bottom-up-return-values
+related: bst-lca-and-range
+--- idea | Idea | write
+✍️ Define `f(node)` = "p or q if one of them is in this subtree, or the LCA if both are, else null".
+✍️ If node is p or q, return node (an ancestor of the other, or the meeting point higher up).
+✍️ Otherwise: if the left and right subtrees both return something, p and q are on different sides → node is the LCA. If only one side returns something, pass it up.
+
+--- template | Template | write
+```cpp
+TreeNode* lowestCommonAncestor(TreeNode* root, TreeNode* p, TreeNode* q) {
+    if (!root || root == p || root == q) return root;
+    TreeNode* L = lowestCommonAncestor(root->left, p, q);
+    TreeNode* R = lowestCommonAncestor(root->right, p, q);
+    if (L && R) return root;          // split point
+    return L ? L : R;
+}
+```
+
+--- why-early-return | Why returning early at p is correct | mixed
+✍️ If q is below p, the LCA is p itself, and we never need to look below p. If q is elsewhere, the split happens at some ancestor of p, which sees p returned from one side and q from the other.
+- This relies on both p and q existing in the tree (LeetCode guarantees it). Otherwise you must confirm both were found.
+
+--- complexity | Complexity | screenshot
+O(n) time, O(h) stack. For a BST, use the values to go straight down in O(h) ([[bst-lca-and-range]]).
+
+=== page: tree-construction-from-traversals
+title: Building a tree from preorder and inorder
+topic: binary-trees
+kind: pattern
+summary: Preorder's first element is the root; its position in inorder splits the left and right subtrees. Recurse with index ranges and a value → index map.
+prereqs: tree-dfs-traversals, hash-complement-lookup
+related: tree-serialize
+--- idea | Idea | write
+✍️ preorder = [root, ...left subtree..., ...right subtree...]. inorder = [...left..., root, ...right...].
+✍️ The root is `preorder[0]`. Find it in inorder at index m: everything left of m is the left subtree (size `m − inL`), everything right is the right subtree.
+✍️ Recurse on the matching slices. Use a hash map value → inorder index so finding the root is O(1).
+
+--- template | Template | write
+```cpp
+unordered_map<int,int> pos; int pre = 0;            // pre = next preorder index to use
+TreeNode* build(vector<int>& P, int inL, int inR) {  // builds from inorder[inL..inR]
+    if (inL > inR) return nullptr;
+    int v = P[pre++];
+    TreeNode* node = new TreeNode(v);
+    int m = pos[v];
+    node->left = build(P, inL, m - 1);               // left FIRST: preorder lists left before right
+    node->right = build(P, m + 1, inR);
+    return node;
+}
+TreeNode* buildTree(vector<int>& P, vector<int>& I) {
+    pos.clear(); pre = 0;
+    for (int i = 0; i < (int)I.size(); i++) pos[I[i]] = i;
+    return build(P, 0, I.size() - 1);
+}
+```
+
+--- pitfalls | Pitfalls | write
+✍️ Building the right subtree before the left breaks the shared `pre` index.
+✍️ Using `find` in the inorder array instead of a map → O(n²).
+✍️ Requires unique values (stated in the problem).
+
+--- variations | Variations | screenshot
+- Inorder + postorder: the root is the **last** postorder element; build **right before left** while walking postorder backwards.
+- Preorder alone is enough for a BST (bounds tell you where the left subtree ends).
+
+=== page: tree-serialize
+title: Serialising and deserialising a tree (recognition level)
+topic: binary-trees
+kind: skim
+summary: Write a preorder traversal with explicit null markers; read it back with the same recursion. The null markers make the shape unambiguous.
+prereqs: tree-dfs-traversals
+related: tree-construction-from-traversals
+--- idea | Idea | write
+✍️ Preorder alone cannot describe a tree's shape, but preorder **with nulls** can: "1,2,#,#,3,4,#,#,5,#,#".
+✍️ Deserialise by reading tokens in the same order: a token is a node (then build its left, then its right) or '#' (return null).
+
+--- code | Code (for reference) | screenshot
+```cpp
+void ser(TreeNode* n, string& s) {
+    if (!n) { s += "#,"; return; }
+    s += to_string(n->val) + ",";
+    ser(n->left, s); ser(n->right, s);
+}
+TreeNode* des(stringstream& ss) {
+    string t; getline(ss, t, ',');
+    if (t == "#") return nullptr;
+    TreeNode* n = new TreeNode(stoi(t));
+    n->left = des(ss); n->right = des(ss);
+    return n;
+}
+```
+
+--- note | Note | mixed
+✍️ BFS with nulls (LeetCode's own format) also works. Both are O(n).
+
+=== page: tree-as-graph-parent-map
+title: Treating a tree as a graph — parent pointers
+topic: binary-trees
+kind: pattern
+summary: Record each node's parent with one DFS, then BFS from the target in three directions (left, right, parent) to find nodes at distance k.
+prereqs: tree-bfs-level-order, graph-bfs
+related: graph-bfs
+--- idea | Idea | write
+✍️ Tree edges only point down. "Distance k from a node" needs to go **up** too. Add the missing direction: a map `parent[node]`.
+✍️ Then the tree is an undirected graph; BFS from the target for k levels, with a visited set so you never walk back.
+
+--- template | Template | write
+```cpp
+vector<int> distanceK(TreeNode* root, TreeNode* target, int k) {
+    unordered_map<TreeNode*, TreeNode*> par;
+    function<void(TreeNode*, TreeNode*)> mark = [&](TreeNode* n, TreeNode* p) {
+        if (!n) return; par[n] = p; mark(n->left, n); mark(n->right, n);
+    };
+    mark(root, nullptr);
+    queue<TreeNode*> q; q.push(target);
+    unordered_set<TreeNode*> seen{target};
+    for (int d = 0; d < k && !q.empty(); d++) {
+        for (int sz = q.size(); sz--; ) {
+            TreeNode* x = q.front(); q.pop();
+            for (TreeNode* y : {x->left, x->right, par[x]})
+                if (y && !seen.count(y)) { seen.insert(y); q.push(y); }
+        }
+    }
+    vector<int> out;
+    while (!q.empty()) { out.push_back(q.front()->val); q.pop(); }
+    return out;
+}
+```
+
+--- uses | Where else | screenshot
+Burning tree / time to infect the whole tree (LeetCode 2385), nodes at distance k, closest leaf.
+
+=== page: bst-invariant-and-validation
+title: The BST invariant and validating it
+topic: bst
+kind: pattern
+summary: Every node's value is greater than everything in its left subtree and less than everything in its right subtree — not just its children. Validate by passing a (low, high) range down.
+prereqs: tree-top-down-parameters
+related: bst-inorder-sorted-property, bst-search-insert-delete
+--- invariant | The invariant | write
+✍️ For every node: **all** values in the left subtree < node < **all** values in the right subtree.
+✍️ Checking only `left->val < node->val < right->val` is wrong: a grandchild can violate the rule (5 → left 3 → right 6 passes the child check but 6 > 5 is in 5's left subtree).
+
+--- range | Validate with a range | write
+```cpp
+bool valid(TreeNode* n, long long lo, long long hi) {      // all values must be in (lo, hi)
+    if (!n) return true;
+    if (n->val <= lo || n->val >= hi) return false;
+    return valid(n->left, lo, n->val) && valid(n->right, n->val, hi);
+}
+bool isValidBST(TreeNode* root) { return valid(root, LLONG_MIN, LLONG_MAX); }
+```
+✍️ Going left tightens the upper bound to the node's value; going right tightens the lower bound.
+✍️ Use `long long` bounds: node values can be INT_MIN / INT_MAX.
+
+--- inorder-way | The inorder way | mixed
+✍️ A tree is a BST iff its inorder traversal is **strictly increasing**. Keep the previous value seen and compare ([[bst-inorder-sorted-property]]).
+
+=== page: bst-inorder-sorted-property
+title: Inorder of a BST is sorted
+topic: bst
+kind: pattern
+summary: Inorder traversal of a BST visits values in increasing order — k-th smallest, validation, two-sum on a BST and conversion to a sorted list all follow.
+prereqs: tree-dfs-traversals, bst-invariant-and-validation
+related: tree-iterative-traversals
+--- idea | Idea | write
+✍️ Inorder = left, node, right. In a BST, left < node < right, so inorder lists values in sorted order.
+✍️ k-th smallest: run inorder and stop at the k-th visited node. Iterative inorder lets you stop early cleanly.
+
+--- template | Template: k-th smallest | write
+```cpp
+int kthSmallest(TreeNode* root, int k) {
+    stack<TreeNode*> st; TreeNode* cur = root;
+    while (cur || !st.empty()) {
+        while (cur) { st.push(cur); cur = cur->left; }
+        cur = st.top(); st.pop();
+        if (--k == 0) return cur->val;
+        cur = cur->right;
+    }
+    return -1;
+}
+```
+
+--- followup | Interview follow-up | screenshot
+"What if the BST is modified often and you query k-th smallest often?" → store subtree sizes in each node; then go left/right by comparing k with the left size, O(h) per query.
+
+--- complexity | Complexity | screenshot
+O(h + k) time, O(h) space.
+
+=== page: bst-search-insert-delete
+title: BST search, insert and delete
+topic: bst
+kind: mechanics
+summary: Search and insert follow one path down by comparing values. Delete has three cases: leaf, one child, two children (replace with the inorder successor).
+prereqs: bst-invariant-and-validation
+related: bst-inorder-sorted-property
+--- search-insert | Search and insert | write
+✍️ Search: go left if target < node, right if >, stop when equal or null. O(h).
+✍️ Insert: search for the value; the null position where the search ends is where the new node goes.
+
+--- delete | Delete — three cases | write
+✍️ Find the node. Then:
+✍️ 1. **No children**: remove it (return null to the parent).
+✍️ 2. **One child**: replace the node with that child.
+✍️ 3. **Two children**: find the **inorder successor** (smallest value in the right subtree), copy its value into the node, then delete the successor from the right subtree (it has at most one child).
+```cpp
+TreeNode* deleteNode(TreeNode* root, int key) {
+    if (!root) return nullptr;
+    if (key < root->val) root->left = deleteNode(root->left, key);
+    else if (key > root->val) root->right = deleteNode(root->right, key);
+    else {
+        if (!root->left) return root->right;
+        if (!root->right) return root->left;
+        TreeNode* s = root->right;
+        while (s->left) s = s->left;                 // inorder successor
+        root->val = s->val;
+        root->right = deleteNode(root->right, s->val);
+    }
+    return root;
+}
+```
+✍️ The function **returns the new root of the subtree** and the parent reassigns its child pointer — this handles all three cases without tracking the parent.
+
+--- complexity | Complexity | screenshot
+O(h): O(log n) balanced, O(n) for a skewed BST. Self-balancing trees (AVL, red-black — what `std::map` uses) keep h = O(log n).
+
+=== page: bst-lca-and-range
+title: Using BST order — LCA and range queries
+topic: bst
+kind: pattern
+summary: In a BST, the LCA of p and q is the first node whose value lies between them. Range sums and trims prune entire subtrees by comparing with the bounds.
+prereqs: bst-invariant-and-validation, tree-lca
+related: tree-lca
+--- lca | LCA in a BST | write
+✍️ Walk from the root: if both p and q are smaller, go left; if both larger, go right; otherwise this node **splits** them → it is the LCA.
+```cpp
+TreeNode* lca(TreeNode* root, TreeNode* p, TreeNode* q) {
+    while (root) {
+        if (p->val < root->val && q->val < root->val) root = root->left;
+        else if (p->val > root->val && q->val > root->val) root = root->right;
+        else return root;
+    }
+    return nullptr;
+}
+```
+✍️ O(h) time, O(1) space — no need to search both subtrees as in a general tree.
+
+--- range | Range pruning | mixed
+✍️ Range sum of BST (LeetCode 938): if node < low, only the right subtree can contain values in range; if node > high, only the left. Skip the other side entirely.
+- Trim a BST, count nodes in range, closest value: same pruning by comparison.

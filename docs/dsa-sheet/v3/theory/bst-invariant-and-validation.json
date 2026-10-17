@@ -1,0 +1,35 @@
+{
+ "id": "bst-invariant-and-validation",
+ "title": "The BST invariant and validating it",
+ "topic": "bst",
+ "kind": "pattern",
+ "summary": "Every node's value is greater than everything in its left subtree and less than everything in its right subtree — not just its children. Validate by passing a (low, high) range down.",
+ "prereqs": [
+  "tree-top-down-parameters"
+ ],
+ "related": [
+  "bst-inorder-sorted-property",
+  "bst-search-insert-delete"
+ ],
+ "sections": [
+  {
+   "id": "invariant",
+   "title": "The invariant",
+   "note": "write",
+   "body": "✍️ For every node: **all** values in the left subtree < node < **all** values in the right subtree.\n✍️ Checking only `left->val < node->val < right->val` is wrong: a grandchild can violate the rule (5 → left 3 → right 6 passes the child check but 6 > 5 is in 5's left subtree)."
+  },
+  {
+   "id": "range",
+   "title": "Validate with a range",
+   "note": "write",
+   "body": "```cpp\nbool valid(TreeNode* n, long long lo, long long hi) {      // all values must be in (lo, hi)\n    if (!n) return true;\n    if (n->val <= lo || n->val >= hi) return false;\n    return valid(n->left, lo, n->val) && valid(n->right, n->val, hi);\n}\nbool isValidBST(TreeNode* root) { return valid(root, LLONG_MIN, LLONG_MAX); }\n```\n✍️ Going left tightens the upper bound to the node's value; going right tightens the lower bound.\n✍️ Use `long long` bounds: node values can be INT_MIN / INT_MAX."
+  },
+  {
+   "id": "inorder-way",
+   "title": "The inorder way",
+   "note": "mixed",
+   "body": "✍️ A tree is a BST iff its inorder traversal is **strictly increasing**. Keep the previous value seen and compare ([[bst-inorder-sorted-property]])."
+  }
+ ],
+ "used_by": []
+}

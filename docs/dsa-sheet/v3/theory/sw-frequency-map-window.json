@@ -1,0 +1,63 @@
+{
+ "id": "sw-frequency-map-window",
+ "title": "Windows with a frequency map",
+ "topic": "sliding-window",
+ "kind": "pattern",
+ "summary": "Keep the counts of everything inside the window; update one count on each add and remove; validity is a question about those counts.",
+ "prereqs": [
+  "sw-variable-window",
+  "hash-frequency-counting"
+ ],
+ "related": [
+  "str-anagram-window"
+ ],
+ "sections": [
+  {
+   "id": "idea",
+   "title": "Idea",
+   "note": "write",
+   "body": "✍️ The window's state is a count table: `cnt[c]` = occurrences of c inside `[l, r]`.\n✍️ Add: `cnt[a[r]]++`. Remove: `cnt[a[l]]--` (and if you track distinct values, erase the key when it reaches 0).\n✍️ Track an extra number alongside the table so validity is O(1): number of distinct keys, number of characters with count > 1, max count, or how many required characters are satisfied."
+  },
+  {
+   "id": "distinct",
+   "title": "Tracking distinct count correctly",
+   "note": "write",
+   "body": "```cpp\nunordered_map<int,int> cnt;\n// add x\nif (cnt[x]++ == 0) distinct++;\n// remove y\nif (--cnt[y] == 0) distinct--;      // or cnt.erase(y) and use cnt.size()\n```\n✍️ Never use `cnt.size()` as \"distinct\" unless you erase zero-count keys — and never read `cnt[x]` to check without meaning to insert ([[cpp-unordered-map-set#bracket-trap]])."
+  },
+  {
+   "id": "maxcount",
+   "title": "The maxCount trick (character replacement)",
+   "note": "mixed",
+   "body": "✍️ For \"replace at most k characters to make the window uniform\", the window is valid when `len − maxCount ≤ k`, where maxCount is the highest count of any single character in the window.\n✍️ Trick: maxCount never needs to **decrease**. The answer only improves when a new, higher maxCount appears, so a stale (too high) maxCount only keeps the window from shrinking — it never produces a wrong longer answer. This lets you use `if` instead of `while` and skip recomputing the max.\n- If that feels too clever in an interview, recompute the max over 26 counts each step: O(26n), still fine."
+  },
+  {
+   "id": "complexity",
+   "title": "Complexity",
+   "note": "screenshot",
+   "body": "O(n) window moves; each update O(1) with an array, O(1) average with a hash map."
+  }
+ ],
+ "used_by": [
+  {
+   "problem": "longest-substring-without-repeating-characters",
+   "day": 5,
+   "section": "idea",
+   "stage": "solution",
+   "at": "Counts of characters in the window"
+  },
+  {
+   "problem": "longest-repeating-character-replacement",
+   "day": 5,
+   "section": "idea",
+   "stage": "brainstorm",
+   "at": "Window with a frequency table"
+  },
+  {
+   "problem": "longest-repeating-character-replacement",
+   "day": 5,
+   "section": "maxcount",
+   "stage": "solution",
+   "at": "maxCount never decreases"
+  }
+ ]
+}

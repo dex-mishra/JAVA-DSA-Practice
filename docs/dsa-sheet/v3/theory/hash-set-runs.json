@@ -1,0 +1,81 @@
+{
+ "id": "hash-set-runs",
+ "title": "Hash set membership and the start-of-run trick",
+ "topic": "hashing",
+ "kind": "pattern",
+ "summary": "Put all values in a set so membership is O(1), then only start counting a run from values whose predecessor is missing — finding the longest consecutive run in O(n).",
+ "prereqs": [
+  "cpp-unordered-map-set"
+ ],
+ "related": [
+  "hash-frequency-counting"
+ ],
+ "sections": [
+  {
+   "id": "idea",
+   "title": "Idea",
+   "note": "write",
+   "body": "✍️ A run of consecutive integers `v, v+1, v+2, …` has exactly one **start**: the value `v` such that `v − 1` is not present.\n✍️ Put every value in an `unordered_set`. For each value that is a start, walk upward (`v+1`, `v+2`, …) while present and measure the length.\n✍️ Each value is visited by at most one upward walk (the walk of its own run's start), so the total work is O(n) even though there is a loop inside a loop."
+  },
+  {
+   "id": "recognise",
+   "title": "Recognise it",
+   "note": "write",
+   "body": "✍️ \"longest consecutive\", \"sequence of consecutive integers\", \"in O(n)\" with unsorted input — sorting would give O(n log n), so the O(n) requirement is the hint to use a set."
+  },
+  {
+   "id": "think",
+   "title": "Brute force → start-of-run",
+   "note": "mixed",
+   "body": "Brute force: for every value, walk upward checking membership with a linear scan. O(n) per check → O(n³) worst, or O(n²) with a set.\nBetter: sort, then scan counting runs (skip duplicates). O(n log n).\n✍️ Bottleneck of the set version without the trick: a run of length L is re-walked from each of its L elements → O(n²) on input like 1..n.\n✍️ Fix: only walk from starts. A value with a predecessor is never a start, so it is never the beginning of a walk."
+  },
+  {
+   "id": "template",
+   "title": "Template",
+   "note": "write",
+   "body": "```cpp\nint longestConsecutive(vector<int>& a) {\n    unordered_set<int> s(a.begin(), a.end());\n    int best = 0;\n    for (int v : s) {                       // iterate the SET, not the array (duplicates!)\n        if (s.count(v - 1)) continue;       // not a start\n        int len = 1;\n        while (s.count(v + len)) len++;\n        best = max(best, len);\n    }\n    return best;\n}\n```"
+  },
+  {
+   "id": "pitfalls",
+   "title": "Pitfalls",
+   "note": "write",
+   "body": "✍️ Iterate over the **set**, not the original array. With many duplicates of a start value, iterating the array would re-walk the same run once per duplicate → O(n²).\n✍️ Empty input → 0. Handled naturally if `best` starts at 0.\n- `v + len` could overflow at INT_MAX; LeetCode's range (±10⁹) keeps it safe."
+  },
+  {
+   "id": "complexity",
+   "title": "Complexity",
+   "note": "screenshot",
+   "body": "O(n) average time: n inserts, and each value is touched once by the \"is it a start\" check and at most once by a walk. O(n) space."
+  }
+ ],
+ "used_by": [
+  {
+   "problem": "longest-consecutive-sequence",
+   "day": 2,
+   "section": "recognise",
+   "stage": "understand",
+   "at": "\"O(n)\" on unsorted input"
+  },
+  {
+   "problem": "longest-consecutive-sequence",
+   "day": 2,
+   "section": "think",
+   "stage": "brainstorm",
+   "at": "Re-walking each run from every element"
+  },
+  {
+   "problem": "longest-consecutive-sequence",
+   "day": 2,
+   "section": "idea",
+   "stage": "pseudocode",
+   "at": "`if v−1 in set: continue`"
+  },
+  {
+   "problem": "longest-consecutive-sequence",
+   "day": 2,
+   "section": "pitfalls",
+   "stage": "solution",
+   "at": "Iterate the set, not the array"
+  }
+ ]
+}

@@ -1,0 +1,93 @@
+{
+ "id": "hash-boyer-moore-voting",
+ "title": "Boyer–Moore voting — the majority element in O(1) space",
+ "topic": "hashing",
+ "kind": "pattern",
+ "summary": "Pair off different values against each other; the value that appears more than n/2 times always survives. One pass, two variables.",
+ "prereqs": [
+  "hash-frequency-counting"
+ ],
+ "related": [
+  "hash-frequency-counting"
+ ],
+ "sections": [
+  {
+   "id": "idea",
+   "title": "Idea",
+   "note": "write",
+   "body": "✍️ Keep a `candidate` and a `count`. For each x: if count is 0, adopt x as the candidate. If x equals the candidate, count++; otherwise count--.\n✍️ Each \"count--\" cancels one copy of the candidate against one different value. A value occurring more than n/2 times cannot be fully cancelled, because there are fewer than n/2 other values to cancel it with."
+  },
+  {
+   "id": "recognise",
+   "title": "Recognise it",
+   "note": "write",
+   "body": "✍️ \"majority element\", \"appears more than ⌊n/2⌋ times\", **plus** \"O(1) space\" or \"can you do it without extra memory?\".\n✍️ A ban on extra space is itself the hint: frequency maps are out, so a counting/cancelling argument is in."
+  },
+  {
+   "id": "think",
+   "title": "Brute force → voting",
+   "note": "mixed",
+   "body": "Brute force: for each value count its occurrences with a scan. O(n²).\nBetter: frequency map, return the value with count > n/2. O(n) time, O(n) space.\nAlso valid: sort, return the middle element `a[n/2]` (the majority must cover the middle). O(n log n), O(1).\n✍️ To reach O(n) time *and* O(1) space you need to avoid storing counts for every value. Observation: you only care about **one** value, the one that survives cancellation."
+  },
+  {
+   "id": "why-it-works",
+   "title": "Why it works (proof sketch)",
+   "note": "mixed",
+   "body": "✍️ Think of each count-- as removing a pair of two different elements from the array. Removing a pair of different elements never changes which element is the majority of what is left (the majority loses at most one copy per pair, and so does the rest).\n✍️ At the end, what remains is all copies of one value — the candidate. If a majority exists, it must be that value.\n- If a majority is **not guaranteed**, do a second pass to count the candidate and verify count > n/2."
+  },
+  {
+   "id": "template",
+   "title": "Template",
+   "note": "write",
+   "body": "```cpp\nint majorityElement(vector<int>& a) {\n    int cand = 0, cnt = 0;\n    for (int x : a) {\n        if (cnt == 0) cand = x;     // adopt BEFORE comparing\n        cnt += (x == cand) ? 1 : -1;\n    }\n    return cand;                    // guaranteed majority; otherwise verify with a 2nd pass\n}\n```"
+  },
+  {
+   "id": "variations",
+   "title": "Variations",
+   "note": "screenshot",
+   "body": "- More than n/3 times (LeetCode 229): at most two such values exist. Keep **two** candidates and two counts; a value different from both decrements both. Always verify with a second pass.\n- General: more than n/k times → at most k−1 candidates (Misra–Gries)."
+  },
+  {
+   "id": "pitfalls",
+   "title": "Pitfalls",
+   "note": "write",
+   "body": "✍️ Order inside the loop: check `cnt == 0` and adopt the new candidate **before** the comparison, otherwise the first element of a new block is counted against the old candidate.\n✍️ The final candidate is only guaranteed correct when a majority exists. Without the guarantee, verify."
+  },
+  {
+   "id": "complexity",
+   "title": "Complexity",
+   "note": "screenshot",
+   "body": "O(n) time, O(1) space. Verification pass (if needed) is another O(n)."
+  }
+ ],
+ "used_by": [
+  {
+   "problem": "majority-element",
+   "day": 2,
+   "section": "think",
+   "stage": "brainstorm",
+   "at": "Map → sort → voting"
+  },
+  {
+   "problem": "majority-element",
+   "day": 2,
+   "section": "recognise",
+   "stage": "brainstorm",
+   "at": "O(1) space is the hint"
+  },
+  {
+   "problem": "majority-element",
+   "day": 2,
+   "section": "pitfalls",
+   "stage": "pseudocode",
+   "at": "Adopt before comparing"
+  },
+  {
+   "problem": "majority-element",
+   "day": 2,
+   "section": "why-it-works",
+   "stage": "edges",
+   "at": "Why the survivor is the majority"
+  }
+ ]
+}

@@ -1,0 +1,57 @@
+{
+ "id": "cx-amortised-analysis",
+ "title": "Amortised analysis — why \"sometimes expensive\" can still be O(1)",
+ "topic": "complexity",
+ "kind": "concept",
+ "summary": "How to count total work across a whole sequence of operations, with the vector push_back, two-stack queue and monotonic stack examples.",
+ "prereqs": [
+  "cx-big-o"
+ ],
+ "related": [
+  "stq-queue-via-stacks-amortised",
+  "stq-monotonic-stack",
+  "cpp-vector"
+ ],
+ "sections": [
+  {
+   "id": "idea",
+   "title": "The idea",
+   "note": "write",
+   "body": "✍️ Amortised cost = total cost of a sequence of operations ÷ number of operations.\n✍️ An operation can be occasionally expensive and still be O(1) amortised, if the expensive moments are rare enough that their cost spreads over many cheap ones."
+  },
+  {
+   "id": "counting-trick",
+   "title": "The counting trick: charge each element",
+   "note": "write",
+   "body": "✍️ The easiest proof: count how many times each element can be touched over the whole run.\n✍️ If every element is pushed once and popped at most once, the total work is ≤ 2n, so the whole algorithm is O(n) — even if one single step pops many elements.\nThis is exactly why a monotonic stack is O(n) despite having a `while` loop inside a `for` loop ([[stq-monotonic-stack#complexity]])."
+  },
+  {
+   "id": "vector",
+   "title": "Example: vector::push_back",
+   "note": "screenshot",
+   "body": "A `vector` doubles its capacity when full and copies everything across. One push can cost O(n). But after a copy of size k, the next k pushes are cheap. Total copies over n pushes ≤ 1 + 2 + 4 + … + n < 2n → O(1) amortised per push."
+  },
+  {
+   "id": "interview",
+   "title": "Interview phrasing",
+   "note": "mixed",
+   "body": "✍️ Say: \"Each element is pushed and popped at most once, so the total is O(n) amortised, even though one iteration can pop several.\"\n- Do not say \"the while loop is O(n) so the total is O(n²)\" — that is the most common wrong answer on monotonic stack problems."
+  }
+ ],
+ "used_by": [
+  {
+   "problem": "longest-consecutive-sequence",
+   "day": 2,
+   "section": "counting-trick",
+   "stage": "edges",
+   "at": "Why the nested loop is O(n)"
+  },
+  {
+   "problem": "max-consecutive-ones-iii",
+   "day": 5,
+   "section": "counting-trick",
+   "stage": "edges",
+   "at": "Why O(n)"
+  }
+ ]
+}

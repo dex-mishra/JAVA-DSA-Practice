@@ -1,0 +1,510 @@
+=== page: ll-node-and-pointers
+title: Linked list nodes and pointer manipulation
+topic: linked-list
+kind: concept
+summary: What a ListNode is, how next pointers chain nodes, traversal, and the rule for changing pointers without losing the rest of the list.
+prereqs: cpp-vector
+related: ll-dummy-head, ll-reversal
+--- node | The node | write
+✍️ `struct ListNode { int val; ListNode* next; };` A list is a chain of nodes; the last node's `next` is `nullptr`. You hold only `head`.
+✍️ No random access: reaching the k-th node costs O(k). Inserting/removing **after a node you already hold** costs O(1).
+
+--- traversal | Traversal | write
+```cpp
+for (ListNode* cur = head; cur != nullptr; cur = cur->next) { /* use cur->val */ }
+int length = 0; for (ListNode* p = head; p; p = p->next) length++;
+```
+✍️ Always check `cur != nullptr` before reading `cur->next` or `cur->val`. `cur->next->next` needs both `cur` and `cur->next` to be non-null.
+
+--- rewiring | The golden rule of rewiring | write
+✍️ Before overwriting a `next` pointer, save what it pointed to. Once a node's only reference is overwritten, the rest of the list is lost.
+```cpp
+ListNode* nxt = cur->next;   // 1. save
+cur->next = prev;            // 2. rewire
+prev = cur; cur = nxt;       // 3. advance using the saved pointer
+```
+✍️ Draw boxes and arrows on paper for every pointer problem. Update the drawing line by line as you dry-run ([[meta-dry-run]]).
+
+--- delete | Deleting a node | mixed
+✍️ To delete node X you need the node **before** X: `prev->next = prev->next->next;`. If X can be the head, there is no "before" → use a dummy head ([[ll-dummy-head]]).
+- LeetCode problems usually do not require `delete`/freeing memory; mention it in interviews.
+
+=== page: ll-dummy-head
+title: The dummy (sentinel) head
+topic: linked-list
+kind: pattern
+summary: A fake node placed before the real head so that inserting or deleting at the front is no longer a special case. Return dummy.next.
+prereqs: ll-node-and-pointers
+related: ll-merge-and-split, ll-k-gap-pointers
+--- idea | Idea | write
+✍️ Many list operations treat the head differently ("if we delete the head, return head->next, else …"). A dummy node before the head makes the head an ordinary node with a predecessor.
+✍️ Build the answer after `dummy`, and return `dummy.next` at the end.
+
+--- recognise | Recognise it | write
+✍️ Building a new list (merging, adding numbers digit by digit, partitioning).
+✍️ Deleting nodes where the head itself might be deleted (remove n-th from end, remove elements, delete duplicates).
+
+--- template | Template | write
+```cpp
+ListNode dummy(0);          // on the stack: no leak, no delete needed
+ListNode* tail = &dummy;    // last node of the list being built
+// ... repeatedly: tail->next = someNode; tail = tail->next;
+return dummy.next;
+```
+
+--- add-two-numbers | Example: digit-by-digit addition | screenshot
+```cpp
+ListNode* addTwoNumbers(ListNode* a, ListNode* b) {
+    ListNode dummy(0); ListNode* tail = &dummy; int carry = 0;
+    while (a || b || carry) {                       // carry keeps the loop alive for the final digit
+        int s = carry + (a ? a->val : 0) + (b ? b->val : 0);
+        carry = s / 10;
+        tail->next = new ListNode(s % 10); tail = tail->next;
+        if (a) a = a->next;
+        if (b) b = b->next;
+    }
+    return dummy.next;
+}
+```
+
+--- pitfalls | Pitfalls | write
+✍️ Returning `dummy` (or `&dummy`) instead of `dummy.next`.
+✍️ Forgetting `tail = tail->next` after attaching → every new node overwrites the same link.
+
+=== page: ll-reversal
+title: Reversing a linked list
+topic: linked-list
+kind: pattern
+summary: Walk the list with prev, cur and next, flipping each pointer to point backwards. Iterative O(1) space; recursive version for understanding.
+prereqs: ll-node-and-pointers
+related: ll-fast-slow, ll-merge-and-split
+--- idea | Idea | write
+✍️ Reversing = making every `next` point to the previous node. Keep `prev` (already-reversed part), `cur` (node being flipped), and save `nxt` before flipping.
+✍️ When `cur` becomes null, `prev` is the new head.
+
+--- template | Template (iterative) | write
+```cpp
+ListNode* reverseList(ListNode* head) {
+    ListNode* prev = nullptr; ListNode* cur = head;
+    while (cur) {
+        ListNode* nxt = cur->next;   // save
+        cur->next = prev;            // flip
+        prev = cur;                  // advance prev
+        cur = nxt;                   // advance cur
+    }
+    return prev;
+}
+```
+✍️ Four lines in the loop, always in this order: **save, flip, move prev, move cur**.
+
+--- recursive | Recursive version | mixed
+```cpp
+ListNode* reverseList(ListNode* head) {
+    if (!head || !head->next) return head;      // empty or one node
+    ListNode* newHead = reverseList(head->next); // reverse the rest
+    head->next->next = head;                    // the node after head now points back
+    head->next = nullptr;
+    return newHead;
+}
+```
+✍️ Leap of faith ([[rec-how-recursion-works#leap-of-faith]]): trust that the call reverses everything after head; then only fix the link between head and its old successor.
+- Recursion uses O(n) stack; the iterative version uses O(1).
+
+--- variations | Variations | screenshot
+- Reverse a sub-range [left, right] (LeetCode 92): walk to the node before `left`, reverse `right − left + 1` nodes, reconnect both ends.
+- Reverse in groups of k (LeetCode 25): repeatedly reverse k nodes if k remain.
+- Palindrome list: reverse the second half and compare ([[ll-merge-and-split#palindrome]]).
+
+--- complexity | Complexity | screenshot
+O(n) time, O(1) space (iterative), O(n) stack (recursive).
+
+=== page: ll-fast-slow
+title: Fast and slow pointers
+topic: linked-list
+kind: pattern
+summary: One pointer moves one step, the other two steps. When fast reaches the end, slow is at the middle; if there is a cycle, they meet inside it.
+prereqs: ll-node-and-pointers
+related: ll-floyd-cycle-proof, ll-merge-and-split
+--- idea | Idea | write
+✍️ `slow` moves 1 node per step, `fast` moves 2. After k steps, fast has travelled exactly twice as far as slow.
+✍️ So when fast reaches the end (n nodes), slow has reached about n/2 → the **middle**, in one pass, without knowing the length.
+
+--- middle | Template: middle node | write
+```cpp
+ListNode* middleNode(ListNode* head) {
+    ListNode *slow = head, *fast = head;
+    while (fast && fast->next) {      // fast can take two steps
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+    return slow;                      // even length → the SECOND of the two middles
+}
+```
+✍️ For the **first** middle of an even list (needed when splitting into halves for merge sort), use `while (fast->next && fast->next->next)` starting both at head.
+
+--- cycle | Template: cycle detection | write
+```cpp
+bool hasCycle(ListNode* head) {
+    ListNode *slow = head, *fast = head;
+    while (fast && fast->next) {
+        slow = slow->next; fast = fast->next->next;
+        if (slow == fast) return true;    // compare after moving
+    }
+    return false;                         // fast fell off the end → no cycle
+}
+```
+✍️ Why they must meet in a cycle: once both are inside, the gap between them shrinks by exactly 1 each step, so it reaches 0. Proof and entry point: [[ll-floyd-cycle-proof]].
+
+--- recognise | Recognise it | write
+✍️ "middle of the list", "cycle", "O(1) memory" on a list, "happy number" (cycle in a sequence of numbers), "find the duplicate number" (array as a linked list of indices).
+
+--- pitfalls | Pitfalls | write
+✍️ The loop condition `fast && fast->next` must check both, in that order, before `fast->next->next`.
+✍️ Comparing `slow == fast` before moving makes them "meet" at the start.
+
+=== page: ll-floyd-cycle-proof
+title: Floyd's cycle algorithm — finding where the cycle starts
+topic: linked-list
+kind: concept
+summary: After slow and fast meet, a pointer from the head and a pointer from the meeting point, both moving one step, meet exactly at the cycle's entry. Here is why.
+prereqs: ll-fast-slow
+related: ll-fast-slow
+--- algorithm | The algorithm | write
+✍️ Phase 1: run slow/fast until they meet (or fast ends → no cycle).
+✍️ Phase 2: put one pointer at head, keep one at the meeting point, move **both one step** at a time. Where they meet is the cycle entry.
+
+--- proof | Why it works | write
+✍️ Let a = distance from head to entry, b = distance from entry to the meeting point, c = cycle length.
+✍️ When they meet, slow travelled a + b; fast travelled a + b + k·c for some k ≥ 1. Fast travelled twice as far: 2(a + b) = a + b + k·c ⇒ **a = k·c − b**.
+✍️ So walking a steps from the meeting point (which is b into the cycle) lands at b + a = k·c → exactly the entry. Walking a steps from head also lands at the entry. They meet there.
+
+--- template | Template | screenshot
+```cpp
+ListNode* detectCycle(ListNode* head) {
+    ListNode *slow = head, *fast = head;
+    while (fast && fast->next) {
+        slow = slow->next; fast = fast->next->next;
+        if (slow == fast) {
+            ListNode* p = head;
+            while (p != slow) { p = p->next; slow = slow->next; }
+            return p;
+        }
+    }
+    return nullptr;
+}
+```
+
+--- uses | Where else | mixed
+✍️ Find the duplicate number (LeetCode 287): treat `i → a[i]` as a linked list; the duplicate is the cycle entry. O(n) time, O(1) space, without modifying the array.
+
+=== page: ll-merge-and-split
+title: Merging, splitting and comparing lists
+topic: linked-list
+kind: pattern
+summary: Merge two sorted lists with a dummy head; split a list at its middle; combine split + reverse + compare for palindromes; merge sort for lists.
+prereqs: ll-dummy-head, ll-fast-slow, ll-reversal
+related: sort-merge-sort, heap-k-way-merge
+--- merge | Merge two sorted lists | write
+```cpp
+ListNode* mergeTwoLists(ListNode* a, ListNode* b) {
+    ListNode dummy(0); ListNode* tail = &dummy;
+    while (a && b) {
+        if (a->val <= b->val) { tail->next = a; a = a->next; }
+        else { tail->next = b; b = b->next; }
+        tail = tail->next;
+    }
+    tail->next = a ? a : b;      // attach whatever remains (already sorted)
+    return dummy.next;
+}
+```
+✍️ No new nodes are created; existing nodes are re-linked. O(n + m) time, O(1) space.
+
+--- split | Split at the middle | write
+✍️ Find the node **before** the second half with fast/slow (first-middle variant), then cut: `second = slow->next; slow->next = nullptr;`
+✍️ Cutting is essential for merge sort: without `slow->next = nullptr` the first half still runs into the second.
+
+--- palindrome | Palindrome list in O(1) space | write
+✍️ 1. Find the middle. 2. Reverse the second half. 3. Compare the first half with the reversed second half node by node. 4. (Optional, polite) reverse back to restore the input.
+
+--- merge-sort-list | Merge sort on a list | screenshot
+Split at the middle, sort both halves recursively, merge with `mergeTwoLists`. O(n log n) time, O(log n) stack (LeetCode 148). This is the standard answer to "sort a linked list".
+
+=== page: ll-k-gap-pointers
+title: Two pointers with a k-node gap
+topic: linked-list
+kind: pattern
+summary: Advance a lead pointer k steps, then move both together; when the lead hits the end, the trailing pointer is k from the end. Removes the n-th node from the end in one pass.
+prereqs: ll-dummy-head
+related: ll-fast-slow
+--- idea | Idea | write
+✍️ You cannot index from the end of a singly linked list. But if two pointers are always exactly k nodes apart, then when the front one reaches the end, the back one is k nodes before the end.
+✍️ To delete the n-th from the end you need the node **before** it, so start both at a dummy and give the gap n + 1.
+
+--- template | Template | write
+```cpp
+ListNode* removeNthFromEnd(ListNode* head, int n) {
+    ListNode dummy(0, head);
+    ListNode *fast = &dummy, *slow = &dummy;
+    for (int i = 0; i <= n; i++) fast = fast->next;   // gap of n+1
+    while (fast) { fast = fast->next; slow = slow->next; }
+    slow->next = slow->next->next;                    // slow is just before the target
+    return dummy.next;
+}
+```
+
+--- pitfalls | Pitfalls | write
+✍️ Without the dummy, removing the head (n = length) crashes or needs a special case.
+✍️ Off-by-one in the gap: draw a 3-node list and n = 1 and check where slow stops.
+- Two-pass alternative: count length L, then delete the (L − n)-th from the start. Correct and acceptable; the one-pass version is the follow-up.
+
+=== page: stq-stack-basics-and-matching
+title: Stacks — last in, first out, and bracket matching
+topic: stack-queue
+kind: pattern
+summary: A stack remembers unfinished things in reverse order, so the most recent opener is matched first. Valid parentheses, undo, nested structures.
+prereqs: cpp-stack-queue-deque
+related: stq-expression-evaluation, stq-monotonic-stack
+--- idea | Idea | write
+✍️ A stack is the right structure whenever "the most recent unfinished thing must be finished first" — nested brackets, function calls, undo history, backtracking paths.
+✍️ Bracket matching: push every opener; on a closer, the top of the stack must be its matching opener — pop it. At the end the stack must be empty.
+
+--- recognise | Recognise it | write
+✍️ "valid parentheses / balanced", "nested", "remove adjacent duplicates", "backspace", "simplify path", "decode string k[...]".
+✍️ Processing something left to right where a later element **cancels** or **completes** an earlier one.
+
+--- template | Template | write
+```cpp
+bool isValid(string s) {
+    stack<char> st;
+    for (char c : s) {
+        if (c == '(' || c == '[' || c == '{') { st.push(c); continue; }
+        if (st.empty()) return false;                       // closer with nothing open
+        char o = st.top(); st.pop();
+        if ((c == ')' && o != '(') || (c == ']' && o != '[') || (c == '}' && o != '{')) return false;
+    }
+    return st.empty();                                      // every opener closed
+}
+```
+✍️ Three failure cases: closer on an empty stack, mismatched pair, openers left at the end.
+
+--- variations | Variations | screenshot
+- Only one bracket type → a counter instead of a stack (balance ≥ 0 always, = 0 at the end).
+- Remove all adjacent duplicates (LeetCode 1047): push a char, pop if it equals the top.
+- Backspace string compare (LeetCode 844): '#' pops; or two pointers from the back for O(1) space.
+- Decode string (LeetCode 394): two stacks (counts and partial strings).
+
+--- complexity | Complexity | screenshot
+O(n) time, O(n) space for the stack.
+
+=== page: stq-design-with-auxiliary
+title: Designing with an auxiliary stack (Min Stack)
+topic: stack-queue
+kind: pattern
+summary: Store extra information alongside each element — the minimum so far — so queries about the whole stack stay O(1) after any push or pop.
+prereqs: stq-stack-basics-and-matching
+related: stq-queue-via-stacks-amortised
+--- idea | Idea | write
+✍️ The minimum of a stack only changes when you push or pop. If each element remembers "the minimum of everything at or below me", the top's remembered value is always the current minimum.
+✍️ Store pairs `(value, minSoFar)`, or keep a second stack of minimums.
+
+--- template | Template | write
+```cpp
+class MinStack {
+    vector<pair<int,int>> st;          // (value, min of stack up to here)
+public:
+    void push(int x) { st.push_back({x, st.empty() ? x : min(x, st.back().second)}); }
+    void pop() { st.pop_back(); }
+    int top() { return st.back().first; }
+    int getMin() { return st.back().second; }
+};
+```
+
+--- why | Why it works | mixed
+✍️ Popping removes exactly the elements pushed after the current top, and the top's stored minimum was computed from the elements below it — which are all still there. So the stored minimum is still correct.
+- Space-saving variant: a second stack that only pushes when the new value is ≤ the current min (≤, not <, to handle duplicate minimums).
+
+=== page: stq-expression-evaluation
+title: Evaluating expressions with stacks
+topic: stack-queue
+kind: pattern
+summary: Reverse Polish notation is evaluated with one operand stack; infix expressions use a stack of partial results and signs.
+prereqs: stq-stack-basics-and-matching
+related: stq-stack-basics-and-matching
+--- rpn | Reverse Polish notation | write
+✍️ Read tokens left to right. Number → push. Operator → pop the **right** operand first, then the left, apply, push the result.
+```cpp
+int evalRPN(vector<string>& t) {
+    stack<long long> st;
+    for (auto& tok : t) {
+        if (tok == "+" || tok == "-" || tok == "*" || tok == "/") {
+            long long b = st.top(); st.pop();
+            long long a = st.top(); st.pop();
+            if (tok == "+") st.push(a + b);
+            else if (tok == "-") st.push(a - b);
+            else if (tok == "*") st.push(a * b);
+            else st.push(a / b);                 // C++ division truncates toward zero, as required
+        } else st.push(stoll(tok));
+    }
+    return st.top();
+}
+```
+✍️ Order matters for − and /: the first pop is the **right** operand.
+
+--- infix | Infix with + − and parentheses (recognition) | screenshot
+Basic Calculator (LeetCode 224): keep `result`, `sign`, and a stack. On '(' push the current result and sign, reset; on ')' pop and combine. With * and / (LeetCode 227): push numbers with their sign, and immediately combine with the top for * and /; sum the stack at the end.
+
+--- pitfalls | Pitfalls | mixed
+✍️ "-3" is a number, not an operator: check whole-token equality, not the first character.
+- Intermediate products can exceed int; use `long long`.
+
+=== page: stq-queue-via-stacks-amortised
+title: Queue from two stacks — amortised O(1)
+topic: stack-queue
+kind: pattern
+summary: Push into an input stack; pop from an output stack, refilling it from the input only when it is empty. Every element moves at most once.
+prereqs: stq-stack-basics-and-matching, cx-amortised-analysis
+related: cx-amortised-analysis
+--- idea | Idea | write
+✍️ Pouring stack A into stack B reverses the order, so B's top is the **oldest** element — exactly the queue's front.
+✍️ Only pour when B is empty. If you poured while B still had elements, newer elements would sit above older ones and break FIFO order.
+
+--- template | Template | write
+```cpp
+class MyQueue {
+    stack<int> in, out;
+    void move() { if (out.empty()) while (!in.empty()) { out.push(in.top()); in.pop(); } }
+public:
+    void push(int x) { in.push(x); }
+    int pop() { move(); int x = out.top(); out.pop(); return x; }
+    int peek() { move(); return out.top(); }
+    bool empty() { return in.empty() && out.empty(); }
+};
+```
+
+--- amortised | Why it is O(1) amortised | write
+✍️ Each element is pushed to `in` once, moved to `out` once, and popped from `out` once → 3 operations per element over its whole life. A single `pop` can cost O(n), but the total over n operations is O(n) ([[cx-amortised-analysis#counting-trick]]).
+
+=== page: stq-monotonic-stack
+title: Monotonic stack — next greater and previous smaller
+topic: stack-queue
+kind: pattern
+summary: Keep a stack whose values are always decreasing (or increasing). When a new element breaks the order, it is the "next greater" for every element it pops. O(n) total.
+prereqs: stq-stack-basics-and-matching, cx-amortised-analysis
+related: stq-histogram-area, stq-monotonic-deque
+--- idea | Idea | write
+✍️ For each element you want its **next greater element** to the right. Scan left to right with a stack of indices still waiting for an answer.
+✍️ The waiting elements are always in decreasing order of value (an element that found a greater one has already been answered and popped).
+✍️ When `a[i]` arrives, it is the answer for every waiting element smaller than it: pop them and record `i` as their answer. Then push `i` — it waits too.
+
+--- recognise | Recognise it | write
+✍️ "next greater / next smaller / previous greater / previous smaller element".
+✍️ "how many days until a warmer temperature", "stock span", "nearest taller building", "visible people".
+✍️ Areas bounded by the nearest smaller bar on each side → histogram ([[stq-histogram-area]]).
+✍️ "remove k digits to make the smallest number" → keep an increasing stack, pop larger digits while k > 0.
+
+--- think | Brute force → monotonic stack | mixed
+Brute force: for each i, scan right until a larger element appears. O(n²) on a decreasing array.
+✍️ Bottleneck: many elements scan over the same stretch of the array.
+✍️ Observation: an element only needs to be remembered until something bigger shows up — at that moment it gets its answer and can be forgotten. Keep the still-unanswered elements in a stack; each is pushed once and popped once.
+✍️ The unanswered elements are automatically in decreasing order: if a bigger one had come after a smaller one, the smaller one would already have been answered.
+
+--- template | Template: next greater element (indices) | write
+```cpp
+vector<int> nextGreater(vector<int>& a) {
+    int n = a.size();
+    vector<int> ans(n, -1);
+    stack<int> st;                          // indices, values strictly decreasing
+    for (int i = 0; i < n; i++) {
+        while (!st.empty() && a[st.top()] < a[i]) {
+            ans[st.top()] = i;              // a[i] is the next greater for st.top()
+            st.pop();
+        }
+        st.push(i);
+    }
+    return ans;                             // -1 = no greater element to the right
+}
+```
+✍️ Store **indices**, not values: you usually need distances (`i − top`) or positions.
+
+--- four-variants | The four variants | write
+✍️ Next greater: decreasing stack, pop while `a[top] < a[i]`.
+✍️ Next smaller: increasing stack, pop while `a[top] > a[i]`.
+✍️ Previous greater/smaller: after popping, the element left on top (if any) is the answer for `i` itself.
+✍️ Circular arrays (LeetCode 503): loop i from 0 to 2n−1 and use `i % n`.
+
+--- complexity | Complexity | write
+✍️ O(n) time: every index is pushed once and popped at most once, so the inner while runs at most n times **in total** ([[cx-amortised-analysis]]). O(n) space.
+
+--- pitfalls | Pitfalls | write
+✍️ `<` vs `<=` decides how duplicates are handled. For "strictly greater", pop on `<`. For histogram areas, one side uses strict and the other non-strict to avoid double counting.
+✍️ Elements left in the stack at the end have **no** answer — initialise the result array with the "none" value (−1 or 0).
+
+=== page: stq-histogram-area
+title: Largest rectangle in a histogram
+topic: stack-queue
+kind: pattern
+summary: Each bar's best rectangle spans to the nearest smaller bar on each side. A monotonic increasing stack finds both boundaries in one pass.
+prereqs: stq-monotonic-stack
+related: stq-monotonic-stack
+--- idea | Idea | write
+✍️ The largest rectangle has some bar as its **shortest** bar. If bar i is the shortest, the rectangle extends left and right until the first bar shorter than `h[i]`.
+✍️ So for each bar: width = (index of next smaller) − (index of previous smaller) − 1, area = `h[i] × width`. Take the max.
+
+--- template | Template: one pass | write
+```cpp
+int largestRectangleArea(vector<int>& h) {
+    int n = h.size(), best = 0;
+    stack<int> st;                                    // indices, heights increasing
+    for (int i = 0; i <= n; i++) {
+        int cur = (i == n) ? 0 : h[i];               // sentinel 0 flushes the stack at the end
+        while (!st.empty() && h[st.top()] >= cur) {
+            int height = h[st.top()]; st.pop();
+            int left = st.empty() ? -1 : st.top();    // previous smaller index
+            best = max(best, height * (i - left - 1)); // i is the next smaller index
+        }
+        st.push(i);
+    }
+    return best;
+}
+```
+✍️ When a bar is popped, `i` is its next smaller (right boundary) and the new top is its previous smaller (left boundary).
+
+--- pitfalls | Pitfalls | write
+✍️ Without the sentinel at `i == n`, bars still in the stack at the end are never processed.
+✍️ Width is `i − left − 1`, with `left = −1` when the stack is empty (the bar extends to the very start).
+
+--- uses | Where else | screenshot
+Maximal rectangle in a binary matrix (LeetCode 85): treat each row as the base of a histogram of consecutive 1s above it, and run this algorithm per row → O(R·C).
+
+=== page: stq-monotonic-deque
+title: Monotonic deque — maximum of every window
+topic: stack-queue
+kind: pattern
+summary: Keep window indices in a deque with decreasing values; the front is the window maximum. Pop the back when a bigger element arrives, pop the front when it leaves the window.
+prereqs: stq-monotonic-stack, sw-fixed-window, cpp-stack-queue-deque
+related: sw-fixed-window
+--- idea | Idea | write
+✍️ A window's maximum cannot be "un-added" like a sum. But an element that is smaller than a **newer** element can never be the maximum again (the newer one is bigger and stays in the window longer). Discard it.
+✍️ So the deque holds indices with **decreasing** values: the front is the current maximum; the back is where new elements enter.
+
+--- template | Template | write
+```cpp
+vector<int> maxSlidingWindow(vector<int>& a, int k) {
+    deque<int> dq; vector<int> out;                 // indices, a[] decreasing front→back
+    for (int i = 0; i < (int)a.size(); i++) {
+        if (!dq.empty() && dq.front() <= i - k) dq.pop_front();       // left the window
+        while (!dq.empty() && a[dq.back()] <= a[i]) dq.pop_back();    // dominated by a[i]
+        dq.push_back(i);
+        if (i >= k - 1) out.push_back(a[dq.front()]);
+    }
+    return out;
+}
+```
+✍️ Two different pops: the **front** for "out of the window" (age), the **back** for "dominated" (value).
+
+--- complexity | Complexity | write
+✍️ O(n) time — each index enters and leaves the deque once. O(k) space.
+
+--- uses | Where else | screenshot
+- Shortest subarray with sum ≥ K with negatives (LeetCode 862): monotonic deque over prefix sums.
+- Jump Game VI / constrained subsequence sum: DP where each state takes the max over the last k states → deque makes it O(n).

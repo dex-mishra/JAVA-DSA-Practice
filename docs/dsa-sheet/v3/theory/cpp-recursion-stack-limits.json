@@ -1,0 +1,29 @@
+{
+ "id": "cpp-recursion-stack-limits",
+ "title": "Recursion depth and stack limits",
+ "topic": "cpp",
+ "kind": "cpp",
+ "summary": "How deep recursion can go before crashing, which problems hit the limit, and how to convert to iteration.",
+ "prereqs": [
+  "rec-how-recursion-works"
+ ],
+ "related": [
+  "cx-space-and-in-place",
+  "tree-iterative-traversals"
+ ],
+ "sections": [
+  {
+   "id": "limits",
+   "title": "The limits",
+   "note": "mixed",
+   "body": "✍️ Each call uses stack memory. Typical stacks allow ~10⁴–10⁵ frames of simple recursive functions, depending on the judge.\n✍️ LeetCode is generous; recursion depth 10⁴–10⁵ usually works. Some OA platforms (HackerRank, older judges) have smaller stacks.\n- A crash with no output (segfault / runtime error) on large tests of a recursive DFS is usually a stack overflow."
+  },
+  {
+   "id": "when-risky",
+   "title": "When it is risky",
+   "note": "write",
+   "body": "✍️ DFS on a linked-list-shaped tree, a path graph, or a grid of 10⁶ cells → depth can equal n.\n✍️ Fix: use an explicit `stack` (iterative DFS) or BFS. See [[tree-iterative-traversals]] and [[graph-dfs#iterative]]."
+  }
+ ],
+ "used_by": []
+}

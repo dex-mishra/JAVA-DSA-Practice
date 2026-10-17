@@ -1,0 +1,56 @@
+{
+ "id": "cpp-unordered-map-set",
+ "title": "unordered_map and unordered_set — API and gotchas",
+ "topic": "cpp",
+ "kind": "cpp",
+ "summary": "Inserting, looking up, counting and erasing in hash containers, and the [] operator side effect that causes silent bugs.",
+ "prereqs": [
+  "hash-table-internals"
+ ],
+ "related": [
+  "cpp-container-choice",
+  "hash-frequency-counting",
+  "hash-complement-lookup"
+ ],
+ "sections": [
+  {
+   "id": "api",
+   "title": "The API you need",
+   "note": "write",
+   "body": "✍️ `unordered_map<int,int> mp;` key → value. `unordered_set<int> st;` keys only.\n✍️ Insert/update: `mp[key] = value;` or `mp[key]++;` (missing keys start at 0).\n✍️ Membership: `mp.count(key)` returns 0 or 1. `st.count(x)`. C++20 also has `.contains()`, but `.count()` works everywhere.\n✍️ Lookup without inserting: `auto it = mp.find(key); if (it != mp.end()) use(it->second);`\n✍️ Erase: `mp.erase(key);` Size: `mp.size()`.\n\n```cpp\nunordered_map<int,int> freq;\nfor (int x : a) freq[x]++;                 // frequency count\nif (freq.count(7)) cout << freq[7];        // safe read: key exists\nfor (auto& [val, c] : freq) { /* ... */ }  // iterate (order is arbitrary)\n```"
+  },
+  {
+   "id": "bracket-trap",
+   "title": "The [] trap",
+   "note": "write",
+   "body": "✍️ `mp[key]` **inserts** the key with value 0 if it is missing. Reading `if (mp[x] > 0)` on a missing key adds `x` to the map.\n✍️ This silently changes `mp.size()` and breaks logic that counts distinct keys (e.g. \"at most k distinct characters\" windows).\n✍️ Rule: use `count`/`find` to *ask*; use `[]` only to *write* (or when inserting a zero is harmless)."
+  },
+  {
+   "id": "costs",
+   "title": "Costs",
+   "note": "write",
+   "body": "| Operation | Average | Worst |\n|---|---|---|\n| insert, `[]`, find, count, erase | O(1) | O(n) |\n| iterate all | O(n + buckets) | — |\n✍️ Order of iteration is arbitrary and can change after rehashing. Never rely on it. If you need sorted keys, use `map` ([[cpp-map-set-ordered]])."
+  },
+  {
+   "id": "keys",
+   "title": "What can be a key",
+   "note": "mixed",
+   "body": "✍️ Built-in types and `string` work out of the box. `pair<int,int>` does NOT have a default hash in `unordered_map` — use `map<pair<int,int>,int>`, or encode the pair into a `long long` (`key = (long long)a * BIG + b`), or a string.\n- Vectors as keys: convert to a string, or use `map<vector<int>, int>` (ordered map compares vectors lexicographically)."
+  },
+  {
+   "id": "performance",
+   "title": "Performance tips",
+   "note": "screenshot",
+   "body": "- `mp.reserve(n)` before inserting n keys avoids repeated rehashing (see [[hash-load-factor-and-rehashing]]).\n- On adversarial judges (Codeforces), crafted inputs can force collisions; LeetCode and campus OAs basically never do this.\n- For keys in a small dense range (letters, values 0..10⁵), a plain array is 3–10× faster than any map ([[cpp-container-choice]])."
+  }
+ ],
+ "used_by": [
+  {
+   "problem": "two-sum",
+   "day": 2,
+   "section": "bracket-trap",
+   "stage": "solution",
+   "at": "`seen.find(need)` instead of `seen[need]`"
+  }
+ ]
+}

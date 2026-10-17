@@ -1,0 +1,41 @@
+{
+ "id": "tree-top-down-parameters",
+ "title": "Top-down recursion — passing information down",
+ "topic": "binary-trees",
+ "kind": "pattern",
+ "summary": "Pass what the node needs from above (running sum, depth, current path, allowed range) as parameters. Root-to-leaf path problems use choose → recurse → undo on a path vector.",
+ "prereqs": [
+  "tree-dfs-traversals",
+  "bt-pick-or-skip"
+ ],
+ "related": [
+  "bst-invariant-and-validation"
+ ],
+ "sections": [
+  {
+   "id": "idea",
+   "title": "Idea",
+   "note": "write",
+   "body": "✍️ Some answers depend on the path from the root: \"does any root-to-leaf path sum to target?\", \"list all such paths\", \"max depth seen\", \"valid BST range\".\n✍️ Carry that information as a **parameter** that changes on the way down. The base case usually checks it at a leaf."
+  },
+  {
+   "id": "template",
+   "title": "Template: all root-to-leaf paths with sum",
+   "note": "write",
+   "body": "```cpp\nvoid dfs(TreeNode* n, int remain, vector<int>& path, vector<vector<int>>& res) {\n    if (!n) return;\n    path.push_back(n->val);                                      // choose\n    remain -= n->val;\n    if (!n->left && !n->right && remain == 0) res.push_back(path);   // check at a LEAF\n    dfs(n->left, remain, path, res);\n    dfs(n->right, remain, path, res);\n    path.pop_back();                                             // undo\n}\n```\n✍️ `remain` is passed by value (each call has its own copy, nothing to undo); `path` is shared by reference and must be undone."
+  },
+  {
+   "id": "pitfalls",
+   "title": "Pitfalls",
+   "note": "write",
+   "body": "✍️ Checking the sum at `nullptr` instead of at a leaf counts a node with one child as a path end.\n✍️ Forgetting `pop_back` → paths accumulate nodes from other branches."
+  },
+  {
+   "id": "variations",
+   "title": "Variations",
+   "note": "screenshot",
+   "body": "- Path sum III (any downward path): prefix sums along the root path + hash map, with undo of the map count on the way back ([[ps-prefix-sum-hashmap]]).\n- Count good nodes: pass the maximum seen so far.\n- Sum root-to-leaf numbers: pass `cur * 10 + val`."
+  }
+ ],
+ "used_by": []
+}

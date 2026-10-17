@@ -6,6 +6,8 @@
  * because that is the one table written a problem at a time.
  */
 
+import { istDate, nextResolveOn } from "../shared/dsa-core.mjs";
+
 export const DOC = {
   PROGRESS: "progress",
   /* When DSA progress was last written, as opposed to what it says.
@@ -72,7 +74,14 @@ export const DSA_DEFAULTS = {
   confidence: null,
   last_revised: null,
   goodnotes_ref: "",
-  my_approach: ""
+  my_approach: "",
+  // v3
+  my_pseudocode: "",
+  first_done_at: null,
+  minutes_spent: null,
+  resolve_stage: 0,
+  next_resolve_on: null,
+  cut_state: ""
 };
 
 /** A database row as the page expects it: booleans as booleans, tags parsed. */
@@ -91,7 +100,13 @@ export function rowToProgress(row) {
     confidence: row.confidence === null || row.confidence === undefined ? null : Number(row.confidence),
     last_revised: row.last_revised || null,
     goodnotes_ref: row.goodnotes_ref || "",
-    my_approach: row.my_approach || ""
+    my_approach: row.my_approach || "",
+    my_pseudocode: row.my_pseudocode || "",
+    first_done_at: row.first_done_at || null,
+    minutes_spent: row.minutes_spent === null || row.minutes_spent === undefined ? null : Number(row.minutes_spent),
+    resolve_stage: Number(row.resolve_stage) || 0,
+    next_resolve_on: row.next_resolve_on || null,
+    cut_state: row.cut_state || ""
   };
 }
 
@@ -117,7 +132,8 @@ export async function readDsaProgress(db) {
   return { problems: out, updated_ts: updated };
 }
 
-const COLUMNS = ["status", "revision", "notes", "tags", "confidence", "last_revised", "goodnotes_ref", "my_approach"];
+const COLUMNS = ["status", "revision", "notes", "tags", "confidence", "last_revised", "goodnotes_ref", "my_approach",
+  "my_pseudocode", "first_done_at", "minutes_spent", "resolve_stage", "next_resolve_on", "cut_state"];
 
 /** Apply a validated patch to one problem, creating the row if needed.
  *
@@ -125,26 +141,48 @@ const COLUMNS = ["status", "revision", "notes", "tags", "confidence", "last_revi
  *  rather than stored -- the same collapse the bucket version did, and the
  *  reason an untouched sheet costs nothing.
  */
-export async function patchDsaProgress(db, problemId, patch) {
+export async function patchDsaProgress(db, problemId, patch, { now = Date.now() } = {}) {
   const existing = await db
     .prepare("SELECT * FROM dsa_progress WHERE problem_id = ?")
     .bind(problemId)
     .first();
 
-  const now = { ...DSA_DEFAULTS, ...rowToProgress(existing), ...patch };
+  const before = rowToProgress(existing);
+  const next = { ...DSA_DEFAULTS, ...before, ...patch };
+  const today = istDate(now);
 
   // Moving off todo stamps the revision date, unless the caller set one
-  // explicitly. Typing today's date by hand every time is the kind of
-  // friction that stops a field being used at all.
+  // explicitly. IST, like every other date in the plan.
   if (patch.status !== undefined && patch.status !== "todo" && patch.last_revised === undefined) {
-    now.last_revised = new Date().toISOString().slice(0, 10);
+    next.last_revised = today;
+  }
+
+  /* The first time a problem leaves todo is the moment the re-solve ladder
+     starts (PRD §8.3): first_done_at, the timer's minutes, and the +2 re-solve.
+     Stamped here rather than by the page so two tabs cannot disagree, and
+     never overwritten -- a later revisit is not a first solve. */
+  if (patch.status !== undefined && patch.status !== "todo" && !before.first_done_at) {
+    next.first_done_at = today;
+    next.resolve_stage = 0;
+    next.next_resolve_on = nextResolveOn(today, 0);
+    if (patch.minutes_spent === undefined) next.minutes_spent = null;
+  }
+  /* Back to todo before any re-solve happened is an undo of a mis-click, so
+     the ladder it started is undone with it. After a re-solve it is a real
+     history and stays. */
+  if (patch.status === "todo" && before.first_done_at && before.resolve_stage === 0) {
+    next.first_done_at = null;
+    next.next_resolve_on = null;
+    next.minutes_spent = null;
   }
 
   const bare =
-    now.status === "todo" && !now.revision && !now.notes && now.tags.length === 0 &&
-    now.confidence === null && !now.goodnotes_ref && !now.my_approach;
+    next.status === "todo" && !next.revision && !next.notes && next.tags.length === 0 &&
+    next.confidence === null && !next.goodnotes_ref && !next.my_approach &&
+    !next.my_pseudocode && !next.first_done_at && next.minutes_spent === null &&
+    !next.resolve_stage && !next.next_resolve_on && !next.cut_state;
 
-  await writeDoc(db, DOC.DSA_META, { updated_ts: Date.now() / 1000 });
+  await writeDoc(db, DOC.DSA_META, { updated_ts: now / 1000 });
 
   if (bare) {
     await db.prepare("DELETE FROM dsa_progress WHERE problem_id = ?").bind(problemId).run();
@@ -154,24 +192,112 @@ export async function patchDsaProgress(db, problemId, patch) {
   await db
     .prepare(
       `INSERT INTO dsa_progress (problem_id, ${COLUMNS.join(", ")}, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       VALUES (${["?"].concat(COLUMNS.map(() => "?"), ["?"]).join(", ")})
        ON CONFLICT(problem_id) DO UPDATE SET
          ${COLUMNS.map((c) => `${c} = excluded.${c}`).join(", ")},
          updated_at = excluded.updated_at`
     )
     .bind(
       problemId,
-      now.status,
-      now.revision ? 1 : 0,
-      now.notes,
-      JSON.stringify(now.tags),
-      now.confidence,
-      now.last_revised,
-      now.goodnotes_ref,
-      now.my_approach,
-      Date.now() / 1000
+      next.status,
+      next.revision ? 1 : 0,
+      next.notes,
+      JSON.stringify(next.tags),
+      next.confidence,
+      next.last_revised,
+      next.goodnotes_ref,
+      next.my_approach,
+      next.my_pseudocode,
+      next.first_done_at,
+      next.minutes_spent,
+      next.resolve_stage,
+      next.next_resolve_on,
+      next.cut_state,
+      now / 1000
     )
     .run();
 
-  return now;
+  return next;
+}
+
+// ---------------------------------------------------------------- v3 ledgers
+
+/* Siblings, drill attempts and the per-day ledger. Small tables written one
+   row at a time, read whole at boot alongside progress -- for one user over
+   thirty days that is a few hundred rows at most. */
+
+export async function readDsaLedgers(db) {
+  const [sib, drill, days] = await Promise.all([
+    db.prepare("SELECT * FROM dsa_sibling").all(),
+    db.prepare("SELECT * FROM dsa_drill").all(),
+    db.prepare("SELECT * FROM dsa_day").all()
+  ]);
+  const siblings = {};
+  for (const r of sib.results || []) {
+    siblings[r.sibling_id] = { parent_id: r.parent_id, studied: !!r.studied, solved: !!r.solved,
+      studied_on: r.studied_on || null, notes: r.notes || "" };
+  }
+  const drillOut = {};
+  for (const r of drill.results || []) {
+    drillOut[r.item_id] = { day: r.day, guess: r.guess || "", correct: r.correct === null ? null : !!r.correct,
+      answered_on: r.answered_on || null };
+  }
+  const dayOut = {};
+  for (const r of days.results || []) {
+    dayOut[r.day] = { kept: !!r.kept, micro_read: !!r.micro_read, cs_core_done: !!r.cs_core_done, note: r.note || "" };
+  }
+  return { siblings, drill: drillOut, days: dayOut };
+}
+
+export async function patchSibling(db, id, patch, { now = Date.now() } = {}) {
+  const row = await db.prepare("SELECT * FROM dsa_sibling WHERE sibling_id = ?").bind(id).first();
+  const cur = row
+    ? { parent_id: row.parent_id, studied: !!row.studied, solved: !!row.solved, studied_on: row.studied_on || null, notes: row.notes || "" }
+    : { parent_id: patch.parent_id || "", studied: false, solved: false, studied_on: null, notes: "" };
+  const next = { ...cur, ...patch };
+  if (patch.studied === true && !cur.studied) next.studied_on = istDate(now);
+  if (patch.studied === false) next.studied_on = null;
+  if (!next.parent_id) throw new Error("parent_id is required the first time a sibling is written");
+  await db.prepare(
+    `INSERT INTO dsa_sibling (sibling_id, parent_id, studied, solved, studied_on, notes, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(sibling_id) DO UPDATE SET parent_id = excluded.parent_id, studied = excluded.studied,
+       solved = excluded.solved, studied_on = excluded.studied_on, notes = excluded.notes,
+       updated_at = excluded.updated_at`
+  ).bind(id, next.parent_id, next.studied ? 1 : 0, next.solved ? 1 : 0, next.studied_on, next.notes, now / 1000).run();
+  await writeDoc(db, DOC.DSA_META, { updated_ts: now / 1000 });
+  return next;
+}
+
+export async function patchDrill(db, id, patch, { now = Date.now() } = {}) {
+  const row = await db.prepare("SELECT * FROM dsa_drill WHERE item_id = ?").bind(id).first();
+  const cur = row
+    ? { day: row.day, guess: row.guess || "", correct: row.correct === null ? null : !!row.correct, answered_on: row.answered_on || null }
+    : { day: patch.day, guess: "", correct: null, answered_on: null };
+  const next = { ...cur, ...patch };
+  if (!Number.isInteger(next.day)) throw new Error("day is required the first time a drill item is written");
+  if (patch.correct !== undefined && patch.correct !== null && cur.correct === null) next.answered_on = istDate(now);
+  if (patch.correct === null) next.answered_on = null;
+  await db.prepare(
+    `INSERT INTO dsa_drill (item_id, day, guess, correct, answered_on, updated_at) VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT(item_id) DO UPDATE SET day = excluded.day, guess = excluded.guess, correct = excluded.correct,
+       answered_on = excluded.answered_on, updated_at = excluded.updated_at`
+  ).bind(id, next.day, next.guess, next.correct === null ? null : next.correct ? 1 : 0, next.answered_on, now / 1000).run();
+  await writeDoc(db, DOC.DSA_META, { updated_ts: now / 1000 });
+  return next;
+}
+
+export async function patchDay(db, day, patch, { now = Date.now() } = {}) {
+  const row = await db.prepare("SELECT * FROM dsa_day WHERE day = ?").bind(day).first();
+  const cur = row
+    ? { kept: !!row.kept, micro_read: !!row.micro_read, cs_core_done: !!row.cs_core_done, note: row.note || "" }
+    : { kept: false, micro_read: false, cs_core_done: false, note: "" };
+  const next = { ...cur, ...patch };
+  await db.prepare(
+    `INSERT INTO dsa_day (day, kept, micro_read, cs_core_done, note, updated_at) VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT(day) DO UPDATE SET kept = excluded.kept, micro_read = excluded.micro_read,
+       cs_core_done = excluded.cs_core_done, note = excluded.note, updated_at = excluded.updated_at`
+  ).bind(day, next.kept ? 1 : 0, next.micro_read ? 1 : 0, next.cs_core_done ? 1 : 0, next.note, now / 1000).run();
+  await writeDoc(db, DOC.DSA_META, { updated_ts: now / 1000 });
+  return next;
 }

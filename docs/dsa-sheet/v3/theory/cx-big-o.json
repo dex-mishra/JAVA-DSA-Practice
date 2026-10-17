@@ -1,0 +1,60 @@
+{
+ "id": "cx-big-o",
+ "title": "Big-O — counting work the way interviewers do",
+ "topic": "complexity",
+ "kind": "concept",
+ "summary": "What O(·) means, how to count operations from code, the dominant-term rule, and the common complexities ranked.",
+ "prereqs": [],
+ "related": [
+  "cx-constraints-to-target",
+  "cx-space-and-in-place",
+  "cx-amortised-analysis"
+ ],
+ "sections": [
+  {
+   "id": "what",
+   "title": "What Big-O measures",
+   "note": "mixed",
+   "body": "✍️ Big-O describes how the running time **grows** as the input size n grows, ignoring constant factors and small terms.\n✍️ It answers: \"if I double n, roughly how much longer does this take?\" O(n): twice as long. O(n²): four times. O(log n): one more step.\nIt does not tell you the exact time. An O(n) algorithm with a huge constant can be slower than O(n log n) on small inputs — but on n = 10⁵ the growth rate wins."
+  },
+  {
+   "id": "counting",
+   "title": "Counting from code",
+   "note": "write",
+   "body": "✍️ A single loop over n elements doing O(1) work each → O(n).\n✍️ Two nested loops over n → O(n²). A loop inside a loop where the inner runs `i` times → 1 + 2 + … + n = n(n+1)/2 → still O(n²).\n✍️ A loop that halves (or doubles) a variable each step → O(log n).\n✍️ Sequential blocks add: O(n) + O(n log n) = O(n log n) (keep the biggest).\n✍️ Nested blocks multiply: a loop of n calling an O(log n) operation → O(n log n).\n✍️ Library calls count: `sort` is O(n log n); `unordered_map` lookup is O(1) average; `map` lookup is O(log n); `s.substr(i, len)` is O(len); `vector.erase(begin())` is O(n)."
+  },
+  {
+   "id": "ranking",
+   "title": "The common complexities, ranked",
+   "note": "write",
+   "body": "✍️ O(1) < O(log n) < O(√n) < O(n) < O(n log n) < O(n²) < O(n³) < O(2ⁿ) < O(n!)\n\n| n = | log n | n log n | n² | 2ⁿ |\n|---|---|---|---|---|\n| 10 | 3 | 33 | 100 | 1,024 |\n| 1,000 | 10 | 10⁴ | 10⁶ | astronomical |\n| 10⁵ | 17 | 1.7·10⁶ | 10¹⁰ (too slow) | — |"
+  },
+  {
+   "id": "dominant",
+   "title": "The dominant-term rule",
+   "note": "mixed",
+   "body": "✍️ Drop constants and lower-order terms: 3n² + 5n + 100 → O(n²). 2n → O(n).\n✍️ But keep **different variables** separate: two strings of lengths n and m compared character by character → O(n·m), not O(n²).\n- \"O(n + m)\" is common for problems with two inputs; do not collapse it to O(n) unless one is bounded by the other."
+  },
+  {
+   "id": "pitfalls",
+   "title": "Hidden costs beginners miss",
+   "note": "mixed",
+   "body": "✍️ Passing a `vector` or `string` **by value** copies it: O(n) per call. Pass by reference (`const vector<int>& a`).\n✍️ String concatenation in a loop `s = s + c` is O(length) each time → O(n²) total. Use `s += c` or `push_back`.\n✍️ `count()` on a `vector` with `std::count` is O(n), not O(1).\n- Recursion's cost is (number of calls) × (work per call), not \"one call\" — see [[rec-recursion-tree-and-cost]]."
+  },
+  {
+   "id": "interview",
+   "title": "What interviewers probe",
+   "note": "screenshot",
+   "body": "- \"What is the time and space complexity?\" — always give both, and say *why* in one line (\"one pass, each element inserted and looked up once\").\n- \"Is that average or worst case?\" — hash maps are O(1) average, O(n) worst; quicksort is O(n log n) average, O(n²) worst.\n- \"Can you do better?\" — first state what the constraints require; if you are already at the lower bound (you must read every element → Ω(n)), say so."
+  }
+ ],
+ "used_by": [
+  {
+   "problem": "running-sum-of-1d-array",
+   "day": 1,
+   "section": "counting",
+   "stage": "edges",
+   "at": "Complexity line"
+  }
+ ]
+}

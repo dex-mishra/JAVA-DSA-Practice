@@ -1,0 +1,47 @@
+{
+ "id": "dp-unbounded-knapsack",
+ "title": "Unbounded knapsack — coins you can reuse",
+ "topic": "dp",
+ "kind": "pattern",
+ "summary": "Items can be used any number of times; loop capacity upwards. Coin change (minimum coins) and coin change II (number of combinations).",
+ "prereqs": [
+  "dp-0-1-knapsack"
+ ],
+ "related": [
+  "dp-counting-vs-optimising",
+  "bt-for-loop-choice"
+ ],
+ "sections": [
+  {
+   "id": "idea",
+   "title": "Idea",
+   "note": "write",
+   "body": "✍️ Each coin can be used again, so taking a coin leads to the **same** row: `dp[c] = best(dp[c], dp[c − coin] + 1)` where `dp[c − coin]` may already include this coin. Loop capacity **upwards**."
+  },
+  {
+   "id": "min-coins",
+   "title": "Minimum coins",
+   "note": "write",
+   "body": "```cpp\nint coinChange(vector<int>& coins, int amount) {\n    const int INF = 1e9;\n    vector<int> dp(amount + 1, INF);\n    dp[0] = 0;\n    for (int c = 1; c <= amount; c++)\n        for (int coin : coins)\n            if (coin <= c && dp[c - coin] != INF)\n                dp[c] = min(dp[c], dp[c - coin] + 1);\n    return dp[amount] == INF ? -1 : dp[amount];\n}\n```\n✍️ `dp[c]` = fewest coins to make exactly c. INF marks \"impossible\"; check before adding 1.\n✍️ Greedy (largest coin first) is wrong: coins {1, 3, 4}, amount 6."
+  },
+  {
+   "id": "count-combinations",
+   "title": "Number of combinations",
+   "note": "write",
+   "body": "```cpp\nint change(int amount, vector<int>& coins) {\n    vector<unsigned long long> dp(amount + 1, 0);\n    dp[0] = 1;\n    for (int coin : coins)                     // coins OUTER → combinations\n        for (int c = coin; c <= amount; c++)\n            dp[c] += dp[c - coin];\n    return dp[amount];\n}\n```\n✍️ Coins in the **outer** loop counts each multiset once ({1,2} and {2,1} are the same). Amount in the outer loop counts ordered sequences instead ([[dp-counting-vs-optimising#order]])."
+  },
+  {
+   "id": "variations",
+   "title": "Variations",
+   "note": "screenshot",
+   "body": "- Perfect squares (LeetCode 279): coins = 1, 4, 9, …, minimum count.\n- Combination sum IV (LeetCode 377): **ordered** sequences → amount outer, nums inner.\n- Rod cutting, minimum cost tickets (with a twist)."
+  },
+  {
+   "id": "complexity",
+   "title": "Complexity",
+   "note": "screenshot",
+   "body": "O(amount × number of coins) time, O(amount) space."
+  }
+ ],
+ "used_by": []
+}

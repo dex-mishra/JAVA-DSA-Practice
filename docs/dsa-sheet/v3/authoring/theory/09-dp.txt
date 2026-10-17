@@ -1,0 +1,563 @@
+=== page: dp-what-dp-is
+title: What dynamic programming is
+topic: dp
+kind: concept
+summary: DP = recursion + remembering answers. It applies when the same subproblems repeat (overlap) and the best answer is built from best answers to subproblems (optimal substructure).
+prereqs: rec-how-recursion-works, rec-recursion-tree-and-cost
+related: dp-memo-vs-tabulation, dp-state-design, meta-bottleneck-method
+--- idea | The idea | write
+✍️ Write the problem as a recursion: "the answer for size n uses answers for smaller sizes".
+✍️ If that recursion computes the **same smaller answer many times**, store each answer the first time and reuse it. That is all DP is.
+✍️ Cost drops from (number of calls in the recursion tree) to (number of **distinct** subproblems) × (work per subproblem).
+
+--- overlap | Overlapping subproblems | write
+✍️ Climbing stairs: ways(n) = ways(n−1) + ways(n−2). The recursion tree calls ways(n−2) from two places, ways(n−3) from three, … → exponential. But there are only n distinct values ways(0..n).
+✍️ Test for overlap: draw 3 levels of the recursion tree. If the same arguments appear twice, memoisation will help.
+
+--- substructure | Optimal substructure | write
+✍️ The optimal answer can be assembled from optimal answers to subproblems. House robber: the best for houses 0..i is either the best for 0..i−1 (skip i) or the best for 0..i−2 plus house i (rob i).
+✍️ If choosing optimally for a subproblem could hurt the overall answer, the subproblem is defined wrongly — add more information to the state ([[dp-state-design]]).
+
+--- recognise | Recognise a DP problem | write
+✍️ "number of ways", "minimum cost / maximum value", "is it possible", "longest/shortest … subsequence".
+✍️ Each step has **choices** (take or skip, which coin, which split point) and later choices depend on earlier ones.
+✍️ Greedy fails on a small counterexample ([[gr-what-greedy-is-and-proofs#test]]).
+✍️ n is moderate (≤ 10⁴ for O(n²), ≤ 10⁵–10⁶ for O(n)) — exponential brute force is clearly too slow.
+
+--- recipe | The recipe | write
+✍️ 1. **State**: what does `dp[i]` (or `dp[i][j]`) mean? One precise sentence.
+✍️ 2. **Transition**: how is `dp[i]` computed from smaller states? Usually "max/min/sum over the choices at step i".
+✍️ 3. **Base cases**: the smallest states, answered directly.
+✍️ 4. **Order**: compute states so that every state's dependencies are ready (smaller i first).
+✍️ 5. **Answer**: which state (or max over states) is the final answer.
+
+=== page: dp-memo-vs-tabulation
+title: Memoisation vs tabulation
+topic: dp
+kind: concept
+summary: Top-down (recursion + cache) and bottom-up (fill a table in order) compute the same states. Start top-down when the recursion is clearer; convert to bottom-up for speed and space optimisation.
+prereqs: dp-what-dp-is
+related: dp-space-optimisation
+--- memo | Top-down: memoisation | write
+✍️ Write the plain recursion, then add a cache: check the cache at the start of the call, store the result before returning.
+```cpp
+vector<long long> memo;          // -1 = not computed
+long long ways(int n) {
+    if (n <= 1) return 1;
+    if (memo[n] != -1) return memo[n];
+    return memo[n] = ways(n - 1) + ways(n - 2);
+}
+```
+✍️ Advantage: you only write the recurrence; only reachable states are computed. Disadvantage: recursion overhead and stack depth.
+
+--- tab | Bottom-up: tabulation | write
+✍️ Allocate the table, fill base cases, loop over states in an order where dependencies are already filled.
+```cpp
+vector<long long> dp(n + 1);
+dp[0] = dp[1] = 1;
+for (int i = 2; i <= n; i++) dp[i] = dp[i - 1] + dp[i - 2];
+```
+✍️ Advantage: no recursion, easy to see which previous states are used → easy space optimisation ([[dp-space-optimisation]]).
+
+--- which | Which to write first | mixed
+✍️ In interviews: describe the recursion first (it shows the thinking), memoise it, then offer the bottom-up version.
+- When the order of states is awkward (intervals, trees, DAGs) top-down is often easier to get right.
+
+=== page: dp-state-design
+title: Designing the DP state
+topic: dp
+kind: concept
+summary: The state must contain exactly the information needed to make the remaining decisions optimally. If the transition needs to know something the state does not say, add a dimension.
+prereqs: dp-what-dp-is
+related: dp-state-machine, dp-1d-linear
+--- question | The question to ask | write
+✍️ "If I stopped halfway, what would I need to know to finish optimally?" Everything in that answer belongs in the state; nothing else does.
+✍️ Typical state ingredients: an index (how far along the input), a remaining budget (capacity, target), a position in a second string, a mode (holding a stock or not, last action).
+
+--- prefix-vs-ending | "Best in prefix" vs "best ending at i" | write
+✍️ Two common definitions for sequences:
+✍️ `dp[i]` = best answer **using the first i elements** (house robber, word break, decode ways).
+✍️ `dp[i]` = best answer for something that **ends exactly at i** (LIS, Kadane, maximal square). The final answer is then the max over all i.
+✍️ Pick "ending at i" when the next element must connect to the previous one (increasing, adjacent).
+
+--- add-dimension | When the transition needs more | mixed
+✍️ Stock with cooldown: knowing the profit by day i is not enough — you need to know whether you hold a stock. Add a mode dimension: `dp[i][holding]` ([[dp-state-machine]]).
+✍️ House robber II (circle): the first and last houses interact. Instead of adding state, split into two linear problems (exclude the first, or exclude the last).
+- More dimensions = more time and memory; add only what the transition actually needs.
+
+=== page: dp-space-optimisation
+title: Space optimisation — keeping only the rows you need
+topic: dp
+kind: concept
+summary: If dp[i] only reads dp[i−1] (and dp[i−2]), keep a few variables or two rows instead of the whole table. In knapsack, iterating capacity backwards lets one row suffice.
+prereqs: dp-memo-vs-tabulation
+related: dp-0-1-knapsack, dp-grid-paths
+--- rolling | Rolling variables | write
+✍️ `dp[i] = f(dp[i−1], dp[i−2])` → keep `prev2`, `prev1`, compute `cur`, shift. O(1) space.
+```cpp
+int a = 1, b = 1;                     // dp[i-2], dp[i-1]
+for (int i = 2; i <= n; i++) { int c = a + b; a = b; b = c; }
+```
+
+--- rows | Two rows / one row for grids | write
+✍️ Grid DP where `dp[r][c]` uses `dp[r−1][c]` and `dp[r][c−1]` → a single row `dp[c]`: before the update, `dp[c]` still holds the row above; `dp[c−1]` already holds the current row. So `dp[c] = f(dp[c], dp[c−1])`.
+
+--- direction | The loop direction rule (knapsack) | write
+✍️ One-row 0/1 knapsack must loop capacity **downwards**, so `dp[c − w]` still holds the previous item's value (each item used once).
+✍️ Looping capacity **upwards** lets `dp[c − w]` already include the current item → the item can be reused → that is the **unbounded** knapsack ([[dp-unbounded-knapsack]]).
+
+--- when | When not to bother | mixed
+✍️ Optimise space only after the full-table version works, or when memory limits demand it. If you need to reconstruct the actual choices (not just the value), keep the full table.
+
+=== page: dp-1d-linear
+title: 1D DP on a line — take or skip, ways to reach
+topic: dp
+kind: pattern
+summary: dp[i] depends on a fixed number of earlier states: climbing stairs (sum of ways), house robber (take or skip), decode ways (one or two digits).
+prereqs: dp-what-dp-is, dp-memo-vs-tabulation
+related: dp-state-design, kad-kadane
+--- idea | Idea | write
+✍️ Process positions left to right. At position i there are a few **choices**, each leading back to an earlier position. dp[i] combines them: sum (counting ways), max/min (optimising).
+
+--- three-models | The three models | write
+✍️ **Ways to reach** (climbing stairs): `dp[i] = dp[i−1] + dp[i−2]` — the last step was 1 or 2.
+✍️ **Take or skip** (house robber): `dp[i] = max(dp[i−1], dp[i−2] + a[i])` — skip house i, or rob it and skip i−1.
+✍️ **Decode in pieces** (decode ways): `dp[i] = (s[i−1] valid ? dp[i−1] : 0) + (s[i−2..i−1] in 10..26 ? dp[i−2] : 0)`, with `dp[i]` = ways to decode the first i characters.
+
+--- template | Template: house robber | write
+```cpp
+int rob(vector<int>& a) {
+    int prev2 = 0, prev1 = 0;            // best for houses up to i-2, up to i-1
+    for (int x : a) {
+        int cur = max(prev1, prev2 + x); // skip x, or take x
+        prev2 = prev1; prev1 = cur;
+    }
+    return prev1;
+}
+```
+
+--- circular | Circular version (House Robber II) | write
+✍️ First and last houses are neighbours, so they cannot both be robbed. Answer = max(rob(houses 0..n−2), rob(houses 1..n−1)). Special case n = 1.
+
+--- decode | Decode ways details | write
+```cpp
+int numDecodings(string s) {
+    int n = s.size();
+    vector<int> dp(n + 1, 0);
+    dp[0] = 1;                                      // empty prefix: one way
+    for (int i = 1; i <= n; i++) {
+        if (s[i - 1] != '0') dp[i] += dp[i - 1];   // single digit 1..9
+        if (i >= 2) {
+            int two = (s[i - 2] - '0') * 10 + (s[i - 1] - '0');
+            if (two >= 10 && two <= 26) dp[i] += dp[i - 2];
+        }
+    }
+    return dp[n];
+}
+```
+✍️ '0' cannot stand alone; "06" is not a valid two-digit code (must be 10..26). Zeros are where all the bugs are.
+
+--- variations | Variations | screenshot
+- Min cost climbing stairs: `dp[i] = cost[i] + min(dp[i−1], dp[i−2])`.
+- Delete and earn: bucket values, then house robber on the buckets.
+- Jump game with costs, tribonacci, paint fence.
+
+--- complexity | Complexity | screenshot
+O(n) time, O(1) space with rolling variables.
+
+=== page: dp-grid-paths
+title: Grid DP — paths moving right and down
+topic: dp
+kind: pattern
+summary: dp[r][c] depends on the cell above and the cell to the left. Count paths (sum), minimum path sum (min), obstacles (zero out), squares (min of three neighbours + 1).
+prereqs: dp-what-dp-is, mat-traversal-and-directions
+related: dp-space-optimisation, ps-2d-prefix-sum
+--- idea | Idea | write
+✍️ If movement is only right or down, cell (r, c) can only be entered from (r−1, c) or (r, c−1). So its answer depends only on those two — both computed earlier in row-major order.
+✍️ First row and first column have only one way in → base cases.
+
+--- template | Template: minimum path sum | write
+```cpp
+int minPathSum(vector<vector<int>>& g) {
+    int R = g.size(), C = g[0].size();
+    vector<vector<int>> dp(R, vector<int>(C));
+    for (int r = 0; r < R; r++)
+        for (int c = 0; c < C; c++) {
+            if (r == 0 && c == 0) dp[r][c] = g[0][0];
+            else if (r == 0) dp[r][c] = dp[r][c-1] + g[r][c];
+            else if (c == 0) dp[r][c] = dp[r-1][c] + g[r][c];
+            else dp[r][c] = min(dp[r-1][c], dp[r][c-1]) + g[r][c];
+        }
+    return dp[R-1][C-1];
+}
+```
+✍️ Counting unique paths: same shape with `+` instead of `min`, `dp = 1` along the first row and column.
+
+--- obstacles | Obstacles | write
+✍️ Unique paths II: an obstacle cell has `dp = 0`. Careful with the first row/column: once an obstacle appears, every cell after it in that row/column is 0 too (not 1).
+
+--- square | Maximal square | write
+✍️ `dp[r][c]` = side of the largest all-1 square with its **bottom-right corner** at (r, c).
+✍️ If `g[r][c] == '1'`: `dp[r][c] = 1 + min(dp[r−1][c], dp[r][c−1], dp[r−1][c−1])`. The answer is (max dp)².
+✍️ Why the min: a square of side k at (r, c) needs squares of side k−1 ending above, left and diagonally — the smallest of the three limits it.
+
+--- variations | Variations | screenshot
+- Triangle (LeetCode 120): bottom-up from the last row, `dp[c] = t[r][c] + min(dp[c], dp[c+1])`.
+- Minimum falling path sum: each cell from three cells above.
+- Dungeon game: fill from the bottom-right backwards.
+- Cherry pickup II: two walkers → state (row, c1, c2) (recognition).
+- Unique paths has a closed form: C(m+n−2, m−1).
+
+--- complexity | Complexity | screenshot
+O(R·C) time, O(C) space with one rolling row ([[dp-space-optimisation#rows]]).
+
+=== page: dp-0-1-knapsack
+title: 0/1 knapsack — each item at most once
+topic: dp
+kind: pattern
+summary: dp[c] = best (or whether possible, or number of ways) using items so far with capacity/sum c. For each item, loop c downwards: dp[c] = combine(dp[c], dp[c − w]).
+prereqs: dp-what-dp-is, dp-space-optimisation
+related: dp-unbounded-knapsack, dp-counting-vs-optimising
+--- idea | Idea | write
+✍️ Items with weights (and maybe values); each can be taken **once** or not at all. Capacity / target sum C.
+✍️ Full state: `dp[i][c]` = answer using the first i items with capacity c. Transition: skip item i → `dp[i−1][c]`; take it (if `w ≤ c`) → `dp[i−1][c − w] + value`.
+✍️ One-row version: iterate items outer, capacity **from C down to w** inner.
+
+--- recognise | Recognise it | write
+✍️ "subset with sum equal to …", "partition into two equal-sum subsets", "assign + or − signs to reach target", "pick items under a budget to maximise value", each item used once.
+
+--- partition | Partition equal subset sum | write
+```cpp
+bool canPartition(vector<int>& a) {
+    int total = accumulate(a.begin(), a.end(), 0);
+    if (total % 2) return false;
+    int T = total / 2;
+    vector<bool> dp(T + 1, false);
+    dp[0] = true;                                   // empty subset makes sum 0
+    for (int x : a)
+        for (int c = T; c >= x; c--)                // DOWNWARDS: each x used once
+            dp[c] = dp[c] || dp[c - x];
+    return dp[T];
+}
+```
+
+--- target-sum | Target sum → subset count | write
+✍️ Signs + and −: let P = sum of '+' numbers, N = sum of '−'. P − N = target, P + N = total ⇒ **P = (target + total) / 2**. Count subsets with sum P (0/1 knapsack counting: `dp[c] += dp[c − x]`).
+✍️ Impossible if `(target + total)` is odd or `|target| > total`.
+
+--- pitfalls | Pitfalls | write
+✍️ Looping capacity upwards in the one-row version reuses items → wrong answer (that is unbounded knapsack).
+✍️ `dp[0] = true` / `dp[0] = 1` is the empty subset; forgetting it makes everything false/zero.
+✍️ Zeros in target sum: each zero doubles the count — the counting DP handles this naturally if `dp[c] += dp[c − 0]` is applied once per zero item.
+
+--- complexity | Complexity | screenshot
+O(n·C) time, O(C) space. "Pseudo-polynomial": fine when C ≤ ~10⁴–10⁵.
+
+=== page: dp-unbounded-knapsack
+title: Unbounded knapsack — coins you can reuse
+topic: dp
+kind: pattern
+summary: Items can be used any number of times; loop capacity upwards. Coin change (minimum coins) and coin change II (number of combinations).
+prereqs: dp-0-1-knapsack
+related: dp-counting-vs-optimising, bt-for-loop-choice
+--- idea | Idea | write
+✍️ Each coin can be used again, so taking a coin leads to the **same** row: `dp[c] = best(dp[c], dp[c − coin] + 1)` where `dp[c − coin]` may already include this coin. Loop capacity **upwards**.
+
+--- min-coins | Minimum coins | write
+```cpp
+int coinChange(vector<int>& coins, int amount) {
+    const int INF = 1e9;
+    vector<int> dp(amount + 1, INF);
+    dp[0] = 0;
+    for (int c = 1; c <= amount; c++)
+        for (int coin : coins)
+            if (coin <= c && dp[c - coin] != INF)
+                dp[c] = min(dp[c], dp[c - coin] + 1);
+    return dp[amount] == INF ? -1 : dp[amount];
+}
+```
+✍️ `dp[c]` = fewest coins to make exactly c. INF marks "impossible"; check before adding 1.
+✍️ Greedy (largest coin first) is wrong: coins {1, 3, 4}, amount 6.
+
+--- count-combinations | Number of combinations | write
+```cpp
+int change(int amount, vector<int>& coins) {
+    vector<unsigned long long> dp(amount + 1, 0);
+    dp[0] = 1;
+    for (int coin : coins)                     // coins OUTER → combinations
+        for (int c = coin; c <= amount; c++)
+            dp[c] += dp[c - coin];
+    return dp[amount];
+}
+```
+✍️ Coins in the **outer** loop counts each multiset once ({1,2} and {2,1} are the same). Amount in the outer loop counts ordered sequences instead ([[dp-counting-vs-optimising#order]]).
+
+--- variations | Variations | screenshot
+- Perfect squares (LeetCode 279): coins = 1, 4, 9, …, minimum count.
+- Combination sum IV (LeetCode 377): **ordered** sequences → amount outer, nums inner.
+- Rod cutting, minimum cost tickets (with a twist).
+
+--- complexity | Complexity | screenshot
+O(amount × number of coins) time, O(amount) space.
+
+=== page: dp-counting-vs-optimising
+title: Counting DP vs optimising DP — and loop order
+topic: dp
+kind: concept
+summary: Counting adds over choices and starts from dp[0] = 1; optimising takes min/max and starts from 0 or infinity. For counting, the loop order decides whether order matters.
+prereqs: dp-what-dp-is
+related: dp-unbounded-knapsack, dp-0-1-knapsack, dp-1d-linear
+--- differences | Differences | write
+✍️ Counting: `dp[state] = Σ dp[previous states]`, base case `dp[empty] = 1` (one way to do nothing). Answers can be huge → often modulo 10⁹+7.
+✍️ Optimising: `dp[state] = min/max over choices`, base case 0 for the empty state and ±∞ for impossible states.
+
+--- order | Loop order: combinations vs permutations | write
+✍️ Items outer, amount inner → each multiset counted once (**combinations**). Coin Change II.
+✍️ Amount outer, items inner → at each amount any item can be last → ordered sequences (**permutations**). Combination Sum IV, climbing stairs with steps {1, 2}.
+✍️ Check with amount 3, coins {1, 2}: combinations = 2 ({1,1,1}, {1,2}); permutations = 3 (1+1+1, 1+2, 2+1).
+
+--- modulo | Modulo arithmetic | mixed
+✍️ Apply `% MOD` after every addition; use `long long` for intermediate sums. With subtraction, add MOD before taking the modulo to stay non-negative.
+
+=== page: dp-lis
+title: Longest increasing subsequence
+topic: dp
+kind: pattern
+summary: dp[i] = length of the longest increasing subsequence ending at i = 1 + max dp[j] over j < i with a[j] < a[i]. O(n²); patience sorting with binary search gives O(n log n).
+prereqs: dp-state-design, bs-lower-upper-bound
+related: dp-lcs-two-strings
+--- idea | Idea | write
+✍️ Subsequence = any elements in order, not necessarily adjacent. The next element must be larger than the previous one, so the state must know where the subsequence **ends**: `dp[i]` = LIS ending exactly at index i.
+✍️ `dp[i] = 1 + max(dp[j])` over j < i with `a[j] < a[i]` (or 1 if none). Answer = max over all dp[i].
+
+--- template | Template O(n²) | write
+```cpp
+int lengthOfLIS(vector<int>& a) {
+    int n = a.size(), best = 0;
+    vector<int> dp(n, 1);
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < i; j++)
+            if (a[j] < a[i]) dp[i] = max(dp[i], dp[j] + 1);
+        best = max(best, dp[i]);
+    }
+    return best;
+}
+```
+
+--- nlogn | O(n log n): tails array | write
+✍️ Keep `tails[k]` = the smallest possible last element of an increasing subsequence of length k+1. It is always sorted.
+✍️ For each x: find the first tail ≥ x (lower_bound). If none, append x (a longer subsequence); otherwise replace it with x (same length, smaller ending — better for the future).
+```cpp
+vector<int> tails;
+for (int x : a) {
+    auto it = lower_bound(tails.begin(), tails.end(), x);
+    if (it == tails.end()) tails.push_back(x); else *it = x;
+}
+return tails.size();
+```
+✍️ `tails` is **not** an actual subsequence — only its length is meaningful.
+- Non-decreasing (allow equal): use upper_bound.
+
+--- variations | Variations | screenshot
+- Longest string chain (LeetCode 1048): sort words by length; `dp[word] = 1 + max dp[word with one letter removed]` using a hash map — LIS on a DAG of words.
+- Number of LIS (LeetCode 673): also keep `count[i]`.
+- Russian doll envelopes: sort by width ascending and height **descending** for equal widths, then LIS on heights (n log n).
+- Largest divisible subset: LIS with "divides" instead of "<", plus reconstruction.
+
+--- complexity | Complexity | screenshot
+O(n²) / O(n) for the DP; O(n log n) / O(n) for tails.
+
+=== page: dp-lcs-two-strings
+title: Two-string DP — longest common subsequence
+topic: dp
+kind: pattern
+summary: dp[i][j] = answer for the prefixes a[0..i) and b[0..j). If the last characters match, extend dp[i−1][j−1]; otherwise take the better of dropping one character from either string.
+prereqs: dp-state-design
+related: dp-edit-distance, dp-lis
+--- idea | Idea | write
+✍️ Two strings → state = (how much of a, how much of b): `dp[i][j]` = LCS of the first i characters of a and the first j of b.
+✍️ If `a[i−1] == b[j−1]`: that character can end the common subsequence → `dp[i][j] = dp[i−1][j−1] + 1`.
+✍️ Otherwise one of the two last characters is not used → `dp[i][j] = max(dp[i−1][j], dp[i][j−1])`.
+✍️ Row 0 and column 0 are empty prefixes → 0.
+
+--- template | Template | write
+```cpp
+int longestCommonSubsequence(string a, string b) {
+    int n = a.size(), m = b.size();
+    vector<vector<int>> dp(n + 1, vector<int>(m + 1, 0));
+    for (int i = 1; i <= n; i++)
+        for (int j = 1; j <= m; j++)
+            dp[i][j] = (a[i-1] == b[j-1]) ? dp[i-1][j-1] + 1
+                                          : max(dp[i-1][j], dp[i][j-1]);
+    return dp[n][m];
+}
+```
+✍️ Use size (n+1) × (m+1) with index i meaning "first i characters" — no special cases for empty prefixes.
+
+--- palindrome | Longest palindromic subsequence = LCS(s, reverse(s)) | write
+✍️ A palindromic subsequence reads the same forwards and backwards, so it is a common subsequence of s and its reverse. Answer = LCS(s, reverse(s)).
+✍️ Direct alternative: interval DP `dp[i][j]` on s[i..j]: equal ends → `2 + dp[i+1][j−1]`, else `max(dp[i+1][j], dp[i][j−1])`.
+
+--- recognise | Recognise it | write
+✍️ Two sequences and a question about matching, aligning, transforming one into the other, or a common part ("common subsequence", "minimum deletions to make equal", "shortest common supersequence", "edit distance").
+
+--- variations | Variations | screenshot
+- Minimum deletions to make two strings equal (LeetCode 583) = n + m − 2·LCS.
+- Shortest common supersequence length = n + m − LCS.
+- Minimum insertions to make a palindrome = n − LPS.
+- Distinct subsequences, interleaving string: same 2D prefix state, different transitions.
+
+--- complexity | Complexity | screenshot
+O(n·m) time, O(n·m) space (O(min(n, m)) with two rows).
+
+=== page: dp-edit-distance
+title: Edit distance
+topic: dp
+kind: pattern
+summary: dp[i][j] = minimum operations to turn a's first i characters into b's first j. Match → dp[i−1][j−1]; else 1 + min(insert, delete, replace).
+prereqs: dp-lcs-two-strings
+related: dp-lcs-two-strings
+--- idea | Idea | write
+✍️ State as in LCS: prefixes of length i and j.
+✍️ If `a[i−1] == b[j−1]`: no operation needed → `dp[i−1][j−1]`.
+✍️ Else 1 + the minimum of: **replace** `dp[i−1][j−1]`, **delete** from a `dp[i−1][j]`, **insert** into a `dp[i][j−1]`.
+✍️ Base cases: `dp[i][0] = i` (delete everything), `dp[0][j] = j` (insert everything).
+
+--- template | Template | write
+```cpp
+int minDistance(string a, string b) {
+    int n = a.size(), m = b.size();
+    vector<vector<int>> dp(n + 1, vector<int>(m + 1));
+    for (int i = 0; i <= n; i++) dp[i][0] = i;
+    for (int j = 0; j <= m; j++) dp[0][j] = j;
+    for (int i = 1; i <= n; i++)
+        for (int j = 1; j <= m; j++)
+            dp[i][j] = (a[i-1] == b[j-1]) ? dp[i-1][j-1]
+                     : 1 + min({dp[i-1][j-1], dp[i-1][j], dp[i][j-1]});
+    return dp[n][m];
+}
+```
+
+--- picture | How to remember the three moves | write
+✍️ In the table, the three neighbours are **diagonal** (replace / match), **up** (delete a character of a), **left** (insert a character of b). Draw the 3-cell picture next to the formula in your notes.
+
+--- complexity | Complexity | screenshot
+O(n·m) time and space.
+
+=== page: dp-string-partition
+title: Partition DP on strings — word break
+topic: dp
+kind: pattern
+summary: dp[i] = can the first i characters be split into dictionary words? dp[i] is true if some j < i has dp[j] true and s[j..i) in the dictionary.
+prereqs: dp-1d-linear, cpp-unordered-map-set
+related: trie-structure-and-ops
+--- idea | Idea | write
+✍️ The last word of a valid split of `s[0..i)` is some `s[j..i)`. The part before it must itself be splittable → `dp[j]`.
+✍️ `dp[0] = true` (empty prefix). `dp[i] = OR over j of (dp[j] AND s[j..i) is a word)`.
+
+--- template | Template | write
+```cpp
+bool wordBreak(string s, vector<string>& words) {
+    unordered_set<string> dict(words.begin(), words.end());
+    int n = s.size(), maxLen = 0;
+    for (auto& w : words) maxLen = max(maxLen, (int)w.size());
+    vector<bool> dp(n + 1, false);
+    dp[0] = true;
+    for (int i = 1; i <= n; i++)
+        for (int j = i - 1; j >= max(0, i - maxLen); j--)   // only lengths that can be words
+            if (dp[j] && dict.count(s.substr(j, i - j))) { dp[i] = true; break; }
+    return dp[n];
+}
+```
+✍️ Bounding j by the longest word length is a big speed-up and a good interview point.
+
+--- variations | Variations | screenshot
+- Word break II: return all sentences → memoised backtracking.
+- Palindrome partitioning II (min cuts): dp[i] = min cuts for the first i characters, with a precomputed palindrome table.
+- Concatenated words, extra characters in a string (LeetCode 2707).
+
+--- complexity | Complexity | screenshot
+O(n · L · L) with substring hashing (L = max word length), O(n) space.
+
+=== page: dp-state-machine
+title: State machine DP — the stock problems
+topic: dp
+kind: pattern
+summary: Model each day as being in one of a few modes (holding, not holding, cooling down) with transitions between them; dp[mode] holds the best profit in that mode.
+prereqs: dp-state-design, kad-min-so-far
+related: dp-space-optimisation
+--- idea | Idea | write
+✍️ The decision on a day depends on your **mode**: if you hold a stock you can sell or keep; if not, you can buy or wait. So the state is (day, mode).
+✍️ Draw the modes as circles and the actions as arrows; each arrow becomes one term in a transition.
+
+--- cooldown | Cooldown (LeetCode 309) | write
+✍️ Modes: `hold` (own a stock), `sold` (sold today → must cool down tomorrow), `rest` (no stock, free to buy).
+✍️ Transitions for each price p:
+✍️ `hold' = max(hold, rest − p)` (keep, or buy from rest)
+✍️ `sold' = hold + p` (sell today)
+✍️ `rest' = max(rest, sold)` (stay resting, or finish cooldown)
+```cpp
+int maxProfit(vector<int>& prices) {
+    int hold = INT_MIN / 2, sold = 0, rest = 0;
+    for (int p : prices) {
+        int h = max(hold, rest - p), s = hold + p, r = max(rest, sold);
+        hold = h; sold = s; rest = r;          // update all from the OLD values
+    }
+    return max(sold, rest);
+}
+```
+
+--- fee | Transaction fee (LeetCode 714) | write
+✍️ Two modes: `hold' = max(hold, cash − p)`, `cash' = max(cash, hold + p − fee)`.
+
+--- family | The whole stock family | screenshot
+| Problem | State |
+|---|---|
+| one transaction (121) | min so far ([[kad-min-so-far]]) |
+| unlimited (122) | hold / cash |
+| cooldown (309) | hold / sold / rest |
+| fee (714) | hold / cash with fee on sell |
+| at most 2 (123) / k (188) | hold[t] / cash[t] for t = 1..k |
+
+--- pitfalls | Pitfalls | write
+✍️ Updating `hold` and then using the new `hold` to compute `sold` on the same day. Compute all new values from the old ones first.
+✍️ Initial `hold` must be "impossible" (very negative), not 0 — you cannot start holding a stock for free.
+
+--- complexity | Complexity | screenshot
+O(n · modes) time, O(modes) space.
+
+=== page: dp-interval
+title: Interval DP (recognition level)
+topic: dp
+kind: skim
+summary: dp[i][j] = answer for the subarray i..j, computed from smaller intervals by choosing a split point k. Burst balloons, matrix chain, palindrome partitioning. O(n³).
+prereqs: dp-state-design
+related: dp-lcs-two-strings
+--- idea | Idea | write
+✍️ State = an interval [i, j]. Transition: try every split point k in the interval; combine `dp[i][k]` and `dp[k][j]` (plus a cost for the split).
+✍️ Order: by increasing interval length, so all shorter intervals are ready.
+
+--- burst-balloons | Burst balloons insight | write
+✍️ Think of k as the **last** balloon burst in (i, j), not the first. Then its neighbours at that moment are exactly i and j (padded with 1s at both ends): `dp[i][j] = max over k of dp[i][k] + dp[k][j] + a[i]·a[k]·a[j]`.
+
+--- recognise | Recognise it | mixed
+✍️ n ≤ ~500, the answer for a range depends on how it is split or which element is handled last; merging stones, minimum cost to cut a stick, matrix chain multiplication.
+
+=== page: dp-bitmask
+title: Bitmask DP (recognition level)
+topic: dp
+kind: skim
+summary: When n ≤ 20, a subset of items fits in an integer mask; dp[mask] = answer for that subset. O(2ⁿ · n).
+prereqs: bits-common-tricks, dp-state-design
+related: bt-pick-or-skip
+--- idea | Idea | write
+✍️ Represent "which items are used" as the bits of an integer. There are 2ⁿ masks; for n = 20 that is ~10⁶ — feasible.
+✍️ Transition: add one unused item j to the mask: `dp[mask | (1 << j)]` from `dp[mask]`.
+
+--- examples | Examples | screenshot
+- Partition to k equal sum subsets (LeetCode 698): dp[mask] = filled amount of the current bucket.
+- Travelling salesman / shortest path visiting all nodes: state (mask, last node).
+- Assigning tasks to workers with n ≤ 20.
+
+--- recognise | Recognise it | mixed
+✍️ n ≤ 20 (sometimes 16) **and** the order or the set of used items matters for the remaining decisions.

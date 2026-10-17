@@ -1,0 +1,41 @@
+{
+ "id": "bs-lower-upper-bound",
+ "title": "lower_bound and upper_bound — first ≥ and first >",
+ "topic": "binary-search",
+ "kind": "pattern",
+ "summary": "The two boundary searches that solve insert position, first/last occurrence and counting in a sorted array.",
+ "prereqs": [
+  "bs-classic-and-invariants"
+ ],
+ "related": [
+  "bs-off-by-one-templates",
+  "cpp-iterators-and-algorithms"
+ ],
+ "sections": [
+  {
+   "id": "definitions",
+   "title": "Definitions",
+   "note": "write",
+   "body": "✍️ `lower_bound(x)` = index of the first element **≥ x** (n if none).\n✍️ `upper_bound(x)` = index of the first element **> x** (n if none).\n✍️ So: insert position of x = lower_bound(x). First occurrence = lower_bound(x) if `a[that] == x`. Last occurrence = upper_bound(x) − 1. Count of x = upper_bound(x) − lower_bound(x)."
+  },
+  {
+   "id": "template",
+   "title": "Template: write your own",
+   "note": "write",
+   "body": "```cpp\nint lowerBound(vector<int>& a, int x) {\n    int lo = 0, hi = a.size();           // half-open [lo, hi): answer can be n\n    while (lo < hi) {\n        int mid = lo + (hi - lo) / 2;\n        if (a[mid] >= x) hi = mid;       // mid could be the answer: keep it\n        else lo = mid + 1;               // mid is too small: discard it\n    }\n    return lo;                           // lo == hi == first index with a[i] >= x\n}\n// upperBound: same with  a[mid] > x\n```\n✍️ In interviews you can use `std::lower_bound(a.begin(), a.end(), x) − a.begin()`, but be able to write it — \"first and last position\" is often asked without library calls."
+  },
+  {
+   "id": "picture",
+   "title": "The picture",
+   "note": "write",
+   "body": "```\na     = [1, 2, 2, 2, 5]      x = 2\na[i] >= 2 ?  F  T  T  T  T   → lower_bound = 1\na[i] >  2 ?  F  F  F  F  T   → upper_bound = 4\nfirst = 1, last = 4 - 1 = 3, count = 3\n```"
+  },
+  {
+   "id": "pitfalls",
+   "title": "Pitfalls",
+   "note": "mixed",
+   "body": "✍️ lower_bound returns n when every element is smaller — check `idx < n` before reading `a[idx]`.\n- Searching for \"first occurrence\" with the exact-match template and then walking left is O(n) in the worst case (all equal). Use lower_bound."
+  }
+ ],
+ "used_by": []
+}

@@ -1,0 +1,942 @@
+=== page: meta-analyse-a-problem
+title: Analysing a problem before you think of an algorithm
+topic: meta
+kind: meta
+summary: The five questions to answer on paper before any idea of a solution — what goes in, what comes out, what the constraints allow, what a tiny example shows, and what makes it hard.
+prereqs: cx-constraints-to-target
+related: meta-bottleneck-method, meta-pseudocode-format, meta-pattern-decision-tree
+--- why | Why analysis is a separate step | mixed
+Most "I jumped to code and it was a disaster" moments have the same cause: the algorithm was invented while typing. Typing is slow and linear; thinking is fast and branching. When both happen at once, the first idea that compiles becomes the solution, and its bugs are discovered one test case at a time.
+
+✍️ Analysis answers "what exactly is being asked and what is allowed". Brainstorming answers "how". Never mix them.
+
+Analysis takes 3–5 minutes on paper. It feels like a waste on easy problems. It is the habit that saves you on medium ones, so do it on easy ones too, where it is cheap to practise.
+
+--- five-questions | The five questions | write
+✍️ 1. **Input → output in one line.** Restate the problem in your own words, as a function: `f(array of n ints, target) → two indices`. If you cannot write this line, you have not understood the problem yet.
+✍️ 2. **What do the constraints allow?** Read `n` and convert it into a target complexity using [[cx-constraints-to-target]]. Also note value ranges (negatives? zero? up to 10⁹ → overflow?), and guarantees ("exactly one answer", "sorted", "distinct").
+✍️ 3. **Solve a tiny example by hand.** Take the sample, or make one with 4–6 elements, and solve it *as a human*, slowly. Watch what your eyes and hands actually do — that is usually the algorithm.
+✍️ 4. **What is hard about it?** Name the obstacle in one sentence: "checking every pair is too slow", "the window can't shrink when values are negative", "I need the order of elements but sorting destroys it".
+✍️ 5. **What would the answer look like for edge inputs?** Empty, one element, all equal, all negative, already sorted, maximum size. Write the expected output for two of these before you start.
+
+--- tiny-example | How to use the tiny example | mixed
+The tiny example is not a test — it is a microscope. Rules for using it well:
+
+✍️ Make it small enough to do by hand (≤ 6 elements), but not so small it is trivial (2 elements hides most patterns).
+✍️ Include at least one "awkward" feature: a duplicate, a negative, a zero, the answer at the edge.
+- Solve it the dumbest way first and **count the work**: how many comparisons did you make? That count is your brute force complexity.
+- Then ask: *which of those comparisons were wasted?* The wasted work is where the optimisation lives (see [[meta-bottleneck-method#find-bottleneck]]).
+
+Example. Two Sum on `[2, 7, 11, 15]`, target 9. By hand, you look at 2 and think "I need a 7". Your eyes then scan for 7. That scan *is* the inner loop — and the thought "I need a 7" is the complement idea that removes it.
+
+--- constraints-reading | Reading constraints like a hint | mixed
+Problem setters choose constraints deliberately. They are the closest thing to a hint you will get in an OA.
+
+✍️ `n ≤ 20` → exponential is fine (subsets, backtracking, bitmask).
+✍️ `n ≤ 10⁵` or `2·10⁵` → you need O(n log n) or O(n). O(n²) will time out.
+✍️ Values can be negative → sliding windows on sums usually break; think prefix sums.
+✍️ "Sorted" → binary search or two pointers is almost certainly intended.
+✍️ Values up to 10⁹ and you add them → use `long long`.
+- "Return any valid answer" → a greedy or constructive idea may exist.
+- "Modulo 10⁹+7" → the count is huge, which means counting DP or combinatorics, never enumeration.
+
+--- template | The analysis box (copy this layout onto paper) | write
+✍️ Use the same box at the top of every problem page in GoodNotes:
+
+```
+UNDERSTAND   f(...) -> ...
+CONSTRAINTS  n ≤ ...  → target O(...)     values: ...     guarantees: ...
+BY HAND      example: ...   what I did: ...   work done: ...
+HARD PART    ...
+EDGES        empty → ...   one → ...   all same → ...
+```
+
+Only after this box is filled do you move to [[meta-bottleneck-method]].
+
+=== page: meta-bottleneck-method
+title: The bottleneck method — getting from brute force to optimal
+topic: meta
+kind: meta
+summary: A repeatable way to improve a solution: write the brute force, find the single line doing the most wasted work, name why it is wasted, and pick the tool that removes exactly that waste.
+prereqs: meta-analyse-a-problem, cx-big-o
+related: meta-pattern-decision-tree, meta-pseudocode-format
+--- idea | The idea | write
+✍️ Optimal solutions are not invented; they are *derived*. You start from the dumbest correct solution and remove waste one step at a time.
+✍️ At each step you ask the same question: **"What is the bottleneck, and why is it wasted work?"**
+✍️ The answer to "why is it wasted" names the tool. "I keep searching for a value I could have remembered" → hash map. "I keep re-adding numbers I already added" → prefix sum or sliding window. "I check candidates in order when they are sorted" → binary search.
+
+--- brute-first | Step 1: always write the brute force | mixed
+✍️ The brute force is the solution that tries everything the problem allows. It is correct by construction.
+Write it even when you think you know the optimal, because:
+- It proves you understood the problem. If you cannot write the brute force, the optimal is guesswork.
+- It gives you the baseline complexity, so you know what "better" means.
+- In an interview, saying it out loud scores points and buys thinking time.
+- In an OA, a brute force often passes 40–60% of the tests. A clever solution that does not work passes 0%.
+
+✍️ Brute force shapes to recognise: all pairs (two nested loops, O(n²)), all subarrays (O(n²) or O(n³)), all subsets (O(2ⁿ)), all orderings (O(n!)), "try every possible answer" (O(range × check)).
+
+--- find-bottleneck | Step 2: find the bottleneck | mixed
+✍️ The bottleneck is the innermost loop or the most repeated computation. Point at it with your pen.
+Then describe, in plain words, what that inner loop is *doing*. Do not describe the code; describe the job:
+- "For each element, it scans the rest of the array looking for one specific value."
+- "For each start, it re-sums the subarray from scratch."
+- "For each window, it recounts characters."
+- "It tries capacities 1, 2, 3, … one by one."
+
+✍️ The job description is the key output of this step. It nearly always contains the waste.
+
+--- name-waste | Step 3: name why the work is wasted | write
+✍️ Common kinds of waste and the tool that removes each:
+
+| Waste (what the inner loop keeps doing) | Tool that removes it | Page |
+|---|---|---|
+| Searching for a value I have already seen | Hash map / set | [[hash-complement-lookup]] |
+| Recounting the same elements | Frequency array / map | [[hash-frequency-counting]] |
+| Re-summing overlapping ranges | Prefix sum | [[ps-prefix-sum-basics]] |
+| Recomputing a window that only moved by one | Sliding window | [[sw-variable-window]] |
+| Checking every candidate in a sorted space | Binary search | [[bs-classic-and-invariants]] |
+| Checking every pair when sorted order tells me which side to move | Two pointers | [[tp-opposite-ends]] |
+| Recomputing the same subproblem in recursion | Memoisation / DP | [[dp-what-dp-is]] |
+| Scanning for the max/min of a changing set | Heap / monotonic deque | [[heap-top-k]] |
+| Looking for the next greater/smaller element by scanning ahead | Monotonic stack | [[stq-monotonic-stack]] |
+
+--- unlock-questions | Questions that unlock the next step | write
+✍️ Ask these in order when you are stuck between brute force and something better:
+✍️ 1. Am I searching for something I could have **remembered**?
+✍️ 2. Am I **recomputing** something that only changed a little?
+✍️ 3. Would **sorting** the input make the search trivial — and can I afford O(n log n)?
+✍️ 4. Is the answer **monotone** (if x works, does x+1 work)? Then binary search the answer.
+✍️ 5. Can I decide something **locally** and never revisit it? Then it might be greedy.
+✍️ 6. Do I solve the **same smaller problem** many times? Then DP.
+✍️ 7. Does each element only need its **nearest** bigger/smaller neighbour? Then a monotonic stack.
+
+--- worked-example | Worked example: three steps on one problem | screenshot
+Problem: count subarrays whose sum equals `k` (LeetCode 560).
+
+**Brute force.** Every start `i`, every end `j`, sum `a[i..j]` with a third loop. O(n³).
+Bottleneck: the innermost loop re-sums `a[i..j]` even though we just computed `a[i..j-1]`.
+Waste: recomputing a sum that only grew by one element.
+Tool: keep a running sum as `j` moves → O(n²).
+
+**Better.** Every start `i`, extend `j` with a running sum. O(n²).
+Bottleneck: for each end `j`, we still try every start `i` to see if `sum(i..j) = k`.
+Job description: "for each end, search for starts whose prefix sum equals `prefix[j] − k`".
+Waste: *searching* for a value (`prefix[j] − k`) that we could have *remembered*. Unlock question 1.
+Tool: a hash map from prefix-sum value to how many times it has appeared → O(n).
+
+**Optimal.** One pass, running prefix sum, map lookup. O(n) time, O(n) space.
+
+Notice that each step changed exactly one thing, and each change was named by the waste.
+
+--- stop | When to stop optimising | mixed
+✍️ Stop when the complexity matches what the constraints require ([[cx-constraints-to-target]]). Beyond that, extra cleverness only adds bugs.
+- If the target is O(n log n) and you have O(n log n), code it.
+- If you have reached O(n) time, the next question is usually space: can the map be replaced by two pointers or a few variables? Only ask it if the problem says "O(1) extra space" or the interviewer asks.
+
+=== page: meta-pseudocode-format
+title: Writing pseudocode — the 5-slot format
+topic: meta
+kind: meta
+summary: A fixed layout (state, loop, check, update, return) that turns an idea into pseudocode you can translate to C++ line by line, so you never face a blank page.
+prereqs: meta-bottleneck-method
+related: meta-dry-run, meta-analyse-a-problem
+--- why | Algorithm in words first, then pseudocode | mixed
+✍️ Brainstorming produces an *idea*. An idea is not yet an algorithm. Write it as numbered English steps first ("algorithm in words"), then convert those steps into pseudocode.
+The two steps exist because they catch different mistakes:
+- Algorithm-in-words catches **logic** gaps: "wait, what do I do when the map already has the key?"
+- Pseudocode catches **mechanics** gaps: initial values, loop bounds, the order of two lines.
+
+✍️ If you cannot write the algorithm in 3–7 numbered sentences, the idea is not finished. Go back to brainstorming, not forward to code.
+
+--- five-slots | The five slots | write
+✍️ Every iterative solution in this plan fits five slots. Write them in this order:
+
+```
+STATE    what I keep between iterations, with initial values
+LOOP     what I walk over (and in what order)
+CHECK    the question I ask at each step
+UPDATE   how the state changes (and in what order relative to CHECK)
+RETURN   what I output, and what if the loop never triggered
+```
+
+✍️ The most common bug is the **order of CHECK and UPDATE**. Two Sum checks before inserting; a running maximum updates then compares. Decide it consciously and write it down.
+
+--- recursive-slots | The recursive version | write
+✍️ For recursion and backtracking use these slots instead:
+
+```
+FUNCTION   name(parameters) → what it returns, in one sentence
+BASE       when to stop, and what to return there
+CHOICES    what options exist at this call
+RECURSE    the call(s) for each choice, and what changes in the arguments
+COMBINE    how results of the calls become this call's answer (or: undo the choice)
+```
+
+The sentence after FUNCTION is the most important line you will write. "`depth(node)` returns the number of nodes on the longest downward path from `node`." Once that sentence is true, the recursive case almost writes itself (see [[rec-how-recursion-works#leap-of-faith]]).
+
+--- style | Style rules that make translation mechanical | mixed
+✍️ One line of pseudocode → at most one or two lines of C++.
+✍️ Use real variable names you will use in code (`seen`, `best`, `left`), not `x` and `y`.
+✍️ Write the data structure type next to state: `seen = map value → index`.
+- Use `←` or `=` for assignment, `==` for comparison — never mix them up on paper.
+- Indent loop bodies. On paper, a vertical line down the left of a loop body helps.
+- Do not write C++ syntax (`auto`, `::`, semicolons). It slows you down and hides logic errors behind syntax.
+
+--- example | Example: Two Sum in five slots | screenshot
+```
+STATE   seen = map  value → index      (empty)
+LOOP    for i from 0 to n-1, x = a[i]
+CHECK     need = target - x
+          if need is in seen → return [seen[need], i]
+UPDATE    seen[x] = i                   (AFTER the check, so x never pairs with itself)
+RETURN  (problem guarantees an answer) → return []
+```
+
+Translation to C++ is now mechanical: one `unordered_map<int,int>`, one `for`, one `if (seen.count(need))`, one assignment.
+
+=== page: meta-dry-run
+title: Dry runs — tracing variables by hand
+topic: meta
+kind: meta
+summary: How to trace pseudocode on a small input in a table, so bugs show up on paper instead of in submissions.
+prereqs: meta-pseudocode-format
+related: meta-analyse-a-problem
+--- what | What a dry run is | mixed
+✍️ A dry run executes your pseudocode by hand on a small input, writing the value of every state variable after each iteration in a table.
+It is the paper equivalent of a debugger. It takes 2–3 minutes and catches the two bugs that cost the most submissions: wrong initial values and off-by-one loop bounds.
+
+--- table | The table layout | write
+✍️ One column per state variable, one row per loop iteration, plus a column for "what happened".
+
+```
+i | x | need | seen (after) | note
+0 | 2 |  7   | {2:0}        | 7 not in seen, insert 2
+1 | 7 |  2   |              | 2 in seen → return [0,1]
+```
+
+✍️ Always include a row for the state **before** the first iteration — that is where initialisation bugs live.
+
+--- choose-input | Choosing the dry-run input | mixed
+✍️ Use the edge case you are least sure about, not the sample (the sample usually works).
+- For pointer problems: a case where the pointers meet or cross.
+- For window problems: a case where the window must shrink more than once in a row.
+- For counting problems: a case with duplicates.
+- Keep it to 4–6 elements. If the table needs more than 8 rows, pick a smaller input.
+
+--- when | When to do one | mixed
+✍️ Always before submitting a TWIST or DISGUISE problem.
+- After any wrong answer, before changing code: dry-run the failing case on paper first. Changing code without knowing why it failed usually creates a second bug.
+
+=== page: meta-pattern-decision-tree
+title: The pattern decision tree — from keywords and constraints to a technique
+topic: meta
+kind: meta
+summary: The master map to read before every mock OA: which words, constraints and shapes in a problem point to which pattern, with the page to read for each.
+prereqs: meta-analyse-a-problem, cx-constraints-to-target
+related: meta-bottleneck-method
+--- by-constraint | Start from the constraints | write
+✍️ n ≤ 12 → permutations/backtracking ([[bt-permutations-used-array]]). n ≤ 20 → subsets/bitmask ([[bt-pick-or-skip]], [[dp-bitmask]]).
+✍️ n ≤ 500 → O(n³) ok: interval DP, Floyd–Warshall, triple loops.
+✍️ n ≤ 5000 → O(n²) ok: 2D DP (LCS, edit distance), all pairs.
+✍️ n ≤ 2·10⁵ → O(n log n) or O(n): sorting, heaps, binary search, two pointers, hashing, windows, prefix sums, greedy.
+✍️ Answer range up to 10⁹ with a yes/no check → binary search on the answer ([[bs-on-answer]]).
+
+--- by-input-shape | Then the shape of the input | write
+✍️ **Sorted array** → binary search ([[bs-classic-and-invariants]]) or two pointers ([[tp-opposite-ends]]).
+✍️ **Unsorted array, find pairs/complements** → hash map ([[hash-complement-lookup]]).
+✍️ **Contiguous subarray / substring** → sliding window if all values ≥ 0 or the condition is monotone ([[sw-variable-window]]); prefix sum + hash map if negatives or exact sums ([[ps-prefix-sum-hashmap]]); Kadane for max sum ([[kad-kadane]]).
+✍️ **Linked list** → dummy head, fast/slow pointers, reversal ([[ll-fast-slow]]).
+✍️ **Tree** → DFS returning values bottom-up ([[tree-bottom-up-return-values]]) or BFS by levels ([[tree-bfs-level-order]]).
+✍️ **Grid** → treat cells as graph nodes: DFS/BFS ([[graph-grid-as-graph]]); shortest steps → BFS; paths counting/min cost moving right/down → grid DP ([[dp-grid-paths]]).
+✍️ **Pairs of (a, b) dependencies** → graph; ordering → topological sort ([[graph-topological-sort]]).
+✍️ **Intervals** → sort by start (merging) or by end (max non-overlapping) ([[gr-interval-sort-and-merge]]).
+✍️ **Strings, dictionary of words, prefixes** → trie ([[trie-structure-and-ops]]).
+
+--- by-question-words | Then the words in the question | write
+✍️ "k-th largest / top k / k closest" → heap of size k ([[heap-top-k]]).
+✍️ "next greater / previous smaller / span" → monotonic stack ([[stq-monotonic-stack]]).
+✍️ "max/min in every window of size k" → monotonic deque ([[stq-monotonic-deque]]).
+✍️ "all combinations / all subsets / all permutations / generate all" → backtracking.
+✍️ "number of ways", "minimum cost", "is it possible" with choices at each step → DP ([[dp-what-dp-is]]).
+✍️ "minimum number of steps / moves" in an unweighted space → BFS ([[graph-bfs]]).
+✍️ "shortest path with weights" → Dijkstra ([[graph-dijkstra]]); with at most k edges → Bellman–Ford ([[graph-bellman-ford-and-k-stops]]).
+✍️ "connected / same group / merge accounts / redundant edge" → union-find ([[graph-dsu]]).
+✍️ "majority / appears more than n/2" → Boyer–Moore ([[hash-boyer-moore-voting]]).
+✍️ "every element appears twice except one" → XOR ([[bits-xor-tricks]]).
+✍️ "minimise the maximum" / "maximise the minimum" → binary search on the answer.
+✍️ "longest/shortest substring with at most/at least …" → variable sliding window.
+
+--- if-nothing-matches | If nothing matches | mixed
+✍️ Write the brute force, then run the unlock questions in [[meta-bottleneck-method#unlock-questions]].
+- Look for a hidden sorted order: can you sort without breaking the problem? (Intervals, meetings, pairs.)
+- Look for a hidden graph: are there "things" and "relations between things"?
+- Look for a hidden prefix: does "something about the first i elements" help answer about element i?
+
+=== page: cx-big-o
+title: Big-O — counting work the way interviewers do
+topic: complexity
+kind: concept
+summary: What O(·) means, how to count operations from code, the dominant-term rule, and the common complexities ranked.
+prereqs:
+related: cx-constraints-to-target, cx-space-and-in-place, cx-amortised-analysis
+--- what | What Big-O measures | mixed
+✍️ Big-O describes how the running time **grows** as the input size n grows, ignoring constant factors and small terms.
+✍️ It answers: "if I double n, roughly how much longer does this take?" O(n): twice as long. O(n²): four times. O(log n): one more step.
+It does not tell you the exact time. An O(n) algorithm with a huge constant can be slower than O(n log n) on small inputs — but on n = 10⁵ the growth rate wins.
+
+--- counting | Counting from code | write
+✍️ A single loop over n elements doing O(1) work each → O(n).
+✍️ Two nested loops over n → O(n²). A loop inside a loop where the inner runs `i` times → 1 + 2 + … + n = n(n+1)/2 → still O(n²).
+✍️ A loop that halves (or doubles) a variable each step → O(log n).
+✍️ Sequential blocks add: O(n) + O(n log n) = O(n log n) (keep the biggest).
+✍️ Nested blocks multiply: a loop of n calling an O(log n) operation → O(n log n).
+✍️ Library calls count: `sort` is O(n log n); `unordered_map` lookup is O(1) average; `map` lookup is O(log n); `s.substr(i, len)` is O(len); `vector.erase(begin())` is O(n).
+
+--- ranking | The common complexities, ranked | write
+✍️ O(1) < O(log n) < O(√n) < O(n) < O(n log n) < O(n²) < O(n³) < O(2ⁿ) < O(n!)
+
+| n = | log n | n log n | n² | 2ⁿ |
+|---|---|---|---|---|
+| 10 | 3 | 33 | 100 | 1,024 |
+| 1,000 | 10 | 10⁴ | 10⁶ | astronomical |
+| 10⁵ | 17 | 1.7·10⁶ | 10¹⁰ (too slow) | — |
+
+--- dominant | The dominant-term rule | mixed
+✍️ Drop constants and lower-order terms: 3n² + 5n + 100 → O(n²). 2n → O(n).
+✍️ But keep **different variables** separate: two strings of lengths n and m compared character by character → O(n·m), not O(n²).
+- "O(n + m)" is common for problems with two inputs; do not collapse it to O(n) unless one is bounded by the other.
+
+--- pitfalls | Hidden costs beginners miss | mixed
+✍️ Passing a `vector` or `string` **by value** copies it: O(n) per call. Pass by reference (`const vector<int>& a`).
+✍️ String concatenation in a loop `s = s + c` is O(length) each time → O(n²) total. Use `s += c` or `push_back`.
+✍️ `count()` on a `vector` with `std::count` is O(n), not O(1).
+- Recursion's cost is (number of calls) × (work per call), not "one call" — see [[rec-recursion-tree-and-cost]].
+
+--- interview | What interviewers probe | screenshot
+- "What is the time and space complexity?" — always give both, and say *why* in one line ("one pass, each element inserted and looked up once").
+- "Is that average or worst case?" — hash maps are O(1) average, O(n) worst; quicksort is O(n log n) average, O(n²) worst.
+- "Can you do better?" — first state what the constraints require; if you are already at the lower bound (you must read every element → Ω(n)), say so.
+
+=== page: cx-constraints-to-target
+title: Reading n — converting constraints into a target complexity
+topic: complexity
+kind: concept
+summary: The 10⁸ operations-per-second rule and the table that maps n to the complexity you must hit.
+prereqs: cx-big-o
+related: meta-analyse-a-problem, meta-pattern-decision-tree
+--- rule | The 10⁸ rule | write
+✍️ A typical judge does roughly **10⁸ simple operations per second** in C++. Time limits are usually 1–2 seconds.
+✍️ So: plug n into your complexity. If the result is ≤ ~10⁸, it passes. If it is 10¹⁰, it does not.
+Example: n = 10⁵ and O(n²) → 10¹⁰ → too slow. O(n log n) → 1.7·10⁶ → fine.
+
+--- table | The table | write
+✍️ Learn this table by heart — it is the single most useful thing on this page.
+
+| n up to | Target complexity | Typical techniques |
+|---|---|---|
+| 10–12 | O(n!) | permutations |
+| 20–25 | O(2ⁿ) | subsets, bitmask, backtracking |
+| 100 | O(n⁴) | brute force over 4 indices |
+| 500 | O(n³) | triple loops, interval DP, Floyd–Warshall |
+| 5,000 | O(n²) | 2D DP, all pairs |
+| 10⁵ – 10⁶ | O(n log n) or O(n) | sorting, heaps, binary search, hashing, windows, prefix sums, greedy |
+| 10⁹ and beyond | O(log n) or O(1) | binary search on value, math |
+
+--- values | Value constraints matter too | mixed
+✍️ Values up to 10⁹: a sum of two fits in `int` barely (2·10⁹ > 2³¹−1 ≈ 2.147·10⁹ — it does NOT). Sum of many → `long long`. See [[cpp-integer-overflow]].
+✍️ Small value range (e.g. 0–100, lowercase letters) → counting arrays instead of maps; sometimes counting sort.
+- Negative values → windows on sums break ([[sw-monotonicity-requirement]]).
+
+--- use-it | How to use it in an OA | mixed
+✍️ Before coding, write `target: O(...)` at the top of your paper. If your idea is slower, do not code it yet — unless you are out of ideas, in which case code the brute force for partial marks and keep thinking.
+
+=== page: cx-space-and-in-place
+title: Space complexity and "in-place"
+topic: complexity
+kind: concept
+summary: Auxiliary vs total space, what "O(1) extra space" and "in-place" really allow, and how recursion uses space.
+prereqs: cx-big-o
+related: arr-read-write-pointer, rec-recursion-tree-and-cost
+--- aux | Auxiliary vs total space | write
+✍️ **Auxiliary space** = extra memory your algorithm allocates, not counting the input. When an interviewer says "space complexity", they almost always mean auxiliary.
+✍️ The output array usually does not count either ("O(1) extra space, not counting the output").
+✍️ A hash map holding up to n keys → O(n). A fixed array of 26 counters → O(1) (it does not grow with n).
+
+--- in-place | What "in-place" means | mixed
+✍️ In-place = modify the input array itself using O(1) extra variables, instead of building a new array.
+- Typical in-place tools: a write pointer ([[arr-read-write-pointer]]), swapping, reversing segments, using the sign or value of elements as markers.
+- In-place is a constraint, not a style: only do it when asked or when memory is tight, because it destroys the input.
+
+--- recursion-space | Recursion uses stack space | write
+✍️ Each active recursive call keeps a stack frame. Space = maximum recursion **depth** × frame size.
+✍️ Recursing on a balanced tree → O(log n) depth. On a skewed tree or a linked list → O(n) depth.
+- Deep recursion (≈ 10⁵ levels) can overflow the stack on some judges; prefer iteration then. See [[cpp-recursion-stack-limits]].
+
+--- tradeoff | The time–space trade | mixed
+✍️ Most optimisations in this plan trade space for time: a hash map (O(n) space) turns O(n²) into O(n).
+- When asked "can you do it in O(1) space?", the answer usually uses sortedness (two pointers), a voting argument (Boyer–Moore), arithmetic (XOR, sums), or in-place marking.
+
+=== page: cx-amortised-analysis
+title: Amortised analysis — why "sometimes expensive" can still be O(1)
+topic: complexity
+kind: concept
+summary: How to count total work across a whole sequence of operations, with the vector push_back, two-stack queue and monotonic stack examples.
+prereqs: cx-big-o
+related: stq-queue-via-stacks-amortised, stq-monotonic-stack, cpp-vector
+--- idea | The idea | write
+✍️ Amortised cost = total cost of a sequence of operations ÷ number of operations.
+✍️ An operation can be occasionally expensive and still be O(1) amortised, if the expensive moments are rare enough that their cost spreads over many cheap ones.
+
+--- counting-trick | The counting trick: charge each element | write
+✍️ The easiest proof: count how many times each element can be touched over the whole run.
+✍️ If every element is pushed once and popped at most once, the total work is ≤ 2n, so the whole algorithm is O(n) — even if one single step pops many elements.
+This is exactly why a monotonic stack is O(n) despite having a `while` loop inside a `for` loop ([[stq-monotonic-stack#complexity]]).
+
+--- vector | Example: vector::push_back | screenshot
+A `vector` doubles its capacity when full and copies everything across. One push can cost O(n). But after a copy of size k, the next k pushes are cheap. Total copies over n pushes ≤ 1 + 2 + 4 + … + n < 2n → O(1) amortised per push.
+
+--- interview | Interview phrasing | mixed
+✍️ Say: "Each element is pushed and popped at most once, so the total is O(n) amortised, even though one iteration can pop several."
+- Do not say "the while loop is O(n) so the total is O(n²)" — that is the most common wrong answer on monotonic stack problems.
+
+=== page: cx-recursion-complexity
+title: Complexity of recursive code
+topic: complexity
+kind: concept
+summary: Counting calls × work per call, the recursion tree picture, and the three results you need without the full master theorem.
+prereqs: cx-big-o, rec-how-recursion-works
+related: rec-recursion-tree-and-cost, rec-divide-and-conquer
+--- rule | Calls × work per call | write
+✍️ Time of a recursive function = (total number of calls) × (work done inside one call, excluding the recursive calls).
+✍️ Space = maximum depth of the call stack (+ any memory each call allocates and keeps).
+
+--- three-results | Three results to memorise | write
+✍️ Halve the input and do O(1) work: T(n) = T(n/2) + O(1) → **O(log n)** (binary search, fast power).
+✍️ Split in two halves and do O(n) work to combine: T(n) = 2T(n/2) + O(n) → **O(n log n)** (merge sort).
+✍️ Two calls each on n−1 (branching factor 2, depth n): T(n) = 2T(n−1) + O(1) → **O(2ⁿ)** (naive Fibonacci, subsets).
+- Branching factor b and depth d → about bᵈ calls.
+
+--- memo-effect | What memoisation does to this | mixed
+✍️ With memoisation, each distinct state is computed once. Time becomes (number of distinct states) × (work per state). Fibonacci drops from O(2ⁿ) to O(n). See [[dp-memo-vs-tabulation]].
+
+=== page: cpp-vector
+title: C++ vector — the container you will use in every problem
+topic: cpp
+kind: cpp
+summary: Declaring, filling, accessing and passing vectors; size and capacity; the operations that are secretly O(n).
+prereqs:
+related: cx-amortised-analysis, cpp-pass-by-reference-and-copies
+--- basics | Declaring and filling | write
+✍️ `vector<int> a;` empty. `vector<int> a(n);` n zeros. `vector<int> a(n, -1);` n copies of −1.
+✍️ 2D: `vector<vector<int>> g(rows, vector<int>(cols, 0));`
+✍️ `a.push_back(x)` appends (amortised O(1)). `a.pop_back()` removes the last (O(1)). `a.back()` reads the last.
+✍️ `a.size()` returns an **unsigned** number. `a.size() - 1` on an empty vector is a huge number, not −1. Cast first: `(int)a.size() - 1`.
+
+```cpp
+vector<int> a = {3, 1, 4};
+a.push_back(1);            // {3,1,4,1}
+int n = a.size();          // store as int once, use n everywhere
+for (int i = 0; i < n; i++) cout << a[i];
+for (int x : a) cout << x; // read-only copy of each element
+for (int &x : a) x *= 2;   // reference: modifies the vector
+```
+
+--- costs | Costs of common operations | write
+| Operation | Cost |
+|---|---|
+| `a[i]`, `a.back()`, `push_back`, `pop_back` | O(1) (push amortised) |
+| `insert(a.begin()+i, x)`, `erase(a.begin()+i)` | O(n − i) — shifts everything after i |
+| `a.erase(a.begin())` (remove front) | O(n) — use a `deque` if you need this often |
+| `sort(a.begin(), a.end())` | O(n log n) |
+| `reverse(a.begin(), a.end())` | O(n) |
+| `find(a.begin(), a.end(), x)` | O(n) |
+| copying `vector<int> b = a;` | O(n) |
+
+--- emplace | push_back vs emplace_back | screenshot
+`emplace_back` constructs the element in place from constructor arguments; `push_back` takes an existing object. For `int` they are identical. For `pair` or structs, `v.emplace_back(a, b)` saves writing `v.push_back({a, b})`. In DSA code the difference rarely matters.
+
+--- passing | Passing to functions | write
+✍️ `void f(vector<int> a)` copies the whole vector on every call → O(n) per call. In recursion this silently turns O(n) into O(n²).
+✍️ Use `const vector<int>& a` to read, `vector<int>& a` to modify. See [[cpp-pass-by-reference-and-copies]].
+
+--- pitfalls | Pitfalls | mixed
+✍️ Out-of-bounds `a[i]` does not throw; it reads garbage or crashes later. Check `i >= 0 && i < n` before indexing neighbours (`a[i-1]`, `a[i+1]`).
+✍️ Modifying a vector while iterating it with a range-for (`push_back` inside) invalidates iterators — undefined behaviour.
+- `a.clear()` sets size to 0 but keeps capacity; it is O(n) for destructors, effectively O(1) for ints.
+
+=== page: cpp-string
+title: C++ string — characters, indexing and the costs that bite
+topic: cpp
+kind: cpp
+summary: Strings as vectors of chars, character arithmetic, building strings efficiently, substr cost, and conversions.
+prereqs: cpp-vector
+related: str-char-arithmetic-and-counting, str-tokenising-and-reversal
+--- basics | Basics | write
+✍️ A `string` behaves like a `vector<char>`: `s[i]`, `s.size()`, `s.push_back(c)`, `s.pop_back()`, `s.back()`.
+✍️ Characters are small integers. `'a'` is 97, `'A'` is 65, `'0'` is 48. So `s[i] - 'a'` maps 'a'..'z' to 0..25, and `s[i] - '0'` maps '0'..'9' to 0..9.
+
+```cpp
+string s = "hello";
+int cnt[26] = {0};
+for (char c : s) cnt[c - 'a']++;   // frequency of each letter
+char up = toupper(s[0]);          // 'H'
+bool letter = isalpha(c), digit = isdigit(c), alnum = isalnum(c);
+char low = tolower(c);
+```
+
+--- building | Building strings efficiently | write
+✍️ `s += c;` and `s.push_back(c)` → amortised O(1).
+✍️ `s = s + c;` → creates a new string each time → O(length) → O(n²) in a loop. Never do this in a loop.
+✍️ Build backwards with `push_back` then `reverse(s.begin(), s.end())` rather than inserting at the front (`s.insert(0, ...)` is O(n)).
+
+--- substr | substr and comparisons | mixed
+✍️ `s.substr(pos, len)` creates a new string → O(len). Calling it inside a loop over all positions is O(n²) or worse.
+✍️ Comparing two strings `a == b` is O(min length). Using strings as map keys costs O(length) per hash.
+- `s.find(t)` is O(n·m) in the worst case — fine for small inputs, not for 10⁵.
+
+--- conversions | Conversions | screenshot
+- `to_string(123)` → `"123"`; `stoi("123")` → 123; `stoll` for long long.
+- `string(n, 'x')` → n copies of 'x'.
+- `stringstream ss(s); string w; while (ss >> w) {...}` splits on whitespace (see [[str-tokenising-and-reversal]]).
+
+--- pitfalls | Pitfalls | mixed
+✍️ `char` arithmetic on uppercase vs lowercase: `'A' - 'a'` is negative. Normalise with `tolower` first when the problem ignores case.
+- `isalpha`, `tolower` take an `int`; passing a negative `char` (non-ASCII) is undefined. LeetCode inputs are ASCII, so this rarely bites.
+
+=== page: cpp-pair-and-tuple
+title: pair, tuple and structured bindings
+topic: cpp
+kind: cpp
+summary: Bundling values into pairs, how pairs sort, and reading them cleanly with auto [a, b].
+prereqs: cpp-vector
+related: cpp-sort-and-comparators, cpp-priority-queue
+--- pair | pair | write
+✍️ `pair<int,int> p = {3, 5};` access with `p.first`, `p.second`.
+✍️ Pairs compare **lexicographically**: first by `.first`, then by `.second`. So sorting a `vector<pair<int,int>>` sorts by first, breaking ties by second — for free.
+✍️ `vector<pair<int,int>> v; v.push_back({val, idx});` is the standard way to sort values while remembering original indices.
+
+--- bindings | Structured bindings | write
+✍️ `for (auto& [key, val] : mp)` iterates a map with readable names.
+✍️ `auto [d, node] = pq.top();` unpacks a pair from a heap.
+
+--- tuple | tuple | screenshot
+`tuple<int,int,int> t = {d, r, c}; auto [d, r, c] = t;` — useful for (distance, row, col) in Dijkstra on grids. Tuples also compare lexicographically.
+
+=== page: cpp-unordered-map-set
+title: unordered_map and unordered_set — API and gotchas
+topic: cpp
+kind: cpp
+summary: Inserting, looking up, counting and erasing in hash containers, and the [] operator side effect that causes silent bugs.
+prereqs: hash-table-internals
+related: cpp-container-choice, hash-frequency-counting, hash-complement-lookup
+--- api | The API you need | write
+✍️ `unordered_map<int,int> mp;` key → value. `unordered_set<int> st;` keys only.
+✍️ Insert/update: `mp[key] = value;` or `mp[key]++;` (missing keys start at 0).
+✍️ Membership: `mp.count(key)` returns 0 or 1. `st.count(x)`. C++20 also has `.contains()`, but `.count()` works everywhere.
+✍️ Lookup without inserting: `auto it = mp.find(key); if (it != mp.end()) use(it->second);`
+✍️ Erase: `mp.erase(key);` Size: `mp.size()`.
+
+```cpp
+unordered_map<int,int> freq;
+for (int x : a) freq[x]++;                 // frequency count
+if (freq.count(7)) cout << freq[7];        // safe read: key exists
+for (auto& [val, c] : freq) { /* ... */ }  // iterate (order is arbitrary)
+```
+
+--- bracket-trap | The [] trap | write
+✍️ `mp[key]` **inserts** the key with value 0 if it is missing. Reading `if (mp[x] > 0)` on a missing key adds `x` to the map.
+✍️ This silently changes `mp.size()` and breaks logic that counts distinct keys (e.g. "at most k distinct characters" windows).
+✍️ Rule: use `count`/`find` to *ask*; use `[]` only to *write* (or when inserting a zero is harmless).
+
+--- costs | Costs | write
+| Operation | Average | Worst |
+|---|---|---|
+| insert, `[]`, find, count, erase | O(1) | O(n) |
+| iterate all | O(n + buckets) | — |
+✍️ Order of iteration is arbitrary and can change after rehashing. Never rely on it. If you need sorted keys, use `map` ([[cpp-map-set-ordered]]).
+
+--- keys | What can be a key | mixed
+✍️ Built-in types and `string` work out of the box. `pair<int,int>` does NOT have a default hash in `unordered_map` — use `map<pair<int,int>,int>`, or encode the pair into a `long long` (`key = (long long)a * BIG + b`), or a string.
+- Vectors as keys: convert to a string, or use `map<vector<int>, int>` (ordered map compares vectors lexicographically).
+
+--- performance | Performance tips | screenshot
+- `mp.reserve(n)` before inserting n keys avoids repeated rehashing (see [[hash-load-factor-and-rehashing]]).
+- On adversarial judges (Codeforces), crafted inputs can force collisions; LeetCode and campus OAs basically never do this.
+- For keys in a small dense range (letters, values 0..10⁵), a plain array is 3–10× faster than any map ([[cpp-container-choice]]).
+
+=== page: cpp-map-set-ordered
+title: map and set — the ordered containers
+topic: cpp
+kind: cpp
+summary: Balanced-tree containers with O(log n) operations, sorted iteration, lower_bound/upper_bound, and multiset for duplicates.
+prereqs: cpp-unordered-map-set
+related: cpp-container-choice, bs-lower-upper-bound
+--- what | What they are | write
+✍️ `map` and `set` keep keys **sorted** (internally a red-black tree). Every insert/find/erase is O(log n).
+✍️ Use them when you need order: smallest/largest key, iterate in sorted order, "first key ≥ x".
+
+--- api | API | write
+```cpp
+set<int> s = {5, 1, 9};
+*s.begin();               // 1  (smallest)
+*s.rbegin();              // 9  (largest)
+auto it = s.lower_bound(4); // first element >= 4 → 5
+auto jt = s.upper_bound(5); // first element  > 5 → 9
+s.erase(5);               // by value
+multiset<int> ms;         // allows duplicates
+ms.erase(ms.find(3));     // erase ONE copy of 3 (ms.erase(3) erases all copies)
+```
+✍️ `lower_bound(x)` = first ≥ x. `upper_bound(x)` = first > x. Both O(log n) when called as **member functions** (`s.lower_bound`), not `std::lower_bound(s.begin(), s.end(), x)` which is O(n) on a set.
+
+--- when | When to reach for them | mixed
+✍️ Sliding window that needs the min and max of the window with deletions → `multiset` (or a monotonic deque, [[stq-monotonic-deque]]).
+✍️ "Find the closest value to x seen so far" → `set` + `lower_bound`.
+- Counting with sorted output → `map<int,int>`.
+
+=== page: cpp-container-choice
+title: Choosing between array, unordered_map and map
+topic: cpp
+kind: cpp
+summary: A decision rule for picking the counting/lookup container, with speed, order and key-type trade-offs.
+prereqs: cpp-unordered-map-set, cpp-map-set-ordered
+related: hash-frequency-counting
+--- rule | The rule | write
+✍️ Keys are small integers in a known range (letters, digits, values ≤ 10⁶) → **plain array** (`int cnt[26]`, `vector<int> cnt(maxV+1)`). Fastest, O(1) true worst case.
+✍️ Keys are arbitrary (large ints, strings), order does not matter → **unordered_map / unordered_set**. O(1) average.
+✍️ You need sorted order, min/max, or lower_bound → **map / set**. O(log n).
+✍️ Keys are pairs or vectors and you do not want to write a hash → **map**.
+
+--- compare | Side by side | screenshot
+| | array | unordered_map | map |
+|---|---|---|---|
+| lookup | O(1) | O(1) avg, O(n) worst | O(log n) |
+| ordered iteration | yes (by index) | no | yes |
+| memory | size of range | ~3–5× entries | ~3× entries |
+| key types | small ints | hashable | comparable |
+
+--- anagram-example | Example: Valid Anagram | mixed
+✍️ Lowercase letters only → `int cnt[26]`: increment for s, decrement for t, check all zero.
+- If the problem allowed Unicode, the range would not be small → `unordered_map<char,int>` (the official follow-up of LeetCode 242).
+
+=== page: cpp-sort-and-comparators
+title: sort and custom comparators
+topic: cpp
+kind: cpp
+summary: Sorting ranges, sorting by a key, writing comparators with lambdas, stability, and the strict-weak-ordering rule that causes crashes.
+prereqs: cpp-vector, cpp-pair-and-tuple
+related: sort-merge-sort, gr-interval-sort-and-merge
+--- basics | Basics | write
+✍️ `sort(a.begin(), a.end());` ascending, O(n log n).
+✍️ Descending: `sort(a.rbegin(), a.rend());` or `sort(a.begin(), a.end(), greater<int>());`
+✍️ Part of an array: `sort(a.begin() + l, a.begin() + r);` sorts indices [l, r).
+
+--- lambda | Custom comparators | write
+✍️ A comparator `cmp(x, y)` returns **true if x must come before y**.
+
+```cpp
+// intervals by start
+sort(iv.begin(), iv.end(), [](const vector<int>& x, const vector<int>& y) {
+    return x[0] < y[0];
+});
+// by end, then by start
+sort(iv.begin(), iv.end(), [](auto& x, auto& y) {
+    if (x[1] != y[1]) return x[1] < y[1];
+    return x[0] < y[0];
+});
+// strings by length
+sort(words.begin(), words.end(), [](const string& a, const string& b) {
+    return a.size() < b.size();
+});
+```
+
+--- strict | The strict-weak-ordering rule | write
+✍️ The comparator must return **false for equal elements**. Use `<`, never `<=`.
+✍️ `return a <= b;` breaks `std::sort`'s assumptions and can cause wrong results or a crash (out-of-bounds read) on inputs with duplicates.
+
+--- stability | Stability | mixed
+✍️ `sort` is not stable: equal elements may change their relative order. `stable_sort` keeps it (O(n log n), uses extra memory).
+- You need stability when you sort by one key after another and the earlier order matters, e.g. "sort by frequency, ties in original order".
+
+--- index-sort | Sorting indices instead of values | screenshot
+When you need the original positions after sorting:
+```cpp
+vector<int> idx(n);
+iota(idx.begin(), idx.end(), 0);           // 0,1,2,...,n-1
+sort(idx.begin(), idx.end(), [&](int i, int j) { return a[i] < a[j]; });
+```
+`[&]` captures `a` by reference so the lambda can read it.
+
+=== page: cpp-integer-overflow
+title: Integer overflow — int, long long and where sums blow up
+topic: cpp
+kind: cpp
+summary: Ranges of int and long long, the operations that overflow in DSA problems, and safe patterns like mid = lo + (hi - lo) / 2.
+prereqs:
+related: ps-prefix-sum-basics, bs-classic-and-invariants
+--- ranges | Ranges | write
+✍️ `int` is 32-bit: about ±2.147·10⁹ (2³¹ − 1 = 2,147,483,647).
+✍️ `long long` is 64-bit: about ±9.22·10¹⁸.
+✍️ Two values up to 10⁹ added together can exceed `int`. A product of two values up to 10⁵ (10¹⁰) exceeds `int`.
+
+--- where | Where it happens in DSA | write
+✍️ Prefix sums of 10⁵ values up to 10⁴ → up to 10⁹, borderline; values up to 10⁹ → definitely `long long`.
+✍️ `mid = (lo + hi) / 2` overflows when lo + hi > 2·10⁹. Use `mid = lo + (hi - lo) / 2`.
+✍️ Multiplying `a * b` where both are `int` overflows **before** being stored in a `long long`. Write `(long long)a * b`.
+✍️ Binary search on answer with a large `hi` (e.g. sum of weights) → make lo, hi, mid `long long`.
+
+--- detect | How to spot it | mixed
+✍️ Wrong answer only on large tests, negative results that should be positive → overflow.
+- Default to `long long` for any sum, product, or count of pairs. It costs nothing in speed.
+
+=== page: cpp-iterators-and-algorithms
+title: The <algorithm> functions worth knowing
+topic: cpp
+kind: cpp
+summary: lower_bound, upper_bound, accumulate, max_element, reverse, iota, fill, unique and next_permutation — what each does and what it costs.
+prereqs: cpp-vector
+related: bs-lower-upper-bound, cpp-sort-and-comparators
+--- list | The list | write
+| Function | Does | Cost |
+|---|---|---|
+| `lower_bound(b, e, x)` | iterator to first ≥ x in a **sorted** range | O(log n) |
+| `upper_bound(b, e, x)` | first > x | O(log n) |
+| `accumulate(b, e, 0LL)` | sum (use `0LL` to sum in long long!) | O(n) |
+| `*max_element(b, e)` / `min_element` | largest / smallest value | O(n) |
+| `reverse(b, e)` | reverse in place | O(n) |
+| `iota(b, e, 0)` | fill 0, 1, 2, … | O(n) |
+| `fill(b, e, v)` | fill with v | O(n) |
+| `unique(b, e)` | removes **adjacent** duplicates, returns new end | O(n) |
+| `next_permutation(b, e)` | next lexicographic order, false at the end | O(n) |
+| `count(b, e, x)` | occurrences of x | O(n) |
+
+--- index | Turning an iterator into an index | write
+✍️ `int idx = lower_bound(a.begin(), a.end(), x) - a.begin();` — if `idx == n`, every element is < x.
+
+--- unique | The unique idiom | screenshot
+```cpp
+sort(a.begin(), a.end());
+a.erase(unique(a.begin(), a.end()), a.end());   // a now has distinct values, sorted
+```
+`unique` only removes *adjacent* duplicates, which is why you sort first.
+
+--- accumulate-trap | The accumulate trap | mixed
+✍️ `accumulate(a.begin(), a.end(), 0)` sums in `int` because the initial value is `int` — it overflows on large inputs. Write `0LL`.
+
+=== page: cpp-stack-queue-deque
+title: stack, queue and deque in C++
+topic: cpp
+kind: cpp
+summary: The three sequence adaptors, their O(1) operations, and when a deque replaces both.
+prereqs: cpp-vector
+related: stq-stack-basics-and-matching, graph-bfs, stq-monotonic-deque
+--- api | API | write
+```cpp
+stack<int> st;  st.push(x); st.top(); st.pop(); st.empty(); st.size();
+queue<int> q;   q.push(x);  q.front(); q.back(); q.pop(); q.empty();
+deque<int> dq;  dq.push_back(x); dq.push_front(x); dq.pop_back(); dq.pop_front();
+                dq.front(); dq.back(); dq[i];   // random access too
+```
+✍️ All of these are O(1).
+✍️ `pop()` returns **nothing** (void). Read `top()`/`front()` first, then `pop()`.
+✍️ Calling `top()`/`front()`/`pop()` on an empty container is undefined behaviour — always check `empty()` first.
+
+--- which | Which to use | write
+✍️ LIFO (last in, first out: undo, brackets, DFS) → `stack`.
+✍️ FIFO (first in, first out: BFS, processing order) → `queue`.
+✍️ Need both ends (sliding window max, 0-1 BFS) → `deque`.
+- A `vector` with `push_back`/`back`/`pop_back` works as a stack and lets you iterate it; many solutions use it instead of `stack`.
+
+=== page: cpp-priority-queue
+title: priority_queue — C++'s heap
+topic: cpp
+kind: cpp
+summary: Max-heap by default, how to make a min-heap, heaps of pairs, and custom comparators (with their reversed logic).
+prereqs: cpp-vector, cpp-pair-and-tuple
+related: heap-binary-heap-internals, heap-top-k, graph-dijkstra
+--- api | API | write
+✍️ `priority_queue<int> pq;` is a **max-heap**: `pq.top()` is the largest.
+✍️ Min-heap: `priority_queue<int, vector<int>, greater<int>> pq;`
+✍️ `push` O(log n), `pop` O(log n), `top` O(1), `size`/`empty` O(1).
+
+```cpp
+priority_queue<pair<int,int>, vector<pair<int,int>>, greater<>> pq;  // min-heap by (dist, node)
+pq.push({0, src});
+while (!pq.empty()) {
+    auto [d, u] = pq.top(); pq.pop();
+    // ...
+}
+```
+
+--- comparator | Custom comparator (reversed!) | write
+✍️ For `priority_queue`, the comparator says when `a` has **lower** priority than `b`. So `return a > b;` gives a **min**-heap. It is the opposite of `sort`.
+
+```cpp
+auto cmp = [](const pair<int,int>& a, const pair<int,int>& b) { return a.second > b.second; };
+priority_queue<pair<int,int>, vector<pair<int,int>>, decltype(cmp)> pq(cmp);  // min by .second
+```
+
+--- tricks | Tricks | mixed
+✍️ Negate values to turn a max-heap into a min-heap: push `-x`, read `-pq.top()`.
+- There is no decrease-key. Dijkstra pushes a new entry and skips stale ones when popped ([[graph-dijkstra#lazy-deletion]]).
+- Building from a vector: `priority_queue<int> pq(a.begin(), a.end());` is O(n), faster than n pushes.
+
+=== page: cpp-pass-by-reference-and-copies
+title: Pass by value, reference and const reference
+topic: cpp
+kind: cpp
+summary: What each parameter style copies, why by-value vectors in recursion are a hidden O(n²), and lambdas capturing by reference.
+prereqs: cpp-vector
+related: cx-big-o, bt-pick-or-skip
+--- three | The three styles | write
+✍️ `void f(vector<int> a)` — copies a. Changes inside f do not affect the caller. Costs O(n) per call.
+✍️ `void f(vector<int>& a)` — no copy. Changes affect the caller.
+✍️ `void f(const vector<int>& a)` — no copy, read-only. Default choice for inputs.
+
+--- recursion | In recursion and backtracking | write
+✍️ Pass the input as `const&`, and the "current path" as `&` with push/pop (choose → recurse → undo). See [[bt-pick-or-skip#undo]].
+✍️ Passing `path` by value is correct but copies it on every call; acceptable for tiny n, wasteful otherwise.
+
+--- lambdas | Lambdas | screenshot
+`[&]` captures everything by reference (no copies); `[=]` by value. A recursive lambda needs `function<void(int)> dfs = [&](int u) { ... dfs(v); ... };` — capture by reference so it can see itself and your arrays.
+
+=== page: cpp-recursion-stack-limits
+title: Recursion depth and stack limits
+topic: cpp
+kind: cpp
+summary: How deep recursion can go before crashing, which problems hit the limit, and how to convert to iteration.
+prereqs: rec-how-recursion-works
+related: cx-space-and-in-place, tree-iterative-traversals
+--- limits | The limits | mixed
+✍️ Each call uses stack memory. Typical stacks allow ~10⁴–10⁵ frames of simple recursive functions, depending on the judge.
+✍️ LeetCode is generous; recursion depth 10⁴–10⁵ usually works. Some OA platforms (HackerRank, older judges) have smaller stacks.
+- A crash with no output (segfault / runtime error) on large tests of a recursive DFS is usually a stack overflow.
+
+--- when-risky | When it is risky | write
+✍️ DFS on a linked-list-shaped tree, a path graph, or a grid of 10⁶ cells → depth can equal n.
+✍️ Fix: use an explicit `stack` (iterative DFS) or BFS. See [[tree-iterative-traversals]] and [[graph-dfs#iterative]].
+
+=== page: arr-single-pass-running-state
+title: Single pass with running state
+topic: arrays
+kind: pattern
+summary: Walk the array once, carrying a few variables that summarise everything seen so far — running sums, counters that reset, best-so-far.
+prereqs: cx-big-o, cpp-vector
+related: kad-kadane, kad-min-so-far, ps-prefix-sum-basics
+--- idea | Idea | write
+✍️ Instead of looking back over earlier elements, keep a small **summary** of them in variables and update it as you move right.
+✍️ The summary must be enough to answer the question at the current position. Typical summaries: total so far, current streak length, best so far, minimum so far.
+✍️ Each element is read once → O(n) time, O(1) extra space (unless the output is an array).
+
+--- recognise | Recognise it | write
+✍️ "running / cumulative / so far / streak / consecutive" in the statement.
+✍️ The answer at position i depends only on position i and something about the elements before it.
+✍️ The brute force has an inner loop that goes **backwards** from i to recompute something about the prefix.
+
+--- think | Brute force → running state | mixed
+Brute force: at each i, loop back over 0..i to compute the sum / count / max. O(n²).
+✍️ Bottleneck: the backward loop recomputes a summary that differs from the previous one by **one element**.
+✍️ Fix: keep the previous summary and update it with a[i] in O(1).
+This is the simplest instance of the bottleneck method ([[meta-bottleneck-method#name-waste]]): "recomputing something that only changed a little".
+
+--- template | Template | write
+```cpp
+// running total (prefix sum written into a new array)
+vector<int> out(n);
+int run = 0;
+for (int i = 0; i < n; i++) { run += a[i]; out[i] = run; }
+
+// streak that resets
+int cur = 0, best = 0;
+for (int x : a) {
+    if (x == target) cur++;      // extend the streak
+    else cur = 0;                // condition broken → reset
+    best = max(best, cur);       // record after updating
+}
+```
+
+--- variations | Variations | screenshot
+- Streak of equal neighbours: compare `a[i]` with `a[i-1]` instead of a fixed target (LeetCode 1446).
+- Strictly increasing run: `a[i] > a[i-1]` extends, else reset to 1 (LeetCode 674).
+- Running sum that must stay positive: track the minimum prefix (LeetCode 1413).
+- Running state that allows *k* violations → this becomes a sliding window ([[sw-variable-window]]).
+
+--- pitfalls | Pitfalls | write
+✍️ Where you update `best` matters: updating only when the streak breaks misses a streak that runs to the end of the array. Update every iteration, or once more after the loop.
+✍️ Reset value: a streak of "matching elements" resets to 0; a run of "increasing elements" resets to 1 (the current element alone is a run of length 1).
+
+--- complexity | Complexity | screenshot
+O(n) time, O(1) extra space. You cannot do better than O(n) because every element must be read at least once.
+
+=== page: arr-read-write-pointer
+title: Read pointer and write pointer — in-place compaction
+topic: arrays
+kind: pattern
+summary: One index reads every element; a second index marks where the next kept element should be written. Removes, filters and deduplicates in O(n) time and O(1) space.
+prereqs: arr-single-pass-running-state, cx-space-and-in-place
+related: tp-opposite-ends, tp-skip-duplicates
+--- idea | Idea | write
+✍️ Two indices move left to right. `read` visits every element. `write` only advances when an element is **kept**.
+✍️ Invariant: `a[0..write-1]` always holds exactly the kept elements seen so far, in their original order.
+✍️ Because `write ≤ read` always, writing to `a[write]` never overwrites an element we have not read yet.
+
+--- recognise | Recognise it | write
+✍️ "in-place", "O(1) extra memory", "remove / move / filter elements", "return the new length k, first k elements must be …".
+✍️ Order of kept elements must be preserved.
+
+--- think | Brute force → write pointer | mixed
+Brute force A: build a new array of kept elements, copy back. O(n) time but O(n) space — fails "in-place".
+Brute force B: when you find an element to remove, shift everything after it left by one (`erase`). O(n) per removal → O(n²).
+✍️ Bottleneck of B: elements are shifted many times — each removal moves the whole tail again.
+✍️ Fix: move each kept element **once**, directly to its final position. Its final position is "how many kept elements came before it" = `write`.
+
+--- template | Template | write
+```cpp
+int write = 0;
+for (int read = 0; read < n; read++) {
+    if (keep(a[read])) {          // the only problem-specific line
+        a[write] = a[read];       // or swap(a[write], a[read]) to keep the rest
+        write++;
+    }
+}
+// a[0..write-1] are the kept elements; return write
+```
+✍️ `keep` for Move Zeroes: `a[read] != 0`. For Remove Element: `a[read] != val`. For Remove Duplicates (sorted): `write == 0 || a[read] != a[write-1]`.
+
+--- swap-vs-copy | Swap or copy? | mixed
+✍️ Copy (`a[write] = a[read]`) when you do not care what is left after position `write` (most "return k" problems).
+✍️ Swap (`swap(a[write], a[read])`) when the removed elements must still exist at the end — Move Zeroes needs the zeroes at the back.
+- Alternative for Move Zeroes: copy all non-zeros forward, then fill `a[write..n-1]` with 0.
+
+--- variations | Variations | screenshot
+- Keep at most two copies of each value in a sorted array: keep if `write < 2 || a[read] != a[write-2]` (LeetCode 80).
+- Partition evens before odds: keep = "is even", using swap (LeetCode 905).
+- Merge two sorted arrays in place from the back: two read pointers, one write pointer starting at the end (LeetCode 88).
+- Three-way partition (0s, 1s, 2s) → Dutch national flag ([[sort-dutch-national-flag]]).
+
+--- pitfalls | Pitfalls | write
+✍️ Comparing with `a[read-1]` instead of `a[write-1]` for deduplication works only for "keep one copy"; for "keep two", you must compare against the **written** array, `a[write-2]`.
+✍️ Return `write`, not `write - 1`: it is the count of kept elements.
+
+--- complexity | Complexity | screenshot
+O(n) time — each element is read once and written at most once. O(1) extra space.
+
+=== page: arr-in-place-tricks
+title: Other in-place array tricks
+topic: arrays
+kind: concept
+summary: Reversal for rotations, using indices as hash keys, and sign marking — the O(1)-space tricks interviewers ask for as follow-ups.
+prereqs: arr-read-write-pointer
+related: cx-space-and-in-place, mat-rotate-transpose
+--- reversal | Rotation by triple reversal | write
+✍️ Rotate right by k: reverse the whole array, reverse the first k, reverse the rest. O(n) time, O(1) space. (Take k %= n first.)
+```
+[1,2,3,4,5], k=2 → reverse all [5,4,3,2,1] → reverse first 2 [4,5,3,2,1] → reverse rest [4,5,1,2,3]
+```
+
+--- index-as-key | Index as a hash key | write
+✍️ When values are in the range 1..n, the array itself can act as a "seen" set: for value v, mark position v−1.
+✍️ Marking without losing information: make `a[v-1]` negative (the absolute value still holds the original number).
+Used in: find all numbers disappeared (LeetCode 448), find duplicate, first missing positive (LeetCode 41, with cyclic placement).
+
+--- cyclic | Cyclic placement | screenshot
+For values 1..n: repeatedly swap `a[i]` into position `a[i]-1` until the right value sits at i or the target already holds it. Each swap places one value permanently → O(n) total. After that, the first index i with `a[i] != i+1` gives the missing number.

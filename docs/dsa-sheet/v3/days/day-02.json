@@ -1,0 +1,1270 @@
+{
+ "problems": [
+  {
+   "id": "two-sum",
+   "theory_refs": [
+    {
+     "stage": "analyse",
+     "at": "\"unsorted\" + \"return indices\"",
+     "page": "tp-opposite-ends",
+     "section": "pitfalls",
+     "why": "Why two pointers (which needs sorting) is the wrong tool here."
+    },
+    {
+     "stage": "brainstorm",
+     "at": "The inner loop searches for one known value",
+     "page": "hash-complement-lookup",
+     "section": "think",
+     "why": "The bottleneck-to-hash-map step."
+    },
+    {
+     "stage": "pseudocode",
+     "at": "CHECK before UPDATE",
+     "page": "hash-complement-lookup",
+     "section": "self-pairing",
+     "why": "Why inserting first pairs an element with itself."
+    },
+    {
+     "stage": "solution",
+     "at": "`seen.find(need)` instead of `seen[need]`",
+     "page": "cpp-unordered-map-set",
+     "section": "bracket-trap",
+     "why": "Asking without inserting."
+    },
+    {
+     "stage": "edges",
+     "at": "O(1) average vs O(n) worst",
+     "page": "hash-table-internals",
+     "section": "why-o1",
+     "why": "What \"O(1)\" really means for a hash map."
+    }
+   ],
+   "stuck_refs": {
+    "10": {
+     "page": "cx-constraints-to-target",
+     "section": "table"
+    },
+    "20": {
+     "page": "meta-bottleneck-method",
+     "section": "name-waste"
+    },
+    "30": {
+     "page": "hash-complement-lookup",
+     "section": "idea"
+    },
+    "40": {
+     "page": "hash-complement-lookup",
+     "section": "self-pairing"
+    }
+   },
+   "stages": [
+    {
+     "id": "understand",
+     "title": "Understand",
+     "note": "mixed",
+     "body": "✍️ f(unsorted array a, target) → indices [i, j], i ≠ j, with a[i] + a[j] = target. Exactly one answer exists.\n- n ≤ 10⁴ (so O(n²) actually passes — but the follow-up asks for better than O(n²), and interviews always do).\n- Values up to ±10⁹."
+    },
+    {
+     "id": "analyse",
+     "title": "Analyse",
+     "note": "write",
+     "body": "✍️ Target complexity: O(n) or O(n log n).\n✍️ By hand on [2, 7, 11, 15], target 9: at 2 I think \"I need a 7\" and my eyes scan for 7. That scan is the expensive part.\n✍️ Hard part: finding the partner without scanning, while still returning **original indices** (so sorting is awkward).\n✍️ Edges: [3, 3] target 6 (equal values); [3, 2, 4] target 6 (3 must not pair with itself)."
+    },
+    {
+     "id": "brainstorm",
+     "title": "Brainstorm: brute → optimal",
+     "note": "write",
+     "body": "✍️ **1. Brute.** All pairs i < j. O(n²) time, O(1) space.\n✍️ ↳ Bottleneck: the inner loop. Its job: \"search the array for the value target − a[i]\".\n✍️ ↳ Unlock: \"Am I searching for something I could have remembered?\" — yes, a specific known value.\n✍️ **2. Better (sort + two pointers).** O(n log n), but sorting loses the original indices; you must sort (value, index) pairs. Workable, more code.\n✍️ **3. Better (two-pass hash).** Put every value → index in a map, then look up target − a[i] for each i, making sure the index found is not i. O(n).\n✍️ **4. Optimal (one-pass hash).** Look up first, insert after. Only earlier elements are in the map → no self-pairing check needed, and you stop at the first hit. O(n) time, O(n) space."
+    },
+    {
+     "id": "algorithm",
+     "title": "Algorithm in words",
+     "note": "write",
+     "body": "✍️ 1. Create an empty map from value to index.\n✍️ 2. Walk the array. For element x at index i, compute need = target − x.\n✍️ 3. If need is in the map, return [map[need], i].\n✍️ 4. Otherwise store x → i and continue."
+    },
+    {
+     "id": "pseudocode",
+     "title": "Pseudocode",
+     "note": "write",
+     "body": "```\nSTATE   seen = map value → index (empty)\nLOOP    for i in 0..n-1, x = a[i]\nCHECK     need = target - x\n          if need in seen: return [seen[need], i]\nUPDATE    seen[x] = i                  ← after the check\nRETURN  []                             (unreachable: an answer is guaranteed)\n```"
+    },
+    {
+     "id": "solution",
+     "title": "Reference C++",
+     "note": "screenshot",
+     "body": "```cpp\nclass Solution {\npublic:\n    vector<int> twoSum(vector<int>& a, int target) {\n        unordered_map<int, int> seen;            // value -> index\n        for (int i = 0; i < (int)a.size(); i++) {\n            int need = target - a[i];\n            auto it = seen.find(need);\n            if (it != seen.end()) return {it->second, i};\n            seen[a[i]] = i;\n        }\n        return {};\n    }\n};\n```"
+    },
+    {
+     "id": "dry_run",
+     "title": "Dry run",
+     "note": "screenshot",
+     "body": "Input [3, 2, 4], target 6:\n| i | x | need | in seen? | seen after |\n|---|---|---|---|---|\n| start | | | | {} |\n| 0 | 3 | 3 | no (3 is not inserted yet) | {3:0} |\n| 1 | 2 | 4 | no | {3:0, 2:1} |\n| 2 | 4 | 2 | yes → return [1, 2] | |\nIf we had inserted before checking, i = 0 would have found 3 and returned [0, 0]."
+    },
+    {
+     "id": "edges",
+     "title": "Edge cases and complexity",
+     "note": "mixed",
+     "body": "✍️ O(n) average time, O(n) space. Brute force is the classic O(n²) time / O(1) space trade-off.\n✍️ Duplicates [3, 3]: at i = 1, need 3 is already in the map from i = 0 → [0, 1]. Correct because we check before inserting.\n- Overflow check: values and target are within ±10⁹, so `target − a[i]` is within ±2·10⁹ — just inside int's limit of ≈ 2.147·10⁹. Fine here, but in variants with larger values use `long long need` ([[cpp-integer-overflow#ranges]])."
+    },
+    {
+     "id": "carry",
+     "title": "Carry forward",
+     "note": "write",
+     "body": "✍️ Pair search on **unsorted** data → store what you have seen, look up what you need.\n✍️ Always **check, then insert** when an element must not pair with itself.\n✍️ The map's value is whatever the question asks for: index here, count when counting pairs, last index when distance matters."
+    },
+    {
+     "id": "followups",
+     "title": "Interview follow-ups",
+     "note": "screenshot",
+     "body": "- *The array is sorted; O(1) space?* Two pointers from both ends (tomorrow, [[tp-opposite-ends]]).\n- *Return all pairs / count pairs.* Store counts; add count[need] at each step.\n- *Three numbers summing to target?* Sort + fix one + two pointers (tomorrow's 3Sum).\n- *What if the input does not fit in memory?* Sort externally and two-pointer, or hash-partition the data into chunks by value."
+    }
+   ],
+   "siblings": [
+    {
+     "id": "contains-duplicate",
+     "title": "Contains Duplicate",
+     "tier": "must",
+     "lc": {
+      "id": "217",
+      "slug": "contains-duplicate",
+      "url": "https://leetcode.com/problems/contains-duplicate/",
+      "difficulty": "Easy"
+     },
+     "maps": "The complement of x is x itself — so a set (no index needed) answers \"seen before?\".",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Return true if any value appears at least twice.\n✍️ Brute: all pairs O(n²). Sort and compare neighbours: O(n log n), O(1) extra."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ The question at each element is \"have I seen this exact value?\" → hash set. Check, then insert. O(n) time, O(n) space."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ Walk the array; if the value is already in the set, return true; otherwise insert it. Return false at the end."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\nseen = empty set\nfor x in a:\n    if x in seen: return true\n    seen.insert(x)\nreturn false\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    bool containsDuplicate(vector<int>& a) {\n        unordered_set<int> seen;\n        for (int x : a) {\n            if (seen.count(x)) return true;\n            seen.insert(x);\n        }\n        return false;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ Set = map without values; use it when you only need membership ([[cpp-unordered-map-set#api]]).\n- Trade-off talk: sorting gives O(1) extra space at O(n log n) time."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    bool containsDuplicate(vector<int>& a) {\n        unordered_set<int> seen;\n        for (int x : a) {\n            if (seen.count(x)) return true;\n            seen.insert(x);\n        }\n        return false;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {1, 2, 3, 1};\nCHECK(s.containsDuplicate(a) == true);\nvector<int> b = {1, 2, 3, 4};\nCHECK(s.containsDuplicate(b) == false);\n"
+     }
+    },
+    {
+     "id": "number-of-good-pairs",
+     "title": "Number of Good Pairs",
+     "tier": "optional",
+     "lc": {
+      "id": "1512",
+      "slug": "number-of-good-pairs",
+      "url": "https://leetcode.com/problems/number-of-good-pairs/",
+      "difficulty": "Easy"
+     },
+     "maps": "Count pairs instead of finding one: the map stores counts and every earlier equal value forms a pair.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Count pairs i < j with a[i] == a[j]."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Brute O(n²). Complement = x itself; when x arrives, it pairs with every earlier x → add cnt[x], then cnt[x]++."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ For each x: answer += count of x seen so far; then increment the count."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\ncnt = map; ans = 0\nfor x in a: ans += cnt[x]; cnt[x] += 1\nreturn ans\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    int numIdenticalPairs(vector<int>& a) {\n        unordered_map<int, int> cnt;\n        int ans = 0;\n        for (int x : a) ans += cnt[x]++;    // add pairs with earlier copies, then count this one\n        return ans;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ Counting pairs → map value is a **count**; still query before recording ([[hash-complement-lookup#variations]])."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    int numIdenticalPairs(vector<int>& a) {\n        unordered_map<int, int> cnt;\n        int ans = 0;\n        for (int x : a) ans += cnt[x]++;    // add pairs with earlier copies, then count this one\n        return ans;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {1, 2, 3, 1, 1, 3};\nCHECK(s.numIdenticalPairs(a) == 4);\nvector<int> b = {1, 1, 1, 1};\nCHECK(s.numIdenticalPairs(b) == 6);\nvector<int> c = {1, 2, 3};\nCHECK(s.numIdenticalPairs(c) == 0);\n"
+     }
+    },
+    {
+     "id": "contains-duplicate-ii",
+     "title": "Contains Duplicate II",
+     "tier": "optional",
+     "lc": {
+      "id": "219",
+      "slug": "contains-duplicate-ii",
+      "url": "https://leetcode.com/problems/contains-duplicate-ii/",
+      "difficulty": "Easy"
+     },
+     "maps": "Store the last index of each value; a duplicate counts only if it is within distance k.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ True if some value appears at indices i ≠ j with |i − j| ≤ k."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ For each x, the best earlier partner is its **most recent** occurrence (closest). Map value → last index. O(n). (Window alternative: a set of the last k elements.)"
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ For each i: if x was seen and i − last[x] ≤ k → true. Update last[x] = i."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\nlast = map\nfor i, x in a:\n    if x in last and i - last[x] <= k: return true\n    last[x] = i\nreturn false\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    bool containsNearbyDuplicate(vector<int>& a, int k) {\n        unordered_map<int, int> last;\n        for (int i = 0; i < (int)a.size(); i++) {\n            auto it = last.find(a[i]);\n            if (it != last.end() && i - it->second <= k) return true;\n            last[a[i]] = i;\n        }\n        return false;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ The map value is chosen by what the check needs: here the **latest** index."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    bool containsNearbyDuplicate(vector<int>& a, int k) {\n        unordered_map<int, int> last;\n        for (int i = 0; i < (int)a.size(); i++) {\n            auto it = last.find(a[i]);\n            if (it != last.end() && i - it->second <= k) return true;\n            last[a[i]] = i;\n        }\n        return false;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {1, 2, 3, 1};\nCHECK(s.containsNearbyDuplicate(a, 3) == true);\nvector<int> b = {1, 0, 1, 1};\nCHECK(s.containsNearbyDuplicate(b, 1) == true);\nvector<int> c = {1, 2, 3, 1, 2, 3};\nCHECK(s.containsNearbyDuplicate(c, 2) == false);\n"
+     }
+    }
+   ],
+   "verify": {
+    "solution": "class Solution {\npublic:\n    vector<int> twoSum(vector<int>& a, int target) {\n        unordered_map<int, int> seen;            // value -> index\n        for (int i = 0; i < (int)a.size(); i++) {\n            int need = target - a[i];\n            auto it = seen.find(need);\n            if (it != seen.end()) return {it->second, i};\n            seen[a[i]] = i;\n        }\n        return {};\n    }\n};\n",
+    "tests": "Solution s;\nvector<int> a = {2, 7, 11, 15};\nCHECK((s.twoSum(a, 9) == vector<int>{0, 1}));\nvector<int> b = {3, 2, 4};\nCHECK((s.twoSum(b, 6) == vector<int>{1, 2}));\nvector<int> c = {3, 3};\nCHECK((s.twoSum(c, 6) == vector<int>{0, 1}));\nvector<int> d = {-1, -2, -3, -4, -5};\nCHECK((s.twoSum(d, -8) == vector<int>{2, 4}));\n"
+   }
+  },
+  {
+   "id": "valid-anagram",
+   "theory_refs": [
+    {
+     "stage": "brainstorm",
+     "at": "Sort-and-compare vs counting",
+     "page": "hash-frequency-counting",
+     "section": "think",
+     "why": "Why counting removes the sort."
+    },
+    {
+     "stage": "pseudocode",
+     "at": "One table: ++ for s, −− for t",
+     "page": "hash-frequency-counting",
+     "section": "template",
+     "why": "The cancel-out trick."
+    },
+    {
+     "stage": "solution",
+     "at": "`int cnt[26]` instead of a map",
+     "page": "cpp-container-choice",
+     "section": "anagram-example",
+     "why": "Why an array is the right container for lowercase letters."
+    },
+    {
+     "stage": "edges",
+     "at": "Length check first",
+     "page": "hash-frequency-counting",
+     "section": "pitfalls",
+     "why": "Different lengths can never be anagrams."
+    }
+   ],
+   "stuck_refs": {
+    "10": {
+     "page": "cpp-string",
+     "section": "basics"
+    },
+    "20": {
+     "page": "hash-frequency-counting",
+     "section": "idea"
+    },
+    "30": {
+     "page": "hash-frequency-counting",
+     "section": "template"
+    }
+   },
+   "stages": [
+    {
+     "id": "understand",
+     "title": "Understand",
+     "note": "mixed",
+     "body": "✍️ f(s, t) → true if t is a rearrangement of s (same letters, same counts).\n- Lowercase English letters, length ≤ 5·10⁴.\n- \"anagram\", \"nagaram\" → true; \"rat\", \"car\" → false."
+    },
+    {
+     "id": "analyse",
+     "title": "Analyse",
+     "note": "write",
+     "body": "✍️ Order does not matter; only how many of each letter. That is a frequency question.\n✍️ Hard part: none conceptually — the decision is which container to use.\n✍️ Edges: different lengths → false immediately; one character."
+    },
+    {
+     "id": "brainstorm",
+     "title": "Brainstorm: brute → optimal",
+     "note": "write",
+     "body": "✍️ **1. Brute.** For each character of s, find and remove one copy from t. O(n²).\n✍️ ↳ Bottleneck: searching t for each character.\n✍️ **2. Better.** Sort both strings and compare. O(n log n).\n✍️ ↳ Bottleneck: sorting establishes a full order, but we only need equal counts.\n✍️ **3. Optimal.** Count letters: +1 for s, −1 for t; all 26 must end at 0. O(n) time, O(1) space (26 is a constant)."
+    },
+    {
+     "id": "algorithm",
+     "title": "Algorithm in words",
+     "note": "write",
+     "body": "✍️ 1. If the lengths differ, return false.\n✍️ 2. Make an array of 26 zeros.\n✍️ 3. For each position, add 1 for s's letter and subtract 1 for t's letter.\n✍️ 4. Return true iff every entry is 0."
+    },
+    {
+     "id": "pseudocode",
+     "title": "Pseudocode",
+     "note": "write",
+     "body": "```\nSTATE   if len(s) != len(t): return false\n        cnt[26] = 0\nLOOP    for i in 0..n-1\nUPDATE    cnt[s[i]-'a']++ ; cnt[t[i]-'a']--\nCHECK   for k in 0..25: if cnt[k] != 0: return false\nRETURN  true\n```"
+    },
+    {
+     "id": "solution",
+     "title": "Reference C++",
+     "note": "screenshot",
+     "body": "```cpp\nclass Solution {\npublic:\n    bool isAnagram(string s, string t) {\n        if (s.size() != t.size()) return false;\n        int cnt[26] = {0};\n        for (int i = 0; i < (int)s.size(); i++) {\n            cnt[s[i] - 'a']++;\n            cnt[t[i] - 'a']--;\n        }\n        for (int k = 0; k < 26; k++) if (cnt[k] != 0) return false;\n        return true;\n    }\n};\n```"
+    },
+    {
+     "id": "dry_run",
+     "title": "Dry run",
+     "note": "screenshot",
+     "body": "s = \"rat\", t = \"car\":\n| i | s[i] | t[i] | changed counts |\n|---|---|---|---|\n| 0 | r | c | r:+1, c:−1 |\n| 1 | a | a | a: 0 |\n| 2 | t | r | t:+1, r:0 |\nFinal non-zeros: c = −1, t = +1 → false."
+    },
+    {
+     "id": "edges",
+     "title": "Edge cases and complexity",
+     "note": "mixed",
+     "body": "✍️ O(n) time, O(1) space (fixed 26 counters).\n- Unicode follow-up: the alphabet is no longer small → `unordered_map<char32_t,int>` or a map over code points."
+    },
+    {
+     "id": "carry",
+     "title": "Carry forward",
+     "note": "write",
+     "body": "✍️ \"Same multiset of items\" → count, don't sort.\n✍️ Two inputs to compare → one table with + and −; check all zero.\n✍️ Letters only → `int cnt[26]` with `c − 'a'`."
+    },
+    {
+     "id": "followups",
+     "title": "Interview follow-ups",
+     "note": "screenshot",
+     "body": "- *What if inputs contain Unicode?* Hash map keyed by character.\n- *Group many words into anagram groups.* The sorted word (or count signature) becomes a key ([[hash-derived-keys]]).\n- *Find all anagrams of p inside s.* Fixed window of counts (Day 8, [[str-anagram-window]])."
+    }
+   ],
+   "siblings": [
+    {
+     "id": "group-anagrams",
+     "title": "Group Anagrams",
+     "tier": "must",
+     "lc": {
+      "id": "49",
+      "slug": "group-anagrams",
+      "url": "https://leetcode.com/problems/group-anagrams/",
+      "difficulty": "Medium"
+     },
+     "maps": "Instead of comparing two words, compute each word's canonical key and group words with equal keys.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Group the words that are anagrams of each other; any order.\n✍️ Brute: compare every pair with Valid Anagram → O(n² · L)."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Bottleneck: pairwise comparison. Fix: two words are anagrams iff their sorted forms are equal → use the sorted form as a hash-map key → O(n · L log L).\n✍️ (Count signature key gives O(n · L).)"
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ For each word, sort a copy to get its key; append the word to groups[key]. Output all groups."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\ngroups = map key → list\nfor w in words: key = sorted(w); groups[key].append(w)\nreturn all lists in groups\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    vector<vector<string>> groupAnagrams(vector<string>& words) {\n        unordered_map<string, vector<string>> groups;\n        for (auto& w : words) {\n            string key = w;\n            sort(key.begin(), key.end());\n            groups[key].push_back(w);\n        }\n        vector<vector<string>> out;\n        for (auto& [k, g] : groups) out.push_back(g);\n        return out;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ \"Group items that are equivalent\" → canonical key + map of lists ([[hash-derived-keys#idea]]).\n✍️ Key choice trade-off: sorted string vs count signature ([[hash-derived-keys#key-choice]])."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    vector<vector<string>> groupAnagrams(vector<string>& words) {\n        unordered_map<string, vector<string>> groups;\n        for (auto& w : words) {\n            string key = w;\n            sort(key.begin(), key.end());\n            groups[key].push_back(w);\n        }\n        vector<vector<string>> out;\n        for (auto& [k, g] : groups) out.push_back(g);\n        return out;\n    }\n};\n",
+      "tests": "Solution s;\nvector<string> w = {\"eat\", \"tea\", \"tan\", \"ate\", \"nat\", \"bat\"};\nauto g = s.groupAnagrams(w);\nfor (auto& x : g) sort(x.begin(), x.end());\nsort(g.begin(), g.end());\nCHECK((g == vector<vector<string>>{{\"ate\", \"eat\", \"tea\"}, {\"bat\"}, {\"nat\", \"tan\"}}));\nvector<string> e = {\"\"};\nCHECK(s.groupAnagrams(e).size() == 1);\n"
+     }
+    },
+    {
+     "id": "ransom-note",
+     "title": "Ransom Note",
+     "tier": "optional",
+     "lc": {
+      "id": "383",
+      "slug": "ransom-note",
+      "url": "https://leetcode.com/problems/ransom-note/",
+      "difficulty": "Easy"
+     },
+     "maps": "Count the magazine's letters, then spend them on the note — a count may never go negative.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Can the note be built using each magazine letter at most once?"
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Count magazine letters; for each note letter decrement; if any count drops below 0 → false. O(n + m)."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ Count the supply, consume the demand, fail on a shortage."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\ncnt[26] from magazine\nfor c in note: cnt[c]--; if cnt[c] < 0: return false\nreturn true\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    bool canConstruct(string note, string mag) {\n        int cnt[26] = {0};\n        for (char c : mag) cnt[c - 'a']++;\n        for (char c : note) if (--cnt[c - 'a'] < 0) return false;\n        return true;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ Supply/demand counting: the same ++/−− table, with an early exit on a shortage ([[hash-frequency-counting#variations]])."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    bool canConstruct(string note, string mag) {\n        int cnt[26] = {0};\n        for (char c : mag) cnt[c - 'a']++;\n        for (char c : note) if (--cnt[c - 'a'] < 0) return false;\n        return true;\n    }\n};\n",
+      "tests": "Solution s;\nCHECK(s.canConstruct(\"a\", \"b\") == false);\nCHECK(s.canConstruct(\"aa\", \"ab\") == false);\nCHECK(s.canConstruct(\"aa\", \"aab\") == true);\n"
+     }
+    },
+    {
+     "id": "first-unique-character-in-a-string",
+     "title": "First Unique Character in a String",
+     "tier": "optional",
+     "lc": {
+      "id": "387",
+      "slug": "first-unique-character-in-a-string",
+      "url": "https://leetcode.com/problems/first-unique-character-in-a-string/",
+      "difficulty": "Easy"
+     },
+     "maps": "Count in pass 1; pass 2 restores the original order and returns the first count of 1.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Index of the first character that appears exactly once, or −1."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ For each character scan the whole string → O(n²). Two passes with counts → O(n)."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ Count all letters; walk the string again and return the first index whose letter count is 1."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\ncnt[26] from s\nfor i in 0..n-1: if cnt[s[i]] == 1: return i\nreturn -1\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    int firstUniqChar(string s) {\n        int cnt[26] = {0};\n        for (char c : s) cnt[c - 'a']++;\n        for (int i = 0; i < (int)s.size(); i++) if (cnt[s[i] - 'a'] == 1) return i;\n        return -1;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ Counting loses order; a second pass over the input gets it back."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    int firstUniqChar(string s) {\n        int cnt[26] = {0};\n        for (char c : s) cnt[c - 'a']++;\n        for (int i = 0; i < (int)s.size(); i++) if (cnt[s[i] - 'a'] == 1) return i;\n        return -1;\n    }\n};\n",
+      "tests": "Solution s;\nCHECK(s.firstUniqChar(\"leetcode\") == 0);\nCHECK(s.firstUniqChar(\"loveleetcode\") == 2);\nCHECK(s.firstUniqChar(\"aabb\") == -1);\n"
+     }
+    }
+   ],
+   "verify": {
+    "solution": "class Solution {\npublic:\n    bool isAnagram(string s, string t) {\n        if (s.size() != t.size()) return false;\n        int cnt[26] = {0};\n        for (int i = 0; i < (int)s.size(); i++) {\n            cnt[s[i] - 'a']++;\n            cnt[t[i] - 'a']--;\n        }\n        for (int k = 0; k < 26; k++) if (cnt[k] != 0) return false;\n        return true;\n    }\n};\n",
+    "tests": "Solution s;\nCHECK(s.isAnagram(\"anagram\", \"nagaram\") == true);\nCHECK(s.isAnagram(\"rat\", \"car\") == false);\nCHECK(s.isAnagram(\"a\", \"ab\") == false);\nCHECK(s.isAnagram(\"aacc\", \"ccac\") == false);\n"
+   }
+  },
+  {
+   "id": "majority-element",
+   "theory_refs": [
+    {
+     "stage": "brainstorm",
+     "at": "Map → sort → voting",
+     "page": "hash-boyer-moore-voting",
+     "section": "think",
+     "why": "The three levels and what each costs."
+    },
+    {
+     "stage": "brainstorm",
+     "at": "O(1) space is the hint",
+     "page": "hash-boyer-moore-voting",
+     "section": "recognise",
+     "why": "A banned data structure names the technique."
+    },
+    {
+     "stage": "pseudocode",
+     "at": "Adopt before comparing",
+     "page": "hash-boyer-moore-voting",
+     "section": "pitfalls",
+     "why": "The order of the two lines in the loop."
+    },
+    {
+     "stage": "edges",
+     "at": "Why the survivor is the majority",
+     "page": "hash-boyer-moore-voting",
+     "section": "why-it-works",
+     "why": "The cancellation argument for interviews."
+    }
+   ],
+   "stuck_refs": {
+    "10": {
+     "page": "hash-frequency-counting",
+     "section": "template"
+    },
+    "20": {
+     "page": "hash-boyer-moore-voting",
+     "section": "idea"
+    },
+    "30": {
+     "page": "hash-boyer-moore-voting",
+     "section": "template"
+    },
+    "40": {
+     "page": "hash-boyer-moore-voting",
+     "section": "why-it-works"
+    }
+   },
+   "stages": [
+    {
+     "id": "understand",
+     "title": "Understand",
+     "note": "mixed",
+     "body": "✍️ f(array) → the value that appears more than ⌊n/2⌋ times (guaranteed to exist).\n- n ≤ 5·10⁴. Follow-up: O(n) time and O(1) space."
+    },
+    {
+     "id": "analyse",
+     "title": "Analyse",
+     "note": "write",
+     "body": "✍️ First solve it with what you know today (a frequency map). Then the follow-up removes the map — that is the TWIST.\n✍️ By hand on [2,2,1,1,1,2,2]: imagine pairing each 1 with a 2 and throwing both away. 2s are left over. The majority always survives this.\n✍️ Edges: n = 1; majority at the very end."
+    },
+    {
+     "id": "brainstorm",
+     "title": "Brainstorm: brute → optimal",
+     "note": "write",
+     "body": "✍️ **1. Brute.** For each value count it with a scan. O(n²).\n✍️ **2. Better (frequency map).** Count all, return the one with count > n/2. O(n) time, O(n) space.\n✍️ **3. Better (sort).** The majority must cover the middle index → return a[n/2]. O(n log n), O(1).\n✍️ ↳ Bottleneck for O(1) space: storing a count for **every** value, when only one value matters.\n✍️ ↳ Unlock: \"a forbidden data structure is a hint\" — no map means a counting/cancelling argument.\n✍️ **4. Optimal (Boyer–Moore).** One candidate + one counter; equal → +1, different → −1, counter 0 → adopt the new value. O(n), O(1)."
+    },
+    {
+     "id": "algorithm",
+     "title": "Algorithm in words",
+     "note": "write",
+     "body": "✍️ 1. Start with no candidate and count 0.\n✍️ 2. For each value: if the count is 0, make this value the candidate.\n✍️ 3. If the value equals the candidate, increase the count; otherwise decrease it.\n✍️ 4. The candidate at the end is the majority."
+    },
+    {
+     "id": "pseudocode",
+     "title": "Pseudocode",
+     "note": "write",
+     "body": "```\nSTATE   cand = none; cnt = 0\nLOOP    for x in a\nUPDATE    if cnt == 0: cand = x          (adopt FIRST)\n          cnt += (x == cand) ? +1 : -1\nRETURN  cand\n```"
+    },
+    {
+     "id": "solution",
+     "title": "Reference C++",
+     "note": "screenshot",
+     "body": "```cpp\nclass Solution {\npublic:\n    int majorityElement(vector<int>& a) {\n        int cand = 0, cnt = 0;\n        for (int x : a) {\n            if (cnt == 0) cand = x;\n            cnt += (x == cand) ? 1 : -1;\n        }\n        return cand;\n    }\n};\n```"
+    },
+    {
+     "id": "dry_run",
+     "title": "Dry run",
+     "note": "screenshot",
+     "body": "[2, 2, 1, 1, 1, 2, 2]:\n| x | cand (after) | cnt (after) |\n|---|---|---|\n| 2 | 2 | 1 |\n| 2 | 2 | 2 |\n| 1 | 2 | 1 |\n| 1 | 2 | 0 |\n| 1 | 1 | 1 |\n| 2 | 1 | 0 |\n| 2 | 2 | 1 |\nAnswer 2."
+    },
+    {
+     "id": "edges",
+     "title": "Edge cases and complexity",
+     "note": "mixed",
+     "body": "✍️ O(n) time, O(1) space.\n✍️ The result is guaranteed only because a majority is guaranteed. Without the guarantee, verify with a second counting pass."
+    },
+    {
+     "id": "carry",
+     "title": "Carry forward",
+     "note": "write",
+     "body": "✍️ Always solve it the \"known\" way first (frequency map), then remove the expensive part.\n✍️ \"O(1) extra space\" on a counting problem → think cancellation (Boyer–Moore), XOR, or arithmetic — never a smarter map.\n✍️ Majority > n/k → at most k−1 candidates."
+    },
+    {
+     "id": "followups",
+     "title": "Interview follow-ups",
+     "note": "screenshot",
+     "body": "- *Elements appearing more than n/3 times* (LeetCode 229): two candidates, two counters, verify at the end.\n- *No majority guaranteed?* Second pass to count the candidate.\n- *Why does sorting work?* A value covering more than half the positions must cover index n/2."
+    }
+   ],
+   "siblings": [
+    {
+     "id": "majority-element-ii",
+     "title": "Majority Element II",
+     "tier": "must",
+     "lc": {
+      "id": "229",
+      "slug": "majority-element-ii",
+      "url": "https://leetcode.com/problems/majority-element-ii/",
+      "difficulty": "Medium"
+     },
+     "maps": "More than n/3 → at most two survivors; keep two candidates and two counters, then verify.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Return all values appearing more than ⌊n/3⌋ times; O(1) space follow-up.\n✍️ At most two such values can exist (three would need more than n elements)."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Map → O(n) space. Voting with two candidates: a value different from **both** cancels one copy of each. Survivors are only candidates → count them again to verify."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ 1. Pass 1: if x matches a candidate, increment its count; else if a count is 0, adopt x there; else decrement both. 2. Pass 2: count both candidates; keep those > n/3."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\nc1, c2 = none; n1 = n2 = 0\nfor x in a:\n    if x == c1: n1++\n    elif x == c2: n2++\n    elif n1 == 0: c1 = x; n1 = 1\n    elif n2 == 0: c2 = x; n2 = 1\n    else: n1--; n2--\nverify counts of c1, c2 > n/3\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    vector<int> majorityElement(vector<int>& a) {\n        int c1 = 0, c2 = 1, n1 = 0, n2 = 0;          // different initial candidates\n        for (int x : a) {\n            if (x == c1) n1++;\n            else if (x == c2) n2++;\n            else if (n1 == 0) { c1 = x; n1 = 1; }\n            else if (n2 == 0) { c2 = x; n2 = 1; }\n            else { n1--; n2--; }\n        }\n        n1 = n2 = 0;\n        for (int x : a) { if (x == c1) n1++; else if (x == c2) n2++; }\n        vector<int> out;\n        int n = a.size();\n        if (n1 > n / 3) out.push_back(c1);\n        if (n2 > n / 3) out.push_back(c2);\n        return out;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ Check \"matches a candidate\" **before** \"a count is 0\", or the same value can occupy both slots ([[hash-boyer-moore-voting#variations]])."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    vector<int> majorityElement(vector<int>& a) {\n        int c1 = 0, c2 = 1, n1 = 0, n2 = 0;          // different initial candidates\n        for (int x : a) {\n            if (x == c1) n1++;\n            else if (x == c2) n2++;\n            else if (n1 == 0) { c1 = x; n1 = 1; }\n            else if (n2 == 0) { c2 = x; n2 = 1; }\n            else { n1--; n2--; }\n        }\n        n1 = n2 = 0;\n        for (int x : a) { if (x == c1) n1++; else if (x == c2) n2++; }\n        vector<int> out;\n        int n = a.size();\n        if (n1 > n / 3) out.push_back(c1);\n        if (n2 > n / 3) out.push_back(c2);\n        return out;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {3, 2, 3};\nCHECK((s.majorityElement(a) == vector<int>{3}));\nvector<int> b = {1};\nCHECK((s.majorityElement(b) == vector<int>{1}));\nvector<int> c = {1, 2};\nauto r = s.majorityElement(c); sort(r.begin(), r.end());\nCHECK((r == vector<int>{1, 2}));\nvector<int> d = {2, 2, 1, 3, 1, 1};\nCHECK((s.majorityElement(d) == vector<int>{1}));\n"
+     }
+    },
+    {
+     "id": "find-all-numbers-disappeared-in-an-array",
+     "title": "Find All Numbers Disappeared in an Array",
+     "tier": "optional",
+     "lc": {
+      "id": "448",
+      "slug": "find-all-numbers-disappeared-in-an-array",
+      "url": "https://leetcode.com/problems/find-all-numbers-disappeared-in-an-array/",
+      "difficulty": "Easy"
+     },
+     "maps": "Values are 1..n, so the array itself can be the \"seen\" table — mark index v−1 negative.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Array of n values in [1, n]; return the values in [1, n] that never appear. Follow-up: no extra space."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Set of seen values → O(n) space. In place: for each value v, make a[|v|−1] negative. Indices still positive at the end were never marked."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ Mark; then collect i+1 for every positive a[i]."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\nfor x in a: i = |x| - 1; a[i] = -|a[i]|\nfor i in 0..n-1: if a[i] > 0: output i+1\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    vector<int> findDisappearedNumbers(vector<int>& a) {\n        for (int x : a) { int i = abs(x) - 1; a[i] = -abs(a[i]); }\n        vector<int> out;\n        for (int i = 0; i < (int)a.size(); i++) if (a[i] > 0) out.push_back(i + 1);\n        return out;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ Values in 1..n → index-as-key marking ([[arr-in-place-tricks#index-as-key]]). Use `abs` because earlier marks made some values negative."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    vector<int> findDisappearedNumbers(vector<int>& a) {\n        for (int x : a) { int i = abs(x) - 1; a[i] = -abs(a[i]); }\n        vector<int> out;\n        for (int i = 0; i < (int)a.size(); i++) if (a[i] > 0) out.push_back(i + 1);\n        return out;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {4, 3, 2, 7, 8, 2, 3, 1};\nCHECK((s.findDisappearedNumbers(a) == vector<int>{5, 6}));\nvector<int> b = {1, 1};\nCHECK((s.findDisappearedNumbers(b) == vector<int>{2}));\n"
+     }
+    },
+    {
+     "id": "sort-array-by-increasing-frequency",
+     "title": "Sort Array by Increasing Frequency",
+     "tier": "optional",
+     "lc": {
+      "id": "1636",
+      "slug": "sort-array-by-increasing-frequency",
+      "url": "https://leetcode.com/problems/sort-array-by-increasing-frequency/",
+      "difficulty": "Easy"
+     },
+     "maps": "Count frequencies, then sort with a comparator that reads the counts.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Sort by frequency ascending; ties by value descending."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Frequency map, then `sort` with a two-key comparator. O(n log n)."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ Count; sort with (freq ascending, value descending)."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\ncnt = frequency map\nsort a by (cnt[x] asc, x desc)\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    vector<int> frequencySort(vector<int>& a) {\n        unordered_map<int, int> cnt;\n        for (int x : a) cnt[x]++;\n        sort(a.begin(), a.end(), [&](int x, int y) {\n            if (cnt[x] != cnt[y]) return cnt[x] < cnt[y];\n            return x > y;\n        });\n        return a;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ Two-key comparators: compare the first key, fall back to the second; never use `<=` ([[cpp-sort-and-comparators#strict]])."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    vector<int> frequencySort(vector<int>& a) {\n        unordered_map<int, int> cnt;\n        for (int x : a) cnt[x]++;\n        sort(a.begin(), a.end(), [&](int x, int y) {\n            if (cnt[x] != cnt[y]) return cnt[x] < cnt[y];\n            return x > y;\n        });\n        return a;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {1, 1, 2, 2, 2, 3};\nCHECK((s.frequencySort(a) == vector<int>{3, 1, 1, 2, 2, 2}));\nvector<int> b = {2, 3, 1, 3, 2};\nCHECK((s.frequencySort(b) == vector<int>{1, 3, 3, 2, 2}));\n"
+     }
+    }
+   ],
+   "verify": {
+    "solution": "class Solution {\npublic:\n    int majorityElement(vector<int>& a) {\n        int cand = 0, cnt = 0;\n        for (int x : a) {\n            if (cnt == 0) cand = x;\n            cnt += (x == cand) ? 1 : -1;\n        }\n        return cand;\n    }\n};\n",
+    "tests": "Solution s;\nvector<int> a = {3, 2, 3};\nCHECK(s.majorityElement(a) == 3);\nvector<int> b = {2, 2, 1, 1, 1, 2, 2};\nCHECK(s.majorityElement(b) == 2);\nvector<int> c = {7};\nCHECK(s.majorityElement(c) == 7);\nvector<int> d = {1, 3, 3, 1, 3};\nCHECK(s.majorityElement(d) == 3);\n"
+   }
+  },
+  {
+   "id": "longest-consecutive-sequence",
+   "theory_refs": [
+    {
+     "stage": "understand",
+     "at": "\"O(n)\" on unsorted input",
+     "page": "hash-set-runs",
+     "section": "recognise",
+     "why": "The constraint that rules out sorting."
+    },
+    {
+     "stage": "brainstorm",
+     "at": "Re-walking each run from every element",
+     "page": "hash-set-runs",
+     "section": "think",
+     "why": "Why the naive set version is O(n²)."
+    },
+    {
+     "stage": "pseudocode",
+     "at": "`if v−1 in set: continue`",
+     "page": "hash-set-runs",
+     "section": "idea",
+     "why": "The start-of-run rule."
+    },
+    {
+     "stage": "solution",
+     "at": "Iterate the set, not the array",
+     "page": "hash-set-runs",
+     "section": "pitfalls",
+     "why": "Duplicates would re-walk runs."
+    },
+    {
+     "stage": "edges",
+     "at": "Why the nested loop is O(n)",
+     "page": "cx-amortised-analysis",
+     "section": "counting-trick",
+     "why": "Charge each value to one walk."
+    }
+   ],
+   "stuck_refs": {
+    "10": {
+     "page": "cx-constraints-to-target",
+     "section": "table"
+    },
+    "20": {
+     "page": "hash-set-runs",
+     "section": "idea"
+    },
+    "30": {
+     "page": "hash-set-runs",
+     "section": "template"
+    },
+    "40": {
+     "page": "hash-set-runs",
+     "section": "pitfalls"
+    }
+   },
+   "stages": [
+    {
+     "id": "understand",
+     "title": "Understand",
+     "note": "mixed",
+     "body": "✍️ f(unsorted array) → length of the longest set of values that form consecutive integers v, v+1, …, v+L−1 (positions do not matter).\n- n ≤ 10⁵, must be O(n).\n- [100, 4, 200, 1, 3, 2] → 4 (1, 2, 3, 4)."
+    },
+    {
+     "id": "analyse",
+     "title": "Analyse",
+     "note": "write",
+     "body": "✍️ This is a DISGUISE: nothing says \"hash set\", but the O(n) requirement on unsorted data does.\n✍️ By hand: I look at 4 and ask \"is 5 there? is 3 there?\". If I always start counting from the smallest number of a run, I count each run once.\n✍️ Hard part: avoiding counting the same run many times.\n✍️ Edges: empty array → 0; duplicates [1, 2, 0, 1] → 3; negatives."
+    },
+    {
+     "id": "brainstorm",
+     "title": "Brainstorm: brute → optimal",
+     "note": "write",
+     "body": "✍️ **1. Brute.** For each value v, check v+1, v+2, … by scanning the array each time. O(n³) worst.\n✍️ **2. Better.** Sort, then scan counting runs and skipping duplicates. O(n log n) — fails the O(n) requirement.\n✍️ **3. Better.** Put values in a set; for each value walk upward with O(1) lookups. O(n²) on input like 1..n (each run walked from every element).\n✍️ ↳ Bottleneck: a run of length L is walked L times.\n✍️ ↳ Unlock: every run has exactly one start — the value whose predecessor is missing. Walk only from starts.\n✍️ **4. Optimal.** Set + start-of-run. Each value is part of exactly one walk → O(n)."
+    },
+    {
+     "id": "algorithm",
+     "title": "Algorithm in words",
+     "note": "write",
+     "body": "✍️ 1. Insert all values into a hash set.\n✍️ 2. For each value v in the set: if v − 1 is also in the set, skip it (not a start).\n✍️ 3. Otherwise walk v+1, v+2, … while present, counting the length.\n✍️ 4. Keep the maximum length."
+    },
+    {
+     "id": "pseudocode",
+     "title": "Pseudocode",
+     "note": "write",
+     "body": "```\nSTATE   s = set(a); best = 0\nLOOP    for v in s                       (the set, so duplicates are gone)\nCHECK     if (v - 1) in s: continue      (not the start of a run)\nUPDATE    len = 1\n          while (v + len) in s: len++\n          best = max(best, len)\nRETURN  best\n```"
+    },
+    {
+     "id": "solution",
+     "title": "Reference C++",
+     "note": "screenshot",
+     "body": "```cpp\nclass Solution {\npublic:\n    int longestConsecutive(vector<int>& a) {\n        unordered_set<int> s(a.begin(), a.end());\n        int best = 0;\n        for (int v : s) {\n            if (s.count(v - 1)) continue;\n            int len = 1;\n            while (s.count(v + len)) len++;\n            best = max(best, len);\n        }\n        return best;\n    }\n};\n```"
+    },
+    {
+     "id": "dry_run",
+     "title": "Dry run",
+     "note": "screenshot",
+     "body": "s = {100, 4, 200, 1, 3, 2}:\n| v | v−1 present? | walk | best |\n|---|---|---|---|\n| 100 | no (99) | 100 → len 1 | 1 |\n| 4 | yes (3) | skip | 1 |\n| 200 | no | len 1 | 1 |\n| 1 | no (0) | 1,2,3,4 → len 4 | 4 |\n| 3 | yes | skip | 4 |\n| 2 | yes | skip | 4 |"
+    },
+    {
+     "id": "edges",
+     "title": "Edge cases and complexity",
+     "note": "mixed",
+     "body": "✍️ O(n) average time: n inserts; each value is checked once as a possible start and visited at most once by a walk. O(n) space.\n✍️ Empty input → the loop never runs → 0.\n- `v + len` with v near INT_MAX could overflow in theory; LeetCode's range is ±10⁹, so it is safe."
+    },
+    {
+     "id": "carry",
+     "title": "Carry forward",
+     "note": "write",
+     "body": "✍️ O(n) required + unsorted + \"consecutive / sequence\" → hash set, not sorting.\n✍️ To count each group once, start only from its canonical first member.\n✍️ A loop inside a loop can still be O(n) if each element is charged to one inner walk."
+    },
+    {
+     "id": "followups",
+     "title": "Interview follow-ups",
+     "note": "screenshot",
+     "body": "- *Return the sequence itself.* Remember the start of the best run.\n- *Streaming input?* Union-find or a map of run boundaries (value → length of run ending/starting here), updating neighbours on insert.\n- *Why not sort?* O(n log n) violates the requirement; mention it as the simpler fallback."
+    }
+   ],
+   "siblings": [
+    {
+     "id": "longest-square-streak-in-an-array",
+     "title": "Longest Square Streak in an Array",
+     "tier": "must",
+     "lc": {
+      "id": "2501",
+      "slug": "longest-square-streak-in-an-array",
+      "url": "https://leetcode.com/problems/longest-square-streak-in-an-array/",
+      "difficulty": "Medium"
+     },
+     "maps": "\"Next element\" is v² instead of v+1; same set lookups, walking from each value.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Longest subsequence that, after sorting, has each element equal to the square of the previous; length ≥ 2, else −1."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Put values in a set. From each v, walk v → v² → v⁴ while present. Values ≤ 10⁵ so a chain has at most ~5 steps → O(n · 5). (Start-of-run trick optional here because chains are tiny.)"
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ For each value, follow squares through the set counting the chain; track the max; return −1 if < 2."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\ns = set(a); best = 0\nfor v in s:\n    len = 0; x = v\n    while x in s: len++; x = x*x   (long long, stop if x > 1e5)\n    best = max(best, len)\nreturn best >= 2 ? best : -1\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    int longestSquareStreak(vector<int>& a) {\n        unordered_set<long long> s(a.begin(), a.end());\n        int best = 0;\n        for (long long v : s) {\n            int len = 0;\n            long long x = v;\n            while (x <= 100000 && s.count(x)) { len++; x = x * x; }\n            best = max(best, len);\n        }\n        return best >= 2 ? best : -1;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ The \"successor\" can be any function (v+1, v², 2v); set membership makes each step O(1) ([[hash-set-runs#idea]]).\n✍️ Squaring overflows int fast → `long long` and a bound check ([[cpp-integer-overflow#where]])."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    int longestSquareStreak(vector<int>& a) {\n        unordered_set<long long> s(a.begin(), a.end());\n        int best = 0;\n        for (long long v : s) {\n            int len = 0;\n            long long x = v;\n            while (x <= 100000 && s.count(x)) { len++; x = x * x; }\n            best = max(best, len);\n        }\n        return best >= 2 ? best : -1;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {4, 3, 6, 16, 8, 2};\nCHECK(s.longestSquareStreak(a) == 3);\nvector<int> b = {2, 3, 5, 6, 7};\nCHECK(s.longestSquareStreak(b) == -1);\n"
+     }
+    },
+    {
+     "id": "intersection-of-two-arrays",
+     "title": "Intersection of Two Arrays",
+     "tier": "optional",
+     "lc": {
+      "id": "349",
+      "slug": "intersection-of-two-arrays",
+      "url": "https://leetcode.com/problems/intersection-of-two-arrays/",
+      "difficulty": "Easy"
+     },
+     "maps": "Set membership across two inputs; a second set removes duplicates from the answer.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Distinct values present in both arrays."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Set of the first array; for each value of the second that is in the set, output it once (erase it from the set after use)."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ Build a set from a; scan b; output and erase on a hit."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\ns = set(a); out = []\nfor x in b: if x in s: out.append(x); s.erase(x)\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    vector<int> intersection(vector<int>& a, vector<int>& b) {\n        unordered_set<int> s(a.begin(), a.end());\n        vector<int> out;\n        for (int x : b) if (s.erase(x)) out.push_back(x);   // erase returns 1 if it was there\n        return out;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ `erase(key)` returns how many were removed — a neat \"was it there?\" check."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    vector<int> intersection(vector<int>& a, vector<int>& b) {\n        unordered_set<int> s(a.begin(), a.end());\n        vector<int> out;\n        for (int x : b) if (s.erase(x)) out.push_back(x);   // erase returns 1 if it was there\n        return out;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {1, 2, 2, 1}, b = {2, 2};\nCHECK((s.intersection(a, b) == vector<int>{2}));\nvector<int> c = {4, 9, 5}, d = {9, 4, 9, 8, 4};\nauto r = s.intersection(c, d); sort(r.begin(), r.end());\nCHECK((r == vector<int>{4, 9}));\n"
+     }
+    },
+    {
+     "id": "first-missing-positive",
+     "title": "First Missing Positive",
+     "tier": "optional",
+     "lc": {
+      "id": "41",
+      "slug": "first-missing-positive",
+      "url": "https://leetcode.com/problems/first-missing-positive/",
+      "difficulty": "Hard"
+     },
+     "maps": "A set solves it in O(n) space; the O(1)-space version places each value v at index v−1 (cyclic placement).",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Smallest positive integer not in the array; O(n) time, O(1) extra space.\n✍️ The answer is in 1..n+1, so only values in [1, n] matter."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Set of values, then test 1, 2, 3, … → O(n) time, O(n) space. For O(1): swap each value v ∈ [1, n] into position v−1 until positions are stable; then the first i with a[i] ≠ i+1 gives i+1."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ Cyclic placement, then scan for the first misplaced index."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\nfor i in 0..n-1:\n    while 1 <= a[i] <= n and a[a[i]-1] != a[i]: swap(a[i], a[a[i]-1])\nfor i: if a[i] != i+1: return i+1\nreturn n+1\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    int firstMissingPositive(vector<int>& a) {\n        int n = a.size();\n        for (int i = 0; i < n; i++)\n            while (a[i] >= 1 && a[i] <= n && a[a[i] - 1] != a[i]) swap(a[i], a[a[i] - 1]);\n        for (int i = 0; i < n; i++) if (a[i] != i + 1) return i + 1;\n        return n + 1;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ Each swap puts one value in its final place → O(n) total ([[arr-in-place-tricks#cyclic]]).\n✍️ The guard `a[a[i]−1] != a[i]` stops infinite swapping on duplicates."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    int firstMissingPositive(vector<int>& a) {\n        int n = a.size();\n        for (int i = 0; i < n; i++)\n            while (a[i] >= 1 && a[i] <= n && a[a[i] - 1] != a[i]) swap(a[i], a[a[i] - 1]);\n        for (int i = 0; i < n; i++) if (a[i] != i + 1) return i + 1;\n        return n + 1;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {1, 2, 0};\nCHECK(s.firstMissingPositive(a) == 3);\nvector<int> b = {3, 4, -1, 1};\nCHECK(s.firstMissingPositive(b) == 2);\nvector<int> c = {7, 8, 9, 11, 12};\nCHECK(s.firstMissingPositive(c) == 1);\nvector<int> d = {1, 1};\nCHECK(s.firstMissingPositive(d) == 2);\n"
+     }
+    }
+   ],
+   "verify": {
+    "solution": "class Solution {\npublic:\n    int longestConsecutive(vector<int>& a) {\n        unordered_set<int> s(a.begin(), a.end());\n        int best = 0;\n        for (int v : s) {\n            if (s.count(v - 1)) continue;\n            int len = 1;\n            while (s.count(v + len)) len++;\n            best = max(best, len);\n        }\n        return best;\n    }\n};\n",
+    "tests": "Solution s;\nvector<int> a = {100, 4, 200, 1, 3, 2};\nCHECK(s.longestConsecutive(a) == 4);\nvector<int> b = {0, 3, 7, 2, 5, 8, 4, 6, 0, 1};\nCHECK(s.longestConsecutive(b) == 9);\nvector<int> c = {};\nCHECK(s.longestConsecutive(c) == 0);\nvector<int> d = {1, 2, 0, 1};\nCHECK(s.longestConsecutive(d) == 3);\n"
+   }
+  }
+ ],
+ "drill": [
+  {
+   "id": "check-if-the-sentence-is-pangram",
+   "title": "Check if the Sentence Is Pangram",
+   "lc": {
+    "id": "1832",
+    "slug": "check-if-the-sentence-is-pangram",
+    "url": "https://leetcode.com/problems/check-if-the-sentence-is-pangram/",
+    "difficulty": "Easy"
+   },
+   "statement": "Decide whether a lowercase sentence uses every letter of the alphabet at least once.",
+   "pattern_page": "hash-frequency-counting",
+   "pattern_name": "Presence counting with a 26-array",
+   "approach": "Mark each letter seen in a bool[26] (or set); true iff all 26 marked.",
+   "trigger": "\"every letter / all characters\" over a fixed alphabet.",
+   "complexity": "O(n)"
+  },
+  {
+   "id": "isomorphic-strings",
+   "title": "Isomorphic Strings",
+   "lc": {
+    "id": "205",
+    "slug": "isomorphic-strings",
+    "url": "https://leetcode.com/problems/isomorphic-strings/",
+    "difficulty": "Easy"
+   },
+   "statement": "Two strings of equal length; decide whether the characters of the first can be replaced one-to-one to produce the second.",
+   "pattern_page": "hash-derived-keys",
+   "pattern_name": "Two-way character mapping",
+   "approach": "Keep two maps s→t and t→s; at each position both must agree with earlier mappings (or both be new). Equivalent: compare the \"first occurrence index\" patterns of both strings.",
+   "trigger": "\"one-to-one mapping / same pattern\" between two sequences.",
+   "complexity": "O(n)"
+  },
+  {
+   "id": "word-pattern",
+   "title": "Word Pattern",
+   "lc": {
+    "id": "290",
+    "slug": "word-pattern",
+    "url": "https://leetcode.com/problems/word-pattern/",
+    "difficulty": "Easy"
+   },
+   "statement": "Given a pattern like \"abba\" and a sentence of words, decide whether the words follow the pattern with a one-to-one letter↔word mapping.",
+   "pattern_page": "hash-derived-keys",
+   "pattern_name": "Bijection with two maps",
+   "approach": "Split the sentence; lengths must match; maintain char→word and word→char maps and reject any conflict.",
+   "trigger": "\"follows the same pattern\" → bijection check with two hash maps.",
+   "complexity": "O(n + total word length)"
+  },
+  {
+   "id": "unique-number-of-occurrences",
+   "title": "Unique Number of Occurrences",
+   "lc": {
+    "id": "1207",
+    "slug": "unique-number-of-occurrences",
+    "url": "https://leetcode.com/problems/unique-number-of-occurrences/",
+    "difficulty": "Easy"
+   },
+   "statement": "Return true if no two distinct values in the array occur the same number of times.",
+   "pattern_page": "hash-frequency-counting",
+   "pattern_name": "Count, then check the counts are distinct",
+   "approach": "Frequency map; insert every count into a set; true iff the set size equals the number of distinct values.",
+   "trigger": "question is about the counts themselves → count first, then reason about counts.",
+   "complexity": "O(n)"
+  },
+  {
+   "id": "how-many-numbers-are-smaller-than-the-current-number",
+   "title": "How Many Numbers Are Smaller Than the Current Number",
+   "lc": {
+    "id": "1365",
+    "slug": "how-many-numbers-are-smaller-than-the-current-number",
+    "url": "https://leetcode.com/problems/how-many-numbers-are-smaller-than-the-current-number/",
+    "difficulty": "Easy"
+   },
+   "statement": "For each element, report how many other elements are strictly smaller. Values are between 0 and 100.",
+   "pattern_page": "hash-frequency-counting",
+   "pattern_name": "Counting array + prefix of counts",
+   "approach": "Values are small → count each value, take a running prefix of counts; answer for x is the total count of values < x.",
+   "trigger": "small value range (0..100) → counting array instead of sorting or nested loops.",
+   "complexity": "O(n + 101)"
+  }
+ ],
+ "cs_core": {
+  "id": "oop-02-encapsulation",
+  "subject": "OOP",
+  "title": "Encapsulation and access specifiers",
+  "sections": [
+   {
+    "id": "concept",
+    "title": "Concept",
+    "note": "write",
+    "body": "✍️ **Encapsulation** = bundling data with the functions that operate on it, and **hiding** the data so it can only be changed through those functions.\n✍️ Why: the class can enforce its own rules (an account balance never goes negative), and the internal representation can change without breaking code that uses the class.\n✍️ C++ access specifiers: `private` (only the class itself and friends), `protected` (also derived classes), `public` (everyone).\n✍️ Getters/setters expose controlled access; a setter can validate before changing state."
+   },
+   {
+    "id": "code",
+    "title": "C++ example",
+    "note": "screenshot",
+    "body": "```cpp\nclass Account {\nprivate:\n    long long balance = 0;               // hidden state\npublic:\n    bool withdraw(long long amt) {       // the only way to reduce balance\n        if (amt <= 0 || amt > balance) return false;   // rule enforced in one place\n        balance -= amt;\n        return true;\n    }\n    void deposit(long long amt) { if (amt > 0) balance += amt; }\n    long long getBalance() const { return balance; }\n};\n```\n- `friend` functions/classes can access private members; use sparingly (it weakens encapsulation)."
+   },
+   {
+    "id": "interview",
+    "title": "Interview questions",
+    "note": "mixed",
+    "body": "✍️ **Q: Encapsulation vs abstraction?** Encapsulation hides *data* behind an interface (how the class protects its state). Abstraction hides *complexity* — exposing what an object does, not how (Day 5).\n✍️ **Q: Difference between private and protected?** Protected members are also accessible inside derived classes; private ones are not.\n✍️ **Q: Is a class with public data members encapsulated?** No — anyone can put the object into an invalid state.\n- **Q: What is data hiding?** The mechanism (private members) that achieves encapsulation.\n- **Q: Default access in class vs struct?** class → private, struct → public."
+   }
+  ]
+ },
+ "day": 2,
+ "micro": {
+  "title": "Hashing — remember what you have seen",
+  "theory": [
+   "hash-table-internals",
+   "cpp-unordered-map-set",
+   "hash-complement-lookup",
+   "hash-frequency-counting",
+   "cpp-container-choice"
+  ],
+  "sections": [
+   {
+    "id": "micro",
+    "title": "Micro-theory (10 minutes)",
+    "note": "mixed",
+    "body": "Yesterday you kept a few variables about the past. Today you keep **everything** about the past — in a hash map — so any question \"have I seen X?\" costs O(1).\n\n✍️ A hash table computes where a key lives instead of searching for it, so insert and lookup are O(1) on average ([[hash-table-internals#picture]]).\n✍️ `unordered_map<key, value>`: `mp[k]++` to count, `mp.count(k)` / `mp.find(k)` to ask. **`mp[k]` inserts a missing key** — never use it just to ask ([[cpp-unordered-map-set#bracket-trap]]).\n✍️ Small dense keys (letters) → a plain array `int cnt[26]` beats any map ([[cpp-container-choice#rule]]).\n\nTwo patterns today:\n- **Complement lookup** — for each x, ask whether its partner (target − x) has already appeared ([[hash-complement-lookup#idea]]).\n- **Frequency counting** — count once, answer every \"how many\" in O(1) ([[hash-frequency-counting#idea]])."
+   },
+   {
+    "id": "card",
+    "title": "Pattern card",
+    "note": "write",
+    "body": "✍️ COMPLEMENT LOOKUP — trigger: \"pair that sums/differs to …\", unsorted. need = target − x; check map; THEN insert x.\n✍️ FREQUENCY COUNT — trigger: \"anagram, same characters, appears more than, most frequent, duplicate\". One table, ++ for one input, −− for the other.\n✍️ START OF RUN — trigger: \"longest consecutive\", O(n), unsorted. Only walk from v where v−1 is missing."
+   }
+  ]
+ }
+}

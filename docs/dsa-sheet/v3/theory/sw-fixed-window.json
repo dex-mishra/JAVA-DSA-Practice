@@ -1,0 +1,82 @@
+{
+ "id": "sw-fixed-window",
+ "title": "Fixed-size sliding window",
+ "topic": "sliding-window",
+ "kind": "pattern",
+ "summary": "For every window of exactly k consecutive elements, update the window's summary in O(1) by adding the element that enters and removing the one that leaves.",
+ "prereqs": [
+  "arr-single-pass-running-state"
+ ],
+ "related": [
+  "sw-variable-window",
+  "sw-frequency-map-window",
+  "stq-monotonic-deque"
+ ],
+ "sections": [
+  {
+   "id": "idea",
+   "title": "Idea",
+   "note": "write",
+   "body": "✍️ Consecutive windows of size k overlap in k−1 elements. Moving the window one step right **adds** `a[i]` and **removes** `a[i−k]`.\n✍️ Keep a summary of the current window (sum, count of vowels, character counts). Update it with one add and one remove per step → O(1) per window, O(n) total."
+  },
+  {
+   "id": "recognise",
+   "title": "Recognise it",
+   "note": "write",
+   "body": "✍️ \"subarray / substring **of length k**\", \"every window of size k\", \"k consecutive\", \"average of k elements\", \"permutation of p inside s\" (window size = |p|)."
+  },
+  {
+   "id": "think",
+   "title": "Brute force → fixed window",
+   "note": "mixed",
+   "body": "Brute force: for each start, recompute the summary over k elements. O(n·k).\n✍️ Bottleneck: recomputing k elements when only 2 changed (one in, one out).\n✍️ Fix: maintain the summary incrementally."
+  },
+  {
+   "id": "template",
+   "title": "Template",
+   "note": "write",
+   "body": "```cpp\n// max sum of any window of size k\nlong long win = 0, best = LLONG_MIN;\nfor (int i = 0; i < n; i++) {\n    win += a[i];                      // a[i] enters\n    if (i >= k) win -= a[i - k];      // a[i-k] leaves\n    if (i >= k - 1) best = max(best, win);   // window [i-k+1, i] is complete\n}\n```\n✍️ Three lines in a fixed order: **add the new element, remove the old one, record the answer once the window is full**."
+  },
+  {
+   "id": "variations",
+   "title": "Variations",
+   "note": "screenshot",
+   "body": "- Count vowels in each window (LeetCode 1456): summary = vowel count.\n- k-radius averages (LeetCode 2090): window size 2k+1, output centred at i−k.\n- Anagram positions (LeetCode 438): summary = 26 counts, compare with the pattern's counts ([[str-anagram-window]]).\n- Max of each window: the summary (max) cannot be \"un-added\" → monotonic deque ([[stq-monotonic-deque]])."
+  },
+  {
+   "id": "pitfalls",
+   "title": "Pitfalls",
+   "note": "write",
+   "body": "✍️ Recording before the window is full (`i < k−1`) gives answers for partial windows.\n✍️ Not every summary can be updated by \"remove\": sums and counts can, max/min cannot (use a deque or multiset).\n✍️ Average: compare sums, divide only at the end, to avoid floating point issues."
+  },
+  {
+   "id": "complexity",
+   "title": "Complexity",
+   "note": "screenshot",
+   "body": "O(n) time, O(1) space for sums/counts (O(alphabet) for character counts)."
+  }
+ ],
+ "used_by": [
+  {
+   "problem": "maximum-average-subarray-i",
+   "day": 5,
+   "section": "think",
+   "stage": "brainstorm",
+   "at": "Recomputing k elements when only 2 changed"
+  },
+  {
+   "problem": "maximum-average-subarray-i",
+   "day": 5,
+   "section": "template",
+   "stage": "pseudocode",
+   "at": "Add, remove, record — in that order"
+  },
+  {
+   "problem": "maximum-average-subarray-i",
+   "day": 5,
+   "section": "pitfalls",
+   "stage": "edges",
+   "at": "Compare sums, divide once"
+  }
+ ]
+}

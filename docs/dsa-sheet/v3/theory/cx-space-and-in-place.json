@@ -1,0 +1,49 @@
+{
+ "id": "cx-space-and-in-place",
+ "title": "Space complexity and \"in-place\"",
+ "topic": "complexity",
+ "kind": "concept",
+ "summary": "Auxiliary vs total space, what \"O(1) extra space\" and \"in-place\" really allow, and how recursion uses space.",
+ "prereqs": [
+  "cx-big-o"
+ ],
+ "related": [
+  "arr-read-write-pointer",
+  "rec-recursion-tree-and-cost"
+ ],
+ "sections": [
+  {
+   "id": "aux",
+   "title": "Auxiliary vs total space",
+   "note": "write",
+   "body": "✍️ **Auxiliary space** = extra memory your algorithm allocates, not counting the input. When an interviewer says \"space complexity\", they almost always mean auxiliary.\n✍️ The output array usually does not count either (\"O(1) extra space, not counting the output\").\n✍️ A hash map holding up to n keys → O(n). A fixed array of 26 counters → O(1) (it does not grow with n)."
+  },
+  {
+   "id": "in-place",
+   "title": "What \"in-place\" means",
+   "note": "mixed",
+   "body": "✍️ In-place = modify the input array itself using O(1) extra variables, instead of building a new array.\n- Typical in-place tools: a write pointer ([[arr-read-write-pointer]]), swapping, reversing segments, using the sign or value of elements as markers.\n- In-place is a constraint, not a style: only do it when asked or when memory is tight, because it destroys the input."
+  },
+  {
+   "id": "recursion-space",
+   "title": "Recursion uses stack space",
+   "note": "write",
+   "body": "✍️ Each active recursive call keeps a stack frame. Space = maximum recursion **depth** × frame size.\n✍️ Recursing on a balanced tree → O(log n) depth. On a skewed tree or a linked list → O(n) depth.\n- Deep recursion (≈ 10⁵ levels) can overflow the stack on some judges; prefer iteration then. See [[cpp-recursion-stack-limits]]."
+  },
+  {
+   "id": "tradeoff",
+   "title": "The time–space trade",
+   "note": "mixed",
+   "body": "✍️ Most optimisations in this plan trade space for time: a hash map (O(n) space) turns O(n²) into O(n).\n- When asked \"can you do it in O(1) space?\", the answer usually uses sortedness (two pointers), a voting argument (Boyer–Moore), arithmetic (XOR, sums), or in-place marking."
+  }
+ ],
+ "used_by": [
+  {
+   "problem": "move-zeroes",
+   "day": 1,
+   "section": "in-place",
+   "stage": "edges",
+   "at": "O(1) extra space"
+  }
+ ]
+}

@@ -1,0 +1,49 @@
+{
+ "id": "graph-dfs",
+ "title": "Depth-first search on graphs",
+ "topic": "graphs",
+ "kind": "pattern",
+ "summary": "Go as deep as possible along one path before backtracking. A visited array prevents infinite loops. O(n + m).",
+ "prereqs": [
+  "graph-representations",
+  "rec-how-recursion-works"
+ ],
+ "related": [
+  "graph-bfs",
+  "graph-connected-components",
+  "graph-cycle-detection"
+ ],
+ "sections": [
+  {
+   "id": "idea",
+   "title": "Idea",
+   "note": "write",
+   "body": "✍️ From a vertex, visit an unvisited neighbour, then its unvisited neighbour, and so on; when stuck, return and try the next neighbour.\n✍️ Mark a vertex visited **when you first reach it**. Graphs can have cycles; without marking, DFS loops forever."
+  },
+  {
+   "id": "template",
+   "title": "Template",
+   "note": "write",
+   "body": "```cpp\nvector<vector<int>> adj; vector<bool> vis;\nvoid dfs(int u) {\n    vis[u] = true;\n    for (int v : adj[u])\n        if (!vis[v]) dfs(v);\n}\n```"
+  },
+  {
+   "id": "iterative",
+   "title": "Iterative DFS",
+   "note": "write",
+   "body": "```cpp\nstack<int> st; st.push(src); vis[src] = true;\nwhile (!st.empty()) {\n    int u = st.top(); st.pop();\n    for (int v : adj[u]) if (!vis[v]) { vis[v] = true; st.push(v); }\n}\n```\n✍️ Use it when the graph can be very deep (10⁵+ vertices in a chain) to avoid stack overflow ([[cpp-recursion-stack-limits]])."
+  },
+  {
+   "id": "uses",
+   "title": "What DFS is used for",
+   "note": "write",
+   "body": "✍️ Reachability, connected components ([[graph-connected-components]]), flood fill on grids, cycle detection ([[graph-cycle-detection]]), topological order ([[graph-topological-sort]]), path existence.\n✍️ DFS does **not** find shortest paths in general — use BFS for unweighted shortest paths."
+  },
+  {
+   "id": "complexity",
+   "title": "Complexity",
+   "note": "screenshot",
+   "body": "O(n + m) time: each vertex visited once, each edge examined once (twice if undirected). O(n) space."
+  }
+ ],
+ "used_by": []
+}

@@ -19,8 +19,10 @@
 import { curriculum, ratedTopics, rankFor } from "./curriculum.js";
 import {
   DOC, readDoc, writeDoc, mutateDoc,
-  readDsaProgress, patchDsaProgress, DSA_DEFAULTS
+  readDsaProgress, patchDsaProgress, DSA_DEFAULTS,
+  readDsaLedgers, patchSibling, patchDrill, patchDay, rowToProgress
 } from "./store.js";
+import { istDate, afterResolve } from "../shared/dsa-core.mjs";
 import {
   emptyCustom, readCustom, allItems, cleanTags, refusal, sameTag,
   tagFault, DATE_OK, MAX_CUSTOM_MBA, MAX_TAGS_PER_ITEM
@@ -40,7 +42,10 @@ const MAX_APPROACH = 2_000;
 const MAX_GOODNOTES = 200;
 const MAX_DSA_TAGS = 32;
 const MAX_DSA_TAG_LEN = 40;
-const STATUSES = new Set(["todo", "solved", "revisit"]);
+const STATUSES = new Set(["todo", "solved", "revisit", "skimmed"]);
+const CUT_STATES = new Set(["", "skim", "queued"]);
+const MAX_PSEUDOCODE = 20_000;
+const MAX_GUESS = 1_000;
 
 const json = (body, status = 200, headers = {}) =>
   new Response(JSON.stringify(body), {
@@ -463,7 +468,13 @@ route("GET", /^\/api\/overview$/, async (_m, _r, env) => {
 
 // -- DSA progress ----------------------------------------------------------
 
-route("GET", /^\/api\/dsa\/progress$/, async (_m, _r, env) => json(await readDsaProgress(env.DB)));
+/* One read for everything the DSA tab writes: problem rows plus the v3
+   ledgers (siblings, drill, per-day). The page boots from this in one round
+   trip instead of four. */
+route("GET", /^\/api\/dsa\/progress$/, async (_m, _r, env) => {
+  const [progress, ledgers] = await Promise.all([readDsaProgress(env.DB), readDsaLedgers(env.DB)]);
+  return json({ ...progress, ...ledgers, today: istDate() });
+});
 
 route("PATCH", /^\/api\/dsa\/progress\/([^/]+)$/, async (match, request, env) => {
   const id = decodeURIComponent(match[1]);
@@ -471,8 +482,28 @@ route("PATCH", /^\/api\/dsa\/progress\/([^/]+)$/, async (match, request, env) =>
   const patch = {};
 
   if ("status" in payload) {
-    if (!STATUSES.has(payload.status)) return bad("status must be one of todo, solved, revisit");
+    if (!STATUSES.has(payload.status)) return bad("status must be one of todo, solved, revisit, skimmed");
     patch.status = payload.status;
+  }
+  if ("my_pseudocode" in payload) patch.my_pseudocode = String(payload.my_pseudocode).slice(0, MAX_PSEUDOCODE);
+  if ("minutes_spent" in payload) {
+    const v = payload.minutes_spent;
+    if (v === null || v === "") patch.minutes_spent = null;
+    else {
+      const n = Number(v);
+      if (!Number.isInteger(n) || n < 0 || n > 24 * 60) return bad("minutes_spent must be whole minutes, 0 to 1440");
+      patch.minutes_spent = n;
+    }
+  }
+  if ("cut_state" in payload) {
+    if (!CUT_STATES.has(payload.cut_state)) return bad("cut_state must be '', skim or queued");
+    patch.cut_state = payload.cut_state;
+  }
+  if ("next_resolve_on" in payload) {
+    const v = payload.next_resolve_on;
+    if (v === null || v === "") patch.next_resolve_on = null;
+    else if (typeof v === "string" && DATE_OK.test(v)) patch.next_resolve_on = v;
+    else return bad("next_resolve_on must be YYYY-MM-DD or null");
   }
   if ("revision" in payload) patch.revision = !!payload.revision;
   if ("notes" in payload) patch.notes = String(payload.notes).slice(0, MAX_NOTES);
@@ -512,6 +543,73 @@ route("PATCH", /^\/api\/dsa\/progress\/([^/]+)$/, async (match, request, env) =>
 
   const row = await patchDsaProgress(env.DB, id, patch);
   return json({ id, progress: row });
+});
+
+/* A cold re-solve (PRD §8.2): advances the +2/+7/+14 ladder, or brings it
+   back in two days when it went badly. Its own route rather than a field on
+   PATCH because the next date depends on the stored row, and the server is
+   the only place that sees the stored row and today's IST date together. */
+route("POST", /^\/api\/dsa\/resolve\/([^/]+)$/, async (match, request, env) => {
+  const id = decodeURIComponent(match[1]);
+  const payload = await body(request);
+  const n = Number(payload.confidence);
+  if (!Number.isInteger(n) || n < 1 || n > 5) return bad("confidence must be between 1 and 5");
+
+  const row = rowToProgress(await env.DB.prepare("SELECT * FROM dsa_progress WHERE problem_id = ?").bind(id).first());
+  if (!row.first_done_at) return bad("this problem has not been solved yet, so there is nothing to re-solve", 409);
+  if (!row.next_resolve_on) return bad("every re-solve for this problem is already done", 409);
+
+  const today = istDate();
+  const progress = await patchDsaProgress(env.DB, id, {
+    ...afterResolve(row, n, today), confidence: n, last_revised: today
+  });
+  return json({ id, progress });
+});
+
+route("PATCH", /^\/api\/dsa\/sibling\/([^/]+)$/, async (match, request, env) => {
+  const id = decodeURIComponent(match[1]);
+  const payload = await body(request);
+  const patch = {};
+  if ("parent_id" in payload) patch.parent_id = String(payload.parent_id).slice(0, 120);
+  if ("studied" in payload) patch.studied = !!payload.studied;
+  if ("solved" in payload) patch.solved = !!payload.solved;
+  if ("notes" in payload) patch.notes = String(payload.notes).slice(0, MAX_NOTES);
+  if (!Object.keys(patch).length) return bad("nothing to update");
+  try {
+    return json({ id, sibling: await patchSibling(env.DB, id, patch) });
+  } catch (e) {
+    return bad(e.message);
+  }
+});
+
+route("PATCH", /^\/api\/dsa\/drill\/([^/]+)$/, async (match, request, env) => {
+  const id = decodeURIComponent(match[1]);
+  const payload = await body(request);
+  const patch = {};
+  if ("day" in payload) {
+    const n = Number(payload.day);
+    if (!Number.isInteger(n) || n < 1 || n > 30) return bad("day must be 1..30");
+    patch.day = n;
+  }
+  if ("guess" in payload) patch.guess = String(payload.guess).slice(0, MAX_GUESS);
+  if ("correct" in payload) patch.correct = payload.correct === null ? null : !!payload.correct;
+  if (!Object.keys(patch).length) return bad("nothing to update");
+  try {
+    return json({ id, drill: await patchDrill(env.DB, id, patch) });
+  } catch (e) {
+    return bad(e.message);
+  }
+});
+
+route("PATCH", /^\/api\/dsa\/day\/(\d+)$/, async (match, request, env) => {
+  const day = Number(match[1]);
+  if (day < 1 || day > 30) return bad("day must be 1..30");
+  const payload = await body(request);
+  const patch = {};
+  for (const k of ["kept", "micro_read", "cs_core_done"]) if (k in payload) patch[k] = !!payload[k];
+  if ("note" in payload) patch.note = String(payload.note).slice(0, MAX_NOTES);
+  if (!Object.keys(patch).length) return bad("nothing to update");
+  return json({ day, ledger: await patchDay(env.DB, day, patch) });
 });
 
 // -- opportunities ---------------------------------------------------------

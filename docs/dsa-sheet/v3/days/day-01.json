@@ -1,0 +1,1234 @@
+{
+ "problems": [
+  {
+   "id": "running-sum-of-1d-array",
+   "theory_refs": [
+    {
+     "stage": "brainstorm",
+     "at": "Brute → better: the backward loop is the bottleneck",
+     "page": "arr-single-pass-running-state",
+     "section": "think",
+     "why": "Shows why re-adding the prefix is wasted work."
+    },
+    {
+     "stage": "pseudocode",
+     "at": "STATE `run` and UPDATE `run += a[i]`",
+     "page": "arr-single-pass-running-state",
+     "section": "template",
+     "why": "The exact running-total template."
+    },
+    {
+     "stage": "edges",
+     "at": "Complexity line",
+     "page": "cx-big-o",
+     "section": "counting",
+     "why": "How \"one loop, O(1) inside\" becomes O(n)."
+    },
+    {
+     "stage": "carry",
+     "at": "\"This is a prefix sum\"",
+     "page": "ps-prefix-sum-basics",
+     "section": "idea",
+     "why": "The same array is what Day 4's range sums are built on."
+    }
+   ],
+   "stuck_refs": {
+    "10": {
+     "page": "cx-constraints-to-target",
+     "section": "table"
+    },
+    "20": {
+     "page": "arr-single-pass-running-state",
+     "section": "idea"
+    },
+    "30": {
+     "page": "arr-single-pass-running-state",
+     "section": "template"
+    }
+   },
+   "stages": [
+    {
+     "id": "understand",
+     "title": "Understand",
+     "note": "mixed",
+     "body": "✍️ f(array a of n ints) → array out where out[i] = a[0] + a[1] + … + a[i].\n- Constraints: n ≤ 1000, values between −10⁶ and 10⁶. Even O(n²) passes, but the point is to see the O(n) idea.\n- Example: [1, 2, 3, 4] → [1, 3, 6, 10]."
+    },
+    {
+     "id": "analyse",
+     "title": "Analyse",
+     "note": "write",
+     "body": "✍️ By hand on [3, 1, 2]: out[0] = 3. For out[1] I wrote 3 + 1 — but I did not re-add 3, I took out[0] and added 1. For out[2] I took out[1] = 4 and added 2 → 6.\n✍️ Hard part: none really — the trap is writing two loops because the definition \"sum of a[0..i]\" sounds like a loop.\n✍️ Edges: one element → itself. Negatives are fine."
+    },
+    {
+     "id": "brainstorm",
+     "title": "Brainstorm: brute → optimal",
+     "note": "write",
+     "body": "✍️ **1. Brute.** For each i, loop j from 0 to i and add a[j]. O(n²) time, O(1) extra.\n✍️ ↳ Bottleneck: the inner loop re-adds a[0..i−1], which the previous iteration already added.\n✍️ ↳ Unlock question: \"Am I recomputing something that only changed a little?\" ([[meta-bottleneck-method#unlock-questions]]) — yes, by exactly one element.\n✍️ **2. Optimal.** Keep the previous total and add a[i]. O(n) time.\n✍️ (Bonus: write into `a` itself — `a[i] += a[i−1]` — for O(1) extra space.)"
+    },
+    {
+     "id": "algorithm",
+     "title": "Algorithm in words",
+     "note": "write",
+     "body": "✍️ 1. Start a running total at 0.\n✍️ 2. For each element from left to right, add it to the running total.\n✍️ 3. Write the running total into the output at that position.\n✍️ 4. Return the output."
+    },
+    {
+     "id": "pseudocode",
+     "title": "Pseudocode",
+     "note": "write",
+     "body": "```\nSTATE   run = 0;  out = array of size n\nLOOP    for i in 0..n-1\nUPDATE    run = run + a[i]\n          out[i] = run\nRETURN  out\n```"
+    },
+    {
+     "id": "solution",
+     "title": "Reference C++",
+     "note": "screenshot",
+     "body": "```cpp\nclass Solution {\npublic:\n    vector<int> runningSum(vector<int>& a) {\n        vector<int> out(a.size());\n        int run = 0;\n        for (int i = 0; i < (int)a.size(); i++) {\n            run += a[i];\n            out[i] = run;\n        }\n        return out;\n    }\n};\n```"
+    },
+    {
+     "id": "dry_run",
+     "title": "Dry run",
+     "note": "screenshot",
+     "body": "| i | a[i] | run (after) | out |\n|---|---|---|---|\n| start | – | 0 | [_, _, _] |\n| 0 | 3 | 3 | [3, _, _] |\n| 1 | 1 | 4 | [3, 4, _] |\n| 2 | 2 | 6 | [3, 4, 6] |"
+    },
+    {
+     "id": "edges",
+     "title": "Edge cases and complexity",
+     "note": "mixed",
+     "body": "✍️ Time O(n): one loop, O(1) work inside. Space O(n) for the output (O(1) extra if you overwrite the input).\n- Overflow: 1000 × 10⁶ = 10⁹ fits in int. In general prefix sums need `long long` ([[cpp-integer-overflow#where]]).\n- One element → [a[0]]."
+    },
+    {
+     "id": "carry",
+     "title": "Carry forward",
+     "note": "write",
+     "body": "✍️ \"Answer at i depends on the answer at i−1\" → keep it in a variable, do not loop back.\n✍️ This output array is called a **prefix sum array**. On Day 4 it answers any range sum in O(1)."
+    },
+    {
+     "id": "followups",
+     "title": "Interview follow-ups",
+     "note": "screenshot",
+     "body": "- *Can you do it in O(1) extra space?* Overwrite: `for i in 1..n−1: a[i] += a[i−1]`.\n- *Now answer many \"sum from l to r\" queries.* Build the prefix array once with a leading 0, answer `pre[r+1] − pre[l]` ([[ps-prefix-sum-basics#template]])."
+    }
+   ],
+   "siblings": [
+    {
+     "id": "find-pivot-index",
+     "title": "Find Pivot Index",
+     "tier": "must",
+     "lc": {
+      "id": "724",
+      "slug": "find-pivot-index",
+      "url": "https://leetcode.com/problems/find-pivot-index/",
+      "difficulty": "Easy"
+     },
+     "maps": "Same running total, but now you compare \"sum to my left\" with \"sum to my right\" = total − left − a[i].",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Find the leftmost index i where (sum of elements left of i) equals (sum of elements right of i); −1 if none.\n✍️ Brute force: for every i, add up both sides → O(n²)."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Bottleneck: re-adding both sides for every i.\n✍️ Fix: the total is fixed. Keep `left` as running state; then right = total − left − a[i] in O(1). → O(n)."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ 1. Compute the total sum. 2. Walk i from left to right with `left = 0`. 3. If left == total − left − a[i], return i. 4. Add a[i] to left. 5. Return −1."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\nSTATE   total = sum(a); left = 0\nLOOP    for i in 0..n-1\nCHECK     if left == total - left - a[i]: return i\nUPDATE    left += a[i]          (after the check: a[i] is not on its own left)\nRETURN  -1\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    int pivotIndex(vector<int>& a) {\n        int total = 0;\n        for (int x : a) total += x;\n        int left = 0;\n        for (int i = 0; i < (int)a.size(); i++) {\n            if (left == total - left - a[i]) return i;\n            left += a[i];\n        }\n        return -1;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ \"Left part vs right part\" problems = prefix sum + total. See [[ps-prefix-sum-basics#variations]].\n- Same CHECK-then-UPDATE ordering lesson as Two Sum tomorrow."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    int pivotIndex(vector<int>& a) {\n        int total = 0;\n        for (int x : a) total += x;\n        int left = 0;\n        for (int i = 0; i < (int)a.size(); i++) {\n            if (left == total - left - a[i]) return i;\n            left += a[i];\n        }\n        return -1;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {1, 7, 3, 6, 5, 6};\nCHECK(s.pivotIndex(a) == 3);\nvector<int> b = {1, 2, 3};\nCHECK(s.pivotIndex(b) == -1);\nvector<int> c = {2, 1, -1};\nCHECK(s.pivotIndex(c) == 0);\n"
+     }
+    },
+    {
+     "id": "left-and-right-sum-differences",
+     "title": "Left and Right Sum Differences",
+     "tier": "optional",
+     "lc": {
+      "id": "2574",
+      "slug": "left-and-right-sum-differences",
+      "url": "https://leetcode.com/problems/left-and-right-sum-differences/",
+      "difficulty": "Easy"
+     },
+     "maps": "Output |leftSum − rightSum| at every index — the pivot-index idea, but recorded everywhere.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ out[i] = |sum(a[0..i−1]) − sum(a[i+1..n−1])|."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Brute O(n²) → running `left` + total → O(n)."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ Total first; walk with left; right = total − left − a[i]; store the absolute difference; add a[i] to left."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\ntotal = sum(a); left = 0\nfor i in 0..n-1: out[i] = |left - (total - left - a[i])|; left += a[i]\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    vector<int> leftRightDifference(vector<int>& a) {\n        int total = 0; for (int x : a) total += x;\n        vector<int> out(a.size());\n        int left = 0;\n        for (int i = 0; i < (int)a.size(); i++) {\n            out[i] = abs(left - (total - left - a[i]));\n            left += a[i];\n        }\n        return out;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ Any \"left vs right of i\" quantity = one running prefix + one total."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    vector<int> leftRightDifference(vector<int>& a) {\n        int total = 0; for (int x : a) total += x;\n        vector<int> out(a.size());\n        int left = 0;\n        for (int i = 0; i < (int)a.size(); i++) {\n            out[i] = abs(left - (total - left - a[i]));\n            left += a[i];\n        }\n        return out;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {10, 4, 8, 3};\nCHECK((s.leftRightDifference(a) == vector<int>{15, 1, 11, 22}));\nvector<int> b = {1};\nCHECK((s.leftRightDifference(b) == vector<int>{0}));\n"
+     }
+    },
+    {
+     "id": "minimum-value-to-get-positive-step-by-step-sum",
+     "title": "Minimum Value to Get Positive Step by Step Sum",
+     "tier": "optional",
+     "lc": {
+      "id": "1413",
+      "slug": "minimum-value-to-get-positive-step-by-step-sum",
+      "url": "https://leetcode.com/problems/minimum-value-to-get-positive-step-by-step-sum/",
+      "difficulty": "Easy"
+     },
+     "maps": "Running sum again; the answer depends on the lowest point the running sum ever reaches.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Choose the smallest positive start value so that start + running sum is ≥ 1 at every step."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Brute: try start = 1, 2, 3, … and simulate → O(n · answer).\n✍️ Observation: only the **minimum** prefix sum matters. Need start + minPrefix ≥ 1 → start = max(1, 1 − minPrefix). O(n)."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ Track the running sum and its minimum; answer = max(1, 1 − minimum)."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\nrun = 0; low = 0\nfor x in a: run += x; low = min(low, run)\nreturn 1 - low          (low ≤ 0, so this is ≥ 1)\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    int minStartValue(vector<int>& a) {\n        int run = 0, low = 0;\n        for (int x : a) { run += x; low = min(low, run); }\n        return 1 - low;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ \"Must stay positive / never drop below\" → track the minimum of the running sum, not every step."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    int minStartValue(vector<int>& a) {\n        int run = 0, low = 0;\n        for (int x : a) { run += x; low = min(low, run); }\n        return 1 - low;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {-3, 2, -3, 4, 2};\nCHECK(s.minStartValue(a) == 5);\nvector<int> b = {1, 2};\nCHECK(s.minStartValue(b) == 1);\nvector<int> c = {1, -2, -3};\nCHECK(s.minStartValue(c) == 5);\n"
+     }
+    }
+   ],
+   "verify": {
+    "solution": "class Solution {\npublic:\n    vector<int> runningSum(vector<int>& a) {\n        vector<int> out(a.size());\n        int run = 0;\n        for (int i = 0; i < (int)a.size(); i++) {\n            run += a[i];\n            out[i] = run;\n        }\n        return out;\n    }\n};\n",
+    "tests": "Solution s;\nvector<int> a = {1, 2, 3, 4};\nCHECK((s.runningSum(a) == vector<int>{1, 3, 6, 10}));\nvector<int> b = {3, 1, 2, 10, 1};\nCHECK((s.runningSum(b) == vector<int>{3, 4, 6, 16, 17}));\nvector<int> c = {-5};\nCHECK((s.runningSum(c) == vector<int>{-5}));\n"
+   }
+  },
+  {
+   "id": "max-consecutive-ones",
+   "theory_refs": [
+    {
+     "stage": "brainstorm",
+     "at": "Streak that resets",
+     "page": "arr-single-pass-running-state",
+     "section": "template",
+     "why": "The reset-on-break template."
+    },
+    {
+     "stage": "pseudocode",
+     "at": "Where `best` is updated",
+     "page": "arr-single-pass-running-state",
+     "section": "pitfalls",
+     "why": "Updating only on a break misses a streak that runs to the end."
+    },
+    {
+     "stage": "carry",
+     "at": "Streak + budget of k breaks",
+     "page": "sw-variable-window",
+     "section": "budget",
+     "why": "Day 5's Max Consecutive Ones III is this problem with k allowed flips."
+    }
+   ],
+   "stuck_refs": {
+    "10": {
+     "page": "cx-constraints-to-target",
+     "section": "table"
+    },
+    "20": {
+     "page": "arr-single-pass-running-state",
+     "section": "idea"
+    },
+    "30": {
+     "page": "arr-single-pass-running-state",
+     "section": "pitfalls"
+    }
+   },
+   "stages": [
+    {
+     "id": "understand",
+     "title": "Understand",
+     "note": "mixed",
+     "body": "✍️ f(binary array) → length of the longest block of consecutive 1s.\n- n ≤ 10⁵ → need O(n) (or O(n log n)).\n- Example: [1,1,0,1,1,1] → 3."
+    },
+    {
+     "id": "analyse",
+     "title": "Analyse",
+     "note": "write",
+     "body": "✍️ By hand: I count 1, 2 — hit a 0, reset to 0 — then 1, 2, 3. The answer is the biggest count I said.\n✍️ Hard part: remembering the best while the current count keeps resetting.\n✍️ Edges: all zeros → 0; all ones → n; the longest block at the very end."
+    },
+    {
+     "id": "brainstorm",
+     "title": "Brainstorm: brute → optimal",
+     "note": "write",
+     "body": "✍️ **1. Brute.** From every start i, count forward while 1s continue. O(n²) on an all-ones array.\n✍️ ↳ Bottleneck: a block of length L is re-counted from each of its L positions.\n✍️ ↳ Unlock: \"recomputing something that only changed a little\" — the streak ending at i is (streak ending at i−1) + 1, or 0.\n✍️ **2. Optimal.** One pass with `cur` (streak ending here) and `best`. O(n), O(1)."
+    },
+    {
+     "id": "algorithm",
+     "title": "Algorithm in words",
+     "note": "write",
+     "body": "✍️ 1. Keep a current streak and a best streak, both 0.\n✍️ 2. For each element: if it is 1, extend the current streak; otherwise reset it to 0.\n✍️ 3. After each element, update best with the current streak.\n✍️ 4. Return best."
+    },
+    {
+     "id": "pseudocode",
+     "title": "Pseudocode",
+     "note": "write",
+     "body": "```\nSTATE   cur = 0; best = 0\nLOOP    for x in a\nUPDATE    if x == 1: cur = cur + 1  else: cur = 0\n          best = max(best, cur)          (every step, not only on a reset)\nRETURN  best\n```"
+    },
+    {
+     "id": "solution",
+     "title": "Reference C++",
+     "note": "screenshot",
+     "body": "```cpp\nclass Solution {\npublic:\n    int findMaxConsecutiveOnes(vector<int>& a) {\n        int cur = 0, best = 0;\n        for (int x : a) {\n            cur = (x == 1) ? cur + 1 : 0;\n            best = max(best, cur);\n        }\n        return best;\n    }\n};\n```"
+    },
+    {
+     "id": "dry_run",
+     "title": "Dry run",
+     "note": "screenshot",
+     "body": "| x | cur | best |\n|---|---|---|\n| start | 0 | 0 |\n| 1 | 1 | 1 |\n| 1 | 2 | 2 |\n| 0 | 0 | 2 |\n| 1 | 1 | 2 |\n| 1 | 2 | 2 |\n| 1 | 3 | 3 |"
+    },
+    {
+     "id": "edges",
+     "title": "Edge cases and complexity",
+     "note": "mixed",
+     "body": "✍️ O(n) time, O(1) space.\n✍️ If `best` were updated only when a 0 appears, [1,1,1] would return 0. Update every step.\n- All zeros → best stays 0."
+    },
+    {
+     "id": "carry",
+     "title": "Carry forward",
+     "note": "write",
+     "body": "✍️ \"Streak / consecutive\" → current + best; reset on break; update best every iteration.\n✍️ When the problem lets you break the rule up to k times, the streak becomes a **sliding window** (Day 5)."
+    },
+    {
+     "id": "followups",
+     "title": "Interview follow-ups",
+     "note": "screenshot",
+     "body": "- *You may flip at most one 0.* (LeetCode 487) Track the streak before and after the last zero, or a window with ≤ 1 zero.\n- *At most k flips.* Variable window with a zero budget ([[sw-variable-window#budget]]).\n- *Data arrives as a stream.* The same two variables work — nothing needs to be stored."
+    }
+   ],
+   "siblings": [
+    {
+     "id": "consecutive-characters",
+     "title": "Consecutive Characters",
+     "tier": "must",
+     "lc": {
+      "id": "1446",
+      "slug": "consecutive-characters",
+      "url": "https://leetcode.com/problems/consecutive-characters/",
+      "difficulty": "Easy"
+     },
+     "maps": "Same streak, but \"matching\" means \"equal to the previous character\" instead of \"equal to 1\".",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Longest substring made of one repeated character. \"abbcccddddeeeeedcba\" → 5."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Brute: from each start count equal characters → O(n²). Optimal: streak that extends when s[i] == s[i−1], resets to **1** (not 0) otherwise — the current character alone is a run."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ cur = best = 1; for i from 1: extend if equal to previous else cur = 1; best = max."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\ncur = 1; best = 1\nfor i in 1..n-1:\n    cur = (s[i] == s[i-1]) ? cur + 1 : 1\n    best = max(best, cur)\nreturn best\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    int maxPower(string s) {\n        int cur = 1, best = 1;\n        for (int i = 1; i < (int)s.size(); i++) {\n            cur = (s[i] == s[i - 1]) ? cur + 1 : 1;\n            best = max(best, cur);\n        }\n        return best;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ Reset value depends on meaning: \"count of matching elements\" resets to 0; \"length of a run that includes me\" resets to 1 ([[arr-single-pass-running-state#pitfalls]])."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    int maxPower(string s) {\n        int cur = 1, best = 1;\n        for (int i = 1; i < (int)s.size(); i++) {\n            cur = (s[i] == s[i - 1]) ? cur + 1 : 1;\n            best = max(best, cur);\n        }\n        return best;\n    }\n};\n",
+      "tests": "Solution s;\nCHECK(s.maxPower(\"leetcode\") == 2);\nCHECK(s.maxPower(\"abbcccddddeeeeedcba\") == 5);\nCHECK(s.maxPower(\"a\") == 1);\n"
+     }
+    },
+    {
+     "id": "longest-continuous-increasing-subsequence",
+     "title": "Longest Continuous Increasing Subsequence",
+     "tier": "optional",
+     "lc": {
+      "id": "674",
+      "slug": "longest-continuous-increasing-subsequence",
+      "url": "https://leetcode.com/problems/longest-continuous-increasing-subsequence/",
+      "difficulty": "Easy"
+     },
+     "maps": "Streak condition becomes \"a[i] > a[i−1]\".",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Longest strictly increasing **contiguous** run."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Same streak; extend when a[i] > a[i−1], else reset to 1. (Non-contiguous version is LIS, Day 28.)"
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ cur = best = 1; extend or reset; track best."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\ncur = best = 1\nfor i in 1..n-1: cur = a[i] > a[i-1] ? cur+1 : 1; best = max(best, cur)\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    int findLengthOfLCIS(vector<int>& a) {\n        int cur = 1, best = 1;\n        for (int i = 1; i < (int)a.size(); i++) {\n            cur = (a[i] > a[i - 1]) ? cur + 1 : 1;\n            best = max(best, cur);\n        }\n        return best;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ \"Continuous\" = contiguous = streak. \"Subsequence\" without \"continuous\" = DP ([[dp-lis]])."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    int findLengthOfLCIS(vector<int>& a) {\n        int cur = 1, best = 1;\n        for (int i = 1; i < (int)a.size(); i++) {\n            cur = (a[i] > a[i - 1]) ? cur + 1 : 1;\n            best = max(best, cur);\n        }\n        return best;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {1, 3, 5, 4, 7};\nCHECK(s.findLengthOfLCIS(a) == 3);\nvector<int> b = {2, 2, 2};\nCHECK(s.findLengthOfLCIS(b) == 1);\n"
+     }
+    },
+    {
+     "id": "length-of-the-longest-alphabetical-continuous-substring",
+     "title": "Length of the Longest Alphabetical Continuous Substring",
+     "tier": "optional",
+     "lc": {
+      "id": "2414",
+      "slug": "length-of-the-longest-alphabetical-continuous-substring",
+      "url": "https://leetcode.com/problems/length-of-the-longest-alphabetical-continuous-substring/",
+      "difficulty": "Medium"
+     },
+     "maps": "Streak condition \"s[i] is exactly the next letter after s[i−1]\".",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Longest substring like \"abc\", \"xyz\" where each letter is the next in the alphabet."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Same streak with condition `s[i] − s[i−1] == 1`. O(n)."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ Extend when consecutive letters, else reset to 1; track the best."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\ncur = best = 1\nfor i in 1..n-1: cur = (s[i]-s[i-1] == 1) ? cur+1 : 1; best = max(best, cur)\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    int longestContinuousSubstring(string s) {\n        int cur = 1, best = 1;\n        for (int i = 1; i < (int)s.size(); i++) {\n            cur = (s[i] - s[i - 1] == 1) ? cur + 1 : 1;\n            best = max(best, cur);\n        }\n        return best;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ Character arithmetic `s[i] − s[i−1]` ([[cpp-string#basics]])."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    int longestContinuousSubstring(string s) {\n        int cur = 1, best = 1;\n        for (int i = 1; i < (int)s.size(); i++) {\n            cur = (s[i] - s[i - 1] == 1) ? cur + 1 : 1;\n            best = max(best, cur);\n        }\n        return best;\n    }\n};\n",
+      "tests": "Solution s;\nCHECK(s.longestContinuousSubstring(\"abacaba\") == 2);\nCHECK(s.longestContinuousSubstring(\"abcde\") == 5);\n"
+     }
+    }
+   ],
+   "verify": {
+    "solution": "class Solution {\npublic:\n    int findMaxConsecutiveOnes(vector<int>& a) {\n        int cur = 0, best = 0;\n        for (int x : a) {\n            cur = (x == 1) ? cur + 1 : 0;\n            best = max(best, cur);\n        }\n        return best;\n    }\n};\n",
+    "tests": "Solution s;\nvector<int> a = {1, 1, 0, 1, 1, 1};\nCHECK(s.findMaxConsecutiveOnes(a) == 3);\nvector<int> b = {1, 0, 1, 1, 0, 1};\nCHECK(s.findMaxConsecutiveOnes(b) == 2);\nvector<int> c = {0, 0};\nCHECK(s.findMaxConsecutiveOnes(c) == 0);\nvector<int> d = {1, 1, 1};\nCHECK(s.findMaxConsecutiveOnes(d) == 3);\n"
+   }
+  },
+  {
+   "id": "move-zeroes",
+   "theory_refs": [
+    {
+     "stage": "understand",
+     "at": "\"in-place, keep relative order\"",
+     "page": "arr-read-write-pointer",
+     "section": "recognise",
+     "why": "The exact trigger words for the read/write pointer."
+    },
+    {
+     "stage": "brainstorm",
+     "at": "Brute B shifts elements repeatedly",
+     "page": "arr-read-write-pointer",
+     "section": "think",
+     "why": "Why erase-and-shift is O(n²)."
+    },
+    {
+     "stage": "pseudocode",
+     "at": "`swap(a[write], a[read])`",
+     "page": "arr-read-write-pointer",
+     "section": "swap-vs-copy",
+     "why": "Why Move Zeroes needs swap (or a fill pass), not copy."
+    },
+    {
+     "stage": "edges",
+     "at": "O(1) extra space",
+     "page": "cx-space-and-in-place",
+     "section": "in-place",
+     "why": "What in-place means."
+    }
+   ],
+   "stuck_refs": {
+    "10": {
+     "page": "cx-space-and-in-place",
+     "section": "in-place"
+    },
+    "20": {
+     "page": "arr-read-write-pointer",
+     "section": "idea"
+    },
+    "30": {
+     "page": "arr-read-write-pointer",
+     "section": "template"
+    },
+    "40": {
+     "page": "arr-read-write-pointer",
+     "section": "swap-vs-copy"
+    }
+   },
+   "stages": [
+    {
+     "id": "understand",
+     "title": "Understand",
+     "note": "mixed",
+     "body": "✍️ f(array, modified in place) → all non-zero elements first in their original order, then all zeros.\n- n ≤ 10⁴. Must not copy the array.\n- Example: [0,1,0,3,12] → [1,3,12,0,0]."
+    },
+    {
+     "id": "analyse",
+     "title": "Analyse",
+     "note": "write",
+     "body": "✍️ By hand: I look at each non-zero and slide it to \"the next free spot at the front\". The free spot starts at 0 and moves one step each time I place something.\n✍️ Hard part: doing it without a second array, and without disturbing the order of non-zeros.\n✍️ Edges: no zeros (nothing moves), all zeros, a single element."
+    },
+    {
+     "id": "brainstorm",
+     "title": "Brainstorm: brute → optimal",
+     "note": "write",
+     "body": "✍️ **1. Brute A.** Copy non-zeros into a new array, pad with zeros, copy back. O(n) time but O(n) space — breaks \"in place\".\n✍️ **1. Brute B.** When you see a 0, erase it and push a 0 at the end. Erase shifts the whole tail → O(n) per zero → O(n²).\n✍️ ↳ Bottleneck of B: the same elements are shifted again and again.\n✍️ ↳ Unlock: each kept element has a known final position = number of kept elements before it. Move it there **once**.\n✍️ **2. Optimal.** Read pointer visits everything; write pointer = next free spot. Swap a non-zero into the write spot. O(n), O(1)."
+    },
+    {
+     "id": "algorithm",
+     "title": "Algorithm in words",
+     "note": "write",
+     "body": "✍️ 1. Set the write position to 0.\n✍️ 2. For each read position from left to right: if the element is non-zero, swap it with the element at the write position and advance the write position.\n✍️ 3. Zeros end up behind, because every swap pushes a zero (or the same element) backwards."
+    },
+    {
+     "id": "pseudocode",
+     "title": "Pseudocode",
+     "note": "write",
+     "body": "```\nSTATE   write = 0\nLOOP    for read in 0..n-1\nCHECK     if a[read] != 0\nUPDATE      swap(a[write], a[read]); write = write + 1\nRETURN  (array modified in place)\n```"
+    },
+    {
+     "id": "solution",
+     "title": "Reference C++",
+     "note": "screenshot",
+     "body": "```cpp\nclass Solution {\npublic:\n    void moveZeroes(vector<int>& a) {\n        int write = 0;\n        for (int read = 0; read < (int)a.size(); read++) {\n            if (a[read] != 0) {\n                swap(a[write], a[read]);\n                write++;\n            }\n        }\n    }\n};\n```"
+    },
+    {
+     "id": "dry_run",
+     "title": "Dry run",
+     "note": "screenshot",
+     "body": "| read | a[read] | action | array after | write |\n|---|---|---|---|---|\n| start | | | [0,1,0,3,12] | 0 |\n| 0 | 0 | skip | [0,1,0,3,12] | 0 |\n| 1 | 1 | swap(0,1) | [1,0,0,3,12] | 1 |\n| 2 | 0 | skip | [1,0,0,3,12] | 1 |\n| 3 | 3 | swap(1,3) | [1,3,0,0,12] | 2 |\n| 4 | 12 | swap(2,4) | [1,3,12,0,0] | 3 |"
+    },
+    {
+     "id": "edges",
+     "title": "Edge cases and complexity",
+     "note": "mixed",
+     "body": "✍️ O(n) time (one pass), O(1) extra space.\n✍️ Invariant: a[0..write−1] holds the non-zeros seen so far in order; a[write..read−1] are all zeros.\n- When there are no zeros, `write == read` and every swap is with itself — harmless."
+    },
+    {
+     "id": "carry",
+     "title": "Carry forward",
+     "note": "write",
+     "body": "✍️ \"In place, keep order, remove/move some elements\" → read/write pointer. The only problem-specific line is `keep(a[read])`.\n✍️ Use **swap** when the removed elements must still be in the array; **copy** when what is left after `write` does not matter."
+    },
+    {
+     "id": "followups",
+     "title": "Interview follow-ups",
+     "note": "screenshot",
+     "body": "- *Minimise the number of writes.* Copy non-zeros forward, then fill the tail with zeros only where needed; or skip the swap when read == write.\n- *Move all zeros to the front instead.* Walk from the right with the write pointer at n−1.\n- *Partition evens before odds.* Same template with keep = \"is even\" (LeetCode 905)."
+    }
+   ],
+   "siblings": [
+    {
+     "id": "remove-element",
+     "title": "Remove Element",
+     "tier": "must",
+     "lc": {
+      "id": "27",
+      "slug": "remove-element",
+      "url": "https://leetcode.com/problems/remove-element/",
+      "difficulty": "Easy"
+     },
+     "maps": "keep = \"a[read] != val\", and copy is enough because the tail does not matter.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Remove every occurrence of `val` in place; return k = number of remaining elements, which must be in a[0..k−1]."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Brute: erase each match → O(n²). Optimal: read/write pointer with copy → O(n), O(1)."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ write = 0; for each element not equal to val, copy it to a[write] and advance write; return write."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\nwrite = 0\nfor read in 0..n-1:\n    if a[read] != val: a[write] = a[read]; write++\nreturn write\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    int removeElement(vector<int>& a, int val) {\n        int write = 0;\n        for (int read = 0; read < (int)a.size(); read++)\n            if (a[read] != val) a[write++] = a[read];\n        return write;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ The same template as Move Zeroes; copy instead of swap because only a[0..k−1] is checked ([[arr-read-write-pointer#swap-vs-copy]])."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    int removeElement(vector<int>& a, int val) {\n        int write = 0;\n        for (int read = 0; read < (int)a.size(); read++)\n            if (a[read] != val) a[write++] = a[read];\n        return write;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {3, 2, 2, 3};\nint k = s.removeElement(a, 3);\nCHECK(k == 2);\nCHECK((vector<int>(a.begin(), a.begin() + k) == vector<int>{2, 2}));\nvector<int> b = {0, 1, 2, 2, 3, 0, 4, 2};\nk = s.removeElement(b, 2);\nCHECK(k == 5);\nCHECK((vector<int>(b.begin(), b.begin() + k) == vector<int>{0, 1, 3, 0, 4}));\n"
+     }
+    },
+    {
+     "id": "sort-array-by-parity",
+     "title": "Sort Array By Parity",
+     "tier": "optional",
+     "lc": {
+      "id": "905",
+      "slug": "sort-array-by-parity",
+      "url": "https://leetcode.com/problems/sort-array-by-parity/",
+      "difficulty": "Easy"
+     },
+     "maps": "keep = \"is even\", with swap so the odds survive at the back.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Return the array with all evens before all odds (any order within each group)."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Two new arrays → O(n) space. In place: read/write pointer with swap, keep = even. (Two pointers from both ends also works.)"
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ For each element that is even, swap it into a[write] and advance write."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\nwrite = 0\nfor read in 0..n-1: if a[read] % 2 == 0: swap(a[write], a[read]); write++\nreturn a\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    vector<int> sortArrayByParity(vector<int>& a) {\n        int write = 0;\n        for (int read = 0; read < (int)a.size(); read++)\n            if (a[read] % 2 == 0) swap(a[write++], a[read]);\n        return a;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ Two-group partition = read/write + swap. Three groups = Dutch flag ([[sort-dutch-national-flag]])."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    vector<int> sortArrayByParity(vector<int>& a) {\n        int write = 0;\n        for (int read = 0; read < (int)a.size(); read++)\n            if (a[read] % 2 == 0) swap(a[write++], a[read]);\n        return a;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {3, 1, 2, 4};\nvector<int> r = s.sortArrayByParity(a);\nCHECK(r.size() == 4);\nCHECK(r[0] % 2 == 0 && r[1] % 2 == 0 && r[2] % 2 == 1 && r[3] % 2 == 1);\n"
+     }
+    },
+    {
+     "id": "apply-operations-to-an-array",
+     "title": "Apply Operations to an Array",
+     "tier": "optional",
+     "lc": {
+      "id": "2460",
+      "slug": "apply-operations-to-an-array",
+      "url": "https://leetcode.com/problems/apply-operations-to-an-array/",
+      "difficulty": "Easy"
+     },
+     "maps": "A simulation pass, then exactly Move Zeroes.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ For i = 0..n−2: if a[i] == a[i+1], double a[i] and set a[i+1] = 0. Then shift all zeros to the end."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Two passes: the simulation (O(n)), then the read/write pointer (O(n))."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ Run the merge rule left to right; then move non-zeros to the front keeping order."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\nfor i in 0..n-2: if a[i] == a[i+1]: a[i] *= 2; a[i+1] = 0\nwrite = 0; for read: if a[read] != 0: swap(a[write++], a[read])\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    vector<int> applyOperations(vector<int>& a) {\n        int n = a.size();\n        for (int i = 0; i + 1 < n; i++)\n            if (a[i] == a[i + 1]) { a[i] *= 2; a[i + 1] = 0; }\n        int write = 0;\n        for (int read = 0; read < n; read++)\n            if (a[read] != 0) swap(a[write++], a[read]);\n        return a;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ OA problems often chain an easy simulation with a known pattern; spot the known part and reuse its template."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    vector<int> applyOperations(vector<int>& a) {\n        int n = a.size();\n        for (int i = 0; i + 1 < n; i++)\n            if (a[i] == a[i + 1]) { a[i] *= 2; a[i + 1] = 0; }\n        int write = 0;\n        for (int read = 0; read < n; read++)\n            if (a[read] != 0) swap(a[write++], a[read]);\n        return a;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {1, 2, 2, 1, 1, 0};\nCHECK((s.applyOperations(a) == vector<int>{1, 4, 2, 0, 0, 0}));\nvector<int> b = {0, 1};\nCHECK((s.applyOperations(b) == vector<int>{1, 0}));\n"
+     }
+    }
+   ],
+   "verify": {
+    "solution": "class Solution {\npublic:\n    void moveZeroes(vector<int>& a) {\n        int write = 0;\n        for (int read = 0; read < (int)a.size(); read++) {\n            if (a[read] != 0) {\n                swap(a[write], a[read]);\n                write++;\n            }\n        }\n    }\n};\n",
+    "tests": "Solution s;\nvector<int> a = {0, 1, 0, 3, 12};\ns.moveZeroes(a);\nCHECK((a == vector<int>{1, 3, 12, 0, 0}));\nvector<int> b = {0};\ns.moveZeroes(b);\nCHECK((b == vector<int>{0}));\nvector<int> c = {4, 2, 0, 0, 5};\ns.moveZeroes(c);\nCHECK((c == vector<int>{4, 2, 5, 0, 0}));\n"
+   }
+  },
+  {
+   "id": "remove-duplicates-from-sorted-array",
+   "theory_refs": [
+    {
+     "stage": "analyse",
+     "at": "\"sorted\" means duplicates are adjacent",
+     "page": "arr-read-write-pointer",
+     "section": "recognise",
+     "why": "Sortedness turns \"seen before?\" into \"same as the last kept?\"."
+    },
+    {
+     "stage": "pseudocode",
+     "at": "keep = `a[read] != a[write−1]`",
+     "page": "arr-read-write-pointer",
+     "section": "template",
+     "why": "The keep-rule line for deduplication."
+    },
+    {
+     "stage": "edges",
+     "at": "compare with the written array",
+     "page": "arr-read-write-pointer",
+     "section": "pitfalls",
+     "why": "Why `a[write−1]` generalises to \"keep at most two\"."
+    }
+   ],
+   "stuck_refs": {
+    "10": {
+     "page": "cx-space-and-in-place",
+     "section": "in-place"
+    },
+    "20": {
+     "page": "arr-read-write-pointer",
+     "section": "idea"
+    },
+    "30": {
+     "page": "arr-read-write-pointer",
+     "section": "template"
+    }
+   },
+   "stages": [
+    {
+     "id": "understand",
+     "title": "Understand",
+     "note": "mixed",
+     "body": "✍️ f(sorted array, in place) → k = number of distinct values; the first k slots must hold them in order.\n- n ≤ 3·10⁴, sorted non-decreasing.\n- Example: [0,0,1,1,1,2,2,3,3,4] → k = 5, front = [0,1,2,3,4]."
+    },
+    {
+     "id": "analyse",
+     "title": "Analyse",
+     "note": "write",
+     "body": "✍️ By hand: because it is sorted, a value is \"new\" exactly when it differs from the last value I kept.\n✍️ Hard part: deciding what to compare against — the previous element in the input, or the last kept element. (For this problem both work; for the \"keep two\" version only the kept one does.)\n✍️ Edges: one element → k = 1; all equal → k = 1."
+    },
+    {
+     "id": "brainstorm",
+     "title": "Brainstorm: brute → optimal",
+     "note": "write",
+     "body": "✍️ **1. Brute.** Use a set to collect distinct values, write them back sorted. O(n log n) or O(n) time, O(n) space.\n✍️ ↳ Bottleneck: the set exists only to answer \"have I seen this?\", but sortedness already answers that in O(1).\n✍️ **2. Optimal.** Read/write pointer; keep a[read] if it differs from a[write−1]. O(n), O(1)."
+    },
+    {
+     "id": "algorithm",
+     "title": "Algorithm in words",
+     "note": "write",
+     "body": "✍️ 1. The first element is always kept: write = 1.\n✍️ 2. For each later element, if it differs from the last kept element a[write−1], copy it to a[write] and advance.\n✍️ 3. Return write."
+    },
+    {
+     "id": "pseudocode",
+     "title": "Pseudocode",
+     "note": "write",
+     "body": "```\nSTATE   write = 1                         (n ≥ 1 is guaranteed)\nLOOP    for read in 1..n-1\nCHECK     if a[read] != a[write-1]\nUPDATE      a[write] = a[read]; write++\nRETURN  write\n```"
+    },
+    {
+     "id": "solution",
+     "title": "Reference C++",
+     "note": "screenshot",
+     "body": "```cpp\nclass Solution {\npublic:\n    int removeDuplicates(vector<int>& a) {\n        if (a.empty()) return 0;\n        int write = 1;\n        for (int read = 1; read < (int)a.size(); read++)\n            if (a[read] != a[write - 1]) a[write++] = a[read];\n        return write;\n    }\n};\n```"
+    },
+    {
+     "id": "dry_run",
+     "title": "Dry run",
+     "note": "screenshot",
+     "body": "| read | a[read] | a[write−1] | keep? | front | write |\n|---|---|---|---|---|---|\n| start | | | | [1] | 1 |\n| 1 | 1 | 1 | no | [1] | 1 |\n| 2 | 2 | 1 | yes | [1,2] | 2 |\n| 3 | 2 | 2 | no | [1,2] | 2 |\n| 4 | 3 | 2 | yes | [1,2,3] | 3 |\n(input [1,1,2,2,3])"
+    },
+    {
+     "id": "edges",
+     "title": "Edge cases and complexity",
+     "note": "mixed",
+     "body": "✍️ O(n) time, O(1) space.\n✍️ Return the **count** `write`, not `write − 1`.\n- Empty input is excluded by constraints, but the guard costs nothing."
+    },
+    {
+     "id": "carry",
+     "title": "Carry forward",
+     "note": "write",
+     "body": "✍️ Sorted input + \"seen before?\" → compare with the neighbour / last kept, no set needed.\n✍️ Compare against the **written** prefix (`a[write−k]`) to allow at most k copies."
+    },
+    {
+     "id": "followups",
+     "title": "Interview follow-ups",
+     "note": "screenshot",
+     "body": "- *Allow each value at most twice* (LeetCode 80): keep if `write < 2 || a[read] != a[write−2]`.\n- *Unsorted input?* Then you need a hash set (O(n) space) or sorting first.\n- *Return the count of duplicates removed.* n − k."
+    }
+   ],
+   "siblings": [
+    {
+     "id": "remove-duplicates-from-sorted-array-ii",
+     "title": "Remove Duplicates from Sorted Array II",
+     "tier": "must",
+     "lc": {
+      "id": "80",
+      "slug": "remove-duplicates-from-sorted-array-ii",
+      "url": "https://leetcode.com/problems/remove-duplicates-from-sorted-array-ii/",
+      "difficulty": "Medium"
+     },
+     "maps": "Same template, but compare with a[write−2] to allow two copies.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Sorted; keep each value at most twice, in place; return k.\n✍️ Trap: comparing with a[read−1] or a[read−2] (the input) fails once you start overwriting. Compare with the **written** array."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Counting runs works but is fiddly. Cleanest: keep a[read] if fewer than 2 elements are written, or if a[read] differs from the element written two places back."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ write = 0; for each element: if write < 2 or it differs from a[write−2], write it."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\nwrite = 0\nfor read in 0..n-1:\n    if write < 2 or a[read] != a[write-2]: a[write] = a[read]; write++\nreturn write\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    int removeDuplicates(vector<int>& a) {\n        int write = 0;\n        for (int read = 0; read < (int)a.size(); read++)\n            if (write < 2 || a[read] != a[write - 2]) a[write++] = a[read];\n        return write;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ \"At most k copies\" in a sorted array → keep if `write < k || a[read] != a[write−k]` ([[arr-read-write-pointer#variations]])."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    int removeDuplicates(vector<int>& a) {\n        int write = 0;\n        for (int read = 0; read < (int)a.size(); read++)\n            if (write < 2 || a[read] != a[write - 2]) a[write++] = a[read];\n        return write;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {1, 1, 1, 2, 2, 3};\nint k = s.removeDuplicates(a);\nCHECK(k == 5);\nCHECK((vector<int>(a.begin(), a.begin() + k) == vector<int>{1, 1, 2, 2, 3}));\nvector<int> b = {0, 0, 1, 1, 1, 1, 2, 3, 3};\nk = s.removeDuplicates(b);\nCHECK(k == 7);\nCHECK((vector<int>(b.begin(), b.begin() + k) == vector<int>{0, 0, 1, 1, 2, 3, 3}));\n"
+     }
+    },
+    {
+     "id": "merge-sorted-array",
+     "title": "Merge Sorted Array",
+     "tier": "optional",
+     "lc": {
+      "id": "88",
+      "slug": "merge-sorted-array",
+      "url": "https://leetcode.com/problems/merge-sorted-array/",
+      "difficulty": "Easy"
+     },
+     "maps": "Write pointer again — but from the **back**, so nothing unread is overwritten.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ nums1 has m elements plus n empty slots at the end; merge nums2 (n elements) into it, sorted, in place."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Merging from the front overwrites unread elements of nums1. From the back, the free slots are exactly where the largest elements go. Two read pointers (i = m−1, j = n−1), one write pointer (k = m+n−1)."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ While nums2 has elements left: place the larger of nums1[i] and nums2[j] at k, move that pointer and k left."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\ni = m-1; j = n-1; k = m+n-1\nwhile j >= 0:\n    if i >= 0 and a[i] > b[j]: a[k--] = a[i--]\n    else: a[k--] = b[j--]\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    void merge(vector<int>& a, int m, vector<int>& b, int n) {\n        int i = m - 1, j = n - 1, k = m + n - 1;\n        while (j >= 0) {\n            if (i >= 0 && a[i] > b[j]) a[k--] = a[i--];\n            else a[k--] = b[j--];\n        }\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ Loop until nums2 is used up; leftover nums1 elements are already in place. Merge step itself: [[sort-merge-sort#merge]]."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    void merge(vector<int>& a, int m, vector<int>& b, int n) {\n        int i = m - 1, j = n - 1, k = m + n - 1;\n        while (j >= 0) {\n            if (i >= 0 && a[i] > b[j]) a[k--] = a[i--];\n            else a[k--] = b[j--];\n        }\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {1, 2, 3, 0, 0, 0}, b = {2, 5, 6};\ns.merge(a, 3, b, 3);\nCHECK((a == vector<int>{1, 2, 2, 3, 5, 6}));\nvector<int> c = {0}, d = {1};\ns.merge(c, 0, d, 1);\nCHECK((c == vector<int>{1}));\n"
+     }
+    },
+    {
+     "id": "duplicate-zeros",
+     "title": "Duplicate Zeros",
+     "tier": "optional",
+     "lc": {
+      "id": "1089",
+      "slug": "duplicate-zeros",
+      "url": "https://leetcode.com/problems/duplicate-zeros/",
+      "difficulty": "Easy"
+     },
+     "maps": "Another in-place write from the back: count where each element will land, then write right to left.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Duplicate every zero, shifting the rest right; elements pushed past the end are dropped. In place."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Shifting on each zero → O(n²). Instead: count zeros to know the final length, then walk backwards writing each element (twice for zeros) only if its target index is inside the array."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ zeros = count; walk i from n−1 down, with target j = i + zeros (zeros before i); write a[i] at j if j < n; if a[i] is 0, decrement zeros and write another 0 at j−1 if inside."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\nz = count of zeros\nfor i from n-1 down to 0:\n    j = i + z\n    if j < n: a[j] = a[i]\n    if a[i] == 0:\n        z = z - 1; if j-1 < n: a[j-1] = 0\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    void duplicateZeros(vector<int>& a) {\n        int n = a.size(), z = 0;\n        for (int x : a) if (x == 0) z++;\n        for (int i = n - 1; i >= 0; i--) {\n            int j = i + z;\n            if (j < n) a[j] = a[i];\n            if (a[i] == 0) {\n                z--;\n                if (j - 1 < n) a[j - 1] = 0;\n            }\n        }\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ When writes move elements to the **right**, write from the right so you never overwrite something unread."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    void duplicateZeros(vector<int>& a) {\n        int n = a.size(), z = 0;\n        for (int x : a) if (x == 0) z++;\n        for (int i = n - 1; i >= 0; i--) {\n            int j = i + z;\n            if (j < n) a[j] = a[i];\n            if (a[i] == 0) {\n                z--;\n                if (j - 1 < n) a[j - 1] = 0;\n            }\n        }\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {1, 0, 2, 3, 0, 4, 5, 0};\ns.duplicateZeros(a);\nCHECK((a == vector<int>{1, 0, 0, 2, 3, 0, 0, 4}));\nvector<int> b = {1, 2, 3};\ns.duplicateZeros(b);\nCHECK((b == vector<int>{1, 2, 3}));\nvector<int> c = {0, 0, 0};\ns.duplicateZeros(c);\nCHECK((c == vector<int>{0, 0, 0}));\n"
+     }
+    }
+   ],
+   "verify": {
+    "solution": "class Solution {\npublic:\n    int removeDuplicates(vector<int>& a) {\n        if (a.empty()) return 0;\n        int write = 1;\n        for (int read = 1; read < (int)a.size(); read++)\n            if (a[read] != a[write - 1]) a[write++] = a[read];\n        return write;\n    }\n};\n",
+    "tests": "Solution s;\nvector<int> a = {0, 0, 1, 1, 1, 2, 2, 3, 3, 4};\nint k = s.removeDuplicates(a);\nCHECK(k == 5);\nCHECK((vector<int>(a.begin(), a.begin() + k) == vector<int>{0, 1, 2, 3, 4}));\nvector<int> b = {7};\nCHECK(s.removeDuplicates(b) == 1);\nvector<int> c = {2, 2, 2};\nCHECK(s.removeDuplicates(c) == 1);\n"
+   }
+  }
+ ],
+ "drill": [
+  {
+   "id": "find-numbers-with-even-number-of-digits",
+   "title": "Find Numbers with Even Number of Digits",
+   "lc": {
+    "id": "1295",
+    "slug": "find-numbers-with-even-number-of-digits",
+    "url": "https://leetcode.com/problems/find-numbers-with-even-number-of-digits/",
+    "difficulty": "Easy"
+   },
+   "statement": "Given a list of positive integers, count how many of them are written with an even number of decimal digits.",
+   "pattern_page": "arr-single-pass-running-state",
+   "pattern_name": "Single pass with a counter",
+   "approach": "One pass; for each number count its digits (divide by 10, or check ranges 10–99, 1000–9999, …) and increment a counter if the count is even.",
+   "trigger": "\"count how many elements satisfy …\" with an independent per-element test.",
+   "complexity": "O(n · digits)"
+  },
+  {
+   "id": "richest-customer-wealth",
+   "title": "Richest Customer Wealth",
+   "lc": {
+    "id": "1672",
+    "slug": "richest-customer-wealth",
+    "url": "https://leetcode.com/problems/richest-customer-wealth/",
+    "difficulty": "Easy"
+   },
+   "statement": "A grid lists, for each customer (row), the money they hold in each bank (column). Return the largest total wealth of any single customer.",
+   "pattern_page": "arr-single-pass-running-state",
+   "pattern_name": "Running sum per row + best so far",
+   "approach": "For each row, sum it with a running total, then update a global maximum.",
+   "trigger": "\"maximum total of …\" → sum + best-so-far.",
+   "complexity": "O(R·C)"
+  },
+  {
+   "id": "element-appearing-more-than-25-in-sorted-array",
+   "title": "Element Appearing More Than 25% In Sorted Array",
+   "lc": {
+    "id": "1287",
+    "slug": "element-appearing-more-than-25-in-sorted-array",
+    "url": "https://leetcode.com/problems/element-appearing-more-than-25-in-sorted-array/",
+    "difficulty": "Easy"
+   },
+   "statement": "A sorted array has exactly one value that occurs in more than a quarter of the positions. Return it.",
+   "pattern_page": "arr-single-pass-running-state",
+   "pattern_name": "Streak in a sorted array",
+   "approach": "Duplicates are adjacent in sorted input, so track the length of the current run of equal values and return the value when the run exceeds n/4. (Clever version: check if a[i] == a[i + n/4].)",
+   "trigger": "\"sorted\" + \"appears more than …\" → equal values sit together, count runs.",
+   "complexity": "O(n)"
+  },
+  {
+   "id": "three-consecutive-odds",
+   "title": "Three Consecutive Odds",
+   "lc": {
+    "id": "1550",
+    "slug": "three-consecutive-odds",
+    "url": "https://leetcode.com/problems/three-consecutive-odds/",
+    "difficulty": "Easy"
+   },
+   "statement": "Return true if the array contains three odd numbers in a row.",
+   "pattern_page": "arr-single-pass-running-state",
+   "pattern_name": "Streak that resets",
+   "approach": "Streak counter that increments on odd and resets on even; return true when it reaches 3.",
+   "trigger": "\"in a row / consecutive\".",
+   "complexity": "O(n)"
+  },
+  {
+   "id": "remove-one-element-to-make-the-array-strictly-increasing",
+   "title": "Remove One Element to Make the Array Strictly Increasing",
+   "lc": {
+    "id": "1909",
+    "slug": "remove-one-element-to-make-the-array-strictly-increasing",
+    "url": "https://leetcode.com/problems/remove-one-element-to-make-the-array-strictly-increasing/",
+    "difficulty": "Easy"
+   },
+   "statement": "Decide whether deleting exactly one element can leave the array strictly increasing.",
+   "pattern_page": "arr-single-pass-running-state",
+   "pattern_name": "Single pass counting violations",
+   "approach": "Walk once counting positions where a[i] ≤ a[i−1]. More than one → false. At the single violation, check whether removing a[i−1] or a[i] fixes it by comparing with a[i−2] / a[i+1].",
+   "trigger": "\"remove one element\" + \"strictly increasing\" → scan once for the violation, decide locally.",
+   "complexity": "O(n)"
+  }
+ ],
+ "cs_core": {
+  "id": "oop-01-classes-objects",
+  "subject": "OOP",
+  "title": "Classes, objects, constructors and this",
+  "sections": [
+   {
+    "id": "concept",
+    "title": "Concept",
+    "note": "write",
+    "body": "✍️ A **class** is a blueprint: data (member variables) + behaviour (member functions). An **object** is one instance built from it, with its own copy of the data.\n✍️ A **constructor** runs when an object is created and sets up its initial state. Same name as the class, no return type. A **destructor** (`~ClassName`) runs when the object is destroyed — used to release resources (memory, files).\n✍️ `this` is a pointer to the current object inside a member function. Useful when a parameter has the same name as a member: `this->name = name;`.\n✍️ In C++, `struct` and `class` are identical except the default access: `struct` members are public by default, `class` members are private."
+   },
+   {
+    "id": "code",
+    "title": "C++ example",
+    "note": "screenshot",
+    "body": "```cpp\nclass BankAccount {\n    string owner;            // private by default\n    long long balance;\npublic:\n    BankAccount(string owner, long long start) : owner(owner), balance(start) {}  // initialiser list\n    ~BankAccount() { /* release resources if any */ }\n    void deposit(long long amt) { this->balance += amt; }\n    long long getBalance() const { return balance; }   // const: does not modify the object\n};\nBankAccount a(\"Aryan\", 100);   // object on the stack\na.deposit(50);                 // a.getBalance() == 150\n```\n- Initialiser lists (`: owner(owner), balance(start)`) construct members directly; required for `const` members and references."
+   },
+   {
+    "id": "interview",
+    "title": "Interview questions",
+    "note": "mixed",
+    "body": "✍️ **Q: Class vs object?** A class is the definition; an object is a concrete instance occupying memory.\n✍️ **Q: What is a default / parameterised / copy constructor?** No arguments / takes arguments / `ClassName(const ClassName& other)` that builds a copy. The compiler generates a default and copy constructor if you do not write them.\n✍️ **Q: Shallow vs deep copy?** Shallow copies pointer values (both objects share the same memory → double delete). Deep copy allocates new memory and copies the contents. Needed when a class owns a raw pointer.\n- **Q: Can a constructor be virtual?** No — the object's type is not known yet while it is being constructed. Destructors can and should be virtual in base classes (Day 4).\n- **Q: What does `const` after a member function mean?** It promises not to modify the object; it can be called on const objects."
+   }
+  ]
+ },
+ "day": 1,
+ "micro": {
+  "title": "One pass, a few variables — and writing in place",
+  "theory": [
+   "arr-single-pass-running-state",
+   "arr-read-write-pointer",
+   "cx-big-o",
+   "cpp-vector",
+   "meta-analyse-a-problem"
+  ],
+  "sections": [
+   {
+    "id": "micro",
+    "title": "Micro-theory (10 minutes)",
+    "note": "mixed",
+    "body": "Today has two ideas, and both are about **not looking back**.\n\n✍️ **Running state.** Walk the array once, left to right, and carry a few variables that summarise everything you have already seen (a running total, the current streak, the best so far). Each element is touched once → O(n). Read [[arr-single-pass-running-state#idea]].\n✍️ **Read pointer / write pointer.** To remove or move elements *in place*, one index reads every element and a second index marks where the next kept element goes. Each element moves once → O(n) time, O(1) space. Read [[arr-read-write-pointer#idea]].\n\nBefore you start, skim two foundation pages once — you will use them every day:\n- [[cx-big-o#counting]] — how to count the cost of a loop.\n- [[cpp-vector#basics]] — `vector`, `size()`, range-for with `&`.\n\nAnd the habit for the whole plan: fill the analysis box on paper before any idea ([[meta-analyse-a-problem#template]])."
+   },
+   {
+    "id": "card",
+    "title": "Pattern card",
+    "note": "write",
+    "body": "✍️ RUNNING STATE — trigger: \"so far / running / streak / consecutive\". Keep: total, current, best. Update every step; reset when the condition breaks.\n✍️ READ/WRITE POINTER — trigger: \"in-place\", \"O(1) extra space\", \"remove/move, keep order\". `if keep(a[read]) a[write++] = a[read]`. Return `write`."
+   }
+  ]
+ }
+}

@@ -1,0 +1,35 @@
+{
+ "id": "cpp-map-set-ordered",
+ "title": "map and set — the ordered containers",
+ "topic": "cpp",
+ "kind": "cpp",
+ "summary": "Balanced-tree containers with O(log n) operations, sorted iteration, lower_bound/upper_bound, and multiset for duplicates.",
+ "prereqs": [
+  "cpp-unordered-map-set"
+ ],
+ "related": [
+  "cpp-container-choice",
+  "bs-lower-upper-bound"
+ ],
+ "sections": [
+  {
+   "id": "what",
+   "title": "What they are",
+   "note": "write",
+   "body": "✍️ `map` and `set` keep keys **sorted** (internally a red-black tree). Every insert/find/erase is O(log n).\n✍️ Use them when you need order: smallest/largest key, iterate in sorted order, \"first key ≥ x\"."
+  },
+  {
+   "id": "api",
+   "title": "API",
+   "note": "write",
+   "body": "```cpp\nset<int> s = {5, 1, 9};\n*s.begin();               // 1  (smallest)\n*s.rbegin();              // 9  (largest)\nauto it = s.lower_bound(4); // first element >= 4 → 5\nauto jt = s.upper_bound(5); // first element  > 5 → 9\ns.erase(5);               // by value\nmultiset<int> ms;         // allows duplicates\nms.erase(ms.find(3));     // erase ONE copy of 3 (ms.erase(3) erases all copies)\n```\n✍️ `lower_bound(x)` = first ≥ x. `upper_bound(x)` = first > x. Both O(log n) when called as **member functions** (`s.lower_bound`), not `std::lower_bound(s.begin(), s.end(), x)` which is O(n) on a set."
+  },
+  {
+   "id": "when",
+   "title": "When to reach for them",
+   "note": "mixed",
+   "body": "✍️ Sliding window that needs the min and max of the window with deletions → `multiset` (or a monotonic deque, [[stq-monotonic-deque]]).\n✍️ \"Find the closest value to x seen so far\" → `set` + `lower_bound`.\n- Counting with sorted output → `map<int,int>`."
+  }
+ ],
+ "used_by": []
+}

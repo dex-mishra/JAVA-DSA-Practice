@@ -1,0 +1,43 @@
+{
+ "id": "str-palindrome-checks",
+ "title": "Palindrome checks",
+ "topic": "strings",
+ "kind": "concept",
+ "summary": "Two-pointer palindrome checks, skipping non-alphanumeric characters, and the \"delete at most one character\" extension.",
+ "prereqs": [
+  "tp-opposite-ends",
+  "cpp-string"
+ ],
+ "related": [
+  "str-expand-around-center"
+ ],
+ "sections": [
+  {
+   "id": "basic",
+   "title": "Basic check",
+   "note": "write",
+   "body": "✍️ Compare `s[l]` and `s[r]` moving inwards; any mismatch → not a palindrome. O(n) time, O(1) space ([[tp-opposite-ends#palindrome]])."
+  },
+  {
+   "id": "skipping",
+   "title": "Skipping characters",
+   "note": "write",
+   "body": "```cpp\nbool isPalindrome(string s) {\n    int l = 0, r = (int)s.size() - 1;\n    while (l < r) {\n        while (l < r && !isalnum(s[l])) l++;    // inner loops also check l < r\n        while (l < r && !isalnum(s[r])) r--;\n        if (tolower(s[l]) != tolower(s[r])) return false;\n        l++; r--;\n    }\n    return true;\n}\n```\n✍️ Every inner `while` repeats the `l < r` guard; otherwise a string of only symbols runs out of bounds."
+  },
+  {
+   "id": "one-deletion",
+   "title": "At most one deletion (LeetCode 680)",
+   "note": "write",
+   "body": "✍️ At the first mismatch (l, r), the answer is yes iff `s[l+1..r]` or `s[l..r−1]` is a palindrome. Check both with the basic helper. O(n)."
+  }
+ ],
+ "used_by": [
+  {
+   "problem": "valid-palindrome",
+   "day": 3,
+   "section": "skipping",
+   "stage": "pseudocode",
+   "at": "Inner skip loops also check l < r"
+  }
+ ]
+}

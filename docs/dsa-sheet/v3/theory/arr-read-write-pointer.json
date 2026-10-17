@@ -1,0 +1,109 @@
+{
+ "id": "arr-read-write-pointer",
+ "title": "Read pointer and write pointer — in-place compaction",
+ "topic": "arrays",
+ "kind": "pattern",
+ "summary": "One index reads every element; a second index marks where the next kept element should be written. Removes, filters and deduplicates in O(n) time and O(1) space.",
+ "prereqs": [
+  "arr-single-pass-running-state",
+  "cx-space-and-in-place"
+ ],
+ "related": [
+  "tp-opposite-ends",
+  "tp-skip-duplicates"
+ ],
+ "sections": [
+  {
+   "id": "idea",
+   "title": "Idea",
+   "note": "write",
+   "body": "✍️ Two indices move left to right. `read` visits every element. `write` only advances when an element is **kept**.\n✍️ Invariant: `a[0..write-1]` always holds exactly the kept elements seen so far, in their original order.\n✍️ Because `write ≤ read` always, writing to `a[write]` never overwrites an element we have not read yet."
+  },
+  {
+   "id": "recognise",
+   "title": "Recognise it",
+   "note": "write",
+   "body": "✍️ \"in-place\", \"O(1) extra memory\", \"remove / move / filter elements\", \"return the new length k, first k elements must be …\".\n✍️ Order of kept elements must be preserved."
+  },
+  {
+   "id": "think",
+   "title": "Brute force → write pointer",
+   "note": "mixed",
+   "body": "Brute force A: build a new array of kept elements, copy back. O(n) time but O(n) space — fails \"in-place\".\nBrute force B: when you find an element to remove, shift everything after it left by one (`erase`). O(n) per removal → O(n²).\n✍️ Bottleneck of B: elements are shifted many times — each removal moves the whole tail again.\n✍️ Fix: move each kept element **once**, directly to its final position. Its final position is \"how many kept elements came before it\" = `write`."
+  },
+  {
+   "id": "template",
+   "title": "Template",
+   "note": "write",
+   "body": "```cpp\nint write = 0;\nfor (int read = 0; read < n; read++) {\n    if (keep(a[read])) {          // the only problem-specific line\n        a[write] = a[read];       // or swap(a[write], a[read]) to keep the rest\n        write++;\n    }\n}\n// a[0..write-1] are the kept elements; return write\n```\n✍️ `keep` for Move Zeroes: `a[read] != 0`. For Remove Element: `a[read] != val`. For Remove Duplicates (sorted): `write == 0 || a[read] != a[write-1]`."
+  },
+  {
+   "id": "swap-vs-copy",
+   "title": "Swap or copy?",
+   "note": "mixed",
+   "body": "✍️ Copy (`a[write] = a[read]`) when you do not care what is left after position `write` (most \"return k\" problems).\n✍️ Swap (`swap(a[write], a[read])`) when the removed elements must still exist at the end — Move Zeroes needs the zeroes at the back.\n- Alternative for Move Zeroes: copy all non-zeros forward, then fill `a[write..n-1]` with 0."
+  },
+  {
+   "id": "variations",
+   "title": "Variations",
+   "note": "screenshot",
+   "body": "- Keep at most two copies of each value in a sorted array: keep if `write < 2 || a[read] != a[write-2]` (LeetCode 80).\n- Partition evens before odds: keep = \"is even\", using swap (LeetCode 905).\n- Merge two sorted arrays in place from the back: two read pointers, one write pointer starting at the end (LeetCode 88).\n- Three-way partition (0s, 1s, 2s) → Dutch national flag ([[sort-dutch-national-flag]])."
+  },
+  {
+   "id": "pitfalls",
+   "title": "Pitfalls",
+   "note": "write",
+   "body": "✍️ Comparing with `a[read-1]` instead of `a[write-1]` for deduplication works only for \"keep one copy\"; for \"keep two\", you must compare against the **written** array, `a[write-2]`.\n✍️ Return `write`, not `write - 1`: it is the count of kept elements."
+  },
+  {
+   "id": "complexity",
+   "title": "Complexity",
+   "note": "screenshot",
+   "body": "O(n) time — each element is read once and written at most once. O(1) extra space."
+  }
+ ],
+ "used_by": [
+  {
+   "problem": "move-zeroes",
+   "day": 1,
+   "section": "recognise",
+   "stage": "understand",
+   "at": "\"in-place, keep relative order\""
+  },
+  {
+   "problem": "move-zeroes",
+   "day": 1,
+   "section": "think",
+   "stage": "brainstorm",
+   "at": "Brute B shifts elements repeatedly"
+  },
+  {
+   "problem": "move-zeroes",
+   "day": 1,
+   "section": "swap-vs-copy",
+   "stage": "pseudocode",
+   "at": "`swap(a[write], a[read])`"
+  },
+  {
+   "problem": "remove-duplicates-from-sorted-array",
+   "day": 1,
+   "section": "recognise",
+   "stage": "analyse",
+   "at": "\"sorted\" means duplicates are adjacent"
+  },
+  {
+   "problem": "remove-duplicates-from-sorted-array",
+   "day": 1,
+   "section": "template",
+   "stage": "pseudocode",
+   "at": "keep = `a[read] != a[write−1]`"
+  },
+  {
+   "problem": "remove-duplicates-from-sorted-array",
+   "day": 1,
+   "section": "pitfalls",
+   "stage": "edges",
+   "at": "compare with the written array"
+  }
+ ]
+}

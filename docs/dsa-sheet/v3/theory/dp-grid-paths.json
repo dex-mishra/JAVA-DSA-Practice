@@ -1,0 +1,54 @@
+{
+ "id": "dp-grid-paths",
+ "title": "Grid DP — paths moving right and down",
+ "topic": "dp",
+ "kind": "pattern",
+ "summary": "dp[r][c] depends on the cell above and the cell to the left. Count paths (sum), minimum path sum (min), obstacles (zero out), squares (min of three neighbours + 1).",
+ "prereqs": [
+  "dp-what-dp-is",
+  "mat-traversal-and-directions"
+ ],
+ "related": [
+  "dp-space-optimisation",
+  "ps-2d-prefix-sum"
+ ],
+ "sections": [
+  {
+   "id": "idea",
+   "title": "Idea",
+   "note": "write",
+   "body": "✍️ If movement is only right or down, cell (r, c) can only be entered from (r−1, c) or (r, c−1). So its answer depends only on those two — both computed earlier in row-major order.\n✍️ First row and first column have only one way in → base cases."
+  },
+  {
+   "id": "template",
+   "title": "Template: minimum path sum",
+   "note": "write",
+   "body": "```cpp\nint minPathSum(vector<vector<int>>& g) {\n    int R = g.size(), C = g[0].size();\n    vector<vector<int>> dp(R, vector<int>(C));\n    for (int r = 0; r < R; r++)\n        for (int c = 0; c < C; c++) {\n            if (r == 0 && c == 0) dp[r][c] = g[0][0];\n            else if (r == 0) dp[r][c] = dp[r][c-1] + g[r][c];\n            else if (c == 0) dp[r][c] = dp[r-1][c] + g[r][c];\n            else dp[r][c] = min(dp[r-1][c], dp[r][c-1]) + g[r][c];\n        }\n    return dp[R-1][C-1];\n}\n```\n✍️ Counting unique paths: same shape with `+` instead of `min`, `dp = 1` along the first row and column."
+  },
+  {
+   "id": "obstacles",
+   "title": "Obstacles",
+   "note": "write",
+   "body": "✍️ Unique paths II: an obstacle cell has `dp = 0`. Careful with the first row/column: once an obstacle appears, every cell after it in that row/column is 0 too (not 1)."
+  },
+  {
+   "id": "square",
+   "title": "Maximal square",
+   "note": "write",
+   "body": "✍️ `dp[r][c]` = side of the largest all-1 square with its **bottom-right corner** at (r, c).\n✍️ If `g[r][c] == '1'`: `dp[r][c] = 1 + min(dp[r−1][c], dp[r][c−1], dp[r−1][c−1])`. The answer is (max dp)².\n✍️ Why the min: a square of side k at (r, c) needs squares of side k−1 ending above, left and diagonally — the smallest of the three limits it."
+  },
+  {
+   "id": "variations",
+   "title": "Variations",
+   "note": "screenshot",
+   "body": "- Triangle (LeetCode 120): bottom-up from the last row, `dp[c] = t[r][c] + min(dp[c], dp[c+1])`.\n- Minimum falling path sum: each cell from three cells above.\n- Dungeon game: fill from the bottom-right backwards.\n- Cherry pickup II: two walkers → state (row, c1, c2) (recognition).\n- Unique paths has a closed form: C(m+n−2, m−1)."
+  },
+  {
+   "id": "complexity",
+   "title": "Complexity",
+   "note": "screenshot",
+   "body": "O(R·C) time, O(C) space with one rolling row ([[dp-space-optimisation#rows]])."
+  }
+ ],
+ "used_by": []
+}

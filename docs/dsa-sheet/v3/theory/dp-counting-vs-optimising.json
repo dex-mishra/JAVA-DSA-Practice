@@ -1,0 +1,36 @@
+{
+ "id": "dp-counting-vs-optimising",
+ "title": "Counting DP vs optimising DP — and loop order",
+ "topic": "dp",
+ "kind": "concept",
+ "summary": "Counting adds over choices and starts from dp[0] = 1; optimising takes min/max and starts from 0 or infinity. For counting, the loop order decides whether order matters.",
+ "prereqs": [
+  "dp-what-dp-is"
+ ],
+ "related": [
+  "dp-unbounded-knapsack",
+  "dp-0-1-knapsack",
+  "dp-1d-linear"
+ ],
+ "sections": [
+  {
+   "id": "differences",
+   "title": "Differences",
+   "note": "write",
+   "body": "✍️ Counting: `dp[state] = Σ dp[previous states]`, base case `dp[empty] = 1` (one way to do nothing). Answers can be huge → often modulo 10⁹+7.\n✍️ Optimising: `dp[state] = min/max over choices`, base case 0 for the empty state and ±∞ for impossible states."
+  },
+  {
+   "id": "order",
+   "title": "Loop order: combinations vs permutations",
+   "note": "write",
+   "body": "✍️ Items outer, amount inner → each multiset counted once (**combinations**). Coin Change II.\n✍️ Amount outer, items inner → at each amount any item can be last → ordered sequences (**permutations**). Combination Sum IV, climbing stairs with steps {1, 2}.\n✍️ Check with amount 3, coins {1, 2}: combinations = 2 ({1,1,1}, {1,2}); permutations = 3 (1+1+1, 1+2, 2+1)."
+  },
+  {
+   "id": "modulo",
+   "title": "Modulo arithmetic",
+   "note": "mixed",
+   "body": "✍️ Apply `% MOD` after every addition; use `long long` for intermediate sums. With subtraction, add MOD before taking the modulo to stay non-negative."
+  }
+ ],
+ "used_by": []
+}

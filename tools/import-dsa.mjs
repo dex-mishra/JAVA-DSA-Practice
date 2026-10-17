@@ -1,673 +1,617 @@
 /**
- * Import the DSA sheet from `dsa material/` into `data/dsa/`.
+ * Import the DSA plan from `docs/dsa-sheet/v3/` into `data/dsa/`.
  *
  *   node tools/import-dsa.mjs
  *   node tools/import-dsa.mjs --check    (validate and report, write nothing)
  *
- * Why an importer rather than dropping the uploads into data/ directly:
+ * Content is an input, not state. Batches of five days arrive, get corrected
+ * and get re-delivered; a re-import must be idempotent and must never touch
+ * what the user has written. So this reads the content folder, validates it,
+ * normalises it and reports what actually moved -- per day, added / changed /
+ * unchanged / removed. Progress lives in D1, which this script cannot reach.
  *
- * Content is an input, not state. Phases arrive one at a time, get corrected,
- * and get re-uploaded; a re-import must be idempotent and must never touch
- * what the user has written. So this reads the drop zone, validates it,
- * normalises it, and reports what actually moved -- added, changed,
- * unchanged, per problem. Progress lives in a GCS blob this script cannot
- * reach, which is the other half of the same guarantee.
+ * Refusal is the default. Every reference a page will render as a link --
+ * theory chips, stuck-ladder rungs, inline [[page#section]] links, drill
+ * answers, mock coverage -- is resolved here, and one that does not resolve
+ * stops the import (PRD §6.1). A dead link found by the importer costs a
+ * re-delivery; one found by the user mid-problem costs the problem.
  *
- * Problem ids are `{topic}-{lc-slug}` and come from the content. They are
- * stable across regenerations and survive a problem moving day or tier,
- * which is what lets progress key on them.
+ * Output (data/dsa/, copied to public/data/dsa/ by the build):
+ *   plan.json            the frozen plan without day bodies -- baked into the page
+ *   index.json           thin problem rows, legacy map, patterns -- baked in
+ *   schedule.json        MOCK-SCHEDULE.json, validated
+ *   theory-index.json    the theory catalogue, with per-page use counts
+ *   theory/<id>.json     one page each, `used_by` recomputed
+ *   day/<n>.json         micro-theory, drill, CS core, skims for a ready day
+ *   problem/<id>.json    stages, refs, siblings and row meta for a ready problem
+ * And, never under public/:
+ *   worker/oa-content.json   mocks with hidden tests (Worker bundle only)
+ *   worker/dsa-plan.json     the thin plan the cron reads (Worker bundle only)
  *
- * Output:
- *   data/dsa/spec.json       phase map, tiers, stuck ladder, AI protocol, tag seeds
- *   data/dsa/templates.json  the C++ pattern templates
- *   data/dsa/phase-<KEY>.json   one per phase: theory, learnings, problems
- *   data/dsa/index.json      thin index -- what the page bakes in and paints from
- *
- * The full phase payloads are served by the console API rather than baked
- * into index.html. At 600 problems the learnings alone are ~2 MB, and that
- * is a page nobody wants to parse on a phone. The thin index is ~140 KB and
- * carries everything a row needs, so the day view paints with no network.
+ * `verify` fields (reference solutions and their tests) exist only for CI and
+ * are dropped here, so nothing downstream can ship them by accident.
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { buildInput as oaBuildInput } from "../worker/oa-gen.js";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const SRC = join(ROOT, "docs", "dsa-sheet");
-const OUT = join(ROOT, "data", "dsa");
 
-const CHECK_ONLY = process.argv.includes("--check");
-
-const TIERS = new Set(["CORE", "DRILL", "SKIM"]);
+export const PROBLEM_STAGES = ["understand", "analyse", "brainstorm", "algorithm", "pseudocode",
+  "solution", "dry_run", "edges", "carry", "followups"];
+export const SIBLING_STAGES = ["analyse", "brainstorm", "algorithm", "pseudocode", "solution", "quick_theory"];
+const NOTES = new Set(["write", "screenshot", "mixed"]);
+const ROLES = new Set(["LEARN", "APPLY", "TWIST", "DISGUISE"]);
 const DIFFICULTY = new Set(["Easy", "Medium", "Hard"]);
-const CAMPUS_OA = new Set(["HIGH", "MEDIUM", "LOW"]);
-const STATUSES = new Set(["todo", "solved", "revisit"]);
+const DRILL_PER_DAY = 5;
+const LINK = /\[\[([a-z0-9-]+)(?:#([a-z0-9_-]+))?\]\]/g;
 
-const errors = [];
-const warnings = [];
-
-function fail(msg) {
-  errors.push(msg);
-}
-function warn(msg) {
-  warnings.push(msg);
+/** Days after an ISO date, as an ISO date. Pure calendar arithmetic in UTC,
+ *  so the machine's own timezone cannot shift a plan date. */
+export function addDays(iso, n) {
+  const d = new Date(iso + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
 }
 
-function readJson(path, fallback) {
-  try {
-    return JSON.parse(readFileSync(path, "utf8"));
-  } catch (e) {
-    if (fallback !== undefined) return fallback;
-    fail(`could not read ${path}: ${e.message}`);
-    return null;
-  }
-}
-
-// ---------------------------------------------------------------- sources
-
-if (!existsSync(SRC)) {
-  console.error(`no drop zone at ${SRC}`);
-  process.exit(1);
-}
-
-const spec = readJson(join(SRC, "SPEC.json"));
-const templateDoc = readJson(join(SRC, "cpp-pattern-templates.json"));
-if (!spec || !templateDoc) {
-  errors.forEach((e) => console.error(`  error: ${e}`));
-  process.exit(1);
-}
-
-/* The pattern index is authored upstream, not derived here.
- *
- * It could be rebuilt by scanning the phase files -- it was, for one
- * release -- but it carries two fields the phases do not: the template's
- * display name, and the first line of each problem's insight. Re-deriving
- * would silently drop both, and the index is the screen those belong on. */
-const patternIndexDoc = readJson(join(SRC, "PATTERN-INDEX.json"), null);
-
-const templates = templateDoc.templates || [];
-const templateIds = new Set(templates.map((t) => t.id));
-
-/* Which files are content is SPEC's business, not the directory's.
- *
- * This used to glob `phase-*.json`, which worked only while the folder held
- * nothing else. It now also holds the abandoned 600-problem version, an
- * optional appendix that must never be scheduled, sample files and stray
- * copies -- and a glob cannot tell any of those from the real thing. Reading
- * exactly the slugs SPEC declares makes "ignore these files" a property of
- * the code rather than a convention someone has to remember.
- *
- * A declared phase with no file is simply not imported yet: V3 and V5 are
- * written but not delivered, and the sheet is expected to run without them.
- */
-const phaseFiles = [];
-const pending = [];
-for (const phase of spec.phases) {
-  const file = `${phase.slug}.json`;
-  if (existsSync(join(SRC, file))) phaseFiles.push(file);
-  else pending.push(phase.key);
-}
-
-if (!phaseFiles.length) {
-  console.error(`none of SPEC's phase files are in ${SRC}`);
-  process.exit(1);
-}
-
-// Phase order comes from SPEC, not from filename sort.
-const phaseOrder = new Map(spec.phases.map((p, i) => [p.key, i]));
-
-// ---------------------------------------------------------------- validate
-
-const phases = [];
-const bySlug = new Map(); // lc slug -> problem id, for sibling and citation links
-const seenIds = new Map(); // problem id -> phase key, to catch cross-phase duplicates
-
-for (const file of phaseFiles) {
-  const doc = readJson(join(SRC, file));
-  if (!doc) continue;
-
-  const key = doc.phase;
-  const specPhase = spec.phases.find((p) => p.key === key);
-  if (!specPhase) {
-    fail(`${file}: phase ${key!== undefined ? key : "(none)"} is not in SPEC.json`);
-    continue;
-  }
-  if (!phaseOrder.has(key)) fail(`${file}: unknown phase key ${key}`);
-
-  const problems = doc.problems || [];
-
-  // problem_count is the file's own claim about itself. A mismatch means the
-  // upload was truncated, which is worth failing on rather than importing a
-  // partial phase that looks complete.
-  if (doc.problem_count !== problems.length) {
-    fail(`${file}: declares problem_count ${doc.problem_count} but carries ${problems.length} problems`);
-  }
-
-  // The SPEC quota is a plan, not a contract -- phases come in a little over
-  // or under. Worth saying out loud, not worth refusing.
-  if (specPhase.quota !== problems.length) {
-    warn(`${key}: SPEC quota ${specPhase.quota}, file has ${problems.length}`);
-  }
-
-  const [dayStart, dayEnd] = doc.days || specPhase.days;
-
-  for (const p of problems) {
-    const where = `${file}:${p.id || "(no id)"}`;
-    if (!p.id) fail(`${where}: missing id`);
-    else if (seenIds.has(p.id)) fail(`${where}: duplicate id, also in ${seenIds.get(p.id)}`);
-    else seenIds.set(p.id, file);
-
-    if (!TIERS.has(p.tier)) fail(`${where}: tier ${JSON.stringify(p.tier)} not one of CORE/DRILL/SKIM`);
-    if (!CAMPUS_OA.has(p.campus_oa)) fail(`${where}: campus_oa ${JSON.stringify(p.campus_oa)} not one of HIGH/MEDIUM/LOW`);
-    if (!p.lc || !DIFFICULTY.has(p.lc.difficulty)) {
-      fail(`${where}: difficulty ${JSON.stringify(p.lc && p.lc.difficulty)} not one of Easy/Medium/Hard`);
-    }
-    if (!p.lc || !p.lc.slug || !p.lc.url) fail(`${where}: missing lc.slug or lc.url`);
-    if (typeof p.day !== "number" || p.day < dayStart || p.day > dayEnd) {
-      warn(`${where}: day ${p.day} outside phase range ${dayStart}-${dayEnd}`);
-    }
-    if (!p.learnings || !p.learnings.insight) fail(`${where}: missing learnings.insight`);
-
-    // A dangling template deep-link renders as a dead end in the UI. Warn
-    // rather than fail: the template library is a separate file that can
-    // legitimately lag a phase upload.
-    if (p.template && !templateIds.has(p.template)) {
-      warn(`${where}: template ${p.template} is not in cpp-pattern-templates.json`);
-    }
-
-    if (p.lc && p.lc.slug) {
-      if (bySlug.has(p.lc.slug)) fail(`${where}: lc slug ${p.lc.slug} already used by ${bySlug.get(p.lc.slug)}`);
-      else bySlug.set(p.lc.slug, p.id);
-    }
-  }
-
-  phases.push({ key, file, doc, specPhase, dayStart, dayEnd, problems });
-}
-
-phases.sort((a, b) => phaseOrder.get(a.key) - phaseOrder.get(b.key));
-
-// Cross-reference pass, once every problem is known.
-let danglingSiblings = 0;
-for (const { file, doc, problems } of phases) {
-  for (const p of problems) {
-    for (const s of (p.learnings && p.learnings.siblings) || []) {
-      if (!bySlug.has(s)) danglingSiblings++;
-    }
-  }
-  for (const l of doc.learnings || []) {
-    for (const a of l.applied || []) {
-      if (!bySlug.has(a[0])) {
-        warn(`${file}:${l.id}: cites ${a[0]}, which is not a problem in the sheet`);
-      }
-    }
-  }
-}
-if (danglingSiblings) {
-  // Expected while phases are still arriving, and expected forever for
-  // siblings that were deliberately left out of the 600. The UI renders
-  // these as plain LeetCode links instead of internal ones.
-  warn(`${danglingSiblings} sibling references point outside the sheet (rendered as external links)`);
-}
-
-
-if (errors.length) {
-  console.error(`\nrefusing to import -- ${errors.length} error(s):\n`);
-  errors.forEach((e) => console.error(`  ${e}`));
-  process.exit(1);
-}
-
-// ---------------------------------------------------------------- normalise
-
-/** The page's row shape. Everything a problem row, badge or filter needs,
- *  and nothing it does not -- the learnings payload is the other 90% of the
- *  bytes and is fetched on demand. */
-function thin(p) {
-  return {
-    id: p.id,
-    phase: p.phase,
-    day: p.day,
-    ord: p.order,
-    topic: p.topic,
-    tier: p.tier,
-    title: p.title,
-    lc_id: p.lc.id || "",
-    slug: p.lc.slug,
-    url: p.lc.url,
-    difficulty: p.lc.difficulty,
-    ac_rate: p.lc.ac_rate == null ? null : p.lc.ac_rate,
-    lc_tags: p.lc.tags || [],
-    pattern: p.pattern || "",
-    template: p.template || "",
-    companies: p.companies || [],
-    campus_oa: p.campus_oa,
-    /* Striver's editorial, his own judge and his video sit on the row next
-       to the LeetCode link, so every place you might start a problem is one
-       click away without expanding anything.
-       Carried in full rather than as a "has TUF" flag: a flag means the row
-       can only say the link exists and still has to fetch to hand it over,
-       which is a request to show a hyperlink.
-       Null where Striver does not cover the problem -- 37 of the 145 are
-       LeetCode-only, so the row must read correctly with all three missing. */
-    tuf_article: (p.tuf && p.tuf.article) || null,
-    tuf_practice: (p.tuf && p.tuf.practice) || null,
-    tuf_youtube: (p.tuf && p.tuf.youtube) || null,
-    // Striver's name for it, which is often not LeetCode's. Worth a tooltip
-    // so a link that looks wrong can be recognised as the same problem.
-    striver_title: (p.tuf && p.tuf.striver_title) || "",
-    followups: ((p.learnings && p.learnings.followups) || []).length
-  };
-}
-
-/** The stored problem. `user_fields` is stripped: it is the schema's default
- *  row, and keeping a copy next to the content invites someone to write to
- *  it. Real progress lives in the console's own blob, keyed by problem id. */
-function content(p) {
-  const { user_fields, ...rest } = p;
-  /* `legacy_article` is the pre-October-2026 /data-structure/<slug> URL,
-     kept upstream for provenance. Those pages now serve a shell with the
-     title and no article body, so the one thing that must never happen is
-     one of them reaching the page. Dropping it here -- rather than
-     remembering not to render it -- means it is not in the data at all. */
-  if (rest.tuf && "legacy_article" in rest.tuf) {
-    const { legacy_article, ...tuf } = rest.tuf;
-    rest.tuf = tuf;
-  }
+function stripVerify(o) {
+  const { verify, ...rest } = o;
   return rest;
 }
 
-// ---------------------------------------------------------------- report
-
-/** Compare against what is already in data/dsa, so a re-import says what it
- *  actually did. Content-identical problems report as unchanged even when
- *  the upload was regenerated wholesale. */
-function diffPhase(key, nextProblems) {
-  const path = join(OUT, `phase-${key}.json`);
-  const prev = existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : null;
-  const prevById = new Map(((prev && prev.problems) || []).map((p) => [p.id, JSON.stringify(p)]));
-
-  let added = 0;
-  let changed = 0;
-  let unchanged = 0;
-  const changedIds = [];
-  for (const p of nextProblems) {
-    const now = JSON.stringify(p);
-    if (!prevById.has(p.id)) added++;
-    else if (prevById.get(p.id) !== now) {
-      changed++;
-      changedIds.push(p.id);
-    } else unchanged++;
-    prevById.delete(p.id);
-  }
-  const removed = [...prevById.keys()];
-  return { added, changed, unchanged, removed, changedIds };
-}
-
-// ---------------------------------------------------------------- write
-
-if (!CHECK_ONLY) mkdirSync(OUT, { recursive: true });
-
-const index = [];
-const phaseSummaries = [];
-const reports = [];
-
-for (const { key, doc, specPhase, dayStart, dayEnd, problems } of phases) {
-  const normalised = problems.map(content);
-  reports.push({ key, ...diffPhase(key, normalised) });
-
-  const payload = {
-    key,
-    slug: doc.slug || specPhase.slug,
-    title: doc.title || specPhase.title,
-    goal: doc.goal || specPhase.goal,
-    day_start: dayStart,
-    day_end: dayEnd,
-    problem_count: problems.length,
-    theory: doc.theory || [],
-    learnings: doc.learnings || [],
-    problems: normalised
-  };
-
-  if (!CHECK_ONLY) {
-    writeFileSync(join(OUT, `phase-${key}.json`), JSON.stringify(payload, null, 1));
-  }
-
-  problems.forEach((p) => index.push(thin(p)));
-
-  phaseSummaries.push({
-    key,
-    slug: payload.slug,
-    title: payload.title,
-    goal: payload.goal,
-    day_start: dayStart,
-    day_end: dayEnd,
-    problem_count: problems.length,
-    theory_count: payload.theory.length,
-    learning_count: payload.learnings.length
-  });
-}
-
-// Day order is the sheet's order: by day, then by the order field within it.
-index.sort((a, b) => a.day - b.day || a.ord - b.ord);
-
-const specOut = {
-  version: 1,
-  pool_size: spec.pool_size,
-  total_days: spec.total_days,
-  // Every phase SPEC knows about, flagged by whether its content has landed.
-  // The page uses this to show the unimported phases as pending rather than
-  // pretending the sheet is 261 problems long.
-  phases: spec.phases.map((p) => {
-    const loaded = phaseSummaries.find((s) => s.key === p.key);
-    return {
-      key: p.key,
-      slug: p.slug,
-      title: p.title,
-      goal: p.goal,
-      day_start: p.days[0],
-      day_end: p.days[1],
-      quota: p.quota,
-      problem_count: loaded ? loaded.problem_count : 0,
-      theory_count: loaded ? loaded.theory_count : 0,
-      learning_count: loaded ? loaded.learning_count : 0,
-      loaded: !!loaded
-    };
-  }),
-  topic_quota: spec.topic_quota,
-  tiers: spec.tiers,
-  tier_mix: spec.tier_mix,
-  user_field_schema: spec.user_field_schema,
-  tag_seed: (spec.user_field_schema.tags && spec.user_field_schema.tags.seed) || [],
-  statuses: [...STATUSES],
-  revision_queue_rule: spec.revision_queue_rule,
-  stuck_ladder: spec.stuck_ladder,
-  ai_protocol: spec.ai_protocol,
-  theory_parts: spec.theory_parts,
-  checkpoint_scope: spec.checkpoint_scope,
-  decay: spec.decay,
-  closed_topic_rollup: spec.closed_topic_rollup
-};
-
-const indexOut = {
-  version: 1,
-  generated: new Date().toISOString(),
-  total: index.length,
-  problems: index,
-  // slug -> id, so a sibling or citation can be resolved to an internal link
-  // without shipping the whole problem list twice.
-  by_slug: Object.fromEntries(index.map((p) => [p.slug, p.id])),
-  // Topic -> the theory section that teaches it, for the day view's header
-  // link. Built here because only the importer sees every phase at once.
-  theory_for_topic: {}
-};
-
-for (const { doc } of phases) {
-  for (const t of doc.theory || []) {
-    // Theory ids are 't-<topic>'; the few that are not fall back to matching
-    // on the id suffix, which is why this is a map and not a string slice.
-    const topic = t.id.replace(/^t-/, "");
-    indexOut.theory_for_topic[topic] = t.id;
-  }
-}
-
-/* Phase files for keys SPEC no longer declares.
- *
- * v2 re-keyed the phases from P0/P1/P2A/... to V0...V5. Writing the new ones
- * leaves the old ones sitting in data/dsa, where the build would happily
- * serve them: a problem cut from the sheet would still be reachable by URL,
- * showing content that is no longer part of the plan. Progress rows are a
- * different matter and are never touched -- those live in the database and
- * an orphaned one costs nothing.
+/**
+ * Validate and normalise. Returns { errors, warnings, outputs, report } and
+ * writes nothing -- `writeOutputs` does that, so the tests can run this over
+ * deliberately broken copies of the content without touching data/.
  */
-const declared = new Set(spec.phases.map((p) => `phase-${p.key}.json`));
-const stale = existsSync(OUT)
-  ? readdirSync(OUT).filter((f) => /^phase-.*\.json$/.test(f) && !declared.has(f))
-  : [];
+export function importDsa({ src, today = new Date().toISOString().slice(0, 10) }) {
+  const errors = [];
+  const warnings = [];
+  const fail = (m) => errors.push(m);
+  const warn = (m) => warnings.push(m);
 
-/* The index is authored against the same content, so disagreement means one
-   of the two was regenerated without the other. Worth saying rather than
-   shipping a revision screen that points at problems the sheet does not
-   have. */
-const patternRows = (patternIndexDoc && patternIndexDoc.patterns) || [];
-if (patternIndexDoc) {
-  const known = new Set(index.map((p) => p.id));
-  const orphanRows = patternRows.filter((r) => r.problem_id && !known.has(r.problem_id));
-  const uncovered = index.filter((p) => !patternRows.some((r) => r.problem_id === p.id));
-  if (orphanRows.length) fail(`PATTERN-INDEX.json cites ${orphanRows.length} problem(s) not in the sheet: ${orphanRows.slice(0, 3).map((r) => r.problem_id).join(", ")}`);
-  if (uncovered.length) warn(`${uncovered.length} problem(s) have no row in PATTERN-INDEX.json`);
-  for (const r of patternRows) {
-    if (r.template_id && !templateIds.has(r.template_id)) {
-      warn(`PATTERN-INDEX.json row ${r.pattern} cites missing template ${r.template_id}`);
+  function readJson(path, fallback) {
+    try {
+      return JSON.parse(readFileSync(path, "utf8"));
+    } catch (e) {
+      if (fallback !== undefined) return fallback;
+      fail(`could not read ${relative(src, path) || path}: ${e.message}`);
+      return null;
     }
   }
-} else {
-  warn("no PATTERN-INDEX.json; the pattern index screen will be empty");
-}
 
-// ---------------------------------------------------------------- the OAs
+  const plan = readJson(join(src, "PLAN.json"));
+  const schedule = readJson(join(src, "MOCK-SCHEDULE.json"));
+  const theoryIndex = readJson(join(src, "theory", "INDEX.json"));
+  if (!plan || !schedule || !theoryIndex) return { errors, warnings };
 
-/* Mock assessments, which go somewhere the sheet content deliberately does
- * not: into the Worker bundle.
- *
- * PRD §5.1 is the reason. The sheet's phase files are static assets because
- * they are meant to be read by the client. OA content is the opposite --
- * `hidden_tests` must never reach the browser before submission, and
- * anything under public/ is world-readable by definition. One curl of the
- * mock and the assessment is worth nothing.
- *
- * So this writes worker/oa-content.json, which Wrangler bundles into the
- * Worker, and nothing here is ever copied into public/. The build has a
- * test that asserts exactly that.
- */
+  // ------------------------------------------------------------ theory
 
-const OA_SRC = join(SRC, "oa");
-const OA_OUT = join(ROOT, "worker", "oa-content.json");
-
-const oaMocks = [];
-const knownPatterns = new Set(index.map((p) => p.pattern).filter(Boolean));
-const knownProblemIds = new Set(index.map((p) => p.id));
-
-/* The authored generator, run here and only here.
- *
- * This is the one place `builder_js` is evaluated, and it happens at import
- * time on a developer's machine over content from this repository -- the
- * same trust level as running this script at all. PRD §3.1 forbids it at
- * request time, which is a different thing entirely, and the Worker never
- * sees the string: it is stripped below. Evaluating it here is what makes
- * the hand-written port in worker/oa-gen.js verifiable rather than a second
- * copy that drifts. */
-function runAuthoredBuilder(source) {
-  return new Function(`${source}; return build();`)();
-}
-
-const oaFiles = existsSync(OA_SRC)
-  ? readdirSync(OA_SRC).filter((f) => /-problems\.json$/.test(f)).sort()
-  : [];
-
-for (const file of oaFiles) {
-  const mock = readJson(join(OA_SRC, file), null);
-  if (!mock) continue;
-
-  const where = `oa/${file}`;
-  if (!mock.id || !Array.isArray(mock.problems)) {
-    fail(`${where}: not a mock (needs id and problems[])`);
-    continue;
+  const pages = new Map();       // id -> page
+  const sectionsOf = new Map();  // id -> Set(section ids)
+  for (const f of readdirSync(join(src, "theory")).filter((f) => f.endsWith(".json") && f !== "INDEX.json").sort()) {
+    const page = readJson(join(src, "theory", f));
+    if (!page) continue;
+    const where = `theory/${f}`;
+    if (page.id !== f.replace(/\.json$/, "")) fail(`${where}: id '${page.id}' does not match the file name`);
+    if (pages.has(page.id)) { fail(`${where}: duplicate theory page id ${page.id}`); continue; }
+    checkSections(where, page.sections, null);
+    pages.set(page.id, page);
+    sectionsOf.set(page.id, new Set((page.sections || []).map((s) => s.id)));
+  }
+  if (theoryIndex.count !== pages.size) {
+    fail(`theory/INDEX.json declares ${theoryIndex.count} pages but ${pages.size} page files exist`);
+  }
+  for (const row of theoryIndex.pages || []) {
+    if (!pages.has(row.id)) fail(`theory/INDEX.json lists '${row.id}', which has no page file`);
   }
 
-  const coversDays = Array.isArray(mock.covers_days) ? mock.covers_days : [];
-  if (!coversDays.length) fail(`${where}: covers_days is empty -- the prerequisite rule has nothing to check`);
-  const lastCovered = Math.max(...coversDays, 0);
-
-  let marks = 0;
-  const problems = [];
-
-  for (const q of mock.problems) {
-    const qw = `${where} ${q.id}`;
-
-    /* §2: a mock may only use patterns from days already completed, and
-       `source_day` is what enforces it. A problem drawn from outside the
-       declared range makes the mock a test of unstudied material, which is
-       the one thing the tab exists not to be. */
-    if (!(q.source_day >= 1) || !coversDays.includes(q.source_day)) {
-      fail(`${qw}: source_day ${q.source_day} is not in covers_days [${coversDays.join(", ")}]`);
-    }
-    if (q.tests_pattern && !knownPatterns.has(q.tests_pattern)) {
-      fail(`${qw}: tests_pattern '${q.tests_pattern}' is not a pattern on the sheet`);
-    }
-    if (q.related && !knownProblemIds.has(q.related)) {
-      fail(`${qw}: related '${q.related}' is not a problem on the sheet`);
-    }
-
-    for (const [i, t] of (q.samples || []).entries()) {
-      if (typeof t.input !== "string" || typeof t.output !== "string") {
-        fail(`${qw}: sample[${i}] needs both input and output`);
+  /* A section's `note` drives the ✍️/📸 rendering and an empty body renders as
+     a heading with nothing under it, so both are checked wherever sections
+     appear: theory pages, problem stages, siblings, micro-theory, CS core. */
+  function checkSections(where, sections, wantIds) {
+    if (!Array.isArray(sections) || !sections.length) { fail(`${where}: no sections`); return; }
+    if (wantIds) {
+      const got = sections.map((s) => s.id);
+      if (got.join(",") !== wantIds.join(",")) {
+        fail(`${where}: stages must be exactly [${wantIds.join(", ")}] in order, got [${got.join(", ")}]`);
       }
     }
+    for (const s of sections) {
+      if (!s.id) fail(`${where}: a section has no id`);
+      if (!NOTES.has(s.note)) fail(`${where}#${s.id}: note '${s.note}' is not write, screenshot or mixed`);
+      if (typeof s.body !== "string" || !s.body.trim()) fail(`${where}#${s.id}: empty body`);
+    }
+  }
 
-    const hidden = [];
-    let hiddenMarks = 0;
+  // Every reference anywhere funnels through here, which is also what builds
+  // the reverse index -- a reference that resolves is a `used_by` row.
+  const usedBy = new Map(); // page id -> rows
+  const referenced = new Set(); // includes prereq/related links, which are not `used_by` rows
+  function ref(where, page, section, use) {
+    if (!pages.has(page)) { fail(`${where}: theory page '${page}' does not exist`); return; }
+    referenced.add(page);
+    if (section && !sectionsOf.get(page).has(section)) {
+      fail(`${where}: theory page '${page}' has no section '${section}'`);
+      return;
+    }
+    if (use) {
+      if (!usedBy.has(page)) usedBy.set(page, []);
+      usedBy.get(page).push({ ...use, section: section || null });
+    }
+  }
+  function inlineLinks(where, body, use) {
+    for (const m of String(body || "").matchAll(LINK)) ref(where, m[1], m[2], use);
+  }
 
-    for (const [i, t] of (q.hidden || []).entries()) {
-      const key = `${q.id}#${i}`;
-      if (typeof t.output !== "string") {
-        fail(`${qw}: hidden[${i}] has no output -- it cannot be graded`);
-        continue;
-      }
-      hiddenMarks += Number(t.marks) || 0;
+  // Page-to-page links resolve like any other, but a page only being some
+  // other page's prereq is not "used" -- so these never become used_by rows.
+  for (const page of pages.values()) {
+    for (const p of page.prereqs || []) ref(`theory/${page.id} prereqs`, p);
+    for (const p of page.related || []) ref(`theory/${page.id} related`, p);
+    for (const s of page.sections || []) inlineLinks(`theory/${page.id}#${s.id}`, s.body, null);
+  }
 
-      if (typeof t.input === "string") {
-        hidden.push({ desc: t.desc || "", marks: Number(t.marks) || 0, input: t.input, output: t.output });
-        continue;
-      }
+  // ------------------------------------------------------------ plan
 
-      if (!t.gen || typeof t.gen.builder_js !== "string") {
-        fail(`${qw}: hidden[${i}] has neither an input nor a gen.builder_js`);
-        continue;
-      }
+  const ids = new Map(); // shared namespace: problems, skims, siblings, drill
+  function claim(id, where) {
+    if (!id) { fail(`${where}: missing id`); return; }
+    if (ids.has(id)) fail(`${where}: id '${id}' is already used by ${ids.get(id)}`);
+    else ids.set(id, where);
+  }
 
-      /* The port check. Both sides build the same string or the import
-         stops -- a generator that has drifted would grade a correct
-         solution as wrong, silently, and only on the test that exists to
-         catch the slow ones. */
-      let authored;
-      try {
-        authored = runAuthoredBuilder(t.gen.builder_js);
-      } catch (e) {
-        fail(`${qw}: hidden[${i}] gen.builder_js does not run: ${e.message}`);
-        continue;
-      }
-      let ported;
-      try {
-        ported = oaBuildInput(key);
-      } catch (e) {
-        fail(`${qw}: hidden[${i}] ${e.message} -- port gen.builder_js into worker/oa-gen.js under key '${key}'`);
-        continue;
-      }
-      if (authored !== ported) {
-        fail(`${qw}: hidden[${i}] the port in worker/oa-gen.js disagrees with gen.builder_js ` +
-             `(authored ${authored.length} chars, ported ${ported.length}) -- re-port it under key '${key}'`);
-        continue;
-      }
+  const start = plan.start_date;
+  const days = plan.days || [];
+  if (days.length !== 30) fail(`PLAN.json: expected 30 days, found ${days.length}`);
 
-      /* builder_js and spec are dropped here. What reaches the Worker is a
-         key into the ported generators, so there is no source string in the
-         bundle to evaluate even by mistake. */
-      hidden.push({ desc: t.desc || "", marks: Number(t.marks) || 0, gen_key: key, output: t.output });
+  const planProblems = [];
+  const patterns = new Set();
+  for (const d of days) {
+    const where = `PLAN day ${d.day}`;
+    if (d.date !== addDays(start, d.day - 1)) fail(`${where}: date ${d.date} is not start_date + ${d.day - 1}`);
+    if (!(plan.clusters || []).some((c) => c.key === d.cluster)) fail(`${where}: unknown cluster '${d.cluster}'`);
+    for (const p of d.problems || []) {
+      const pw = `${where} ${p.id}`;
+      claim(p.id, pw);
+      if (!ROLES.has(p.role)) fail(`${pw}: role '${p.role}' is not LEARN/APPLY/TWIST/DISGUISE`);
+      if (!p.lc || !p.lc.url || !DIFFICULTY.has(p.lc.difficulty)) fail(`${pw}: lc.url or lc.difficulty missing`);
+      for (const t of p.theory || []) ref(`${pw} theory`, t, null, { kind: "problem", id: p.id, day: d.day, stage: "primary", at: "" });
+      if (p.pattern) patterns.add(p.pattern);
+      planProblems.push({ ...p, day: d.day });
+    }
+    for (const s of d.skims || []) {
+      claim(s.id, `${where} skim`);
+      for (const t of s.theory || []) ref(`${where} skim ${s.id}`, t, null, { kind: "skim", id: s.id, day: d.day, stage: "", at: "" });
+    }
+  }
+  if (planProblems.length !== plan.problem_count) {
+    fail(`PLAN.json: problem_count ${plan.problem_count} but ${planProblems.length} problems listed`);
+  }
+
+  // ------------------------------------------------------------ days
+
+  const dayOut = new Map();      // n -> day payload
+  const problemOut = new Map();  // id -> problem payload
+  const mustOf = new Map();      // problem id -> { id, title }
+  const siblingCount = new Map();
+  let siblingTotal = 0;
+  let drillTotal = 0;
+
+  const dayFiles = new Set(existsSync(join(src, "days"))
+    ? readdirSync(join(src, "days")).filter((f) => /^day-\d+\.json$/.test(f)) : []);
+
+  for (const d of days) {
+    const file = `day-${String(d.day).padStart(2, "0")}.json`;
+    const where = `days/${file}`;
+    if (!dayFiles.has(file)) {
+      if (d.content === "ready") fail(`${where}: PLAN marks day ${d.day} ready but the file is missing`);
+      continue;
+    }
+    if (d.content !== "ready") warn(`${where}: exists but PLAN still marks day ${d.day} pending -- not imported`);
+    if (d.content !== "ready") continue;
+
+    const doc = readJson(join(src, "days", file));
+    if (!doc) continue;
+    if (doc.day !== d.day) fail(`${where}: declares day ${doc.day}`);
+
+    const want = (d.problems || []).map((p) => p.id);
+    const got = (doc.problems || []).map((p) => p.id);
+    if (want.join(",") !== got.join(",")) {
+      fail(`${where}: problems [${got.join(", ")}] differ from PLAN day ${d.day} [${want.join(", ")}]`);
     }
 
-    if (hiddenMarks !== Number(q.marks)) {
-      fail(`${qw}: hidden tests total ${hiddenMarks} marks but the problem declares ${q.marks}`);
-    }
-    marks += Number(q.marks) || 0;
+    // Micro-theory and pattern card.
+    const micro = doc.micro || {};
+    checkSections(`${where} micro`, micro.sections, null);
+    for (const t of micro.theory || []) ref(`${where} micro.theory`, t, null, { kind: "micro", id: `day-${d.day}`, day: d.day, stage: "micro", at: micro.title || "" });
+    for (const s of micro.sections || []) inlineLinks(`${where} micro#${s.id}`, s.body, { kind: "micro", id: `day-${d.day}`, day: d.day, stage: s.id, at: micro.title || "" });
 
-    problems.push({
-      id: q.id,
-      ord: q.ord,
-      title: q.title,
-      marks: q.marks,
-      difficulty: q.difficulty,
-      statement: q.statement,
-      input_format: q.input_format,
-      output_format: q.output_format,
-      constraints: q.constraints,
-      samples: q.samples || [],
-      hidden,
-      // The review payload. Served only after the attempt is finished.
-      tests_pattern: q.tests_pattern || "",
-      source_day: q.source_day,
-      intended_approach: q.intended_approach || "",
-      intended_complexity: q.intended_complexity || "",
-      common_wrong_turn: q.common_wrong_turn || "",
-      related: q.related || ""
+    // Problems.
+    for (const p of doc.problems || []) {
+      const pw = `${where} ${p.id}`;
+      checkSections(pw, p.stages, PROBLEM_STAGES);
+      for (const s of p.stages || []) inlineLinks(`${pw}#${s.id}`, s.body, { kind: "problem", id: p.id, day: d.day, stage: s.id, at: "" });
+      for (const r of p.theory_refs || []) {
+        if (!PROBLEM_STAGES.includes(r.stage)) fail(`${pw}: theory_ref stage '${r.stage}' is not a stage`);
+        ref(`${pw} theory_refs`, r.page, r.section, { kind: "problem", id: p.id, day: d.day, stage: r.stage, at: r.at || "" });
+      }
+      for (const [min, r] of Object.entries(p.stuck_refs || {})) {
+        ref(`${pw} stuck_refs[${min}]`, r.page, r.section, { kind: "problem", id: p.id, day: d.day, stage: `stuck-${min}`, at: `stuck ladder, ${min} min` });
+      }
+
+      const sibs = p.siblings || [];
+      const musts = sibs.filter((s) => s.tier === "must");
+      if (musts.length !== 1) fail(`${pw}: needs exactly one must sibling, has ${musts.length}`);
+      for (const s of sibs) {
+        const sw = `${pw} sibling ${s.id}`;
+        claim(s.id, sw);
+        if (s.tier !== "must" && s.tier !== "optional") fail(`${sw}: tier '${s.tier}' is not must or optional`);
+        checkSections(sw, s.stages, SIBLING_STAGES);
+        for (const st of s.stages || []) inlineLinks(`${sw}#${st.id}`, st.body, { kind: "sibling", id: s.id, day: d.day, stage: st.id, at: p.id });
+      }
+      siblingTotal += sibs.length;
+      siblingCount.set(p.id, sibs.length);
+      if (musts[0]) mustOf.set(p.id, { id: musts[0].id, title: musts[0].title });
+
+      const row = planProblems.find((x) => x.id === p.id) || {};
+      problemOut.set(p.id, {
+        id: p.id,
+        day: d.day,
+        ord: row.ord,
+        role: row.role,
+        title: row.title,
+        lc: row.lc,
+        pattern: row.pattern || "",
+        theory: row.theory || [],
+        theory_refs: p.theory_refs || [],
+        stuck_refs: p.stuck_refs || {},
+        stages: p.stages,
+        siblings: sibs.map(stripVerify)
+      });
+    }
+
+    // Recognition drill.
+    const drill = doc.drill || [];
+    if (drill.length !== DRILL_PER_DAY) fail(`${where}: drill needs exactly ${DRILL_PER_DAY} items, has ${drill.length}`);
+    for (const it of drill) {
+      const iw = `${where} drill ${it.id}`;
+      claim(it.id, iw);
+      if (!it.statement) fail(`${iw}: no statement`);
+      ref(`${iw} pattern_page`, it.pattern_page, null, { kind: "drill", id: it.id, day: d.day, stage: "drill", at: it.pattern_name || "" });
+    }
+    drillTotal += drill.length;
+
+    // CS core.
+    if (!doc.cs_core) fail(`${where}: a ready day needs cs_core`);
+    else {
+      checkSections(`${where} cs_core`, doc.cs_core.sections, null);
+      for (const s of doc.cs_core.sections || []) inlineLinks(`${where} cs_core#${s.id}`, s.body, null);
+    }
+
+    dayOut.set(d.day, {
+      day: d.day,
+      date: d.date,
+      weekday: d.weekday,
+      cluster: d.cluster,
+      title: d.title,
+      micro,
+      drill,
+      cs_core: doc.cs_core || null,
+      skims: d.skims || []
     });
   }
 
-  if (marks !== Number(mock.total_marks)) {
-    fail(`${where}: problems total ${marks} marks but the mock declares ${mock.total_marks}`);
+  for (const d of days) {
+    if (d.content !== "ready") {
+      // Pending is normal; pending inside the five-day window is the batch being late.
+      const lead = Math.round((Date.parse(d.date) - Date.parse(today)) / 86400000);
+      if (lead <= 5 && lead >= -30) warn(`day ${d.day} (${d.date}) is pending and ${lead < 0 ? "already past" : `${lead} day(s) away`}`);
+    }
+  }
+  const pendingDays = days.filter((d) => d.content !== "ready").map((d) => d.day);
+
+  // ------------------------------------------------------------ schedule
+
+  const mocks = schedule.mocks || [];
+  for (const m of mocks) {
+    const mw = `MOCK-SCHEDULE ${m.id}`;
+    if (m.date !== addDays(start, m.day - 1)) fail(`${mw}: date ${m.date} is not start_date + ${m.day - 1}`);
+    const lead = Math.round((Date.parse(m.date) - Date.parse(today)) / 86400000);
+    if (m.content !== "ready" && lead >= 0 && lead <= 3) warn(`${mw}: content is pending and the mock is ${lead} day(s) away`);
   }
 
-  oaMocks.push({
-    id: mock.id,
-    title: mock.title,
-    covers_days: coversDays,
-    last_covered_day: lastCovered,
-    duration_min: mock.duration_min,
-    total_marks: mock.total_marks,
-    difficulty: mock.difficulty || "campus-standard",
-    grading: mock.grading || {},
-    problems: problems.sort((a, b) => a.ord - b.ord)
-  });
+  // ------------------------------------------------------------ OAs
+
+  /* Mock assessments go into the Worker bundle, never public/: hidden tests
+     must not be readable before submission, and anything under public/ is
+     world-readable. The generator-port check is unchanged from v2. */
+  const oaMocks = [];
+  const planIds = new Set(planProblems.map((p) => p.id));
+  const oaDir = join(src, "oa");
+  const oaFiles = existsSync(oaDir) ? readdirSync(oaDir).filter((f) => /-problems\.json$/.test(f)).sort() : [];
+
+  for (const file of oaFiles) {
+    const mock = readJson(join(oaDir, file), null);
+    if (!mock) continue;
+    const where = `oa/${file}`;
+    if (!mock.id || !Array.isArray(mock.problems)) { fail(`${where}: not a mock (needs id and problems[])`); continue; }
+
+    const sched = mocks.find((m) => m.id === mock.id);
+    if (!sched) { fail(`${where}: '${mock.id}' is not in MOCK-SCHEDULE.json`); continue; }
+    const coversDays = Array.isArray(mock.covers_days) ? mock.covers_days : [];
+    if (coversDays.join(",") !== (sched.covers_days || []).join(",")) {
+      fail(`${where}: covers_days [${coversDays.join(", ")}] differ from MOCK-SCHEDULE [${(sched.covers_days || []).join(", ")}]`);
+    }
+
+    let marks = 0;
+    const problems = [];
+    for (const q of mock.problems) {
+      const qw = `${where} ${q.id}`;
+      if (!coversDays.includes(q.source_day)) fail(`${qw}: source_day ${q.source_day} is not in covers_days`);
+      if (q.tests_pattern && !patterns.has(q.tests_pattern)) fail(`${qw}: tests_pattern '${q.tests_pattern}' is not a PLAN pattern`);
+      if (q.related && !planIds.has(q.related)) fail(`${qw}: related '${q.related}' is not a PLAN problem`);
+      for (const [i, t] of (q.samples || []).entries()) {
+        if (typeof t.input !== "string" || typeof t.output !== "string") fail(`${qw}: sample[${i}] needs both input and output`);
+      }
+
+      const hidden = [];
+      let hiddenMarks = 0;
+      for (const [i, t] of (q.hidden || []).entries()) {
+        const key = `${q.id}#${i}`;
+        if (typeof t.output !== "string") { fail(`${qw}: hidden[${i}] has no output`); continue; }
+        hiddenMarks += Number(t.marks) || 0;
+        if (typeof t.input === "string") {
+          hidden.push({ desc: t.desc || "", marks: Number(t.marks) || 0, input: t.input, output: t.output });
+          continue;
+        }
+        if (!t.gen || typeof t.gen.builder_js !== "string") { fail(`${qw}: hidden[${i}] has neither input nor gen.builder_js`); continue; }
+        // The one place builder_js is evaluated: import time, on this machine,
+        // over content from this repository. The Worker never sees the string.
+        let authored, ported;
+        try { authored = new Function(`${t.gen.builder_js}; return build();`)(); }
+        catch (e) { fail(`${qw}: hidden[${i}] gen.builder_js does not run: ${e.message}`); continue; }
+        try { ported = oaBuildInput(key); }
+        catch (e) { fail(`${qw}: hidden[${i}] ${e.message} -- port it into worker/oa-gen.js under '${key}'`); continue; }
+        if (authored !== ported) { fail(`${qw}: hidden[${i}] the port in worker/oa-gen.js disagrees with gen.builder_js`); continue; }
+        hidden.push({ desc: t.desc || "", marks: Number(t.marks) || 0, gen_key: key, output: t.output });
+      }
+      if (hiddenMarks !== Number(q.marks)) fail(`${qw}: hidden tests total ${hiddenMarks} marks but the problem declares ${q.marks}`);
+      marks += Number(q.marks) || 0;
+
+      problems.push({
+        id: q.id, ord: q.ord, title: q.title, marks: q.marks, difficulty: q.difficulty,
+        statement: q.statement, input_format: q.input_format, output_format: q.output_format,
+        constraints: q.constraints, samples: q.samples || [], hidden,
+        tests_pattern: q.tests_pattern || "", source_day: q.source_day,
+        intended_approach: q.intended_approach || "", intended_complexity: q.intended_complexity || "",
+        common_wrong_turn: q.common_wrong_turn || "", related: q.related || ""
+      });
+    }
+    if (marks !== Number(mock.total_marks)) fail(`${where}: problems total ${marks} marks but the mock declares ${mock.total_marks}`);
+
+    oaMocks.push({
+      id: mock.id, title: mock.title, covers_days: coversDays,
+      last_covered_day: Math.max(0, ...coversDays),
+      duration_min: mock.duration_min || sched.duration_min, total_marks: mock.total_marks,
+      difficulty: mock.difficulty || "campus-standard", grading: mock.grading || {},
+      problems: problems.sort((a, b) => a.ord - b.ord)
+    });
+  }
+  for (const m of mocks) {
+    if (m.content === "ready" && !oaMocks.some((o) => o.id === m.id)) fail(`MOCK-SCHEDULE ${m.id}: marked ready but oa/${m.id}-problems.json is missing`);
+  }
+
+  if (errors.length) return { errors, warnings };
+
+  // ------------------------------------------------------------ normalise
+
+  for (const id of pages.keys()) {
+    if (!referenced.has(id)) warn(`theory/${id}: not referenced by anything`);
+  }
+
+  const theoryPages = [...pages.values()].map((page) => ({
+    ...page,
+    used_by: (usedBy.get(page.id) || []).sort((a, b) => a.day - b.day || a.id.localeCompare(b.id))
+  }));
+
+  const rows = planProblems.map((p) => ({
+    id: p.id,
+    day: p.day,
+    ord: p.ord,
+    role: p.role,
+    title: p.title,
+    lc_id: (p.lc && p.lc.id) || "",
+    slug: (p.lc && p.lc.slug) || p.id,
+    url: p.lc.url,
+    difficulty: p.lc.difficulty,
+    topic: p.topic || "",
+    pattern: p.pattern || "",
+    theory: p.theory || [],
+    companies: p.companies || [],
+    campus_oa: p.campus_oa || "",
+    cluster: (days.find((d) => d.day === p.day) || {}).cluster || "",
+    tuf_article: (p.tuf && p.tuf.article) || null,
+    tuf_practice: (p.tuf && p.tuf.practice) || null,
+    tuf_youtube: (p.tuf && p.tuf.youtube) || null,
+    legacy_id: p.legacy_id || null,
+    content: problemOut.has(p.id) ? "ready" : "pending",
+    must: mustOf.get(p.id) || null,
+    siblings: siblingCount.get(p.id) || 0
+  }));
+
+  const patternList = [...patterns].map((pattern) => {
+    const ps = rows.filter((r) => r.pattern === pattern);
+    return { pattern, topic: ps[0].topic, primary_page: ps[0].theory[0] || "", problems: ps.map((r) => r.id) };
+  }).sort((a, b) => rows.findIndex((r) => r.pattern === a.pattern) - rows.findIndex((r) => r.pattern === b.pattern));
+
+  const { days: _days, ...planHead } = plan;
+  const planOut = {
+    ...planHead,
+    days: days.map((d) => ({
+      day: d.day, date: d.date, weekday: d.weekday, cluster: d.cluster, title: d.title,
+      content: dayOut.has(d.day) ? "ready" : "pending",
+      problems: (d.problems || []).map((p) => p.id),
+      skims: (d.skims || []).map((s) => ({ id: s.id, title: s.title, lc: s.lc, theory: s.theory || [] })),
+      micro: dayOut.has(d.day) ? { title: dayOut.get(d.day).micro.title, theory: dayOut.get(d.day).micro.theory || [] } : null
+    }))
+  };
+
+  const indexOut = {
+    version: 3,
+    total: rows.length,
+    problems: rows,
+    legacy_map: Object.fromEntries(rows.filter((r) => r.legacy_id).map((r) => [r.legacy_id, r.id])),
+    patterns: patternList
+  };
+
+  const theoryIndexOut = {
+    version: 3,
+    count: theoryPages.length,
+    topics: theoryIndex.topics,
+    pages: (theoryIndex.pages || []).map((row) => ({ ...row, used: (usedBy.get(row.id) || []).length }))
+  };
+
+  /* What the cron needs, and nothing else. The Worker cannot read public/
+     cheaply from a scheduled handler, and a nudge has to name the next
+     action with its link -- so the thin plan is bundled, like the OAs. */
+  const workerPlan = {
+    start_date: plan.start_date,
+    end_date: plan.end_date,
+    floor: plan.floor,
+    days: planOut.days.map((d) => ({
+      day: d.day, date: d.date, title: d.title, cluster: d.cluster, content: d.content,
+      micro_theory: d.micro ? d.micro.theory : [],
+      drill: dayOut.has(d.day) ? dayOut.get(d.day).drill.map((it) => it.id) : [],
+      cs_core: dayOut.has(d.day) && dayOut.get(d.day).cs_core ? dayOut.get(d.day).cs_core.id : null,
+      problems: rows.filter((r) => r.day === d.day).sort((a, b) => a.ord - b.ord).map((r) => ({
+        id: r.id, ord: r.ord, role: r.role, title: r.title, url: r.url, difficulty: r.difficulty,
+        theory: r.theory, must: r.must
+      }))
+    })),
+    rules: schedule.rules,
+    mocks
+  };
+
+  const outputs = new Map();
+  outputs.set("plan.json", planOut);
+  outputs.set("index.json", indexOut);
+  outputs.set("schedule.json", schedule);
+  outputs.set("theory-index.json", theoryIndexOut);
+  for (const page of theoryPages) outputs.set(`theory/${page.id}.json`, page);
+  for (const [n, day] of dayOut) outputs.set(`day/${n}.json`, day);
+  for (const [id, p] of problemOut) outputs.set(`problem/${id}.json`, p);
+
+  return {
+    errors,
+    warnings,
+    outputs,
+    worker: { "oa-content.json": { count: oaMocks.length, mocks: oaMocks }, "dsa-plan.json": workerPlan },
+    stats: {
+      problems: rows.length, ready_days: dayOut.size, pending_days: pendingDays,
+      skims: planOut.days.reduce((n, d) => n + d.skims.length, 0),
+      pages: theoryPages.length, siblings: siblingTotal, drill: drillTotal,
+      mocks_ready: oaMocks.length, mocks_pending: mocks.length - oaMocks.length
+    }
+  };
 }
 
-if (errors.length) {
-  console.error(`\nrefusing to import -- ${errors.length} error(s):\n`);
-  errors.forEach((e) => console.error(`  ${e}`));
-  process.exit(1);
+// ---------------------------------------------------------------- report + write
+
+function listJson(dir, base = dir) {
+  if (!existsSync(dir)) return [];
+  const out = [];
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, e.name);
+    if (e.isDirectory()) out.push(...listJson(p, base));
+    else if (e.name.endsWith(".json")) out.push(relative(base, p));
+  }
+  return out;
 }
 
-if (!CHECK_ONLY) {
-  stale.forEach((f) => rmSync(join(OUT, f)));
-  writeFileSync(join(OUT, "pattern-index.json"), JSON.stringify({ count: patternRows.length, patterns: patternRows }));
-  writeFileSync(join(OUT, "spec.json"), JSON.stringify(specOut, null, 1));
-  writeFileSync(join(OUT, "templates.json"), JSON.stringify({ count: templates.length, templates }, null, 1));
-  writeFileSync(join(OUT, "index.json"), JSON.stringify(indexOut));
-  writeFileSync(OA_OUT, JSON.stringify({ count: oaMocks.length, mocks: oaMocks }));
+/** Per-day movement against what is already in data/dsa, so a re-import
+ *  says what it actually did. A day counts as changed when its day file or
+ *  any of its problem files changed. */
+function diff(out, outputs) {
+  const prev = (rel) => {
+    const p = join(out, rel);
+    return existsSync(p) ? readFileSync(p, "utf8") : null;
+  };
+  const byDay = new Map();
+  for (const [rel, value] of outputs) {
+    const m = rel.match(/^(day|problem)\//);
+    if (!m) continue;
+    const day = value.day;
+    const was = prev(rel);
+    const now = JSON.stringify(value);
+    const state = was === null ? "added" : was === now ? "unchanged" : "changed";
+    const cur = byDay.get(day) || { added: 0, changed: 0, unchanged: 0 };
+    cur[state]++;
+    byDay.set(day, cur);
+  }
+  const stale = listJson(out).filter((rel) => !outputs.has(rel));
+  return { byDay, stale };
 }
 
-// ---------------------------------------------------------------- output
-
-const kb = (n) => (n / 1024).toFixed(1) + " KB";
-
-console.log(CHECK_ONLY ? "\nDSA import — check only, nothing written\n" : "\nDSA import\n");
-
-for (const r of reports) {
-  const bits = [];
-  if (r.added) bits.push(`${r.added} added`);
-  if (r.changed) bits.push(`${r.changed} changed`);
-  if (r.unchanged) bits.push(`${r.unchanged} unchanged`);
-  if (r.removed.length) bits.push(`${r.removed.length} REMOVED`);
-  console.log(`  ${r.key.padEnd(4)} ${bits.join(", ")}`);
-  // A removal is the one case where progress can be orphaned, so name them.
-  r.removed.forEach((id) => console.log(`         gone: ${id}`));
-  if (r.changed && r.changed <= 12) r.changedIds.forEach((id) => console.log(`         diff: ${id}`));
+function writeOutputs(out, result) {
+  const { byDay, stale } = diff(out, result.outputs);
+  mkdirSync(out, { recursive: true });
+  // Removed first: v2's phase files, templates and pattern index would
+  // otherwise be served next to the v3 content and look current.
+  for (const rel of stale) rmSync(join(out, rel));
+  for (const [rel, value] of result.outputs) {
+    const target = join(out, rel);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, JSON.stringify(value));
+  }
+  for (const [name, value] of Object.entries(result.worker)) {
+    writeFileSync(join(ROOT, "worker", name), JSON.stringify(value));
+  }
+  return { byDay, stale };
 }
 
-console.log(`\n  problems    ${index.length} of ${spec.pool_size} in the pool`);
-console.log(`  phases      ${phaseSummaries.length} of ${spec.phases.length} imported` +
-  (pending.length ? `  (awaiting ${pending.join(", ")})` : ""));
-console.log(`  templates   ${templates.length}`);
-console.log(`  pattern rows ${patternRows.length}`);
-if (stale.length) {
-  console.log(`  removed     ${stale.length} phase file(s) for keys SPEC no longer declares:`);
-  stale.forEach((f) => console.log(`                ${f}`));
-}
-console.log(`  index.json  ${kb(JSON.stringify(indexOut).length)}  (baked into the page)`);
-console.log(`  OA mocks    ${oaMocks.length}, ${oaMocks.reduce((n, m) => n + m.problems.length, 0)} problems, ` +
-  `${kb(JSON.stringify({ mocks: oaMocks }).length)}  (bundled into the Worker, never public/)`);
+function main() {
+  const check = process.argv.includes("--check");
+  const src = join(ROOT, "docs", "dsa-sheet", "v3");
+  const out = join(ROOT, "data", "dsa");
+  const result = importDsa({ src });
 
-if (warnings.length) {
-  console.log(`\n  ${warnings.length} warning(s):`);
-  warnings.forEach((w) => console.log(`    ${w}`));
+  if (result.errors.length) {
+    console.error(`\nrefusing to import -- ${result.errors.length} error(s):\n`);
+    result.errors.forEach((e) => console.error(`  ${e}`));
+    process.exit(1);
+  }
+
+  const { byDay, stale } = check ? diff(out, result.outputs) : writeOutputs(out, result);
+  const s = result.stats;
+  const kb = (v) => (JSON.stringify(v).length / 1024).toFixed(1) + " KB";
+
+  console.log(check ? "\nDSA import (v3) — check only, nothing written\n" : "\nDSA import (v3)\n");
+  for (const [day, r] of [...byDay].sort((a, b) => a[0] - b[0])) {
+    const bits = [];
+    if (r.added) bits.push(`${r.added} added`);
+    if (r.changed) bits.push(`${r.changed} changed`);
+    if (r.unchanged) bits.push(`${r.unchanged} unchanged`);
+    console.log(`  day ${String(day).padStart(2)}  ${bits.join(", ")}`);
+  }
+  if (stale.length) console.log(`  removed  ${stale.length} file(s) the content no longer produces`);
+  console.log(`\n  problems     ${s.problems} (${s.ready_days} days ready, ${s.pending_days.length} pending)`);
+  console.log(`  skims        ${s.skims}`);
+  console.log(`  theory       ${s.pages} pages`);
+  console.log(`  siblings     ${s.siblings}`);
+  console.log(`  drill        ${s.drill}`);
+  console.log(`  mocks        ${s.mocks_ready} ready, ${s.mocks_pending} pending`);
+  console.log(`  plan.json    ${kb(result.outputs.get("plan.json"))}  (baked into the page)`);
+  console.log(`  index.json   ${kb(result.outputs.get("index.json"))}  (baked into the page)`);
+  console.log(`  OA bundle    ${kb(result.worker["oa-content.json"])}  (Worker only, never public/)`);
+  console.log(`  cron plan    ${kb(result.worker["dsa-plan.json"])}  (Worker only)`);
+  if (result.warnings.length) {
+    console.log(`\n  ${result.warnings.length} warning(s):`);
+    result.warnings.forEach((w) => console.log(`    ${w}`));
+  }
+  console.log("");
 }
-console.log("");
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();

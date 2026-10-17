@@ -1,0 +1,29 @@
+{
+ "id": "sort-stability-and-bounds",
+ "title": "Stability and the n log n lower bound",
+ "topic": "sorting",
+ "kind": "concept",
+ "summary": "What stability means and when it matters, and why comparison sorts cannot beat O(n log n) — but counting sort can.",
+ "prereqs": [
+  "sort-merge-sort"
+ ],
+ "related": [
+  "sort-counting-sort",
+  "cpp-sort-and-comparators"
+ ],
+ "sections": [
+  {
+   "id": "stability",
+   "title": "Stability",
+   "note": "write",
+   "body": "✍️ A sort is **stable** if equal elements keep their original relative order.\n✍️ Matters when sorting records by one key after another: sort by name, then stable-sort by department → within each department names stay alphabetical.\n✍️ Stable: merge sort, insertion sort, counting sort, `std::stable_sort`. Not stable: quick sort, heap sort, `std::sort`."
+  },
+  {
+   "id": "lower-bound",
+   "title": "The comparison lower bound",
+   "note": "mixed",
+   "body": "✍️ Any sort that only compares elements needs Ω(n log n) comparisons in the worst case (there are n! possible orders and each comparison at best halves the possibilities: log₂(n!) ≈ n log n).\n- Non-comparison sorts (counting, radix, bucket) beat it by using the values themselves as indices, when the value range is small."
+  }
+ ],
+ "used_by": []
+}

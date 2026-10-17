@@ -1,0 +1,446 @@
+=== page: sw-fixed-window
+title: Fixed-size sliding window
+topic: sliding-window
+kind: pattern
+summary: For every window of exactly k consecutive elements, update the window's summary in O(1) by adding the element that enters and removing the one that leaves.
+prereqs: arr-single-pass-running-state
+related: sw-variable-window, sw-frequency-map-window, stq-monotonic-deque
+--- idea | Idea | write
+✍️ Consecutive windows of size k overlap in k−1 elements. Moving the window one step right **adds** `a[i]` and **removes** `a[i−k]`.
+✍️ Keep a summary of the current window (sum, count of vowels, character counts). Update it with one add and one remove per step → O(1) per window, O(n) total.
+
+--- recognise | Recognise it | write
+✍️ "subarray / substring **of length k**", "every window of size k", "k consecutive", "average of k elements", "permutation of p inside s" (window size = |p|).
+
+--- think | Brute force → fixed window | mixed
+Brute force: for each start, recompute the summary over k elements. O(n·k).
+✍️ Bottleneck: recomputing k elements when only 2 changed (one in, one out).
+✍️ Fix: maintain the summary incrementally.
+
+--- template | Template | write
+```cpp
+// max sum of any window of size k
+long long win = 0, best = LLONG_MIN;
+for (int i = 0; i < n; i++) {
+    win += a[i];                      // a[i] enters
+    if (i >= k) win -= a[i - k];      // a[i-k] leaves
+    if (i >= k - 1) best = max(best, win);   // window [i-k+1, i] is complete
+}
+```
+✍️ Three lines in a fixed order: **add the new element, remove the old one, record the answer once the window is full**.
+
+--- variations | Variations | screenshot
+- Count vowels in each window (LeetCode 1456): summary = vowel count.
+- k-radius averages (LeetCode 2090): window size 2k+1, output centred at i−k.
+- Anagram positions (LeetCode 438): summary = 26 counts, compare with the pattern's counts ([[str-anagram-window]]).
+- Max of each window: the summary (max) cannot be "un-added" → monotonic deque ([[stq-monotonic-deque]]).
+
+--- pitfalls | Pitfalls | write
+✍️ Recording before the window is full (`i < k−1`) gives answers for partial windows.
+✍️ Not every summary can be updated by "remove": sums and counts can, max/min cannot (use a deque or multiset).
+✍️ Average: compare sums, divide only at the end, to avoid floating point issues.
+
+--- complexity | Complexity | screenshot
+O(n) time, O(1) space for sums/counts (O(alphabet) for character counts).
+
+=== page: sw-variable-window
+title: Variable-size sliding window — expand right, shrink left
+topic: sliding-window
+kind: pattern
+summary: Grow the window by moving right one step at a time; whenever the window breaks a rule, shrink from the left until it is valid again. Each index enters and leaves once, so it is O(n).
+prereqs: sw-fixed-window, sw-monotonicity-requirement
+related: sw-frequency-map-window, sw-at-most-k-trick, tp-opposite-ends
+--- idea | Idea | write
+✍️ Window = `[l, r]`. The outer loop moves `r` right (expand). After adding `a[r]`, if the window violates the condition, move `l` right (shrink) until it is valid again.
+✍️ Invariant: after the shrink loop, `[l, r]` is the **longest valid window ending at r**. Record its length.
+✍️ Both pointers only move right. Each moves at most n times → O(n) total, even with a `while` inside the `for`.
+
+--- recognise | Recognise it | write
+✍️ "longest / shortest substring or subarray such that …", "at most k distinct / at most k zeros / without repeating", "minimum length with sum ≥ target".
+✍️ The condition is **monotone**: if a window is valid, every smaller window inside it is valid too (or for "shortest", every larger window is valid). See [[sw-monotonicity-requirement]].
+
+--- think | Brute force → expand/shrink | mixed
+Brute force: every (l, r), check validity. O(n²) windows × check cost.
+✍️ Bottleneck: for each r, trying every l from scratch.
+✍️ Observation (monotonicity): if `[l, r]` is invalid, then `[l, r+1]` is also invalid, so for the next r we never need to look at starts ≤ l again. The best start only ever moves right → it can be a pointer that never goes back.
+
+--- template-longest | Template: longest valid window | write
+```cpp
+int l = 0, best = 0;
+// state describing the window, e.g. counts
+for (int r = 0; r < n; r++) {
+    add(a[r]);                          // 1. expand
+    while (!valid()) {                  // 2. shrink until valid
+        remove(a[l]);
+        l++;
+    }
+    best = max(best, r - l + 1);        // 3. record (window is valid here)
+}
+```
+
+--- template-shortest | Template: shortest valid window | write
+```cpp
+int l = 0, best = INT_MAX;
+for (int r = 0; r < n; r++) {
+    add(a[r]);
+    while (valid()) {                   // while it is valid, try to make it shorter
+        best = min(best, r - l + 1);    // record INSIDE the loop
+        remove(a[l]);
+        l++;
+    }
+}
+return best == INT_MAX ? 0 : best;
+```
+✍️ Longest: shrink while **invalid**, record **after** the loop. Shortest: shrink while **valid**, record **inside** the loop. This is the most common mix-up.
+
+--- budget | The "budget" form: at most k bad things | write
+✍️ Many problems are "longest window containing at most k bad elements" (zeros you may flip, characters you may replace).
+✍️ State = count of bad elements in the window. Valid ⇔ `bad ≤ k`.
+✍️ Character replacement (LeetCode 424): bad = `windowLength − maxCountOfOneChar`; valid ⇔ `len − maxCount ≤ k`.
+
+--- variations | Variations | screenshot
+- No repeating characters (LeetCode 3): state = counts; invalid when the new character's count > 1. Or store last index and jump `l` directly past it.
+- Max consecutive ones with k flips (LeetCode 1004): bad = number of zeros.
+- Fruit into baskets (LeetCode 904): at most 2 distinct values → map size ≤ 2.
+- Minimum size subarray sum (LeetCode 209): shortest window with sum ≥ target (positive values only).
+- Minimum window substring (LeetCode 76): shortest window containing all characters of t; track how many required characters are satisfied.
+- Exactly k distinct: atMost(k) − atMost(k−1) ([[sw-at-most-k-trick]]).
+
+--- pitfalls | Pitfalls | write
+✍️ Using `if` instead of `while` for shrinking: one step may not be enough to restore validity (except in the special "never-shrinking window" trick for LeetCode 424).
+✍️ Forgetting to undo the state when `l` moves (decrement counts, erase keys whose count hits 0 if you use `map.size()` as "distinct").
+✍️ Applying this to sums with negative numbers — the condition is not monotone; use prefix sums ([[ps-prefix-sum-hashmap]]).
+
+--- complexity | Complexity | screenshot
+O(n) time: r moves n times, l moves at most n times in total. Space O(k) or O(alphabet) for the window state.
+
+--- interview | Interview follow-ups | screenshot
+- "Why is the nested while loop still O(n)?" — l only moves forward and never past r; across the whole run it moves at most n times ([[cx-amortised-analysis#counting-trick]]).
+- "Can you avoid the inner loop?" — for LeetCode 3, store each character's last index and set `l = max(l, last[c] + 1)` in one step.
+
+=== page: sw-monotonicity-requirement
+title: When a sliding window works — and when it breaks
+topic: sliding-window
+kind: concept
+summary: Windows need a monotone condition: shrinking a valid window keeps it valid. Negative numbers in sum problems break this, which is why prefix sums are needed there.
+prereqs: sw-fixed-window
+related: sw-variable-window, ps-prefix-sum-hashmap
+--- rule | The rule | write
+✍️ A variable window is correct only if: **extending a window can only make it "more" of something, and shrinking can only make it "less"** — so validity changes in one direction as l or r moves.
+✍️ With all values ≥ 0: adding an element never decreases the sum; removing never increases it. Sum conditions are monotone → windows work.
+✍️ With negative values: adding an element can decrease the sum. A too-large window might become valid by growing. The pointer logic "shrink when too big" is no longer safe.
+
+--- counterexample | The counterexample to remember | write
+✍️ `a = [1, −1, 1]`, k = 1. Subarrays with sum 1: [1], [1, −1, 1], [1] → **3**. A window that shrinks whenever the sum exceeds k never considers the full array correctly and misses cases. Prefix sum + map counts all 3.
+
+--- decide | Decision | write
+✍️ Sum / count condition and all values non-negative → sliding window.
+✍️ Exact sum or values may be negative → prefix sum + hash map.
+✍️ Count / distinct conditions on characters → sliding window (counts are never negative).
+
+=== page: sw-frequency-map-window
+title: Windows with a frequency map
+topic: sliding-window
+kind: pattern
+summary: Keep the counts of everything inside the window; update one count on each add and remove; validity is a question about those counts.
+prereqs: sw-variable-window, hash-frequency-counting
+related: str-anagram-window
+--- idea | Idea | write
+✍️ The window's state is a count table: `cnt[c]` = occurrences of c inside `[l, r]`.
+✍️ Add: `cnt[a[r]]++`. Remove: `cnt[a[l]]--` (and if you track distinct values, erase the key when it reaches 0).
+✍️ Track an extra number alongside the table so validity is O(1): number of distinct keys, number of characters with count > 1, max count, or how many required characters are satisfied.
+
+--- distinct | Tracking distinct count correctly | write
+```cpp
+unordered_map<int,int> cnt;
+// add x
+if (cnt[x]++ == 0) distinct++;
+// remove y
+if (--cnt[y] == 0) distinct--;      // or cnt.erase(y) and use cnt.size()
+```
+✍️ Never use `cnt.size()` as "distinct" unless you erase zero-count keys — and never read `cnt[x]` to check without meaning to insert ([[cpp-unordered-map-set#bracket-trap]]).
+
+--- maxcount | The maxCount trick (character replacement) | mixed
+✍️ For "replace at most k characters to make the window uniform", the window is valid when `len − maxCount ≤ k`, where maxCount is the highest count of any single character in the window.
+✍️ Trick: maxCount never needs to **decrease**. The answer only improves when a new, higher maxCount appears, so a stale (too high) maxCount only keeps the window from shrinking — it never produces a wrong longer answer. This lets you use `if` instead of `while` and skip recomputing the max.
+- If that feels too clever in an interview, recompute the max over 26 counts each step: O(26n), still fine.
+
+--- complexity | Complexity | screenshot
+O(n) window moves; each update O(1) with an array, O(1) average with a hash map.
+
+=== page: sw-at-most-k-trick
+title: Exactly k = at most k minus at most (k − 1)
+topic: sliding-window
+kind: pattern
+summary: "Exactly k" conditions are not monotone, but "at most k" is. Count windows for at most k and at most k−1 and subtract.
+prereqs: sw-variable-window
+related: ps-prefix-sum-hashmap
+--- idea | Idea | write
+✍️ "Number of subarrays with exactly k distinct values" — shrinking can move a window from "too many" to "exactly k" to "too few", so one window cannot track it.
+✍️ "At most k" is monotone. For each r, every start from l to r gives a valid window → add `r − l + 1`.
+✍️ exactly(k) = atMost(k) − atMost(k − 1).
+
+--- template | Template | write
+```cpp
+long long atMost(vector<int>& a, int k) {
+    unordered_map<int,int> cnt;
+    long long res = 0; int l = 0, distinct = 0;
+    for (int r = 0; r < (int)a.size(); r++) {
+        if (cnt[a[r]]++ == 0) distinct++;
+        while (distinct > k) { if (--cnt[a[l]] == 0) distinct--; l++; }
+        res += r - l + 1;            // all windows ending at r with start in [l, r]
+    }
+    return res;
+}
+// exactly k: atMost(a, k) - atMost(a, k - 1)
+```
+
+--- uses | Where it appears | screenshot
+Subarrays with K different integers (LeetCode 992), binary subarrays with sum (LeetCode 930), count number of nice subarrays (LeetCode 1248).
+
+=== page: bs-classic-and-invariants
+title: Binary search — the invariant that makes it correct
+topic: binary-search
+kind: pattern
+summary: Keep a range [lo, hi] that is guaranteed to contain the answer if it exists; halve it each step by comparing with the middle. O(log n).
+prereqs: cx-big-o, cpp-integer-overflow
+related: bs-lower-upper-bound, bs-off-by-one-templates, bs-on-answer
+--- idea | Idea | write
+✍️ On sorted data, one comparison with the middle element tells you which half cannot contain the target. Discard that half.
+✍️ Each step halves the range → about log₂ n steps. 10⁹ elements → ~30 steps.
+✍️ Correctness rests on an **invariant**: "if the target exists, it is inside [lo, hi]". Every update must preserve it.
+
+--- recognise | Recognise it | write
+✍️ Sorted array (or sorted rows) + find / insert position / first / last occurrence.
+✍️ O(log n) required, or n up to 10⁹ with an O(1) check.
+✍️ A **monotone** yes/no condition over indices or values: false false false true true true → find the first true. This is the general form ([[bs-off-by-one-templates#first-true]]).
+
+--- template | Template: exact match | write
+```cpp
+int search(vector<int>& a, int target) {
+    int lo = 0, hi = (int)a.size() - 1;          // closed range [lo, hi]
+    while (lo <= hi) {                           // range non-empty
+        int mid = lo + (hi - lo) / 2;            // no overflow
+        if (a[mid] == target) return mid;
+        if (a[mid] < target) lo = mid + 1;       // target is right of mid
+        else hi = mid - 1;                       // target is left of mid
+    }
+    return -1;                                   // range empty → not present
+}
+```
+✍️ Closed range `[lo, hi]` → loop `while (lo <= hi)` → updates `mid + 1` / `mid − 1`. Keep these three together; mixing conventions causes infinite loops.
+
+--- why-terminates | Why it always terminates | mixed
+✍️ Each iteration either returns or sets `lo = mid + 1` or `hi = mid − 1`, so the range strictly shrinks. When `lo > hi`, it is empty and the loop stops.
+- With `lo = mid` (no +1) and `mid` rounding down, a two-element range can loop forever. That is why the "first true" template uses a half-open range ([[bs-off-by-one-templates]]).
+
+--- pitfalls | Pitfalls | write
+✍️ `mid = (lo + hi) / 2` overflows for large lo, hi. Use `lo + (hi − lo) / 2`.
+✍️ `hi = n` vs `hi = n − 1` must match the loop condition (closed vs half-open).
+✍️ Binary search on **unsorted** data gives garbage. Check the property that justifies the discard.
+
+--- complexity | Complexity | screenshot
+O(log n) time, O(1) space (iterative).
+
+=== page: bs-lower-upper-bound
+title: lower_bound and upper_bound — first ≥ and first >
+topic: binary-search
+kind: pattern
+summary: The two boundary searches that solve insert position, first/last occurrence and counting in a sorted array.
+prereqs: bs-classic-and-invariants
+related: bs-off-by-one-templates, cpp-iterators-and-algorithms
+--- definitions | Definitions | write
+✍️ `lower_bound(x)` = index of the first element **≥ x** (n if none).
+✍️ `upper_bound(x)` = index of the first element **> x** (n if none).
+✍️ So: insert position of x = lower_bound(x). First occurrence = lower_bound(x) if `a[that] == x`. Last occurrence = upper_bound(x) − 1. Count of x = upper_bound(x) − lower_bound(x).
+
+--- template | Template: write your own | write
+```cpp
+int lowerBound(vector<int>& a, int x) {
+    int lo = 0, hi = a.size();           // half-open [lo, hi): answer can be n
+    while (lo < hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (a[mid] >= x) hi = mid;       // mid could be the answer: keep it
+        else lo = mid + 1;               // mid is too small: discard it
+    }
+    return lo;                           // lo == hi == first index with a[i] >= x
+}
+// upperBound: same with  a[mid] > x
+```
+✍️ In interviews you can use `std::lower_bound(a.begin(), a.end(), x) − a.begin()`, but be able to write it — "first and last position" is often asked without library calls.
+
+--- picture | The picture | write
+```
+a     = [1, 2, 2, 2, 5]      x = 2
+a[i] >= 2 ?  F  T  T  T  T   → lower_bound = 1
+a[i] >  2 ?  F  F  F  F  T   → upper_bound = 4
+first = 1, last = 4 - 1 = 3, count = 3
+```
+
+--- pitfalls | Pitfalls | mixed
+✍️ lower_bound returns n when every element is smaller — check `idx < n` before reading `a[idx]`.
+- Searching for "first occurrence" with the exact-match template and then walking left is O(n) in the worst case (all equal). Use lower_bound.
+
+=== page: bs-off-by-one-templates
+title: The "first true" template — one binary search for everything
+topic: binary-search
+kind: pattern
+summary: Turn any monotone yes/no question into F…FT…T and find the first T with a half-open loop. Avoids every off-by-one decision.
+prereqs: bs-lower-upper-bound
+related: bs-on-answer, bs-rotated-arrays
+--- first-true | The template | write
+✍️ Define `ok(i)` that is false for small i and true from some point on. Find the first i with `ok(i)`.
+```cpp
+int lo = LOW, hi = HIGH;        // the answer is in [LOW, HIGH]; HIGH may be "none" sentinel
+while (lo < hi) {
+    int mid = lo + (hi - lo) / 2;
+    if (ok(mid)) hi = mid;      // mid works: answer is mid or to its left
+    else lo = mid + 1;          // mid fails: answer is to its right
+}
+return lo;
+```
+✍️ Three fixed lines: `while (lo < hi)`, `hi = mid` on true, `lo = mid + 1` on false. `mid` rounds down, so `lo` always moves → no infinite loop.
+
+--- last-true | Last true (T…TF…F) | write
+✍️ For "the last i with ok(i)", either search for the first `!ok` and subtract 1, or use `mid = lo + (hi − lo + 1) / 2` (round **up**) with `lo = mid` on true and `hi = mid − 1` on false.
+✍️ Rounding up is required in that form: with round-down, `lo = mid` can repeat forever on a two-element range.
+
+--- choose-ok | Choosing ok(i) | mixed
+✍️ The skill is writing `ok` so it is monotone. Examples:
+- First ≥ x: `ok(i) = a[i] >= x`.
+- Minimum in rotated array: `ok(i) = a[i] <= a[n−1]` (every element of the right, smaller part satisfies it).
+- Peak element: `ok(i) = a[i] > a[i+1]` (true from the peak onward on any increasing-then-decreasing slope).
+- Smallest speed that finishes in time: `ok(s) = hoursNeeded(s) <= h` ([[bs-on-answer]]).
+
+=== page: bs-rotated-arrays
+title: Binary search on rotated sorted arrays
+topic: binary-search
+kind: pattern
+summary: After rotation one half around mid is always sorted; check whether the target lies in that sorted half to decide which half to keep.
+prereqs: bs-classic-and-invariants
+related: bs-off-by-one-templates
+--- idea | Idea | write
+✍️ A rotated sorted array (e.g. [4,5,6,7,0,1,2]) is two sorted runs. For any mid, **at least one** of `[lo, mid]` and `[mid, hi]` is fully sorted.
+✍️ Find which half is sorted by comparing `a[lo]` with `a[mid]`. Then: if the target lies within that sorted half's range, go there; otherwise go to the other half.
+
+--- template | Template: search in rotated array (distinct values) | write
+```cpp
+int search(vector<int>& a, int t) {
+    int lo = 0, hi = a.size() - 1;
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (a[mid] == t) return mid;
+        if (a[lo] <= a[mid]) {                       // left half [lo, mid] is sorted
+            if (a[lo] <= t && t < a[mid]) hi = mid - 1;
+            else lo = mid + 1;
+        } else {                                     // right half [mid, hi] is sorted
+            if (a[mid] < t && t <= a[hi]) lo = mid + 1;
+            else hi = mid - 1;
+        }
+    }
+    return -1;
+}
+```
+
+--- find-min | Finding the minimum (the rotation point) | write
+✍️ First index with `a[i] <= a[n−1]` — a "first true" search ([[bs-off-by-one-templates#choose-ok]]). Then the array splits into two normal sorted arrays if you prefer two plain searches.
+
+--- pitfalls | Pitfalls | mixed
+✍️ `a[lo] <= a[mid]` needs `<=`: when lo == mid (two elements left), the left "half" is a single element and is sorted.
+- With duplicates (LeetCode 81), `a[lo] == a[mid] == a[hi]` gives no information; shrink with `lo++, hi--`. Worst case becomes O(n).
+
+=== page: bs-on-answer
+title: Binary search on the answer
+topic: binary-search
+kind: pattern
+summary: When the question is "smallest X that works" and "works" is monotone in X, binary search over the value of X and test each guess with an O(n) check.
+prereqs: bs-off-by-one-templates, cpp-integer-overflow
+related: gr-what-greedy-is-and-proofs
+--- idea | Idea | write
+✍️ You are not searching an array; you are searching the **range of possible answers** (speeds, capacities, days, maximum sums).
+✍️ Write `feasible(x)`: "can the task be done with answer x?". If feasible is monotone (x works ⇒ x+1 works), the answers look like F F F T T T and the smallest feasible x is a first-true search.
+✍️ Cost = log(range) × cost of feasible. With range 10⁹ and an O(n) check: ~30·n.
+
+--- recognise | Recognise it | write
+✍️ "minimum speed / capacity / time / largest-sum such that it can be done within D / H / m", "minimise the maximum", "maximise the minimum".
+✍️ Checking a given answer is easy (usually a greedy pass), but finding it directly is hard.
+
+--- think | Brute force → search the answer | mixed
+Brute force: try x = 1, 2, 3, … until feasible. O(range × n) — with range 10⁹, far too slow.
+✍️ Bottleneck: trying candidate answers one by one in order.
+✍️ Observation: feasibility is monotone in x. Checking candidates in order on a monotone predicate is exactly what binary search removes.
+
+--- template | Template | write
+```cpp
+// smallest x in [lo, hi] with feasible(x) true
+long long lo = LOWEST_POSSIBLE, hi = HIGHEST_POSSIBLE;   // hi must be feasible
+while (lo < hi) {
+    long long mid = lo + (hi - lo) / 2;
+    if (feasible(mid)) hi = mid;
+    else lo = mid + 1;
+}
+return lo;
+```
+✍️ Bounds: `lo` = the smallest value that could possibly work (often 1 or max element); `hi` = a value that **certainly** works (often max element or total sum).
+
+--- feasible | Writing feasible(x) | write
+✍️ Usually a greedy simulation: "pack items into groups of capacity x, counting groups; feasible if groups ≤ D".
+```cpp
+bool feasible(vector<int>& w, int days, long long cap) {
+    int used = 1; long long cur = 0;
+    for (int x : w) {
+        if (x > cap) return false;           // one item does not fit at all
+        if (cur + x > cap) { used++; cur = 0; }
+        cur += x;
+    }
+    return used <= days;
+}
+```
+✍️ Koko: hours(speed) = Σ ceil(pile / speed) = Σ (pile + speed − 1) / speed. Feasible if hours ≤ h.
+
+--- variations | Variations | screenshot
+- Koko eating bananas (LeetCode 875): range [1, max pile].
+- Ship packages (LeetCode 1011): range [max weight, total weight].
+- Bouquets (LeetCode 1482): search over days; feasible counts runs of ≥ k adjacent bloomed flowers.
+- Split array largest sum (LeetCode 410): identical to ship packages with D = k — "minimise the maximum part".
+- Magnetic balls / aggressive cows (LeetCode 1552): "maximise the minimum distance" → last-true search.
+
+--- pitfalls | Pitfalls | write
+✍️ `hi` must be feasible, otherwise the search returns hi even when nothing works. Choose a value you can prove works.
+✍️ Overflow in feasible: sums of capacities or hours can exceed int → `long long`.
+✍️ Lower bound too small: for shipping, any capacity below the heaviest package is impossible; starting at 1 is correct but the check must return false for x < max (as above).
+
+--- complexity | Complexity | screenshot
+O(n · log(range)) time, O(1) extra space.
+
+--- interview | Interview follow-ups | screenshot
+- "Why is feasibility monotone?" — say it concretely: "a faster speed never needs more hours".
+- "What is the search range and why?" — justify both ends.
+
+=== page: bs-peak-and-unimodal
+title: Peaks and unimodal arrays
+topic: binary-search
+kind: pattern
+summary: Binary search works without full sortedness: if a[mid] < a[mid+1], a peak exists to the right. Compare neighbours instead of a target.
+prereqs: bs-off-by-one-templates
+related: bs-rotated-arrays
+--- idea | Idea | write
+✍️ If `a[mid] < a[mid+1]`, you are on an uphill slope; walking right must eventually reach a peak (the array ends with −∞ by the problem's convention). Keep the right half.
+✍️ Otherwise `a[mid] > a[mid+1]` and mid itself or something to its left is a peak. Keep `[lo, mid]`.
+✍️ This is "first true" with `ok(i) = a[i] > a[i+1]`.
+
+--- template | Template | write
+```cpp
+int findPeakElement(vector<int>& a) {
+    int lo = 0, hi = a.size() - 1;
+    while (lo < hi) {
+        int mid = lo + (hi - lo) / 2;            // mid < hi, so mid+1 is valid
+        if (a[mid] > a[mid + 1]) hi = mid;
+        else lo = mid + 1;
+    }
+    return lo;
+}
+```
+
+--- uses | Where it appears | screenshot
+Find peak element (LeetCode 162), peak index in a mountain array (LeetCode 852), find in mountain array (LeetCode 1095: peak first, then two ordinary searches).

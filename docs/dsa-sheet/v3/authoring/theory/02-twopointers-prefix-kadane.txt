@@ -1,0 +1,479 @@
+=== page: tp-opposite-ends
+title: Two pointers from opposite ends
+topic: two-pointers
+kind: pattern
+summary: Put one pointer at each end of a sorted array (or a string), and move whichever pointer the comparison tells you to. Each step discards one candidate forever, so the scan is O(n).
+prereqs: cx-big-o
+related: tp-why-discarding-is-safe, tp-fix-one-k-sum, hash-complement-lookup
+--- idea | Idea | write
+✍️ Start `l = 0`, `r = n − 1`. Look at the pair `(a[l], a[r])`. Based on a comparison, move `l` right or `r` left — never both blindly.
+✍️ Each move rules out every pair that involves the pointer you moved past. Since the pointers move towards each other and meet after at most n steps, the whole search is O(n).
+✍️ The pattern works when the input has an **order** that tells you which direction improves the answer — sorted arrays, or symmetric structures like palindromes.
+
+--- recognise | Recognise it | write
+✍️ Input is **sorted** (or you are allowed to sort it) and you look for a pair with a target sum / difference / closest sum.
+✍️ Symmetry: palindrome checks, reversing in place, comparing the string with its mirror.
+✍️ "O(1) extra space" on a sorted pair problem (where a hash map would otherwise work).
+
+--- think | Brute force → two pointers | mixed
+Brute force on sorted input: all pairs, O(n²) — ignores sortedness.
+Better: for each i, binary search for `target − a[i]`. O(n log n). Uses sortedness once per element.
+✍️ Bottleneck: each binary search starts from scratch, although the partner of a larger `a[i]` must be **smaller** than the partner of a smaller `a[i]`.
+✍️ Fix: as `l` moves right, the matching partner moves left — so `r` only ever moves left. One combined walk, O(n).
+
+--- template | Template: pair sum on sorted array | write
+```cpp
+int l = 0, r = n - 1;
+while (l < r) {
+    long long s = (long long)a[l] + a[r];
+    if (s == target) return {l, r};
+    if (s < target) l++;       // need a bigger sum: only moving l right can increase it
+    else r--;                  // need a smaller sum: only moving r left can decrease it
+}
+return {-1, -1};
+```
+
+--- palindrome | Template: symmetric check | write
+```cpp
+int l = 0, r = s.size() - 1;
+while (l < r) {
+    if (s[l] != s[r]) return false;
+    l++; r--;
+}
+return true;
+```
+✍️ Skipping characters (non-alphanumeric) uses inner `while` loops that **also** check `l < r`, so they cannot run past each other ([[str-palindrome-checks]]).
+
+--- variations | Variations | screenshot
+- Squares of a sorted array (LeetCode 977): the largest square is at one of the two ends → fill the output from the back.
+- Count pairs with sum < target (LeetCode 2824): when `a[l] + a[r] < target`, **all** pairs (l, l+1..r) qualify → add `r − l`, then l++.
+- Boats to save people (LeetCode 881): pair the heaviest with the lightest if they fit.
+- Container with most water: the comparison is on heights, and the "why it is safe" argument is the exchange argument in [[tp-why-discarding-is-safe]].
+- Three or four numbers: fix one, two-pointer the rest ([[tp-fix-one-k-sum]]).
+
+--- pitfalls | Pitfalls | write
+✍️ Loop condition `l < r` (not `≤`) when a pair needs two distinct indices.
+✍️ Two pointers on **unsorted** data is wrong: the move rule depends on sortedness. Either sort (if indices do not matter) or use a hash map.
+✍️ If you sort, original indices are lost. Two Sum (unsorted, return indices) is a hash map problem; Two Sum II (sorted) is a two-pointer problem.
+
+--- complexity | Complexity | screenshot
+O(n) time (each step moves one pointer, at most n steps). O(1) extra space. Add O(n log n) if you sort first.
+
+--- interview | Interview follow-ups | screenshot
+- "Why can you discard that pair?" — be ready with the one-line argument from [[tp-why-discarding-is-safe#argument]].
+- "What if there are many valid pairs and you need all of them?" — on a hit, move both pointers and skip duplicates.
+
+=== page: tp-why-discarding-is-safe
+title: Why moving a pointer is safe — the exchange argument
+topic: two-pointers
+kind: concept
+summary: The proof that two-pointer scans do not skip the answer, for pair-sum and for Container With Most Water, phrased so you can say it in an interview.
+prereqs: tp-opposite-ends
+related: gr-what-greedy-is-and-proofs
+--- argument | The argument for pair sum | write
+✍️ Sorted array, `a[l] + a[r] < target`. Every pair `(l, j)` with `j < r` has sum ≤ `a[l] + a[r]` < target (because `a[j] ≤ a[r]`). So **no pair using index l can work**. Discard l → `l++`.
+✍️ Symmetric for `> target`: no pair using r can work → `r--`.
+✍️ So each move throws away only pairs that provably fail. The answer is never skipped.
+
+--- container | The argument for Container With Most Water | write
+✍️ Area = `min(h[l], h[r]) × (r − l)`. Suppose `h[l] < h[r]`.
+✍️ Any container that keeps `l` and moves `r` inward has a smaller width, and its height is still capped by `h[l]` (the min can only stay or drop). So every such container is **no better** than the current one.
+✍️ Therefore the shorter side `l` has already achieved its best possible area. Discard it → `l++`. (If heights are equal, moving either is safe.)
+
+--- how-to-say | How to say it in an interview | mixed
+✍️ "Moving the taller wall can never help: the width shrinks and the height is still limited by the shorter wall. So the shorter wall's best container is the current one, and I can discard it."
+- This style of proof — "the option I am throwing away cannot beat what I already have" — is an **exchange argument**, the same tool used to prove greedy algorithms ([[gr-what-greedy-is-and-proofs]]).
+
+=== page: tp-fix-one-k-sum
+title: Fix one, two-pointer the rest (3Sum, 4Sum)
+topic: two-pointers
+kind: pattern
+summary: Sort, loop over the first element, and solve the remaining 2-sum on the suffix with two pointers. Reduces k-sum from O(n^k) to O(n^(k-1)).
+prereqs: tp-opposite-ends, tp-skip-duplicates, cpp-sort-and-comparators
+related: hash-complement-lookup
+--- idea | Idea | write
+✍️ 3Sum asks for `a[i] + a[j] + a[k] = 0`. Fix `a[i]`; now you need `a[j] + a[k] = −a[i]` on the part of the array after i. That is exactly a sorted pair-sum → two pointers.
+✍️ One outer loop × an O(n) two-pointer scan = O(n²), down from O(n³).
+
+--- recognise | Recognise it | write
+✍️ "triplets / quadruplets that sum to …", "closest sum of three", "count triangles", and the answer must contain **unique** triplets (sorting makes uniqueness easy).
+
+--- think | Brute force → fix one | mixed
+Brute force: three nested loops, then deduplicate with a set of sorted triplets. O(n³) plus messy dedup.
+✍️ Bottleneck: the innermost two loops search for a pair with a known sum — that is a 2-sum problem, solvable in O(n) on sorted data.
+✍️ Fix: sort once (O(n log n)), then for each i, run two pointers on `i+1..n−1`.
+Hash-based alternative: for each i, a hash-set 2-sum. Also O(n²), but deduplication is much harder. Sorting wins.
+
+--- template | Template | write
+```cpp
+vector<vector<int>> threeSum(vector<int>& a) {
+    sort(a.begin(), a.end());
+    int n = a.size();
+    vector<vector<int>> res;
+    for (int i = 0; i < n - 2; i++) {
+        if (i > 0 && a[i] == a[i-1]) continue;      // same first value → same triplets
+        if (a[i] > 0) break;                        // smallest is positive → no zero sum
+        int l = i + 1, r = n - 1;
+        while (l < r) {
+            int s = a[i] + a[l] + a[r];
+            if (s < 0) l++;
+            else if (s > 0) r--;
+            else {
+                res.push_back({a[i], a[l], a[r]});
+                l++; r--;
+                while (l < r && a[l] == a[l-1]) l++; // skip duplicate seconds
+                while (l < r && a[r] == a[r+1]) r--; // skip duplicate thirds
+            }
+        }
+    }
+    return res;
+}
+```
+
+--- variations | Variations | screenshot
+- 3Sum Closest (LeetCode 16): same scan, track the sum with the smallest `|s − target|`; no dedup needed.
+- 4Sum (LeetCode 18): two outer loops + two pointers → O(n³); use `long long` for the sum.
+- Valid triangle number (LeetCode 611): fix the **largest** side as the outer loop (from the right), two pointers on the left part; when `a[l] + a[r] > a[k]`, all of `l..r−1` work with r → add `r − l`.
+
+--- pitfalls | Pitfalls | write
+✍️ Dedup at three places: the fixed element (`a[i] == a[i−1]`, compare with the **previous**, not the next), and both pointers after a hit.
+✍️ Skip `a[i] == a[i−1]` and not `a[i] == a[i+1]`: the second skips the first occurrence and loses triplets like [−1, −1, 2].
+✍️ After a hit, move both pointers; moving one only finds the same sum again or nothing.
+
+--- complexity | Complexity | screenshot
+O(n²) time: O(n log n) sort + n outer iterations × O(n) scan. O(1) extra space besides the output (sorting in place; `std::sort` uses O(log n) stack).
+
+=== page: tp-skip-duplicates
+title: Skipping duplicates in sorted scans
+topic: two-pointers
+kind: concept
+summary: The three dedup idioms — compare with the previous element at a loop start, skip runs after a hit, and the i > start rule in backtracking.
+prereqs: tp-opposite-ends
+related: tp-fix-one-k-sum, bt-dedup-sorted-skip
+--- why | Why sorting makes dedup easy | write
+✍️ After sorting, equal values sit next to each other. "Have I used this value in this role already?" becomes "is it equal to the element just before it?" — an O(1) check, no set needed.
+
+--- idioms | The idioms | write
+✍️ **Outer loop:** `if (i > 0 && a[i] == a[i-1]) continue;` — process only the first occurrence of each value in this role.
+✍️ **After a two-pointer hit:** `l++; r--; while (l < r && a[l] == a[l-1]) l++; while (l < r && a[r] == a[r+1]) r--;`
+✍️ **Backtracking level:** `if (j > start && a[j] == a[j-1]) continue;` — at one recursion level, try each distinct value once ([[bt-dedup-sorted-skip]]).
+
+--- pitfalls | Pitfalls | mixed
+✍️ The guard `i > 0` / `j > start` is what allows the **first** occurrence through. Without it you either index −1 or skip valid choices.
+- Dedup on the *answer* with `set<vector<int>>` works but costs O(log) per insert and hides logic errors; interviewers prefer the in-scan skip.
+
+=== page: ps-prefix-sum-basics
+title: Prefix sums — any range sum in O(1)
+topic: prefix-sum
+kind: pattern
+summary: Precompute pre[i] = sum of the first i elements; then the sum of a[l..r] is pre[r+1] − pre[l]. One O(n) pass turns every range-sum query into O(1).
+prereqs: arr-single-pass-running-state, cpp-integer-overflow
+related: ps-prefix-sum-hashmap, ps-prefix-suffix-passes, ps-2d-prefix-sum
+--- idea | Idea | write
+✍️ Define `pre[0] = 0` and `pre[i+1] = pre[i] + a[i]`. So `pre[i]` is the sum of the first i elements, `a[0..i−1]`.
+✍️ Range sum: `sum(a[l..r]) = pre[r+1] − pre[l]`. The prefix up to r, minus the part before l.
+✍️ The extra leading 0 (size n+1) removes every special case for ranges that start at index 0.
+
+--- recognise | Recognise it | write
+✍️ Many queries of "sum from l to r" on an array that does not change.
+✍️ "pivot index / equilibrium", "left sum vs right sum", "split the array into parts with sums …".
+✍️ Anything that needs the sum of a subarray, repeatedly → prefix sums. Combined with "count subarrays with sum k" → [[ps-prefix-sum-hashmap]].
+
+--- think | Brute force → prefix sums | mixed
+Brute force: for each query, loop from l to r. O(n) per query → O(n·q).
+✍️ Bottleneck: different queries re-add the same overlapping elements.
+✍️ Fix: add each element **once** into a running total, store every running total, and answer any range as a difference of two stored totals.
+
+--- template | Template | write
+```cpp
+class NumArray {
+    vector<long long> pre;              // pre[i] = a[0] + ... + a[i-1]
+public:
+    NumArray(vector<int>& a) : pre(a.size() + 1, 0) {
+        for (int i = 0; i < (int)a.size(); i++) pre[i + 1] = pre[i] + a[i];
+    }
+    int sumRange(int l, int r) {        // inclusive l..r
+        return pre[r + 1] - pre[l];
+    }
+};
+```
+
+--- index-convention | The index convention (draw this) | write
+✍️ Draw it once and keep the picture:
+```
+index i:     0   1   2   3          a   = [ 3, -1,  4,  2 ]
+pre index: 0   1   2   3   4        pre = [0, 3,  2,  6,  8]
+sum(a[1..2]) = pre[3] - pre[1] = 6 - 3 = 3  (= -1 + 4)
+```
+✍️ `pre[k]` sits on the boundary **before** index k. A range [l, r] is the gap between boundary l and boundary r+1.
+
+--- variations | Variations | screenshot
+- Pivot index (LeetCode 724): left sum = `pre[i]`, right sum = `total − pre[i] − a[i]`; find i where they are equal. You do not even need the array — a running left sum and the total suffice.
+- Product of array except self: prefix and suffix **products** ([[ps-prefix-suffix-passes]]).
+- 2D range sums: `pre[r][c]` over rectangles with inclusion–exclusion ([[ps-2d-prefix-sum]]).
+- XOR queries (LeetCode 1310): same idea with XOR, since `x ^ x = 0` acts like subtraction.
+- Highest altitude (LeetCode 1732): the answer is the maximum prefix sum.
+
+--- pitfalls | Pitfalls | write
+✍️ Off-by-one: with the size-(n+1) convention it is always `pre[r+1] − pre[l]`. Mixing conventions (sometimes `pre[i]` includes `a[i]`, sometimes not) is the main source of bugs — pick one and draw it.
+✍️ Overflow: n · max|a| can exceed 2·10⁹ → store prefix sums in `long long`.
+✍️ Prefix sums only work when the array is **static**. If values change between queries, you need a Fenwick tree / segment tree (outside this plan).
+
+--- complexity | Complexity | screenshot
+Build O(n), each query O(1). Space O(n) for the prefix array.
+
+=== page: ps-prefix-sum-hashmap
+title: Prefix sum + hash map — counting subarrays with a given sum
+topic: prefix-sum
+kind: pattern
+summary: A subarray (i, j] sums to k exactly when pre[j] − pre[i] = k. Walk once with a running prefix sum and count how many earlier prefixes equal pre[j] − k, using a map seeded with {0: 1}.
+prereqs: ps-prefix-sum-basics, hash-complement-lookup
+related: sw-monotonicity-requirement, ps-modular-prefix
+--- idea | Idea | write
+✍️ Every subarray is "a prefix minus a shorter prefix": `sum(a[i..j]) = pre[j+1] − pre[i]`.
+✍️ Want `sum = k` → want an earlier prefix value equal to `pre[j+1] − k`. That is **complement lookup** ([[hash-complement-lookup]]) where the "elements" are prefix sums.
+✍️ Keep a map `count[prefix value] = how many times this prefix value has appeared so far`. At each position, add `count[running − k]` to the answer, then record `running`.
+
+--- recognise | Recognise it | write
+✍️ "number of subarrays with sum equal to k", "longest subarray with sum k", "subarray sum divisible by k", "equal number of 0s and 1s".
+✍️ Values can be **negative** (or zero). That is the signal that a sliding window will not work ([[sw-monotonicity-requirement]]) and prefix + map is intended.
+
+--- think | Brute force → prefix + map | mixed
+Brute force: all (i, j) with an inner sum loop. O(n³).
+Better: fix i, extend j with a running sum. O(n²).
+✍️ Bottleneck: for each end j, trying every start i to see whether `pre[j+1] − pre[i] = k`.
+✍️ Job description: "search the earlier prefixes for the value `pre[j+1] − k`". Waste: searching for a known value → store prefix values in a map.
+
+--- seed | Why the map starts with {0: 1} | write
+✍️ The empty prefix (sum 0, before index 0) is a real prefix. Without it, subarrays that **start at index 0** are never counted.
+✍️ Example: a = [3], k = 3. At j = 0, running = 3, need 3 − 3 = 0. Only the seed makes `count[0] = 1` → answer 1.
+
+--- template | Template | write
+```cpp
+int subarraySum(vector<int>& a, int k) {
+    unordered_map<long long,int> cnt;
+    cnt[0] = 1;                         // the empty prefix
+    long long run = 0;
+    int ans = 0;
+    for (int x : a) {
+        run += x;
+        auto it = cnt.find(run - k);
+        if (it != cnt.end()) ans += it->second;   // query first
+        cnt[run]++;                               // then record
+    }
+    return ans;
+}
+```
+
+--- variations | Variations | screenshot
+- **Longest** subarray with sum k: map stores prefix value → **first index** it appeared (only insert if absent, so the earliest index survives). Length = `j − first[run − k]`. Seed `{0: −1}`.
+- Equal 0s and 1s (LeetCode 525): replace 0 with −1, then "longest subarray with sum 0".
+- Divisible by k (LeetCode 974): key = `run % k` normalised to be non-negative; two prefixes with equal remainders bound a divisible subarray ([[ps-modular-prefix]]).
+- Binary subarrays with sum (LeetCode 930): the same template; also solvable with at-most(k) − at-most(k−1) windows ([[sw-at-most-k-trick]]).
+
+--- pitfalls | Pitfalls | write
+✍️ Missing the `{0: 1}` seed → misses subarrays starting at index 0.
+✍️ Recording before querying → when k = 0, every position counts itself (a zero-length subarray).
+✍️ Using a sliding window instead: it fails with negative numbers. Test `[1, −1, 1]`, k = 1 → answer 3.
+
+--- complexity | Complexity | screenshot
+O(n) time average, O(n) space for the map.
+
+=== page: ps-prefix-suffix-passes
+title: Prefix and suffix passes — everything except me
+topic: prefix-sum
+kind: pattern
+summary: Answer "combine everything to my left with everything to my right" with one left-to-right pass and one right-to-left pass, without division.
+prereqs: ps-prefix-sum-basics
+related: arr-single-pass-running-state
+--- idea | Idea | write
+✍️ For each index i, the answer combines `left[i]` (all elements before i) and `right[i]` (all elements after i).
+✍️ A forward pass fills `left`, a backward pass fills `right`, and the answer is `left[i] ⊕ right[i]` for whatever operation ⊕ is (sum, product, max).
+✍️ To get O(1) extra space, write `left` directly into the output array, then sweep backwards with a single running `right` variable.
+
+--- recognise | Recognise it | write
+✍️ "product of all elements except itself", "without using division", "trapping water" (max to the left and right), "candies with neighbours", "left max / right max".
+
+--- template | Template: product except self in O(1) extra space | write
+```cpp
+vector<int> productExceptSelf(vector<int>& a) {
+    int n = a.size();
+    vector<int> out(n, 1);
+    for (int i = 1; i < n; i++) out[i] = out[i-1] * a[i-1];   // out[i] = product of a[0..i-1]
+    int right = 1;
+    for (int i = n - 1; i >= 0; i--) {
+        out[i] *= right;                                       // times product of a[i+1..n-1]
+        right *= a[i];
+    }
+    return out;
+}
+```
+
+--- why-no-division | Why not just divide? | mixed
+✍️ total / a[i] breaks when a[i] = 0 (and with one zero, every other answer is 0; with two zeros, all answers are 0). The prefix/suffix method handles zeros with no special cases.
+
+--- complexity | Complexity | screenshot
+O(n) time, O(1) extra space besides the output.
+
+=== page: ps-2d-prefix-sum
+title: 2D prefix sums — rectangle sums in O(1)
+topic: prefix-sum
+kind: pattern
+summary: P[r][c] = sum of the rectangle from (0,0) to (r−1,c−1); any sub-rectangle sum is four lookups with inclusion–exclusion.
+prereqs: ps-prefix-sum-basics
+related: mat-traversal-and-directions
+--- build | Build | write
+✍️ `P` has size (R+1) × (C+1), all zeros in row 0 and column 0.
+✍️ `P[r+1][c+1] = g[r][c] + P[r][c+1] + P[r+1][c] − P[r][c]` (add the two overlapping rectangles, subtract the double-counted corner).
+
+--- query | Query | write
+✍️ Sum of rows r1..r2, cols c1..c2 (inclusive) = `P[r2+1][c2+1] − P[r1][c2+1] − P[r2+1][c1] + P[r1][c1]`.
+Draw the four rectangles once; it is the same inclusion–exclusion as the build.
+
+--- uses | Where it appears | screenshot
+Range Sum Query 2D (LeetCode 304), maximal square checks, counting submatrices with a property, image blur filters.
+
+=== page: ps-modular-prefix
+title: Prefix sums modulo k
+topic: prefix-sum
+kind: pattern
+summary: A subarray's sum is divisible by k exactly when the two bounding prefixes have the same remainder mod k — count equal remainders.
+prereqs: ps-prefix-sum-hashmap
+related: ps-prefix-sum-basics
+--- idea | Idea | write
+✍️ `(pre[j] − pre[i]) % k == 0` ⇔ `pre[j] % k == pre[i] % k`. So count pairs of prefixes with equal remainders.
+✍️ Map (or array of size k) from remainder → count, seeded with `{0: 1}`.
+
+--- negative-mod | Negative remainders in C++ | write
+✍️ In C++, `-3 % 5 == -3`, not 2. Normalise: `r = ((run % k) + k) % k;` Otherwise −3 and 2 (which are the same remainder) are counted as different keys.
+
+--- uses | Where it appears | screenshot
+Subarray sums divisible by K (LeetCode 974), continuous subarray sum (LeetCode 523: needs length ≥ 2 → store first index, not count).
+
+=== page: kad-kadane
+title: Kadane's algorithm — maximum subarray sum
+topic: kadane
+kind: pattern
+summary: At each index decide: extend the best subarray ending at the previous index, or start fresh here. cur = max(x, cur + x); best = max(best, cur).
+prereqs: arr-single-pass-running-state
+related: kad-min-so-far, kad-max-product-variant, dp-1d-linear
+--- idea | Idea | write
+✍️ Let `cur` = the best sum of a subarray that **ends exactly at** the current index.
+✍️ A subarray ending at i either is just `a[i]`, or is a subarray ending at i−1 extended by `a[i]`. So `cur = max(a[i], cur + a[i])`.
+✍️ Equivalently: if the running sum has become negative, it can only hurt anything that follows — drop it and start fresh.
+✍️ The answer is the best `cur` seen at any index.
+
+--- recognise | Recognise it | write
+✍️ "maximum (or minimum) sum of a contiguous subarray", "largest sum", "best segment", "circular" variants.
+✍️ Values can be negative (if they cannot, the whole array is the answer).
+
+--- think | Brute force → Kadane | mixed
+Brute force: every (i, j), sum each. O(n³), or O(n²) with running sums.
+✍️ Bottleneck: for each end j, trying every start i.
+✍️ Observation: for a fixed end j, the best start is the one that makes the part before j as large as possible — and that is exactly the best subarray ending at j−1 (or nothing, if that is negative).
+✍️ So the answer for end j is derived from the answer for end j−1 in O(1). This is a 1D DP with state "best ending here" ([[dp-1d-linear]]).
+
+--- template | Template | write
+```cpp
+int maxSubArray(vector<int>& a) {
+    int cur = a[0], best = a[0];      // start from a[0], not 0: all-negative arrays
+    for (int i = 1; i < (int)a.size(); i++) {
+        cur = max(a[i], cur + a[i]);  // extend or restart
+        best = max(best, cur);
+    }
+    return best;
+}
+```
+
+--- proof | Why it is correct (one paragraph) | mixed
+✍️ The optimal subarray ends at some index j. When the loop reaches j, `cur` is the best sum of any subarray ending at j (by induction on the recurrence), so `cur` ≥ the optimal sum, and `best` records it.
+- The induction: assume `cur` was the best ending at j−1. Any subarray ending at j is either `[a[j]]` or (subarray ending at j−1) + a[j], and the best of the second kind is (best ending at j−1) + a[j]. The max of the two is the best ending at j.
+
+--- variations | Variations | screenshot
+- Return the subarray, not just the sum: remember the start index whenever you restart.
+- Minimum subarray sum: same with `min`.
+- Maximum absolute sum (LeetCode 1749): max of (max subarray sum, −min subarray sum).
+- Circular (LeetCode 918): answer = max(normal Kadane, total − minimum subarray); if all negative, use normal Kadane only.
+- Maximum product: track both max and min ending here, because a negative flips them ([[kad-max-product-variant]]).
+- Best time to buy and sell stock is Kadane on the array of daily differences — or, more directly, [[kad-min-so-far]].
+
+--- pitfalls | Pitfalls | write
+✍️ Initialising `best = 0` returns 0 for an all-negative array; the correct answer is the largest (least negative) element. Initialise with `a[0]`.
+✍️ Updating `best` before `cur` uses yesterday's value. Update `cur`, then `best`.
+
+--- complexity | Complexity | screenshot
+O(n) time, O(1) space.
+
+=== page: kad-min-so-far
+title: Best partner to the left — min so far
+topic: kadane
+kind: pattern
+summary: For pair problems "j > i, maximise a[j] − a[i]", the best i for each j is simply the smallest value seen before j. Keep one running minimum.
+prereqs: arr-single-pass-running-state
+related: kad-kadane, dp-state-machine
+--- idea | Idea | write
+✍️ Maximise `a[j] − a[i]` with `i < j`. For a fixed sell day j, the best buy day is the one with the **smallest price before j**.
+✍️ So walk left to right keeping `minSoFar`. At each j: profit = `a[j] − minSoFar`; update the best; then update `minSoFar`.
+
+--- recognise | Recognise it | write
+✍️ "buy then sell", "maximum difference where the larger comes after the smaller", "best pair i < j" whose score splits into `f(j) − g(i)` or `f(j) + g(i)`.
+
+--- think | Brute force → min so far | mixed
+Brute force: all pairs i < j. O(n²).
+✍️ Bottleneck: for each j, scanning all earlier i for the smallest value.
+✍️ Waste: the smallest of `a[0..j−1]` differs from the smallest of `a[0..j−2]` by at most one element → keep it as running state ([[arr-single-pass-running-state]]).
+
+--- template | Template | write
+```cpp
+int maxProfit(vector<int>& p) {
+    int minSoFar = p[0], best = 0;
+    for (int j = 1; j < (int)p.size(); j++) {
+        best = max(best, p[j] - minSoFar);   // sell today, bought at the cheapest earlier day
+        minSoFar = min(minSoFar, p[j]);      // today becomes a buy option for later days
+    }
+    return best;
+}
+```
+
+--- variations | Variations | screenshot
+- Best sightseeing pair (LeetCode 1014): score `a[i] + i + a[j] − j` → keep the best `a[i] + i` so far.
+- Maximum difference between increasing elements (LeetCode 2016): same, return −1 if no positive difference.
+- Unlimited transactions (LeetCode 122): add every positive day-to-day difference.
+- With cooldown / fee / at most k transactions → state machine DP ([[dp-state-machine]]).
+
+--- pitfalls | Pitfalls | write
+✍️ Order: compute profit with the minimum of **earlier** days, then fold today into the minimum. Doing it the other way still works for profit (selling the same day gives 0) but breaks variants where i must be strictly before j with a positive gap.
+✍️ Answer 0 if prices only fall (you may choose not to trade). Initialise `best = 0`.
+
+--- complexity | Complexity | screenshot
+O(n) time, O(1) space.
+
+=== page: kad-max-product-variant
+title: Maximum product subarray — tracking max and min together
+topic: kadane
+kind: pattern
+summary: A negative number turns the smallest product into the largest, so keep both the max and the min product ending here.
+prereqs: kad-kadane
+related: kad-kadane
+--- idea | Idea | write
+✍️ Kadane fails for products because multiplying by a negative flips order: the most negative product so far becomes the most positive after one more negative.
+✍️ Keep `hi` (max product ending here) and `lo` (min product ending here). For each x: candidates are `x`, `hi·x`, `lo·x`; new hi = max, new lo = min.
+
+--- template | Template | write
+```cpp
+int maxProduct(vector<int>& a) {
+    int hi = a[0], lo = a[0], best = a[0];
+    for (int i = 1; i < (int)a.size(); i++) {
+        int x = a[i];
+        if (x < 0) swap(hi, lo);              // a negative flips the roles
+        hi = max(x, hi * x);
+        lo = min(x, lo * x);
+        best = max(best, hi);
+    }
+    return best;
+}
+```
+
+--- pitfalls | Pitfalls | mixed
+✍️ Compute new hi and lo from the **old** values (the swap trick, or temporary variables). Updating hi then using the new hi for lo is wrong.
+- Zero resets both to 0, and the `max(x, …)` restart handles the element after the zero.

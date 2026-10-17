@@ -1,0 +1,41 @@
+{
+ "id": "graph-multi-source-bfs",
+ "title": "Multi-source BFS",
+ "topic": "graphs",
+ "kind": "pattern",
+ "summary": "Push every source into the queue at time 0 and run one BFS; each cell's distance is to its nearest source. Rotting oranges, distance to nearest 0, walls and gates.",
+ "prereqs": [
+  "graph-bfs",
+  "graph-grid-as-graph"
+ ],
+ "related": [
+  "graph-bfs"
+ ],
+ "sections": [
+  {
+   "id": "idea",
+   "title": "Idea",
+   "note": "write",
+   "body": "✍️ When the spread starts from **many** places at once, do not run a BFS from each source (O(k · R·C)). Put all sources in the queue initially with distance 0 and run a single BFS.\n✍️ It behaves as if there were one super-source connected to all real sources. Each cell is reached first by its nearest source."
+  },
+  {
+   "id": "template",
+   "title": "Template: rotting oranges",
+   "note": "write",
+   "body": "```cpp\nint orangesRotting(vector<vector<int>>& g) {\n    int R = g.size(), C = g[0].size(), fresh = 0, minutes = 0;\n    queue<pair<int,int>> q;\n    for (int r = 0; r < R; r++) for (int c = 0; c < C; c++) {\n        if (g[r][c] == 2) q.push({r, c});\n        else if (g[r][c] == 1) fresh++;\n    }\n    int dr[4] = {1,-1,0,0}, dc[4] = {0,0,1,-1};\n    while (!q.empty() && fresh > 0) {\n        for (int sz = q.size(); sz--; ) {               // one minute = one level\n            auto [r, c] = q.front(); q.pop();\n            for (int d = 0; d < 4; d++) {\n                int nr = r + dr[d], nc = c + dc[d];\n                if (nr < 0 || nr >= R || nc < 0 || nc >= C || g[nr][nc] != 1) continue;\n                g[nr][nc] = 2; fresh--; q.push({nr, nc});\n            }\n        }\n        minutes++;\n    }\n    return fresh == 0 ? minutes : -1;\n}\n```"
+  },
+  {
+   "id": "pitfalls",
+   "title": "Pitfalls",
+   "note": "write",
+   "body": "✍️ Counting a minute for the last level even when it rotted nothing — the `fresh > 0` loop guard prevents the extra minute.\n✍️ No fresh oranges at the start → answer 0, not −1."
+  },
+  {
+   "id": "uses",
+   "title": "Where else",
+   "note": "screenshot",
+   "body": "01 Matrix (distance to nearest 0: sources = all zeros), walls and gates, as far from land as possible (LeetCode 1162)."
+  }
+ ],
+ "used_by": []
+}

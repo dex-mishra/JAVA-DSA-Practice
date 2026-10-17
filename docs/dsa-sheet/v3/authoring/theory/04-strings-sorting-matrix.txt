@@ -1,0 +1,490 @@
+=== page: str-char-arithmetic-and-counting
+title: Characters as numbers — counting, mapping and comparing
+topic: strings
+kind: concept
+summary: Using c − 'a' as an index, case handling, scanning several strings column by column, and comparing strings character by character.
+prereqs: cpp-string
+related: hash-frequency-counting, cpp-container-choice
+--- index | Character → index | write
+✍️ `c − 'a'` maps 'a'..'z' to 0..25; `c − 'A'` for uppercase; `c − '0'` for digits. Use the result to index a fixed array: `int cnt[26]`.
+✍️ For any printable ASCII character, `int cnt[128]` indexed by `c` directly covers everything.
+
+--- case | Case and character classes | write
+✍️ `tolower(c)`, `toupper(c)`, `isalpha(c)`, `isdigit(c)`, `isalnum(c)`, `isspace(c)`.
+✍️ Ignoring case: normalise every character with `tolower` before comparing or counting.
+
+--- vertical-scan | Vertical scanning: many strings at once | write
+✍️ Longest common prefix: look at column j of every string; stop at the first column where a string is too short or differs from the first string.
+```cpp
+string lcp(vector<string>& v) {
+    for (int j = 0; j < (int)v[0].size(); j++)
+        for (auto& s : v)
+            if (j == (int)s.size() || s[j] != v[0][j]) return v[0].substr(0, j);
+    return v[0];
+}
+```
+✍️ Cost O(total characters). The check `j == s.size()` must come **before** reading `s[j]`.
+- Alternative: sort the strings; the LCP of the whole list is the LCP of the first and last string. O(n·L log n).
+
+--- compare | Comparing strings | mixed
+✍️ `a < b` compares lexicographically (dictionary order). "apple" < "apply" < "b". A prefix is smaller than the longer string: "app" < "apple".
+- Comparison cost is O(length of the common prefix + 1).
+
+=== page: str-tokenising-and-reversal
+title: Splitting into words and reversing
+topic: strings
+kind: concept
+summary: Extracting words while skipping extra spaces, reversing word order, and the in-place reverse-twice trick.
+prereqs: cpp-string
+related: arr-in-place-tricks
+--- split | Splitting on spaces | write
+✍️ Easiest: `stringstream ss(s); string w; while (ss >> w) words.push_back(w);` — skips any amount of whitespace.
+✍️ Manual (when you need control or O(1) extra space): skip spaces with a `while`, then read characters until the next space.
+```cpp
+vector<string> words; int i = 0, n = s.size();
+while (i < n) {
+    while (i < n && s[i] == ' ') i++;          // skip spaces
+    if (i == n) break;
+    int j = i;
+    while (j < n && s[j] != ' ') j++;          // [i, j) is a word
+    words.push_back(s.substr(i, j - i));
+    i = j;
+}
+```
+
+--- reverse-words | Reversing word order | write
+✍️ With extra space: split, reverse the vector of words, join with single spaces.
+✍️ In place (C++ strings are mutable): reverse the whole string, then reverse each word, then compact spaces with a write pointer ([[arr-read-write-pointer]]).
+```
+"  the sky  " → reverse all "  yks eht  " → reverse each word "  sky the  " → compact "sky the"
+```
+
+--- pitfalls | Pitfalls | mixed
+✍️ Leading, trailing and multiple spaces are the whole point of LeetCode 151 — test `"  a  b  "`.
+- Joining with `res += w + " "` then trimming the final space is fine; `res = res + w` in a loop is O(n²) ([[cpp-string#building]]).
+
+=== page: str-palindrome-checks
+title: Palindrome checks
+topic: strings
+kind: concept
+summary: Two-pointer palindrome checks, skipping non-alphanumeric characters, and the "delete at most one character" extension.
+prereqs: tp-opposite-ends, cpp-string
+related: str-expand-around-center
+--- basic | Basic check | write
+✍️ Compare `s[l]` and `s[r]` moving inwards; any mismatch → not a palindrome. O(n) time, O(1) space ([[tp-opposite-ends#palindrome]]).
+
+--- skipping | Skipping characters | write
+```cpp
+bool isPalindrome(string s) {
+    int l = 0, r = (int)s.size() - 1;
+    while (l < r) {
+        while (l < r && !isalnum(s[l])) l++;    // inner loops also check l < r
+        while (l < r && !isalnum(s[r])) r--;
+        if (tolower(s[l]) != tolower(s[r])) return false;
+        l++; r--;
+    }
+    return true;
+}
+```
+✍️ Every inner `while` repeats the `l < r` guard; otherwise a string of only symbols runs out of bounds.
+
+--- one-deletion | At most one deletion (LeetCode 680) | write
+✍️ At the first mismatch (l, r), the answer is yes iff `s[l+1..r]` or `s[l..r−1]` is a palindrome. Check both with the basic helper. O(n).
+
+=== page: str-expand-around-center
+title: Expand around center — longest palindromic substring
+topic: strings
+kind: pattern
+summary: Every palindrome has a center (a character or a gap between two). Try all 2n−1 centers and expand while both sides match. O(n²) time, O(1) space.
+prereqs: str-palindrome-checks
+related: dp-lcs-two-strings
+--- idea | Idea | write
+✍️ A palindrome mirrors around its center. Odd length → center is a character; even length → center is the gap between two characters.
+✍️ For each of the 2n − 1 centers, expand `l--, r++` while `s[l] == s[r]`. The longest expansion found is the answer.
+
+--- recognise | Recognise it | write
+✍️ "longest palindromic substring", "count palindromic substrings" (LeetCode 647: count every successful expansion step).
+✍️ Substring (contiguous), not subsequence — subsequence is DP ([[dp-lcs-two-strings]]).
+
+--- think | Brute force → expand | mixed
+Brute force: all O(n²) substrings, check each in O(n) → O(n³).
+✍️ Bottleneck: checking each substring from scratch, although `s[l..r]` is a palindrome iff `s[l+1..r−1]` is a palindrome and `s[l] == s[r]`.
+✍️ Fix: grow palindromes outward from their centers, so each check reuses the previous one in O(1).
+(The same recurrence as a 2D DP table is also O(n²) but uses O(n²) memory.)
+
+--- template | Template | write
+```cpp
+string longestPalindrome(string s) {
+    int n = s.size(), start = 0, len = 1;
+    auto expand = [&](int l, int r) {
+        while (l >= 0 && r < n && s[l] == s[r]) { l--; r++; }
+        // the palindrome is s[l+1 .. r-1], length r - l - 1
+        if (r - l - 1 > len) { len = r - l - 1; start = l + 1; }
+    };
+    for (int c = 0; c < n; c++) {
+        expand(c, c);        // odd length
+        expand(c, c + 1);    // even length
+    }
+    return s.substr(start, len);
+}
+```
+
+--- pitfalls | Pitfalls | write
+✍️ After the while loop, l and r have gone **one step too far**: the palindrome is `[l+1, r−1]`, length `r − l − 1`.
+✍️ Forgetting even-length centers misses answers like "abba".
+
+--- complexity | Complexity | screenshot
+O(n²) time worst case (e.g. "aaaa…"), O(1) extra space. Manacher's algorithm achieves O(n) but is not expected in interviews.
+
+=== page: str-anagram-window
+title: Anagram windows — finding permutations inside a string
+topic: strings
+kind: pattern
+summary: A fixed window of size |p| sliding over s, with 26 counts compared against p's counts — or a single "matches" counter for O(1) comparison.
+prereqs: sw-fixed-window, hash-frequency-counting
+related: sw-frequency-map-window
+--- idea | Idea | write
+✍️ A substring of s is an anagram of p iff it has length |p| and the same letter counts. So slide a fixed window of size |p| and compare counts.
+✍️ Comparing two 26-arrays each step is O(26) → O(26n) total, which is fine.
+
+--- matches-counter | The O(1) comparison: a matches counter | mixed
+✍️ Keep `need[26]` (p's counts minus window's counts). Track `zeros` = number of letters where `need[c] == 0`. The window is an anagram iff `zeros == 26`.
+- On every add/remove, only one letter's value changes, so `zeros` changes by at most one → O(1) per step.
+
+--- template | Template | write
+```cpp
+vector<int> findAnagrams(string s, string p) {
+    vector<int> res; int n = s.size(), m = p.size();
+    if (m > n) return res;
+    array<int,26> want{}, have{};
+    for (char c : p) want[c - 'a']++;
+    for (int i = 0; i < n; i++) {
+        have[s[i] - 'a']++;                    // enter
+        if (i >= m) have[s[i - m] - 'a']--;    // leave
+        if (i >= m - 1 && have == want) res.push_back(i - m + 1);
+    }
+    return res;
+}
+```
+✍️ `std::array` supports `==`, which compares all 26 entries.
+
+--- variations | Variations | screenshot
+- Permutation in string (LeetCode 567): return true on the first match.
+- Minimum window containing all of t (LeetCode 76): variable window, not fixed ([[sw-variable-window]]).
+
+=== page: str-kmp-prefix-function
+title: KMP and the prefix function (recognition level)
+topic: strings
+kind: skim
+summary: Linear-time pattern matching using, for each prefix, the length of its longest proper prefix that is also a suffix. Know what it is and when it is needed; code it only if asked.
+prereqs: cpp-string
+related: str-rolling-hash
+--- what | What it solves | write
+✍️ Find all occurrences of a pattern p (length m) in a text s (length n) in **O(n + m)**, instead of O(n·m) for the naive check at every position.
+✍️ Needed when n·m is too large (both up to 10⁵), or when a problem asks about repeated prefixes/suffixes ("shortest palindrome", "repeated substring pattern").
+
+--- lps | The prefix function (lps array) | write
+✍️ `lps[i]` = length of the longest proper prefix of `p[0..i]` that is also a suffix of it. Example: p = "ababc" → lps = [0, 0, 1, 2, 0].
+✍️ On a mismatch after matching j characters, jump to `j = lps[j−1]` instead of restarting from 0 — the characters already matched tell you how much of the pattern still lines up.
+
+--- code | Code (for reference) | screenshot
+```cpp
+vector<int> buildLps(const string& p) {
+    int m = p.size(); vector<int> lps(m, 0);
+    for (int i = 1, len = 0; i < m; ) {
+        if (p[i] == p[len]) lps[i++] = ++len;
+        else if (len) len = lps[len - 1];
+        else lps[i++] = 0;
+    }
+    return lps;
+}
+int strStr(const string& s, const string& p) {
+    auto lps = buildLps(p);
+    for (int i = 0, j = 0; i < (int)s.size(); ) {
+        if (s[i] == p[j]) { i++; j++; if (j == (int)p.size()) return i - j; }
+        else if (j) j = lps[j - 1];
+        else i++;
+    }
+    return -1;
+}
+```
+
+--- interview | Interview level | mixed
+✍️ For campus OAs, `s.find(p)` or the naive O(n·m) check usually passes. Mention KMP as the optimisation if asked "can you do better than O(n·m)?".
+
+=== page: str-rolling-hash
+title: Rolling hash (recognition level)
+topic: strings
+kind: skim
+summary: Represent a substring as a number that can be updated in O(1) when the window slides, to compare substrings in O(1) (Rabin–Karp).
+prereqs: sw-fixed-window
+related: str-kmp-prefix-function
+--- idea | Idea | write
+✍️ hash(s[i..i+m−1]) = s[i]·B^(m−1) + … + s[i+m−1] mod P. Sliding right: subtract the leaving character's term, multiply by B, add the new character.
+✍️ Equal hashes ⇒ probably equal strings (verify if a collision would be costly). Used for "longest duplicate substring" with binary search, and Rabin–Karp matching.
+
+--- caution | Caution | mixed
+✍️ Use a large prime modulus (e.g. 10⁹+7) with `long long`, or two different moduli to make collisions negligible.
+
+=== page: sort-merge-sort
+title: Merge sort
+topic: sorting
+kind: mechanics
+summary: Split in half, sort each half recursively, merge the two sorted halves with two pointers. O(n log n) always, stable, O(n) extra space.
+prereqs: rec-divide-and-conquer, tp-opposite-ends
+related: sort-quick-sort-and-pivots, sort-stability-and-bounds, ll-merge-and-split
+--- idea | Idea | write
+✍️ Divide: split the array into two halves. Conquer: sort each half recursively (base case: 0 or 1 element is sorted). Combine: **merge** two sorted halves into one sorted array.
+✍️ Merge = two pointers, one per half; repeatedly take the smaller front element. O(length) per merge.
+
+--- merge | The merge step | write
+```cpp
+void merge(vector<int>& a, int lo, int mid, int hi, vector<int>& tmp) {
+    // a[lo..mid] and a[mid+1..hi] are sorted
+    int i = lo, j = mid + 1, k = lo;
+    while (i <= mid && j <= hi) tmp[k++] = (a[i] <= a[j]) ? a[i++] : a[j++];  // <= keeps it stable
+    while (i <= mid) tmp[k++] = a[i++];
+    while (j <= hi)  tmp[k++] = a[j++];
+    for (int t = lo; t <= hi; t++) a[t] = tmp[t];
+}
+void mergeSort(vector<int>& a, int lo, int hi, vector<int>& tmp) {
+    if (lo >= hi) return;
+    int mid = lo + (hi - lo) / 2;
+    mergeSort(a, lo, mid, tmp);
+    mergeSort(a, mid + 1, hi, tmp);
+    merge(a, lo, mid, hi, tmp);
+}
+```
+✍️ Allocate `tmp` **once** (size n) and pass it by reference. Allocating inside each call is a common source of TLE.
+
+--- complexity | Why O(n log n) | write
+✍️ log₂ n levels of splitting; each level merges a total of n elements → n per level × log n levels.
+✍️ Recurrence T(n) = 2T(n/2) + O(n) → O(n log n) ([[cx-recursion-complexity#three-results]]). Same in best, average and worst case.
+✍️ Space O(n) for tmp + O(log n) recursion depth.
+
+--- counting-in-merge | Counting while merging | mixed
+✍️ The merge step sees every pair (left element, right element) in sorted order. Anything you can count about such pairs — inversions (`a[i] > a[j]`, i < j), "reverse pairs" (`a[i] > 2·a[j]`) — can be counted during the merge in O(n log n) total.
+- Count inversions: when you take `a[j]` from the right half, every remaining element of the left half (`mid − i + 1` of them) is bigger → add that.
+
+--- interview | Interview points | screenshot
+- Stable: yes (with `<=` in the merge). Quick sort: no.
+- Preferred for linked lists: merging lists needs no extra array, and random access (which quick sort needs) is expensive on lists ([[ll-merge-and-split]]).
+- External sorting (data bigger than memory) is merge-based.
+
+=== page: sort-quick-sort-and-pivots
+title: Quick sort, partitioning and quickselect
+topic: sorting
+kind: mechanics
+summary: Partition around a pivot so smaller elements go left, then recurse on both sides. O(n log n) average, O(n²) worst case with bad pivots; quickselect finds the k-th element in O(n) average.
+prereqs: sort-merge-sort, arr-read-write-pointer
+related: heap-vs-quickselect, sort-dutch-national-flag
+--- partition | Partition (Lomuto) | write
+✍️ Pick a pivot; move every element smaller than it to the front with a write pointer; put the pivot right after them. Now the pivot is at its final sorted position.
+```cpp
+int partition(vector<int>& a, int lo, int hi) {
+    swap(a[lo + rand() % (hi - lo + 1)], a[hi]);   // random pivot moved to the end
+    int pivot = a[hi], w = lo;
+    for (int r = lo; r < hi; r++)
+        if (a[r] < pivot) swap(a[w++], a[r]);
+    swap(a[w], a[hi]);
+    return w;                                      // pivot's final index
+}
+```
+
+--- worst-case | Why the pivot matters | write
+✍️ Average O(n log n): a random pivot splits the array reasonably on average.
+✍️ Worst O(n²): if the pivot is always the smallest or largest (e.g. first element on already-sorted input), each partition only removes one element.
+✍️ Fix: random pivot or median-of-three. `std::sort` uses introsort (quick sort that switches to heap sort if recursion gets too deep), so it is O(n log n) worst case.
+- Many equal elements also hurt Lomuto; three-way partitioning ([[sort-dutch-national-flag]]) fixes it.
+
+--- quickselect | Quickselect | write
+✍️ To find the k-th smallest, partition once and recurse **only into the side that contains index k**. Average O(n) (n + n/2 + n/4 + …), worst O(n²).
+✍️ `std::nth_element(a.begin(), a.begin() + k, a.end())` does this in the library.
+
+--- compare | Merge sort vs quick sort | screenshot
+| | merge sort | quick sort |
+|---|---|---|
+| time | O(n log n) always | O(n log n) avg, O(n²) worst |
+| extra space | O(n) | O(log n) stack |
+| stable | yes | no |
+| in practice on arrays | slower (copying) | faster (cache-friendly) |
+
+=== page: sort-stability-and-bounds
+title: Stability and the n log n lower bound
+topic: sorting
+kind: concept
+summary: What stability means and when it matters, and why comparison sorts cannot beat O(n log n) — but counting sort can.
+prereqs: sort-merge-sort
+related: sort-counting-sort, cpp-sort-and-comparators
+--- stability | Stability | write
+✍️ A sort is **stable** if equal elements keep their original relative order.
+✍️ Matters when sorting records by one key after another: sort by name, then stable-sort by department → within each department names stay alphabetical.
+✍️ Stable: merge sort, insertion sort, counting sort, `std::stable_sort`. Not stable: quick sort, heap sort, `std::sort`.
+
+--- lower-bound | The comparison lower bound | mixed
+✍️ Any sort that only compares elements needs Ω(n log n) comparisons in the worst case (there are n! possible orders and each comparison at best halves the possibilities: log₂(n!) ≈ n log n).
+- Non-comparison sorts (counting, radix, bucket) beat it by using the values themselves as indices, when the value range is small.
+
+=== page: sort-counting-sort
+title: Counting sort and bucket ideas
+topic: sorting
+kind: mechanics
+summary: When values lie in a small range, count occurrences and rebuild the array in O(n + range). Bucket-by-frequency gives O(n) top-k.
+prereqs: hash-frequency-counting
+related: heap-top-k, sort-stability-and-bounds
+--- idea | Idea | write
+✍️ Values in [0, K): count each value, then write value v `count[v]` times in increasing v. O(n + K) time, O(K) space.
+✍️ Only sensible when K is not much larger than n (letters, grades, ages, small ints).
+
+--- buckets | Buckets indexed by frequency | write
+✍️ Top k frequent elements in O(n): frequencies are between 1 and n, so make `bucket[f]` = list of values with frequency f, then walk f from n down to 1 collecting values until you have k.
+
+=== page: sort-dutch-national-flag
+title: Dutch national flag — three-way partition in one pass
+topic: sorting
+kind: pattern
+summary: Three pointers split the array into < pivot, = pivot, unknown, > pivot regions; one pass sorts 0s, 1s and 2s in place.
+prereqs: arr-read-write-pointer, tp-opposite-ends
+related: sort-quick-sort-and-pivots
+--- idea | Idea | write
+✍️ Maintain four regions: `[0, low)` = 0s, `[low, mid)` = 1s, `[mid, high]` = unknown, `(high, n−1]` = 2s.
+✍️ Look at `a[mid]`: 0 → swap into the low region, advance low and mid. 1 → advance mid. 2 → swap with `a[high]`, shrink high, but **do not** advance mid (the swapped-in element is still unknown).
+
+--- template | Template | write
+```cpp
+void sortColors(vector<int>& a) {
+    int low = 0, mid = 0, high = (int)a.size() - 1;
+    while (mid <= high) {
+        if (a[mid] == 0) swap(a[low++], a[mid++]);
+        else if (a[mid] == 1) mid++;
+        else swap(a[mid], a[high--]);        // mid stays: new a[mid] is unchecked
+    }
+}
+```
+
+--- pitfalls | Pitfalls | write
+✍️ Advancing `mid` after swapping with `high` skips an unchecked element — the classic bug.
+✍️ Loop condition `mid <= high` (the unknown region is closed on both ends).
+- Simpler two-pass alternative: count 0s, 1s and 2s, then overwrite. Also O(n), but the interviewer usually asks for one pass.
+
+--- complexity | Complexity | screenshot
+O(n) time, one pass, O(1) space.
+
+=== page: mat-traversal-and-directions
+title: Matrix traversal and direction arrays
+topic: matrix
+kind: concept
+summary: Rows, columns, bounds checks, the dr/dc direction arrays for neighbours, and flattening (r, c) into one index.
+prereqs: cpp-vector
+related: graph-grid-as-graph, mat-spiral-and-layers
+--- basics | Basics | write
+✍️ `int R = g.size(), C = g[0].size();` Cell (r, c) is valid iff `0 <= r < R && 0 <= c < C`.
+✍️ Row-major traversal: outer loop over r, inner over c (fast, cache-friendly).
+
+--- directions | Direction arrays | write
+```cpp
+int dr[4] = {-1, 1, 0, 0};    // up, down, left, right
+int dc[4] = {0, 0, -1, 1};
+for (int d = 0; d < 4; d++) {
+    int nr = r + dr[d], nc = c + dc[d];
+    if (nr < 0 || nr >= R || nc < 0 || nc >= C) continue;   // bounds FIRST
+    // use g[nr][nc]
+}
+```
+✍️ 8 directions: add the four diagonals `(−1,−1), (−1,1), (1,−1), (1,1)`.
+
+--- flatten | Flattening a cell to an index | mixed
+✍️ `id = r * C + c`, and back: `r = id / C`, `c = id % C`. Useful for union-find on grids, visited arrays and BFS queues of ints.
+
+--- diagonals | Diagonals | screenshot
+Cells on the same **main** diagonal share `r − c`; on the same **anti**-diagonal share `r + c`. Used in N-Queens and diagonal traversal problems.
+
+=== page: mat-rotate-transpose
+title: Rotating a matrix — transpose then reverse
+topic: matrix
+kind: pattern
+summary: Rotate 90° clockwise in place = transpose (swap across the main diagonal) + reverse each row.
+prereqs: mat-traversal-and-directions
+related: arr-in-place-tricks
+--- idea | Idea | write
+✍️ Clockwise rotation sends (r, c) to (c, n−1−r).
+✍️ Transpose sends (r, c) → (c, r). Then reversing each row sends (c, r) → (c, n−1−r). Together: exactly the rotation.
+✍️ Counter-clockwise: transpose, then reverse each **column** (or reverse rows first, then transpose).
+
+--- template | Template | write
+```cpp
+void rotate(vector<vector<int>>& m) {
+    int n = m.size();
+    for (int r = 0; r < n; r++)
+        for (int c = r + 1; c < n; c++)      // c > r: swap each pair ONCE
+            swap(m[r][c], m[c][r]);
+    for (auto& row : m) reverse(row.begin(), row.end());
+}
+```
+
+--- pitfalls | Pitfalls | write
+✍️ Transpose loop must start at `c = r + 1`. Looping over all c swaps every pair twice and restores the original matrix.
+
+--- complexity | Complexity | screenshot
+O(n²) time (every cell moves), O(1) extra space.
+
+=== page: mat-spiral-and-layers
+title: Spiral order — shrinking boundaries
+topic: matrix
+kind: pattern
+summary: Keep top, bottom, left, right boundaries; walk the four sides of the current layer and shrink the boundaries after each side.
+prereqs: mat-traversal-and-directions
+related: mat-rotate-transpose
+--- idea | Idea | write
+✍️ The spiral visits the outer ring, then the next ring, and so on. Represent the unvisited region as a rectangle `[top, bottom] × [left, right]`.
+✍️ Walk right along `top`, then `top++`; down along `right`, then `right--`; left along `bottom`, then `bottom--`; up along `left`, then `left++`. Stop when the rectangle is empty.
+
+--- template | Template | write
+```cpp
+vector<int> spiralOrder(vector<vector<int>>& g) {
+    vector<int> out;
+    int top = 0, bot = g.size() - 1, left = 0, right = g[0].size() - 1;
+    while (top <= bot && left <= right) {
+        for (int c = left; c <= right; c++) out.push_back(g[top][c]);
+        top++;
+        for (int r = top; r <= bot; r++) out.push_back(g[r][right]);
+        right--;
+        if (top <= bot) {                            // a row is still left
+            for (int c = right; c >= left; c--) out.push_back(g[bot][c]);
+            bot--;
+        }
+        if (left <= right) {                         // a column is still left
+            for (int r = bot; r >= top; r--) out.push_back(g[r][left]);
+            left++;
+        }
+    }
+    return out;
+}
+```
+
+--- pitfalls | Pitfalls | write
+✍️ The two `if` guards prevent re-visiting the middle row or column of non-square matrices (e.g. a single row, or 3×5). Test a 1×4 and a 4×1 matrix.
+
+--- complexity | Complexity | screenshot
+O(R·C) time, O(1) extra space besides the output.
+
+=== page: mat-in-place-marking
+title: In-place marking in matrices
+topic: matrix
+kind: pattern
+summary: Use the first row and column (or a sentinel value) as storage to mark rows/columns, achieving O(1) extra space.
+prereqs: mat-traversal-and-directions, arr-in-place-tricks
+related: graph-grid-as-graph
+--- idea | Idea | write
+✍️ Set matrix zeroes (LeetCode 73): you need to remember which rows and columns contain a zero. O(R + C) space with two boolean arrays.
+✍️ O(1) space: store those flags **in row 0 and column 0** themselves (`m[r][0] = 0` marks row r, `m[0][c] = 0` marks column c). Remember separately whether row 0 / column 0 originally had a zero.
+
+--- order | Order of operations | write
+✍️ 1. Record whether row 0 and column 0 contain zeros (two booleans).
+✍️ 2. Mark: for every zero at (r, c) with r, c ≥ 1, set `m[r][0] = m[0][c] = 0`.
+✍️ 3. Fill: for r, c ≥ 1, zero the cell if its row marker or column marker is 0.
+✍️ 4. Finally zero row 0 / column 0 if the booleans say so. Doing step 4 earlier destroys the markers.
+
+--- other-marking | Other marking tricks | screenshot
+- Grid DFS often marks visited cells by overwriting them ('1' → '0' in Number of Islands, 'O' → '#' in Surrounded Regions) instead of a separate visited array. Ask whether modifying the input is allowed.
+- Game of Life: encode "was alive, now dead" as a third state (e.g. 2) so the old value can still be recovered in one pass.

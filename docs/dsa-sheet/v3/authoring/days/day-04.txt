@@ -1,0 +1,897 @@
+=== day: 4
+micro_title: Prefix sums and Kadane — subarrays without re-adding
+micro_theory: ps-prefix-sum-basics, ps-prefix-sum-hashmap, sw-monotonicity-requirement, kad-kadane, kad-min-so-far, cpp-integer-overflow
+--- micro | Micro-theory (10 minutes) | mixed
+Day 1's running sum comes back with two superpowers.
+
+✍️ **Prefix sums.** Store every running total in `pre` (with a leading 0). Any range sum is `pre[r+1] − pre[l]` in O(1). Draw the boundary picture once ([[ps-prefix-sum-basics#index-convention]]).
+✍️ **Prefix sum + hash map.** "Subarray sum = k" means "two prefixes differ by k" — that is Two Sum on prefix sums. Seed the map with `{0: 1}` ([[ps-prefix-sum-hashmap#seed]]).
+✍️ **Why not a sliding window?** Negative numbers make window sums non-monotone ([[sw-monotonicity-requirement#counterexample]]).
+✍️ **Kadane.** Best subarray *ending here* = max(x, best ending at the previous index + x) ([[kad-kadane#idea]]). And its cousin: for "buy then sell", the best buy day is the minimum so far ([[kad-min-so-far#idea]]).
+- Sums get big → `long long` ([[cpp-integer-overflow#where]]).
+--- card | Pattern card | write
+✍️ PREFIX SUM — `pre[0]=0; pre[i+1]=pre[i]+a[i]`; sum(l..r) = pre[r+1] − pre[l].
+✍️ PREFIX + MAP — trigger "count subarrays with sum k" (negatives ok). cnt{0:1}; ans += cnt[run−k]; cnt[run]++.
+✍️ KADANE — cur = max(x, cur+x); best = max(best, cur); init with a[0].
+✍️ MIN SO FAR — profit = x − minSoFar; then minSoFar = min(minSoFar, x).
+
+=== problem: range-sum-query-immutable
+theory_refs:
+- brainstorm | Overlapping queries re-add the same elements | ps-prefix-sum-basics#think | Why per-query loops waste work.
+- pseudocode | `pre` of size n+1 with pre[0] = 0 | ps-prefix-sum-basics#index-convention | The boundary picture that kills off-by-ones.
+- solution | `long long` storage | cpp-integer-overflow#where | Prefix sums overflow first.
+- carry | Static only | ps-prefix-sum-basics#pitfalls | Updates need a different structure.
+stuck_refs:
+- 10 | arr-single-pass-running-state#template
+- 20 | ps-prefix-sum-basics#idea
+- 30 | ps-prefix-sum-basics#index-convention
+--- understand | Understand | mixed
+✍️ Design a class: constructor gets an array; `sumRange(l, r)` returns a[l] + … + a[r] (inclusive). Up to 10⁴ queries on n ≤ 10⁴.
+- The array never changes ("immutable").
+--- analyse | Analyse | write
+✍️ Per-query loop: 10⁴ queries × 10⁴ length = 10⁸ — borderline. The real point: many queries on a static array.
+✍️ By hand: sum(2..4) = (sum of first 5) − (sum of first 2). If I had all "sum of first i", every query is one subtraction.
+✍️ Edges: l = 0 (must not read index −1); l == r.
+--- brainstorm | Brainstorm: brute → optimal | write
+✍️ **1. Brute.** Loop from l to r per query. O(n) per query.
+✍️ ↳ Bottleneck: different queries re-add overlapping elements.
+✍️ ↳ Unlock: "recomputing something…" → precompute every running total once.
+✍️ **2. Optimal.** Build `pre` in O(n); answer each query as `pre[r+1] − pre[l]` in O(1).
+--- algorithm | Algorithm in words | write
+✍️ 1. In the constructor, build pre of size n+1 with pre[0] = 0 and pre[i+1] = pre[i] + a[i].
+✍️ 2. For a query (l, r), return pre[r+1] − pre[l].
+--- pseudocode | Pseudocode | write
+```
+CONSTRUCT  pre = [0] * (n+1)
+           for i in 0..n-1: pre[i+1] = pre[i] + a[i]
+QUERY      return pre[r+1] - pre[l]
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class NumArray {
+    vector<long long> pre;
+public:
+    NumArray(vector<int>& a) : pre(a.size() + 1, 0) {
+        for (int i = 0; i < (int)a.size(); i++) pre[i + 1] = pre[i] + a[i];
+    }
+    int sumRange(int l, int r) { return (int)(pre[r + 1] - pre[l]); }
+};
+```
+--- dry_run | Dry run | screenshot
+a = [−2, 0, 3, −5, 2, −1] → pre = [0, −2, −2, 1, −4, −2, −3]
+| query | formula | value |
+|---|---|---|
+| (0, 2) | pre[3] − pre[0] | 1 |
+| (2, 5) | pre[6] − pre[2] | −1 |
+| (0, 5) | pre[6] − pre[0] | −3 |
+--- edges | Edge cases and complexity | mixed
+✍️ Build O(n), query O(1), space O(n).
+✍️ The leading 0 means l = 0 needs no special case.
+--- carry | Carry forward | write
+✍️ Many range-sum queries on a static array → prefix sums.
+✍️ `pre[k]` = sum of the first k elements = boundary before index k.
+✍️ Sum of a[l..r] = pre[r+1] − pre[l]. Memorise the picture, not the formula.
+--- followups | Interview follow-ups | screenshot
+- *The array gets point updates between queries.* Fenwick tree / segment tree: O(log n) update and query (beyond this plan; mention it).
+- *2D version.* Rectangle sums with inclusion–exclusion ([[ps-2d-prefix-sum]]).
+--- tests | Tests | hidden
+```cpp
+vector<int> a = {-2, 0, 3, -5, 2, -1};
+NumArray na(a);
+CHECK(na.sumRange(0, 2) == 1);
+CHECK(na.sumRange(2, 5) == -1);
+CHECK(na.sumRange(0, 5) == -3);
+CHECK(na.sumRange(3, 3) == -5);
+```
++++ sibling: 238 | product-of-array-except-self | Product of Array Except Self | Medium | must
+maps: Prefix and suffix **products** instead of sums; division is banned, so combine a left pass and a right pass.
+--- analyse | Analyse | write
+✍️ out[i] = product of all elements except a[i]; O(n), no division.
+✍️ Division would break on zeros anyway.
+--- brainstorm | Brainstorm | write
+✍️ Brute: for each i multiply the rest → O(n²). out[i] = (product of a[0..i−1]) × (product of a[i+1..n−1]) → a forward pass and a backward pass. Write the forward pass into out, then sweep backwards with one variable → O(1) extra.
+--- algorithm | Algorithm in words | write
+✍️ Pass 1: out[i] = product of everything left of i. Pass 2 from the right: multiply out[i] by a running product of everything right of i.
+--- pseudocode | Pseudocode | write
+```
+out[0] = 1
+for i in 1..n-1: out[i] = out[i-1] * a[i-1]
+right = 1
+for i from n-1 down to 0: out[i] *= right; right *= a[i]
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    vector<int> productExceptSelf(vector<int>& a) {
+        int n = a.size();
+        vector<int> out(n, 1);
+        for (int i = 1; i < n; i++) out[i] = out[i - 1] * a[i - 1];
+        int right = 1;
+        for (int i = n - 1; i >= 0; i--) { out[i] *= right; right *= a[i]; }
+        return out;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ "Everything except me" = left part ⊕ right part ([[ps-prefix-suffix-passes#idea]]); zeros need no special case ([[ps-prefix-suffix-passes#why-no-division]]).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {1, 2, 3, 4};
+CHECK((s.productExceptSelf(a) == vector<int>{24, 12, 8, 6}));
+vector<int> b = {-1, 1, 0, -3, 3};
+CHECK((s.productExceptSelf(b) == vector<int>{0, 0, 9, 0, 0}));
+```
++++ sibling: 304 | range-sum-query-2d-immutable | Range Sum Query 2D - Immutable | Medium | optional
+maps: The same idea in two dimensions with inclusion–exclusion.
+--- analyse | Analyse | write
+✍️ Many queries for the sum of a sub-rectangle of a static matrix.
+--- brainstorm | Brainstorm | write
+✍️ Per-query double loop → O(R·C) per query. 2D prefix P[r+1][c+1] = sum of rectangle (0,0)..(r,c) → O(1) per query.
+--- algorithm | Algorithm in words | write
+✍️ Build P with "add up, add left, subtract the overlap"; answer with four lookups.
+--- pseudocode | Pseudocode | write
+```
+P[r+1][c+1] = g[r][c] + P[r][c+1] + P[r+1][c] - P[r][c]
+sum = P[r2+1][c2+1] - P[r1][c2+1] - P[r2+1][c1] + P[r1][c1]
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class NumMatrix {
+    vector<vector<long long>> P;
+public:
+    NumMatrix(vector<vector<int>>& g) {
+        int R = g.size(), C = g[0].size();
+        P.assign(R + 1, vector<long long>(C + 1, 0));
+        for (int r = 0; r < R; r++)
+            for (int c = 0; c < C; c++)
+                P[r + 1][c + 1] = g[r][c] + P[r][c + 1] + P[r + 1][c] - P[r][c];
+    }
+    int sumRegion(int r1, int c1, int r2, int c2) {
+        return (int)(P[r2 + 1][c2 + 1] - P[r1][c2 + 1] - P[r2 + 1][c1] + P[r1][c1]);
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ Inclusion–exclusion in both the build and the query ([[ps-2d-prefix-sum#query]]).
+--- tests | Tests | hidden
+```cpp
+vector<vector<int>> g = {{3, 0, 1, 4, 2}, {5, 6, 3, 2, 1}, {1, 2, 0, 1, 5}, {4, 1, 0, 1, 7}, {1, 0, 3, 0, 5}};
+NumMatrix m(g);
+CHECK(m.sumRegion(2, 1, 4, 3) == 8);
+CHECK(m.sumRegion(1, 1, 2, 2) == 11);
+CHECK(m.sumRegion(1, 2, 2, 4) == 12);
+```
++++ sibling: 1732 | find-the-highest-altitude | Find the Highest Altitude | Easy | optional
+maps: The answer is just the maximum prefix sum (including the starting 0).
+--- analyse | Analyse | write
+✍️ Start at altitude 0; gain[i] is the change; return the highest altitude reached.
+--- brainstorm | Brainstorm | write
+✍️ Running sum + running max, starting the max at 0.
+--- algorithm | Algorithm in words | write
+✍️ Add each gain to the altitude; track the maximum.
+--- pseudocode | Pseudocode | write
+```
+alt = 0; best = 0
+for g in gain: alt += g; best = max(best, alt)
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int largestAltitude(vector<int>& gain) {
+        int alt = 0, best = 0;
+        for (int g : gain) { alt += g; best = max(best, alt); }
+        return best;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ The starting point (prefix of length 0) is a real candidate — the same reason the prefix array starts with 0.
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {-5, 1, 5, 0, -7};
+CHECK(s.largestAltitude(a) == 1);
+vector<int> b = {-4, -3, -2, -1, 4, 3, 2};
+CHECK(s.largestAltitude(b) == 0);
+```
+
+=== problem: subarray-sum-equals-k
+theory_refs:
+- analyse | Negatives present | sw-monotonicity-requirement#counterexample | Why a window cannot work here.
+- brainstorm | "Search earlier prefixes for run − k" | ps-prefix-sum-hashmap#think | The bottleneck that becomes a lookup.
+- brainstorm | Same idea as Two Sum | hash-complement-lookup#idea | Complement lookup on prefix sums.
+- pseudocode | `cnt[0] = 1` | ps-prefix-sum-hashmap#seed | Subarrays starting at index 0.
+- pseudocode | Query, then record | ps-prefix-sum-hashmap#pitfalls | Avoid counting empty subarrays when k = 0.
+stuck_refs:
+- 10 | sw-monotonicity-requirement#rule
+- 20 | ps-prefix-sum-basics#idea
+- 30 | ps-prefix-sum-hashmap#idea
+- 40 | ps-prefix-sum-hashmap#seed
+--- understand | Understand | mixed
+✍️ f(array of ints, possibly negative; k) → number of contiguous subarrays whose sum is exactly k.
+- n ≤ 2·10⁴, values in [−1000, 1000], k in [−10⁷, 10⁷].
+- [1, 1, 1], k = 2 → 2. [1, 2, 3], k = 3 → 2 ([1,2] and [3]).
+--- analyse | Analyse | write
+✍️ "Subarray sum" + negatives → not a window. "Count" + "exactly k" → think prefix sums.
+✍️ By hand: sum(i..j) = pre[j+1] − pre[i]. For a fixed end, I want starts whose prefix equals (current prefix − k).
+✍️ Hard part: counting **all** such starts quickly, and not missing subarrays that start at 0.
+✍️ Edges: k = 0; negative values; a single element equal to k.
+--- brainstorm | Brainstorm: brute → optimal | write
+✍️ **1. Brute.** All (i, j) with an inner sum loop. O(n³).
+✍️ **2. Better.** Fix i, extend j with a running sum. O(n²) — 4·10⁸, too slow in practice.
+✍️ ↳ Bottleneck: for each end, trying every start.
+✍️ ↳ Job description: "count earlier prefix sums equal to run − k". Unlock: searching for a known value → store prefix sums in a map with their counts.
+✍️ **3. Optimal.** One pass; `cnt[prefix] = how many times seen`; add cnt[run − k] at each step. O(n) time, O(n) space.
+--- algorithm | Algorithm in words | write
+✍️ 1. Keep a running prefix sum, starting at 0, and a map of prefix counts containing {0: 1}.
+✍️ 2. For each element, add it to the running sum.
+✍️ 3. Add the number of earlier prefixes equal to (running − k) to the answer.
+✍️ 4. Record the current running sum in the map.
+--- pseudocode | Pseudocode | write
+```
+STATE   cnt = map {0: 1}; run = 0; ans = 0
+LOOP    for x in a
+UPDATE    run += x
+CHECK     ans += cnt[run - k]        (query first, using find)
+UPDATE    cnt[run] += 1              (record after)
+RETURN  ans
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int subarraySum(vector<int>& a, int k) {
+        unordered_map<long long, int> cnt;
+        cnt[0] = 1;
+        long long run = 0;
+        int ans = 0;
+        for (int x : a) {
+            run += x;
+            auto it = cnt.find(run - k);
+            if (it != cnt.end()) ans += it->second;
+            cnt[run]++;
+        }
+        return ans;
+    }
+};
+```
+--- dry_run | Dry run | screenshot
+a = [1, 2, 3], k = 3:
+| x | run | need = run−k | cnt[need] | ans | cnt after |
+|---|---|---|---|---|---|
+| start | 0 | | | 0 | {0:1} |
+| 1 | 1 | −2 | 0 | 0 | {0:1, 1:1} |
+| 2 | 3 | 0 | 1 | 1 | {0:1, 1:1, 3:1} |
+| 3 | 6 | 3 | 1 | 2 | {…, 6:1} |
+--- edges | Edge cases and complexity | mixed
+✍️ O(n) average time, O(n) space.
+✍️ Without the {0: 1} seed, [3] with k = 3 returns 0.
+✍️ Recording before querying with k = 0 counts each position as a zero-length subarray.
+--- carry | Carry forward | write
+✍️ Subarray sum = k (or divisible by k, or balanced counts) → prefix sum + hash map.
+✍️ It is Two Sum where the "values" are prefix sums: store what you have seen, look up run − k.
+✍️ Negatives allowed → do not use a sliding window.
+--- followups | Interview follow-ups | screenshot
+- *Longest subarray with sum k.* Map prefix → first index, seed {0: −1} ([[ps-prefix-sum-hashmap#variations]]).
+- *Sum divisible by k.* Key by `run mod k`, normalised ([[ps-modular-prefix]]).
+- *All values positive?* Then a sliding window also works in O(1) space.
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {1, 1, 1};
+CHECK(s.subarraySum(a, 2) == 2);
+vector<int> b = {1, 2, 3};
+CHECK(s.subarraySum(b, 3) == 2);
+vector<int> c = {1, -1, 1};
+CHECK(s.subarraySum(c, 1) == 3);
+vector<int> d = {0, 0, 0};
+CHECK(s.subarraySum(d, 0) == 6);
+```
++++ sibling: 974 | subarray-sums-divisible-by-k | Subarray Sums Divisible by K | Medium | must
+maps: Same counting map, but keyed by the prefix sum's remainder mod k.
+--- analyse | Analyse | write
+✍️ Count subarrays whose sum is divisible by k. Values can be negative.
+--- brainstorm | Brainstorm | write
+✍️ sum(i..j) divisible ⇔ pre[j+1] ≡ pre[i] (mod k). Count equal remainders with an array of size k seeded with count[0] = 1. Normalise negative remainders.
+--- algorithm | Algorithm in words | write
+✍️ For each element: update the running remainder; add how many earlier prefixes had the same remainder; record it.
+--- pseudocode | Pseudocode | write
+```
+cnt[k] = 0; cnt[0] = 1; run = 0; ans = 0
+for x in a:
+    run = ((run + x) % k + k) % k
+    ans += cnt[run]; cnt[run]++
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int subarraysDivByK(vector<int>& a, int k) {
+        vector<int> cnt(k, 0);
+        cnt[0] = 1;
+        int run = 0, ans = 0;
+        for (int x : a) {
+            run = ((run + x) % k + k) % k;
+            ans += cnt[run]++;
+        }
+        return ans;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ Equal remainders bound a divisible subarray ([[ps-modular-prefix#idea]]); C++ `%` can be negative ([[ps-modular-prefix#negative-mod]]).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {4, 5, 0, -2, -3, 1};
+CHECK(s.subarraysDivByK(a, 5) == 7);
+vector<int> b = {5};
+CHECK(s.subarraysDivByK(b, 9) == 0);
+vector<int> c = {-1, 2, 9};
+CHECK(s.subarraysDivByK(c, 2) == 2);
+```
++++ sibling: 525 | contiguous-array | Contiguous Array | Medium | optional
+maps: Turn 0 into −1; equal 0s and 1s means sum 0; find the longest such subarray with a first-index map.
+--- analyse | Analyse | write
+✍️ Longest subarray of a binary array with equally many 0s and 1s.
+--- brainstorm | Brainstorm | write
+✍️ Map 0 → −1. Then "equal counts" = "sum 0". Longest subarray with sum 0: two equal prefix sums; store the **first** index of each prefix value, seed {0: −1}.
+--- algorithm | Algorithm in words | write
+✍️ Running sum with ±1; if this sum was seen, length = i − first[sum]; otherwise record first[sum] = i.
+--- pseudocode | Pseudocode | write
+```
+first = {0: -1}; run = 0; best = 0
+for i: run += (a[i] ? 1 : -1)
+    if run in first: best = max(best, i - first[run])
+    else: first[run] = i
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int findMaxLength(vector<int>& a) {
+        unordered_map<int, int> first;
+        first[0] = -1;
+        int run = 0, best = 0;
+        for (int i = 0; i < (int)a.size(); i++) {
+            run += a[i] ? 1 : -1;
+            auto it = first.find(run);
+            if (it != first.end()) best = max(best, i - it->second);
+            else first[run] = i;
+        }
+        return best;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ "Longest" → store the **first** occurrence (never overwrite); "count" → store counts ([[ps-prefix-sum-hashmap#variations]]).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {0, 1};
+CHECK(s.findMaxLength(a) == 2);
+vector<int> b = {0, 1, 0};
+CHECK(s.findMaxLength(b) == 2);
+vector<int> c = {0, 1, 1, 1, 1, 1, 0, 0, 0};
+CHECK(s.findMaxLength(c) == 6);
+```
++++ sibling: 930 | binary-subarrays-with-sum | Binary Subarrays With Sum | Medium | optional
+maps: Exactly Subarray Sum Equals K on a 0/1 array (the window alternative is atMost(goal) − atMost(goal−1)).
+--- analyse | Analyse | write
+✍️ Count subarrays of a binary array with sum equal to goal.
+--- brainstorm | Brainstorm | write
+✍️ Prefix + count map, identical template. Alternative: because values are ≥ 0, sliding windows work with the at-most trick ([[sw-at-most-k-trick#idea]]).
+--- algorithm | Algorithm in words | write
+✍️ Running sum; add cnt[run − goal]; record run.
+--- pseudocode | Pseudocode | write
+```
+cnt = {0:1}; run = 0; ans = 0
+for x in a: run += x; ans += cnt[run-goal]; cnt[run]++
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int numSubarraysWithSum(vector<int>& a, int goal) {
+        vector<int> cnt(a.size() + 1, 0);       // prefix sums of a 0/1 array are in [0, n]
+        cnt[0] = 1;
+        int run = 0, ans = 0;
+        for (int x : a) {
+            run += x;
+            if (run - goal >= 0) ans += cnt[run - goal];
+            cnt[run]++;
+        }
+        return ans;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ When prefix values are small and non-negative, an array replaces the hash map ([[cpp-container-choice#rule]]).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {1, 0, 1, 0, 1};
+CHECK(s.numSubarraysWithSum(a, 2) == 4);
+vector<int> b = {0, 0, 0, 0, 0};
+CHECK(s.numSubarraysWithSum(b, 0) == 15);
+```
+
+=== problem: maximum-subarray
+theory_refs:
+- brainstorm | For a fixed end, the best start comes from the previous end | kad-kadane#think | How Kadane falls out of the bottleneck method.
+- pseudocode | cur = max(x, cur + x) | kad-kadane#template | Extend or restart.
+- solution | Initialise with a[0], not 0 | kad-kadane#pitfalls | The all-negative bug.
+- followups | Proof by induction | kad-kadane#proof | What to say when asked why it is correct.
+- carry | It is a 1D DP | dp-1d-linear#idea | "Best ending at i" is a DP state you will see again on Day 25.
+stuck_refs:
+- 10 | cx-constraints-to-target#table
+- 20 | kad-kadane#idea
+- 30 | kad-kadane#template
+- 40 | kad-kadane#pitfalls
+--- understand | Understand | mixed
+✍️ f(array, possibly negative) → the largest sum of a non-empty contiguous subarray.
+- n ≤ 10⁵ → O(n) or O(n log n).
+- [−2,1,−3,4,−1,2,1,−5,4] → 6 ([4,−1,2,1]).
+--- analyse | Analyse | write
+✍️ By hand: I keep adding while the total helps. When the running total becomes negative it can only drag down anything after it, so I start fresh.
+✍️ Hard part: the all-negative case — the answer is the single largest element, not 0.
+✍️ Edges: n = 1; all negative; zeros.
+--- brainstorm | Brainstorm: brute → optimal | write
+✍️ **1. Brute.** All (i, j), sum each. O(n³), or O(n²) with running sums.
+✍️ ↳ Bottleneck: for each end j, trying every start i.
+✍️ ↳ Observation: the best subarray ending at j is either [a[j]] alone or (best subarray ending at j−1) + a[j]. So "best ending at j" comes from "best ending at j−1" in O(1).
+✍️ **2. Optimal (Kadane).** cur = max(a[j], cur + a[j]); best = max(best, cur). O(n), O(1).
+✍️ (Prefix-sum view: answer = max over j of pre[j+1] − min prefix before it — the same as tomorrow's stock problem.)
+--- algorithm | Algorithm in words | write
+✍️ 1. Set cur and best to the first element.
+✍️ 2. For each next element: cur becomes the larger of (the element alone) and (cur plus the element).
+✍️ 3. Update best with cur.
+✍️ 4. Return best.
+--- pseudocode | Pseudocode | write
+```
+STATE   cur = a[0]; best = a[0]
+LOOP    for i in 1..n-1
+UPDATE    cur  = max(a[i], cur + a[i])     extend or restart
+          best = max(best, cur)
+RETURN  best
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int maxSubArray(vector<int>& a) {
+        int cur = a[0], best = a[0];
+        for (int i = 1; i < (int)a.size(); i++) {
+            cur = max(a[i], cur + a[i]);
+            best = max(best, cur);
+        }
+        return best;
+    }
+};
+```
+--- dry_run | Dry run | screenshot
+| a[i] | cur | best |
+|---|---|---|
+| −2 | −2 | −2 |
+| 1 | 1 (restart) | 1 |
+| −3 | −2 | 1 |
+| 4 | 4 (restart) | 4 |
+| −1 | 3 | 4 |
+| 2 | 5 | 5 |
+| 1 | 6 | 6 |
+| −5 | 1 | 6 |
+| 4 | 5 | 6 |
+--- edges | Edge cases and complexity | mixed
+✍️ O(n) time, O(1) space.
+✍️ All negative [−3, −1, −2] → −1. `best = 0` initialisation would wrongly return 0.
+--- carry | Carry forward | write
+✍️ "Best contiguous segment" → state = best ending exactly here; extend or restart.
+✍️ This is the first DP of the plan: dp[i] depends only on dp[i−1].
+✍️ Initialise optimisation answers with the first real candidate, not with 0.
+--- followups | Interview follow-ups | screenshot
+- *Return the subarray.* Track the start index at each restart and the best (start, end).
+- *Divide and conquer version* (LeetCode's follow-up): best of left half, right half, and crossing the middle → O(n log n).
+- *Circular array.* max(Kadane, total − min subarray), unless all negative ([[kad-kadane#variations]]).
+- *Maximum product.* Track max and min ([[kad-max-product-variant]]).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {-2, 1, -3, 4, -1, 2, 1, -5, 4};
+CHECK(s.maxSubArray(a) == 6);
+vector<int> b = {1};
+CHECK(s.maxSubArray(b) == 1);
+vector<int> c = {5, 4, -1, 7, 8};
+CHECK(s.maxSubArray(c) == 23);
+vector<int> d = {-3, -1, -2};
+CHECK(s.maxSubArray(d) == -1);
+```
++++ sibling: 152 | maximum-product-subarray | Maximum Product Subarray | Medium | must
+maps: Kadane with products — but a negative turns the minimum into the maximum, so track both.
+--- analyse | Analyse | write
+✍️ Largest product of a contiguous subarray; values in [−10, 10] including 0.
+✍️ Why plain Kadane fails: [−2, 3, −4] → the best is the whole array (24), built from a very negative product times −4.
+--- brainstorm | Brainstorm | write
+✍️ Keep hi and lo = max and min product ending here. For x < 0 swap them first; then hi = max(x, hi·x), lo = min(x, lo·x). O(n).
+--- algorithm | Algorithm in words | write
+✍️ For each x: if negative, swap hi/lo; update both from the old values; best = max(best, hi).
+--- pseudocode | Pseudocode | write
+```
+hi = lo = best = a[0]
+for x in a[1..]:
+    if x < 0: swap(hi, lo)
+    hi = max(x, hi*x); lo = min(x, lo*x); best = max(best, hi)
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int maxProduct(vector<int>& a) {
+        int hi = a[0], lo = a[0], best = a[0];
+        for (int i = 1; i < (int)a.size(); i++) {
+            int x = a[i];
+            if (x < 0) swap(hi, lo);
+            hi = max(x, hi * x);
+            lo = min(x, lo * x);
+            best = max(best, hi);
+        }
+        return best;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ When an operation can flip order (negatives, multiplication), keep both extremes ([[kad-max-product-variant#idea]]).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {2, 3, -2, 4};
+CHECK(s.maxProduct(a) == 6);
+vector<int> b = {-2, 0, -1};
+CHECK(s.maxProduct(b) == 0);
+vector<int> c = {-2, 3, -4};
+CHECK(s.maxProduct(c) == 24);
+```
++++ sibling: 918 | maximum-sum-circular-subarray | Maximum Sum Circular Subarray | Medium | optional
+maps: A wrapping subarray = total minus a middle subarray → max(Kadane max, total − Kadane min).
+--- analyse | Analyse | write
+✍️ Max subarray sum when the array is circular (a subarray may wrap from the end to the start).
+--- brainstorm | Brainstorm | write
+✍️ Either the best subarray does not wrap (normal Kadane) or it wraps, in which case the excluded part is a contiguous middle block with minimum sum. If every value is negative, the wrap case would be empty → use normal Kadane.
+--- algorithm | Algorithm in words | write
+✍️ Run max-Kadane and min-Kadane together with the total; answer as above.
+--- pseudocode | Pseudocode | write
+```
+compute maxSub, minSub, total
+if maxSub < 0: return maxSub
+return max(maxSub, total - minSub)
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int maxSubarraySumCircular(vector<int>& a) {
+        int total = 0, curMax = 0, curMin = 0, best = a[0], worst = a[0];
+        for (int x : a) {
+            curMax = max(x, curMax + x); best = max(best, curMax);
+            curMin = min(x, curMin + x); worst = min(worst, curMin);
+            total += x;
+        }
+        if (best < 0) return best;
+        return max(best, total - worst);
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ Complement trick: "maximum wrapping part" = "total − minimum non-wrapping part".
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {1, -2, 3, -2};
+CHECK(s.maxSubarraySumCircular(a) == 3);
+vector<int> b = {5, -3, 5};
+CHECK(s.maxSubarraySumCircular(b) == 10);
+vector<int> c = {-3, -2, -3};
+CHECK(s.maxSubarraySumCircular(c) == -2);
+```
++++ sibling: 1749 | maximum-absolute-sum-of-any-subarray | Maximum Absolute Sum of Any Subarray | Medium | optional
+maps: Run Kadane for the max and for the min; the answer is the bigger magnitude.
+--- analyse | Analyse | write
+✍️ Maximum of |sum| over all subarrays (empty allowed → at least 0).
+--- brainstorm | Brainstorm | write
+✍️ |sum| is largest either at the max subarray sum or at the min subarray sum → two Kadanes in one pass.
+--- algorithm | Algorithm in words | write
+✍️ Track max-ending-here (floored at 0) and min-ending-here (capped at 0); answer = max(best max, −best min).
+--- pseudocode | Pseudocode | write
+```
+hi = lo = 0; ans = 0
+for x: hi = max(0, hi + x); lo = min(0, lo + x); ans = max(ans, hi, -lo)
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int maxAbsoluteSum(vector<int>& a) {
+        int hi = 0, lo = 0, ans = 0;
+        for (int x : a) {
+            hi = max(0, hi + x);
+            lo = min(0, lo + x);
+            ans = max({ans, hi, -lo});
+        }
+        return ans;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ Allowing an empty subarray lets you floor the running value at 0 (classic Kadane variant).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {1, -3, 2, 3, -4};
+CHECK(s.maxAbsoluteSum(a) == 5);
+vector<int> b = {2, -5, 1, -4, 3, -2};
+CHECK(s.maxAbsoluteSum(b) == 8);
+```
+
+=== problem: best-time-to-buy-and-sell-stock
+theory_refs:
+- brainstorm | For each sell day, the best buy is the minimum before it | kad-min-so-far#think | The running-minimum idea.
+- pseudocode | Profit first, then fold today into the minimum | kad-min-so-far#pitfalls | The order of the two updates.
+- carry | The stock family | dp-state-machine#family | Day 29 extends this to cooldowns, fees and k transactions.
+- carry | Connection to Kadane | kad-kadane#variations | Kadane on daily differences gives the same answer.
+stuck_refs:
+- 10 | cx-constraints-to-target#table
+- 20 | kad-min-so-far#idea
+- 30 | kad-min-so-far#template
+--- understand | Understand | mixed
+✍️ f(prices by day) → max of prices[j] − prices[i] with i < j, or 0 if no profit is possible. One buy, one sell.
+- n ≤ 10⁵ → O(n).
+- [7,1,5,3,6,4] → 5 (buy 1, sell 6). [7,6,4,3,1] → 0.
+--- analyse | Analyse | write
+✍️ By hand: walking day by day, I remember the cheapest price so far. Each day I ask "if I sold today, what would I make?".
+✍️ Hard part: the buy must come **before** the sell — so the max minus the min of the whole array is wrong.
+✍️ Edges: prices only fall → 0; one day → 0.
+--- brainstorm | Brainstorm: brute → optimal | write
+✍️ **1. Brute.** All pairs i < j. O(n²).
+✍️ ↳ Bottleneck: for each sell day j, scanning all earlier days for the minimum.
+✍️ ↳ Unlock: "recomputing something that changed a little" — the minimum of days 0..j−1 is the minimum of days 0..j−2 plus one more day.
+✍️ **2. Optimal.** Keep minSoFar; profit today = price − minSoFar. O(n), O(1).
+--- algorithm | Algorithm in words | write
+✍️ 1. Remember the first price as the cheapest so far; best profit 0.
+✍️ 2. For each later day: compute today's price minus the cheapest so far; update the best profit.
+✍️ 3. Then update the cheapest so far with today's price.
+--- pseudocode | Pseudocode | write
+```
+STATE   minSoFar = p[0]; best = 0
+LOOP    for j in 1..n-1
+UPDATE    best = max(best, p[j] - minSoFar)     sell today
+          minSoFar = min(minSoFar, p[j])        today becomes a buy option
+RETURN  best
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int maxProfit(vector<int>& p) {
+        int minSoFar = p[0], best = 0;
+        for (int j = 1; j < (int)p.size(); j++) {
+            best = max(best, p[j] - minSoFar);
+            minSoFar = min(minSoFar, p[j]);
+        }
+        return best;
+    }
+};
+```
+--- dry_run | Dry run | screenshot
+| p[j] | profit if sold | best | minSoFar |
+|---|---|---|---|
+| 7 | – | 0 | 7 |
+| 1 | −6 | 0 | 1 |
+| 5 | 4 | 4 | 1 |
+| 3 | 2 | 4 | 1 |
+| 6 | 5 | 5 | 1 |
+| 4 | 3 | 5 | 1 |
+--- edges | Edge cases and complexity | mixed
+✍️ O(n) time, O(1) space.
+✍️ Max − min of the whole array is wrong when the min comes after the max ([7, 1] → 0, not 6).
+--- carry | Carry forward | write
+✍️ "Best pair i < j" where the score is f(j) − g(i) → keep the best g so far.
+✍️ This is the root of the stock family; adding rules (cooldown, fees, k trades) turns it into a state-machine DP.
+--- followups | Interview follow-ups | screenshot
+- *Unlimited transactions* (LeetCode 122): sum every positive day-to-day increase.
+- *At most two transactions / k transactions / cooldown / fee:* state machine DP (Day 29, [[dp-state-machine]]).
+- *Return the buy and sell days.* Remember the index of minSoFar when best improves.
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {7, 1, 5, 3, 6, 4};
+CHECK(s.maxProfit(a) == 5);
+vector<int> b = {7, 6, 4, 3, 1};
+CHECK(s.maxProfit(b) == 0);
+vector<int> c = {2, 4, 1};
+CHECK(s.maxProfit(c) == 2);
+vector<int> d = {5};
+CHECK(s.maxProfit(d) == 0);
+```
++++ sibling: 122 | best-time-to-buy-and-sell-stock-ii | Best Time to Buy and Sell Stock II | Medium | must
+maps: With unlimited trades, every upward step can be captured — sum all positive differences.
+--- analyse | Analyse | write
+✍️ Unlimited buy/sell (hold at most one share at a time). Maximum total profit.
+--- brainstorm | Brainstorm | write
+✍️ Any profitable trade from i to j equals the sum of the daily increases between them, and taking every positive daily increase is never worse. Greedy O(n). (State-machine DP also works: hold/cash.)
+--- algorithm | Algorithm in words | write
+✍️ For each day after the first, add max(0, today − yesterday).
+--- pseudocode | Pseudocode | write
+```
+profit = 0
+for i in 1..n-1: profit += max(0, p[i] - p[i-1])
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int maxProfit(vector<int>& p) {
+        int profit = 0;
+        for (int i = 1; i < (int)p.size(); i++) profit += max(0, p[i] - p[i - 1]);
+        return profit;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ A long rise = a chain of daily rises, so greedy capture is safe. With fees or cooldowns that breaks → DP ([[dp-state-machine#family]]).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {7, 1, 5, 3, 6, 4};
+CHECK(s.maxProfit(a) == 7);
+vector<int> b = {1, 2, 3, 4, 5};
+CHECK(s.maxProfit(b) == 4);
+vector<int> c = {7, 6, 4, 3, 1};
+CHECK(s.maxProfit(c) == 0);
+```
++++ sibling: 2016 | maximum-difference-between-increasing-elements | Maximum Difference Between Increasing Elements | Easy | optional
+maps: Exactly the stock problem, except "no profit" returns −1 and the difference must be strictly positive.
+--- analyse | Analyse | write
+✍️ Max a[j] − a[i] with i < j and a[i] < a[j]; −1 if none.
+--- brainstorm | Brainstorm | write
+✍️ Min so far; only count strictly positive differences.
+--- algorithm | Algorithm in words | write
+✍️ Track the minimum; when a[j] > min, update the answer; then fold a[j] into the minimum.
+--- pseudocode | Pseudocode | write
+```
+mn = a[0]; ans = -1
+for j in 1..n-1: if a[j] > mn: ans = max(ans, a[j]-mn); mn = min(mn, a[j])
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int maximumDifference(vector<int>& a) {
+        int mn = a[0], ans = -1;
+        for (int j = 1; j < (int)a.size(); j++) {
+            if (a[j] > mn) ans = max(ans, a[j] - mn);
+            mn = min(mn, a[j]);
+        }
+        return ans;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ Read the "no answer" convention carefully: 0 vs −1 changes the initialisation.
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {7, 1, 5, 4};
+CHECK(s.maximumDifference(a) == 4);
+vector<int> b = {9, 4, 3, 2};
+CHECK(s.maximumDifference(b) == -1);
+```
++++ sibling: 1014 | best-sightseeing-pair | Best Sightseeing Pair | Medium | optional
+maps: Score a[i] + i + a[j] − j splits into (a[i] + i) + (a[j] − j) → keep the best (a[i] + i) so far.
+--- analyse | Analyse | write
+✍️ Maximise a[i] + a[j] + i − j over i < j.
+--- brainstorm | Brainstorm | write
+✍️ Brute O(n²). Split the score into a part depending only on i and a part only on j; for each j the best i is the max of (a[i] + i) so far.
+--- algorithm | Algorithm in words | write
+✍️ Keep bestLeft = max(a[i] + i); at each j, candidate = bestLeft + a[j] − j; then update bestLeft with a[j] + j.
+--- pseudocode | Pseudocode | write
+```
+bestLeft = a[0] + 0; ans = 0
+for j in 1..n-1: ans = max(ans, bestLeft + a[j] - j); bestLeft = max(bestLeft, a[j] + j)
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int maxScoreSightseeingPair(vector<int>& a) {
+        int bestLeft = a[0], ans = 0;
+        for (int j = 1; j < (int)a.size(); j++) {
+            ans = max(ans, bestLeft + a[j] - j);
+            bestLeft = max(bestLeft, a[j] + j);
+        }
+        return ans;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ If a pair score separates into f(i) + g(j), keep the best f(i) so far ([[kad-min-so-far#variations]]).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {8, 1, 5, 2, 6};
+CHECK(s.maxScoreSightseeingPair(a) == 11);
+vector<int> b = {1, 2};
+CHECK(s.maxScoreSightseeingPair(b) == 2);
+```
+
+=== drill
++++ item: 1588 | sum-of-all-odd-length-subarrays | Sum of All Odd Length Subarrays | Easy
+statement: Add up the sums of every contiguous subarray whose length is odd.
+pattern: ps-prefix-sum-basics
+pattern_name: Prefix sums (or per-element contribution counting)
+approach: With prefix sums, each odd-length subarray sum is O(1) → O(n²) total. O(n) trick: element i appears in ((i+1)(n−i)+1)/2 odd-length subarrays; sum a[i] × that count.
+trigger: "sum over many subarrays" → prefix sums, or count how many subarrays each element belongs to.
+complexity: O(n²) or O(n)
++++ item: 2485 | find-the-pivot-integer | Find the Pivot Integer | Easy
+statement: Find x in 1..n such that 1 + … + x equals x + … + n, or −1.
+pattern: ps-prefix-sum-basics
+pattern_name: Left sum vs right sum
+approach: Left = x(x+1)/2, right = total − left + x; scan x, or solve x² = n(n+1)/2 directly.
+trigger: "sum on the left equals sum on the right" → prefix sum + total (Pivot Index).
+complexity: O(n) or O(1)
++++ item: 1422 | maximum-score-after-splitting-a-string | Maximum Score After Splitting a String | Easy
+statement: Split a binary string into two non-empty parts; score = zeros in the left part + ones in the right part. Return the best score.
+pattern: ps-prefix-sum-basics
+pattern_name: Running count + total
+approach: Count all ones first; walk split points keeping zeros-so-far and ones-so-far; score = zerosLeft + (totalOnes − onesLeft). Keep both parts non-empty.
+trigger: "split into left and right, score each side" → one running prefix and one total.
+complexity: O(n)
++++ item: 2270 | number-of-ways-to-split-array | Number of Ways to Split Array | Medium
+statement: Count split points where the sum of the left part is at least the sum of the right part (both parts non-empty).
+pattern: ps-prefix-sum-basics
+pattern_name: Prefix sum + total, in long long
+approach: Total first; running left sum; at each split i (0..n−2) check left ≥ total − left. Sums up to 10¹⁰ → long long.
+trigger: "left sum vs right sum at every split" → running prefix + total.
+complexity: O(n)
++++ item: 1189 | maximum-number-of-balloons | Maximum Number of Balloons | Easy
+statement: Using each letter of a text at most once, how many copies of the word "balloon" can be formed?
+pattern: hash-frequency-counting
+pattern_name: Frequency counting (supply / demand)
+approach: Count letters of the text; answer = min(b, a, l/2, o/2, n).
+trigger: "how many times can a word be built from these letters" → counts divided by the word's own counts.
+complexity: O(n)
+
+=== cs_core: oop-04-polymorphism
+subject: OOP
+title: Polymorphism — compile time and run time
+--- concept | Concept | write
+✍️ **Polymorphism** = one interface, many behaviours: the same call does different things depending on the type.
+✍️ **Compile-time (static)**: function overloading (same name, different parameters) and operator overloading; templates. Resolved by the compiler.
+✍️ **Run-time (dynamic)**: a base-class pointer/reference calls a `virtual` function, and the **derived** class's override runs. Resolved at run time through the **vtable** (a per-class table of function pointers; each object stores a hidden pointer to its class's vtable).
+✍️ Without `virtual`, the base version runs even if the object is derived (static binding).
+--- code | C++ example | screenshot
+```cpp
+class Shape {
+public:
+    virtual double area() const { return 0; }
+    virtual ~Shape() = default;               // virtual destructor: deleting via Shape* is safe
+};
+class Circle : public Shape {
+    double r;
+public:
+    Circle(double r) : r(r) {}
+    double area() const override { return 3.14159 * r * r; }   // override checks the signature
+};
+Shape* s = new Circle(2);
+s->area();      // Circle::area — dynamic dispatch
+delete s;       // calls ~Circle then ~Shape because the destructor is virtual
+// overloading (compile-time):
+int add(int a, int b); double add(double a, double b);
+```
+--- interview | Interview questions | mixed
+✍️ **Q: Overloading vs overriding?** Overloading: same name, different parameter lists, same scope, compile time. Overriding: derived class redefines a base `virtual` function with the same signature, run time.
+✍️ **Q: Why must a base class destructor be virtual?** `delete basePtr` on a derived object would otherwise call only the base destructor → the derived part leaks (undefined behaviour).
+✍️ **Q: What is a vtable / vptr?** Each class with virtual functions has a vtable of function pointers; each object has a hidden vptr pointing to its class's vtable; a virtual call looks up the function through it.
+- **Q: What is object slicing?** Assigning a derived object to a base object **by value** copies only the base part; virtual calls then use the base version. Use pointers/references to keep polymorphism.
+- **Q: Can you overload by return type only?** No.

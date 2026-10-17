@@ -1,0 +1,30 @@
+{
+ "id": "cpp-stack-queue-deque",
+ "title": "stack, queue and deque in C++",
+ "topic": "cpp",
+ "kind": "cpp",
+ "summary": "The three sequence adaptors, their O(1) operations, and when a deque replaces both.",
+ "prereqs": [
+  "cpp-vector"
+ ],
+ "related": [
+  "stq-stack-basics-and-matching",
+  "graph-bfs",
+  "stq-monotonic-deque"
+ ],
+ "sections": [
+  {
+   "id": "api",
+   "title": "API",
+   "note": "write",
+   "body": "```cpp\nstack<int> st;  st.push(x); st.top(); st.pop(); st.empty(); st.size();\nqueue<int> q;   q.push(x);  q.front(); q.back(); q.pop(); q.empty();\ndeque<int> dq;  dq.push_back(x); dq.push_front(x); dq.pop_back(); dq.pop_front();\n                dq.front(); dq.back(); dq[i];   // random access too\n```\n✍️ All of these are O(1).\n✍️ `pop()` returns **nothing** (void). Read `top()`/`front()` first, then `pop()`.\n✍️ Calling `top()`/`front()`/`pop()` on an empty container is undefined behaviour — always check `empty()` first."
+  },
+  {
+   "id": "which",
+   "title": "Which to use",
+   "note": "write",
+   "body": "✍️ LIFO (last in, first out: undo, brackets, DFS) → `stack`.\n✍️ FIFO (first in, first out: BFS, processing order) → `queue`.\n✍️ Need both ends (sliding window max, 0-1 BFS) → `deque`.\n- A `vector` with `push_back`/`back`/`pop_back` works as a stack and lets you iterate it; many solutions use it instead of `stack`."
+  }
+ ],
+ "used_by": []
+}

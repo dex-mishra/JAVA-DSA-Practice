@@ -1,0 +1,39 @@
+{
+ "id": "bits-binary-and-operators",
+ "title": "Binary numbers and bitwise operators",
+ "topic": "bits",
+ "kind": "concept",
+ "summary": "How integers look in binary, the six bitwise operators, shifts, and two's complement for negative numbers.",
+ "prereqs": [],
+ "related": [
+  "bits-xor-tricks",
+  "bits-common-tricks"
+ ],
+ "sections": [
+  {
+   "id": "binary",
+   "title": "Binary",
+   "note": "write",
+   "body": "✍️ Bit k (counting from 0 on the right) has value 2ᵏ. 13 = 1101₂ = 8 + 4 + 1.\n✍️ `1 << k` is 2ᵏ (a number with only bit k set). Use `1LL << k` for k ≥ 31."
+  },
+  {
+   "id": "operators",
+   "title": "Operators",
+   "note": "write",
+   "body": "| Op | Meaning | Example (5 = 101, 3 = 011) |\n|---|---|---|\n| `a & b` | 1 where both are 1 | 001 = 1 |\n| `a \\| b` | 1 where either is 1 | 111 = 7 |\n| `a ^ b` | 1 where they differ | 110 = 6 |\n| `~a` | flip every bit | … |\n| `a << k` | multiply by 2ᵏ | 5 << 1 = 10 |\n| `a >> k` | divide by 2ᵏ (floor, for non-negative) | 5 >> 1 = 2 |\n✍️ Check bit k: `(x >> k) & 1`. Set: `x | (1 << k)`. Clear: `x & ~(1 << k)`. Toggle: `x ^ (1 << k)`."
+  },
+  {
+   "id": "twos-complement",
+   "title": "Negative numbers",
+   "note": "mixed",
+   "body": "✍️ Two's complement: `−x = ~x + 1`. So `x & (−x)` isolates the lowest set bit.\n- Right-shifting a negative number keeps the sign (arithmetic shift). Cast to `unsigned` when you want logical shifts (e.g. reversing bits)."
+  },
+  {
+   "id": "precedence",
+   "title": "Precedence trap",
+   "note": "write",
+   "body": "✍️ `x & 1 == 0` parses as `x & (1 == 0)`. Always parenthesise: `(x & 1) == 0`."
+  }
+ ],
+ "used_by": []
+}

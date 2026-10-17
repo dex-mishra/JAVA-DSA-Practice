@@ -1,0 +1,74 @@
+{
+ "id": "kad-min-so-far",
+ "title": "Best partner to the left — min so far",
+ "topic": "kadane",
+ "kind": "pattern",
+ "summary": "For pair problems \"j > i, maximise a[j] − a[i]\", the best i for each j is simply the smallest value seen before j. Keep one running minimum.",
+ "prereqs": [
+  "arr-single-pass-running-state"
+ ],
+ "related": [
+  "kad-kadane",
+  "dp-state-machine"
+ ],
+ "sections": [
+  {
+   "id": "idea",
+   "title": "Idea",
+   "note": "write",
+   "body": "✍️ Maximise `a[j] − a[i]` with `i < j`. For a fixed sell day j, the best buy day is the one with the **smallest price before j**.\n✍️ So walk left to right keeping `minSoFar`. At each j: profit = `a[j] − minSoFar`; update the best; then update `minSoFar`."
+  },
+  {
+   "id": "recognise",
+   "title": "Recognise it",
+   "note": "write",
+   "body": "✍️ \"buy then sell\", \"maximum difference where the larger comes after the smaller\", \"best pair i < j\" whose score splits into `f(j) − g(i)` or `f(j) + g(i)`."
+  },
+  {
+   "id": "think",
+   "title": "Brute force → min so far",
+   "note": "mixed",
+   "body": "Brute force: all pairs i < j. O(n²).\n✍️ Bottleneck: for each j, scanning all earlier i for the smallest value.\n✍️ Waste: the smallest of `a[0..j−1]` differs from the smallest of `a[0..j−2]` by at most one element → keep it as running state ([[arr-single-pass-running-state]])."
+  },
+  {
+   "id": "template",
+   "title": "Template",
+   "note": "write",
+   "body": "```cpp\nint maxProfit(vector<int>& p) {\n    int minSoFar = p[0], best = 0;\n    for (int j = 1; j < (int)p.size(); j++) {\n        best = max(best, p[j] - minSoFar);   // sell today, bought at the cheapest earlier day\n        minSoFar = min(minSoFar, p[j]);      // today becomes a buy option for later days\n    }\n    return best;\n}\n```"
+  },
+  {
+   "id": "variations",
+   "title": "Variations",
+   "note": "screenshot",
+   "body": "- Best sightseeing pair (LeetCode 1014): score `a[i] + i + a[j] − j` → keep the best `a[i] + i` so far.\n- Maximum difference between increasing elements (LeetCode 2016): same, return −1 if no positive difference.\n- Unlimited transactions (LeetCode 122): add every positive day-to-day difference.\n- With cooldown / fee / at most k transactions → state machine DP ([[dp-state-machine]])."
+  },
+  {
+   "id": "pitfalls",
+   "title": "Pitfalls",
+   "note": "write",
+   "body": "✍️ Order: compute profit with the minimum of **earlier** days, then fold today into the minimum. Doing it the other way still works for profit (selling the same day gives 0) but breaks variants where i must be strictly before j with a positive gap.\n✍️ Answer 0 if prices only fall (you may choose not to trade). Initialise `best = 0`."
+  },
+  {
+   "id": "complexity",
+   "title": "Complexity",
+   "note": "screenshot",
+   "body": "O(n) time, O(1) space."
+  }
+ ],
+ "used_by": [
+  {
+   "problem": "best-time-to-buy-and-sell-stock",
+   "day": 4,
+   "section": "think",
+   "stage": "brainstorm",
+   "at": "For each sell day, the best buy is the minimum before it"
+  },
+  {
+   "problem": "best-time-to-buy-and-sell-stock",
+   "day": 4,
+   "section": "pitfalls",
+   "stage": "pseudocode",
+   "at": "Profit first, then fold today into the minimum"
+  }
+ ]
+}

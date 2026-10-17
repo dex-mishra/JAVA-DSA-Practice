@@ -1,0 +1,35 @@
+{
+ "id": "tree-as-graph-parent-map",
+ "title": "Treating a tree as a graph — parent pointers",
+ "topic": "binary-trees",
+ "kind": "pattern",
+ "summary": "Record each node's parent with one DFS, then BFS from the target in three directions (left, right, parent) to find nodes at distance k.",
+ "prereqs": [
+  "tree-bfs-level-order",
+  "graph-bfs"
+ ],
+ "related": [
+  "graph-bfs"
+ ],
+ "sections": [
+  {
+   "id": "idea",
+   "title": "Idea",
+   "note": "write",
+   "body": "✍️ Tree edges only point down. \"Distance k from a node\" needs to go **up** too. Add the missing direction: a map `parent[node]`.\n✍️ Then the tree is an undirected graph; BFS from the target for k levels, with a visited set so you never walk back."
+  },
+  {
+   "id": "template",
+   "title": "Template",
+   "note": "write",
+   "body": "```cpp\nvector<int> distanceK(TreeNode* root, TreeNode* target, int k) {\n    unordered_map<TreeNode*, TreeNode*> par;\n    function<void(TreeNode*, TreeNode*)> mark = [&](TreeNode* n, TreeNode* p) {\n        if (!n) return; par[n] = p; mark(n->left, n); mark(n->right, n);\n    };\n    mark(root, nullptr);\n    queue<TreeNode*> q; q.push(target);\n    unordered_set<TreeNode*> seen{target};\n    for (int d = 0; d < k && !q.empty(); d++) {\n        for (int sz = q.size(); sz--; ) {\n            TreeNode* x = q.front(); q.pop();\n            for (TreeNode* y : {x->left, x->right, par[x]})\n                if (y && !seen.count(y)) { seen.insert(y); q.push(y); }\n        }\n    }\n    vector<int> out;\n    while (!q.empty()) { out.push_back(q.front()->val); q.pop(); }\n    return out;\n}\n```"
+  },
+  {
+   "id": "uses",
+   "title": "Where else",
+   "note": "screenshot",
+   "body": "Burning tree / time to infect the whole tree (LeetCode 2385), nodes at distance k, closest leaf."
+  }
+ ],
+ "used_by": []
+}

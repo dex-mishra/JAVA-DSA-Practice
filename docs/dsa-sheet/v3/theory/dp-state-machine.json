@@ -1,0 +1,61 @@
+{
+ "id": "dp-state-machine",
+ "title": "State machine DP — the stock problems",
+ "topic": "dp",
+ "kind": "pattern",
+ "summary": "Model each day as being in one of a few modes (holding, not holding, cooling down) with transitions between them; dp[mode] holds the best profit in that mode.",
+ "prereqs": [
+  "dp-state-design",
+  "kad-min-so-far"
+ ],
+ "related": [
+  "dp-space-optimisation"
+ ],
+ "sections": [
+  {
+   "id": "idea",
+   "title": "Idea",
+   "note": "write",
+   "body": "✍️ The decision on a day depends on your **mode**: if you hold a stock you can sell or keep; if not, you can buy or wait. So the state is (day, mode).\n✍️ Draw the modes as circles and the actions as arrows; each arrow becomes one term in a transition."
+  },
+  {
+   "id": "cooldown",
+   "title": "Cooldown (LeetCode 309)",
+   "note": "write",
+   "body": "✍️ Modes: `hold` (own a stock), `sold` (sold today → must cool down tomorrow), `rest` (no stock, free to buy).\n✍️ Transitions for each price p:\n✍️ `hold' = max(hold, rest − p)` (keep, or buy from rest)\n✍️ `sold' = hold + p` (sell today)\n✍️ `rest' = max(rest, sold)` (stay resting, or finish cooldown)\n```cpp\nint maxProfit(vector<int>& prices) {\n    int hold = INT_MIN / 2, sold = 0, rest = 0;\n    for (int p : prices) {\n        int h = max(hold, rest - p), s = hold + p, r = max(rest, sold);\n        hold = h; sold = s; rest = r;          // update all from the OLD values\n    }\n    return max(sold, rest);\n}\n```"
+  },
+  {
+   "id": "fee",
+   "title": "Transaction fee (LeetCode 714)",
+   "note": "write",
+   "body": "✍️ Two modes: `hold' = max(hold, cash − p)`, `cash' = max(cash, hold + p − fee)`."
+  },
+  {
+   "id": "family",
+   "title": "The whole stock family",
+   "note": "screenshot",
+   "body": "| Problem | State |\n|---|---|\n| one transaction (121) | min so far ([[kad-min-so-far]]) |\n| unlimited (122) | hold / cash |\n| cooldown (309) | hold / sold / rest |\n| fee (714) | hold / cash with fee on sell |\n| at most 2 (123) / k (188) | hold[t] / cash[t] for t = 1..k |"
+  },
+  {
+   "id": "pitfalls",
+   "title": "Pitfalls",
+   "note": "write",
+   "body": "✍️ Updating `hold` and then using the new `hold` to compute `sold` on the same day. Compute all new values from the old ones first.\n✍️ Initial `hold` must be \"impossible\" (very negative), not 0 — you cannot start holding a stock for free."
+  },
+  {
+   "id": "complexity",
+   "title": "Complexity",
+   "note": "screenshot",
+   "body": "O(n · modes) time, O(modes) space."
+  }
+ ],
+ "used_by": [
+  {
+   "problem": "best-time-to-buy-and-sell-stock",
+   "day": 4,
+   "section": "family",
+   "stage": "carry",
+   "at": "The stock family"
+  }
+ ]
+}

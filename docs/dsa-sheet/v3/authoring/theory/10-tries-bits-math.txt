@@ -1,0 +1,224 @@
+=== page: trie-structure-and-ops
+title: Tries — prefix trees
+topic: tries
+kind: pattern
+summary: A tree where each edge is a character and each root-to-node path spells a prefix. Insert, search and startsWith all cost O(word length).
+prereqs: tree-terminology-and-representation
+related: trie-wildcard-search-dfs, dp-string-partition
+--- idea | Idea | write
+✍️ Each node has up to 26 children (one per letter) and a flag `end` meaning "a word ends here".
+✍️ Insert: walk from the root, creating missing children, and set `end` on the last node. Search: walk; fail if a child is missing; succeed only if the final node has `end`. startsWith: same walk without checking `end`.
+✍️ Shared prefixes share nodes, so a set of words with common prefixes is stored compactly and prefix queries never scan the whole set.
+
+--- template | Template | write
+```cpp
+class Trie {
+    struct Node { Node* ch[26] = {}; bool end = false; };
+    Node* root = new Node();
+    Node* walk(const string& w) {
+        Node* cur = root;
+        for (char c : w) {
+            if (!cur->ch[c - 'a']) return nullptr;
+            cur = cur->ch[c - 'a'];
+        }
+        return cur;
+    }
+public:
+    void insert(const string& w) {
+        Node* cur = root;
+        for (char c : w) {
+            if (!cur->ch[c - 'a']) cur->ch[c - 'a'] = new Node();
+            cur = cur->ch[c - 'a'];
+        }
+        cur->end = true;
+    }
+    bool search(const string& w) { Node* n = walk(w); return n && n->end; }
+    bool startsWith(const string& p) { return walk(p) != nullptr; }
+};
+```
+
+--- recognise | Recognise it | write
+✍️ "prefix", "starts with", "autocomplete", "dictionary of words" with many queries, "word search II" (many words on one grid), "longest common prefix of many strings", "maximum XOR of two numbers" (a trie over bits).
+
+--- vs-hash | Trie vs hash set | mixed
+✍️ Exact-word lookup: a hash set is simpler and equally fast. Choose a trie when you need **prefix** queries, wildcard matching, or to prune a DFS as soon as the current prefix matches no word.
+
+--- complexity | Complexity | screenshot
+Insert/search O(L). Space O(total characters × 26 pointers) worst case; a `map<char, Node*>` per node saves memory for large alphabets.
+
+=== page: trie-wildcard-search-dfs
+title: Trie search with wildcards (DFS over children)
+topic: tries
+kind: pattern
+summary: A '.' matches any letter, so at that position try every existing child recursively. Normal letters follow one child.
+prereqs: trie-structure-and-ops, graph-dfs
+related: bt-grid-backtracking
+--- idea | Idea | write
+✍️ Walk the word as in a normal search. At a '.', the next node could be **any** existing child — recurse into each and return true if any succeeds.
+
+--- template | Template | write
+```cpp
+bool match(Node* n, const string& w, int i) {
+    if (!n) return false;
+    if (i == (int)w.size()) return n->end;
+    if (w[i] == '.') {
+        for (Node* c : n->ch) if (c && match(c, w, i + 1)) return true;
+        return false;
+    }
+    return match(n->ch[w[i] - 'a'], w, i + 1);
+}
+```
+
+--- word-search-ii | Word Search II (recognition) | screenshot
+Insert all words into a trie; DFS from every grid cell walking the trie at the same time; stop as soon as the current path is not a prefix. Remove found words (or mark them) to avoid duplicates. Much faster than running Word Search once per word.
+
+--- complexity | Complexity | screenshot
+Without dots O(L); each dot can branch 26 ways, so worst case O(26^dots · L).
+
+=== page: bits-binary-and-operators
+title: Binary numbers and bitwise operators
+topic: bits
+kind: concept
+summary: How integers look in binary, the six bitwise operators, shifts, and two's complement for negative numbers.
+prereqs:
+related: bits-xor-tricks, bits-common-tricks
+--- binary | Binary | write
+✍️ Bit k (counting from 0 on the right) has value 2ᵏ. 13 = 1101₂ = 8 + 4 + 1.
+✍️ `1 << k` is 2ᵏ (a number with only bit k set). Use `1LL << k` for k ≥ 31.
+
+--- operators | Operators | write
+| Op | Meaning | Example (5 = 101, 3 = 011) |
+|---|---|---|
+| `a & b` | 1 where both are 1 | 001 = 1 |
+| `a \| b` | 1 where either is 1 | 111 = 7 |
+| `a ^ b` | 1 where they differ | 110 = 6 |
+| `~a` | flip every bit | … |
+| `a << k` | multiply by 2ᵏ | 5 << 1 = 10 |
+| `a >> k` | divide by 2ᵏ (floor, for non-negative) | 5 >> 1 = 2 |
+✍️ Check bit k: `(x >> k) & 1`. Set: `x | (1 << k)`. Clear: `x & ~(1 << k)`. Toggle: `x ^ (1 << k)`.
+
+--- twos-complement | Negative numbers | mixed
+✍️ Two's complement: `−x = ~x + 1`. So `x & (−x)` isolates the lowest set bit.
+- Right-shifting a negative number keeps the sign (arithmetic shift). Cast to `unsigned` when you want logical shifts (e.g. reversing bits).
+
+--- precedence | Precedence trap | write
+✍️ `x & 1 == 0` parses as `x & (1 == 0)`. Always parenthesise: `(x & 1) == 0`.
+
+=== page: bits-xor-tricks
+title: XOR tricks
+topic: bits
+kind: pattern
+summary: x ^ x = 0 and x ^ 0 = x, so XOR-ing everything cancels pairs. Single number, missing number, swap without a temp, and finding two unique numbers.
+prereqs: bits-binary-and-operators
+related: hash-frequency-counting
+--- properties | Properties | write
+✍️ `x ^ x = 0`, `x ^ 0 = x`, XOR is commutative and associative (order does not matter).
+✍️ So XOR-ing a list where every value appears twice except one leaves exactly that one value. O(n) time, O(1) space.
+
+--- single | Single number | write
+```cpp
+int singleNumber(vector<int>& a) {
+    int x = 0;
+    for (int v : a) x ^= v;
+    return x;
+}
+```
+✍️ The O(1)-space requirement rules out a hash map — and points at XOR ([[hash-boyer-moore-voting#recognise]] is the same "forbidden space is a hint" idea).
+
+--- missing | Missing number | write
+✍️ XOR all indices 0..n and all values: every present number cancels with its index, the missing one remains. (Or sum formula n(n+1)/2 − sum.)
+
+--- two-uniques | Two numbers appear once (LeetCode 260) | screenshot
+XOR everything → `x = a ^ b` (non-zero). Pick any set bit of x (`x & −x`): a and b differ there. Split all numbers by that bit and XOR each group separately → a and b.
+
+--- pitfalls | Pitfalls | mixed
+✍️ XOR only cancels **pairs**. "Every element appears three times except one" (LeetCode 137) needs per-bit counting mod 3.
+
+=== page: bits-common-tricks
+title: Common bit tricks
+topic: bits
+kind: concept
+summary: n & (n−1) clears the lowest set bit, power-of-two checks, counting set bits, and enumerating subsets with masks.
+prereqs: bits-binary-and-operators
+related: bits-counting-bits-dp, dp-bitmask
+--- clear-lowest | n & (n − 1) | write
+✍️ Subtracting 1 flips the lowest set bit to 0 and every bit below it to 1; AND-ing with n clears them all. So `n & (n − 1)` removes the lowest set bit.
+✍️ Power of two (exactly one bit set): `n > 0 && (n & (n − 1)) == 0`.
+✍️ Count set bits (Kernighan): repeat `n &= n − 1` until 0; the number of steps = popcount. Or `__builtin_popcount(n)` (`__builtin_popcountll` for long long).
+
+--- subsets | Enumerating subsets with masks | write
+```cpp
+for (int mask = 0; mask < (1 << n); mask++) {
+    for (int j = 0; j < n; j++)
+        if (mask & (1 << j)) { /* item j is in this subset */ }
+}
+```
+✍️ 2ⁿ masks × n → O(n·2ⁿ), the same as recursive subsets ([[bt-pick-or-skip]]).
+
+--- other | Others worth knowing | screenshot
+- Lowest set bit value: `n & (−n)`.
+- Reverse bits / number of 1 bits: loop over 32 positions with `unsigned`.
+- `x >> 1` = x / 2 and `x & 1` = x % 2 for non-negative x.
+
+=== page: bits-counting-bits-dp
+title: Counting bits for every number — a bit DP
+topic: bits
+kind: pattern
+summary: bits(i) = bits(i >> 1) + (i & 1), or bits(i) = bits(i & (i − 1)) + 1. Fills the answer for 0..n in O(n).
+prereqs: bits-common-tricks, dp-1d-linear
+related: bits-common-tricks
+--- idea | Idea | write
+✍️ `i >> 1` is i without its last bit, and it is smaller than i — its count is already known. Add back the last bit `i & 1`.
+✍️ Alternative: `i & (i − 1)` is i without its lowest set bit → count + 1.
+
+--- template | Template | write
+```cpp
+vector<int> countBits(int n) {
+    vector<int> res(n + 1, 0);
+    for (int i = 1; i <= n; i++) res[i] = res[i >> 1] + (i & 1);
+    return res;
+}
+```
+
+--- complexity | Complexity | screenshot
+O(n) time, versus O(n log n) for counting each number separately.
+
+=== page: math-gcd-and-modular
+title: GCD, LCM and modular arithmetic
+topic: math
+kind: concept
+summary: Euclid's algorithm, LCM without overflow, and the rules for adding and multiplying modulo 10⁹+7.
+prereqs: cpp-integer-overflow
+related: dp-counting-vs-optimising
+--- gcd | GCD and LCM | write
+✍️ Euclid: `gcd(a, b) = gcd(b, a % b)`, `gcd(a, 0) = a`. O(log min(a, b)). C++17: `std::gcd`.
+✍️ `lcm(a, b) = a / gcd(a, b) * b` — divide **first** to avoid overflow.
+
+--- modular | Modular arithmetic | write
+✍️ `(a + b) % M = ((a % M) + (b % M)) % M`; `(a · b) % M = ((a % M) · (b % M)) % M` — multiply in `long long`.
+✍️ Subtraction: `((a − b) % M + M) % M` to stay non-negative.
+✍️ Division needs the modular inverse: `a / b ≡ a · b^(M−2) (mod M)` for prime M (fast power, [[rec-divide-and-conquer#fast-power]]).
+
+=== page: math-sieve-and-primes
+title: Primes and the sieve of Eratosthenes
+topic: math
+kind: concept
+summary: Trial division up to √n for one number; the sieve marks multiples of each prime to find all primes below n in O(n log log n).
+prereqs: cx-big-o
+related: math-gcd-and-modular
+--- trial | Is n prime? | write
+✍️ Check divisors from 2 up to √n (`i * i <= n`). If none divides n, it is prime. O(√n).
+
+--- sieve | All primes below n | write
+```cpp
+vector<bool> isPrime(n, true);
+if (n > 0) isPrime[0] = false;
+if (n > 1) isPrime[1] = false;
+for (long long i = 2; i * i < n; i++)
+    if (isPrime[i])
+        for (long long j = i * i; j < n; j += i) isPrime[j] = false;   // start at i*i
+```
+✍️ Start crossing out at i², because smaller multiples were already crossed out by smaller primes.
+
+--- uses | Where it appears | screenshot
+Count primes (LeetCode 204), prime factorisation of many numbers (store the smallest prime factor), closest prime pairs in a range.

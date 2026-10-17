@@ -1,0 +1,68 @@
+{
+ "id": "dp-1d-linear",
+ "title": "1D DP on a line — take or skip, ways to reach",
+ "topic": "dp",
+ "kind": "pattern",
+ "summary": "dp[i] depends on a fixed number of earlier states: climbing stairs (sum of ways), house robber (take or skip), decode ways (one or two digits).",
+ "prereqs": [
+  "dp-what-dp-is",
+  "dp-memo-vs-tabulation"
+ ],
+ "related": [
+  "dp-state-design",
+  "kad-kadane"
+ ],
+ "sections": [
+  {
+   "id": "idea",
+   "title": "Idea",
+   "note": "write",
+   "body": "✍️ Process positions left to right. At position i there are a few **choices**, each leading back to an earlier position. dp[i] combines them: sum (counting ways), max/min (optimising)."
+  },
+  {
+   "id": "three-models",
+   "title": "The three models",
+   "note": "write",
+   "body": "✍️ **Ways to reach** (climbing stairs): `dp[i] = dp[i−1] + dp[i−2]` — the last step was 1 or 2.\n✍️ **Take or skip** (house robber): `dp[i] = max(dp[i−1], dp[i−2] + a[i])` — skip house i, or rob it and skip i−1.\n✍️ **Decode in pieces** (decode ways): `dp[i] = (s[i−1] valid ? dp[i−1] : 0) + (s[i−2..i−1] in 10..26 ? dp[i−2] : 0)`, with `dp[i]` = ways to decode the first i characters."
+  },
+  {
+   "id": "template",
+   "title": "Template: house robber",
+   "note": "write",
+   "body": "```cpp\nint rob(vector<int>& a) {\n    int prev2 = 0, prev1 = 0;            // best for houses up to i-2, up to i-1\n    for (int x : a) {\n        int cur = max(prev1, prev2 + x); // skip x, or take x\n        prev2 = prev1; prev1 = cur;\n    }\n    return prev1;\n}\n```"
+  },
+  {
+   "id": "circular",
+   "title": "Circular version (House Robber II)",
+   "note": "write",
+   "body": "✍️ First and last houses are neighbours, so they cannot both be robbed. Answer = max(rob(houses 0..n−2), rob(houses 1..n−1)). Special case n = 1."
+  },
+  {
+   "id": "decode",
+   "title": "Decode ways details",
+   "note": "write",
+   "body": "```cpp\nint numDecodings(string s) {\n    int n = s.size();\n    vector<int> dp(n + 1, 0);\n    dp[0] = 1;                                      // empty prefix: one way\n    for (int i = 1; i <= n; i++) {\n        if (s[i - 1] != '0') dp[i] += dp[i - 1];   // single digit 1..9\n        if (i >= 2) {\n            int two = (s[i - 2] - '0') * 10 + (s[i - 1] - '0');\n            if (two >= 10 && two <= 26) dp[i] += dp[i - 2];\n        }\n    }\n    return dp[n];\n}\n```\n✍️ '0' cannot stand alone; \"06\" is not a valid two-digit code (must be 10..26). Zeros are where all the bugs are."
+  },
+  {
+   "id": "variations",
+   "title": "Variations",
+   "note": "screenshot",
+   "body": "- Min cost climbing stairs: `dp[i] = cost[i] + min(dp[i−1], dp[i−2])`.\n- Delete and earn: bucket values, then house robber on the buckets.\n- Jump game with costs, tribonacci, paint fence."
+  },
+  {
+   "id": "complexity",
+   "title": "Complexity",
+   "note": "screenshot",
+   "body": "O(n) time, O(1) space with rolling variables."
+  }
+ ],
+ "used_by": [
+  {
+   "problem": "maximum-subarray",
+   "day": 4,
+   "section": "idea",
+   "stage": "carry",
+   "at": "It is a 1D DP"
+  }
+ ]
+}

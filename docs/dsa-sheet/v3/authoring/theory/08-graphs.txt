@@ -1,0 +1,554 @@
+=== page: graph-representations
+title: Representing graphs — edge lists, adjacency lists, matrices
+topic: graphs
+kind: concept
+summary: Vertices and edges, directed vs undirected, weighted vs unweighted, and how to build an adjacency list from the input format LeetCode gives you.
+prereqs: cpp-vector
+related: graph-dfs, graph-bfs, graph-grid-as-graph
+--- terms | Terms | write
+✍️ A graph = vertices (nodes) + edges (connections). **Directed**: edges have a direction (u → v). **Undirected**: an edge connects both ways. **Weighted**: each edge has a cost.
+✍️ n vertices, m edges. Dense graphs have m ≈ n²; sparse graphs have m ≈ n (most interview graphs are sparse).
+
+--- adjacency-list | Adjacency list (default choice) | write
+✍️ `vector<vector<int>> adj(n);` — `adj[u]` lists the neighbours of u. Space O(n + m). Iterating u's neighbours costs O(deg u).
+```cpp
+vector<vector<int>> adj(n);
+for (auto& e : edges) {            // edges = [[u, v], ...]
+    adj[e[0]].push_back(e[1]);
+    adj[e[1]].push_back(e[0]);     // omit for directed graphs
+}
+// weighted: vector<vector<pair<int,int>>> adj(n); adj[u].push_back({v, w});
+```
+
+--- matrix | Adjacency matrix | mixed
+✍️ `g[u][v] = 1` if there is an edge. O(n²) space; O(1) edge check; iterating neighbours is O(n). Some problems give the input this way (Number of Provinces: `isConnected[i][j]`).
+- Fine for n ≤ ~1000; wasteful for large sparse graphs.
+
+--- input-formats | Input formats you will see | screenshot
+- Edge list `[[0,1],[1,2]]` → build an adjacency list.
+- Prerequisites `[a, b]` = "to take a you need b" → edge **b → a** (direction matters for topological sort).
+- Grid → implicit graph, no list needed ([[graph-grid-as-graph]]).
+- `graph[i]` already given as neighbours (Is Graph Bipartite) → use directly.
+
+=== page: graph-dfs
+title: Depth-first search on graphs
+topic: graphs
+kind: pattern
+summary: Go as deep as possible along one path before backtracking. A visited array prevents infinite loops. O(n + m).
+prereqs: graph-representations, rec-how-recursion-works
+related: graph-bfs, graph-connected-components, graph-cycle-detection
+--- idea | Idea | write
+✍️ From a vertex, visit an unvisited neighbour, then its unvisited neighbour, and so on; when stuck, return and try the next neighbour.
+✍️ Mark a vertex visited **when you first reach it**. Graphs can have cycles; without marking, DFS loops forever.
+
+--- template | Template | write
+```cpp
+vector<vector<int>> adj; vector<bool> vis;
+void dfs(int u) {
+    vis[u] = true;
+    for (int v : adj[u])
+        if (!vis[v]) dfs(v);
+}
+```
+
+--- iterative | Iterative DFS | write
+```cpp
+stack<int> st; st.push(src); vis[src] = true;
+while (!st.empty()) {
+    int u = st.top(); st.pop();
+    for (int v : adj[u]) if (!vis[v]) { vis[v] = true; st.push(v); }
+}
+```
+✍️ Use it when the graph can be very deep (10⁵+ vertices in a chain) to avoid stack overflow ([[cpp-recursion-stack-limits]]).
+
+--- uses | What DFS is used for | write
+✍️ Reachability, connected components ([[graph-connected-components]]), flood fill on grids, cycle detection ([[graph-cycle-detection]]), topological order ([[graph-topological-sort]]), path existence.
+✍️ DFS does **not** find shortest paths in general — use BFS for unweighted shortest paths.
+
+--- complexity | Complexity | screenshot
+O(n + m) time: each vertex visited once, each edge examined once (twice if undirected). O(n) space.
+
+=== page: graph-bfs
+title: Breadth-first search — shortest paths in unweighted graphs
+topic: graphs
+kind: pattern
+summary: Explore vertices in order of distance from the source using a queue. The first time a vertex is reached is along a shortest path.
+prereqs: graph-representations, cpp-stack-queue-deque
+related: graph-multi-source-bfs, tree-bfs-level-order, graph-implicit-graphs
+--- idea | Idea | write
+✍️ BFS visits all vertices at distance 1, then all at distance 2, and so on, because the queue is first-in first-out.
+✍️ So when a vertex is first discovered, the path that discovered it is a **shortest** path (fewest edges). Record `dist[v] = dist[u] + 1` at that moment.
+
+--- template | Template | write
+```cpp
+vector<int> bfs(int src, const vector<vector<int>>& adj) {
+    vector<int> dist(adj.size(), -1);           // -1 = not visited
+    queue<int> q; q.push(src); dist[src] = 0;
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        for (int v : adj[u]) {
+            if (dist[v] != -1) continue;
+            dist[v] = dist[u] + 1;              // mark when PUSHING, not when popping
+            q.push(v);
+        }
+    }
+    return dist;
+}
+```
+✍️ Mark visited when you push. Marking when you pop lets the same vertex be pushed many times (wasteful, sometimes TLE).
+
+--- levels | Counting levels | write
+✍️ For "minimum number of steps/minutes", process the queue level by level with `sz = q.size()` (as in [[tree-bfs-level-order#template]]) and increment a step counter after each level.
+
+--- recognise | Recognise it | write
+✍️ "minimum number of steps / moves / minutes / transformations", unweighted grid shortest path, spreading processes (rotting, infection, fire).
+✍️ If edges have different weights, BFS is wrong → Dijkstra ([[graph-dijkstra]]). If weights are only 0 and 1 → 0-1 BFS with a deque.
+
+--- complexity | Complexity | screenshot
+O(n + m) time, O(n) space.
+
+=== page: graph-grid-as-graph
+title: Grids as graphs — flood fill
+topic: graphs
+kind: pattern
+summary: Each cell is a vertex; its 4 neighbours are edges. DFS/BFS from a cell marks its whole region. Counting starts = counting islands.
+prereqs: graph-dfs, mat-traversal-and-directions
+related: graph-bfs, graph-multi-source-bfs, mat-in-place-marking
+--- idea | Idea | write
+✍️ No adjacency list needed: the neighbours of (r, c) are the in-bounds cells among (r±1, c), (r, c±1) that satisfy the problem's condition (land, open, same colour).
+✍️ **Flood fill**: starting from one cell, DFS/BFS visits its entire connected region. Mark visited cells (often by overwriting the grid).
+
+--- template | Template: count islands | write
+```cpp
+void sink(vector<vector<char>>& g, int r, int c) {
+    if (r < 0 || r >= (int)g.size() || c < 0 || c >= (int)g[0].size() || g[r][c] != '1') return;
+    g[r][c] = '0';                               // mark visited by sinking the land
+    sink(g, r+1, c); sink(g, r-1, c); sink(g, r, c+1); sink(g, r, c-1);
+}
+int numIslands(vector<vector<char>>& g) {
+    int count = 0;
+    for (int r = 0; r < (int)g.size(); r++)
+        for (int c = 0; c < (int)g[0].size(); c++)
+            if (g[r][c] == '1') { count++; sink(g, r, c); }   // each new start = new island
+    return count;
+}
+```
+✍️ The outer double loop + "start a fill at every unvisited land cell" counts components ([[graph-connected-components]]).
+
+--- border | Border trick (Surrounded Regions, enclaves) | write
+✍️ "Regions not connected to the border": flood fill **from every border cell** first and mark what you reach as safe. Everything still unmarked is enclosed.
+✍️ Starting from the border is much simpler than checking for each region whether it touches the border.
+
+--- variations | Variations | screenshot
+- Max area of island: the fill returns the number of cells it sank.
+- Pacific Atlantic water flow: flood fill **uphill** from each ocean's border, answer = cells reached by both.
+- Number of enclaves, closed islands: border trick.
+- Shortest path in a grid → BFS, not DFS.
+
+--- pitfalls | Pitfalls | write
+✍️ Bounds check **before** reading `g[r][c]`.
+✍️ Mark at the moment of visiting, before recursing, or two neighbours visit each other forever.
+✍️ Recursive DFS on a 1000×1000 all-land grid can reach depth 10⁶ — use BFS or an explicit stack if the grid is large.
+
+--- complexity | Complexity | screenshot
+O(R·C) time — each cell is filled once. O(R·C) worst-case stack/queue.
+
+=== page: graph-multi-source-bfs
+title: Multi-source BFS
+topic: graphs
+kind: pattern
+summary: Push every source into the queue at time 0 and run one BFS; each cell's distance is to its nearest source. Rotting oranges, distance to nearest 0, walls and gates.
+prereqs: graph-bfs, graph-grid-as-graph
+related: graph-bfs
+--- idea | Idea | write
+✍️ When the spread starts from **many** places at once, do not run a BFS from each source (O(k · R·C)). Put all sources in the queue initially with distance 0 and run a single BFS.
+✍️ It behaves as if there were one super-source connected to all real sources. Each cell is reached first by its nearest source.
+
+--- template | Template: rotting oranges | write
+```cpp
+int orangesRotting(vector<vector<int>>& g) {
+    int R = g.size(), C = g[0].size(), fresh = 0, minutes = 0;
+    queue<pair<int,int>> q;
+    for (int r = 0; r < R; r++) for (int c = 0; c < C; c++) {
+        if (g[r][c] == 2) q.push({r, c});
+        else if (g[r][c] == 1) fresh++;
+    }
+    int dr[4] = {1,-1,0,0}, dc[4] = {0,0,1,-1};
+    while (!q.empty() && fresh > 0) {
+        for (int sz = q.size(); sz--; ) {               // one minute = one level
+            auto [r, c] = q.front(); q.pop();
+            for (int d = 0; d < 4; d++) {
+                int nr = r + dr[d], nc = c + dc[d];
+                if (nr < 0 || nr >= R || nc < 0 || nc >= C || g[nr][nc] != 1) continue;
+                g[nr][nc] = 2; fresh--; q.push({nr, nc});
+            }
+        }
+        minutes++;
+    }
+    return fresh == 0 ? minutes : -1;
+}
+```
+
+--- pitfalls | Pitfalls | write
+✍️ Counting a minute for the last level even when it rotted nothing — the `fresh > 0` loop guard prevents the extra minute.
+✍️ No fresh oranges at the start → answer 0, not −1.
+
+--- uses | Where else | screenshot
+01 Matrix (distance to nearest 0: sources = all zeros), walls and gates, as far from land as possible (LeetCode 1162).
+
+=== page: graph-connected-components
+title: Connected components
+topic: graphs
+kind: pattern
+summary: Loop over every vertex; each unvisited one starts a new DFS/BFS that marks its whole component. The number of starts is the number of components.
+prereqs: graph-dfs
+related: graph-dsu, graph-grid-as-graph
+--- idea | Idea | write
+✍️ A connected component is a maximal set of vertices reachable from each other. One traversal from any vertex marks exactly its component.
+✍️ So: `for each vertex v: if not visited → components++, traverse(v)`.
+
+--- template | Template | write
+```cpp
+int findCircleNum(vector<vector<int>>& M) {             // adjacency matrix input
+    int n = M.size(), comps = 0;
+    vector<bool> vis(n, false);
+    function<void(int)> dfs = [&](int u) {
+        vis[u] = true;
+        for (int v = 0; v < n; v++) if (M[u][v] && !vis[v]) dfs(v);
+    };
+    for (int i = 0; i < n; i++) if (!vis[i]) { comps++; dfs(i); }
+    return comps;
+}
+```
+
+--- dsu-alternative | Union-find alternative | mixed
+✍️ Union every edge's endpoints; components = number of distinct roots ([[graph-dsu]]). Better when edges arrive one by one (online), or when you also need "are u and v connected?" many times.
+
+--- complexity | Complexity | screenshot
+O(n + m) with an adjacency list, O(n²) with a matrix.
+
+=== page: graph-bipartite-colouring
+title: Bipartite check — two-colouring
+topic: graphs
+kind: pattern
+summary: Colour the start vertex 0, every neighbour the opposite colour; a neighbour that already has the same colour proves the graph is not bipartite. Run from every uncoloured vertex.
+prereqs: graph-bfs, graph-connected-components
+related: graph-cycle-detection
+--- idea | Idea | write
+✍️ Bipartite = vertices can be split into two groups with every edge going **between** groups (no edge inside a group).
+✍️ BFS/DFS assigning alternating colours. If an edge connects two vertices of the same colour, it is impossible.
+✍️ Equivalent: the graph has **no odd-length cycle**.
+
+--- template | Template | write
+```cpp
+bool isBipartite(vector<vector<int>>& g) {
+    int n = g.size(); vector<int> col(n, -1);
+    for (int s = 0; s < n; s++) {
+        if (col[s] != -1) continue;                     // graph may be disconnected
+        queue<int> q; q.push(s); col[s] = 0;
+        while (!q.empty()) {
+            int u = q.front(); q.pop();
+            for (int v : g[u]) {
+                if (col[v] == -1) { col[v] = col[u] ^ 1; q.push(v); }
+                else if (col[v] == col[u]) return false;
+            }
+        }
+    }
+    return true;
+}
+```
+
+--- recognise | Recognise it | write
+✍️ "split into two groups", "possible bipartition" (people who dislike each other), "two teams", "is graph bipartite".
+
+--- pitfalls | Pitfalls | write
+✍️ Only colouring from vertex 0 — a disconnected graph needs a start in every component.
+
+=== page: graph-cycle-detection
+title: Cycle detection — undirected and directed
+topic: graphs
+kind: concept
+summary: Undirected: a visited neighbour that is not your parent means a cycle. Directed: a neighbour that is still on the current DFS path (state "visiting") means a cycle.
+prereqs: graph-dfs
+related: graph-topological-sort, graph-dsu
+--- undirected | Undirected graphs | write
+✍️ DFS passing the parent. Reaching an already-visited vertex that is **not the parent** means there is another path to it → cycle.
+✍️ Union-find alternative: for each edge (u, v), if u and v are already in the same set, this edge closes a cycle ([[graph-dsu]]). This is Redundant Connection.
+
+--- directed | Directed graphs: three states | write
+✍️ "Visited" alone is not enough: in a directed graph, reaching a vertex finished by an earlier branch is fine (a diamond shape), not a cycle.
+✍️ Use three states: 0 = unvisited, 1 = **on the current path** (visiting), 2 = done. An edge to a state-1 vertex is a back edge → cycle.
+```cpp
+vector<int> state;                       // 0 unvisited, 1 visiting, 2 done
+bool hasCycle(int u, vector<vector<int>>& adj) {
+    state[u] = 1;
+    for (int v : adj[u]) {
+        if (state[v] == 1) return true;              // back edge
+        if (state[v] == 0 && hasCycle(v, adj)) return true;
+    }
+    state[u] = 2;
+    return false;
+}
+```
+
+--- kahn | Kahn's algorithm also detects cycles | mixed
+✍️ Topological sort by in-degrees processes every vertex iff the graph is acyclic. If fewer than n vertices were processed, there is a cycle ([[graph-topological-sort#kahn]]).
+
+--- uses | Where it appears | screenshot
+Course schedule (can you finish all courses?), find eventual safe states (vertices not leading to a cycle = those that reach state 2), redundant connection, detect deadlock.
+
+=== page: graph-topological-sort
+title: Topological sort — ordering with dependencies
+topic: graphs
+kind: pattern
+summary: Order the vertices of a directed acyclic graph so every edge points forward. Kahn's algorithm repeatedly takes a vertex with in-degree 0.
+prereqs: graph-representations, graph-bfs, graph-cycle-detection
+related: graph-cycle-detection
+--- idea | Idea | write
+✍️ A vertex with **no incoming edges** (in-degree 0) has no unmet dependencies, so it can go first.
+✍️ Remove it (decrement the in-degree of its neighbours); new in-degree-0 vertices become available. Repeat.
+✍️ If the graph has a cycle, vertices in the cycle never reach in-degree 0 — the order ends up shorter than n.
+
+--- kahn | Template: Kahn's algorithm | write
+```cpp
+vector<int> topoOrder(int n, vector<vector<int>>& prereq) {
+    vector<vector<int>> adj(n); vector<int> indeg(n, 0);
+    for (auto& p : prereq) { adj[p[1]].push_back(p[0]); indeg[p[0]]++; }   // b -> a
+    queue<int> q;
+    for (int i = 0; i < n; i++) if (indeg[i] == 0) q.push(i);
+    vector<int> order;
+    while (!q.empty()) {
+        int u = q.front(); q.pop(); order.push_back(u);
+        for (int v : adj[u]) if (--indeg[v] == 0) q.push(v);
+    }
+    if ((int)order.size() < n) return {};      // cycle → impossible
+    return order;
+}
+```
+✍️ Direction: `[a, b]` "a depends on b" → edge **b → a** (b must come before a).
+
+--- dfs-version | DFS version | mixed
+✍️ Run DFS; when a vertex finishes (state 2), append it to a list. Reverse the list at the end. Use the three-state colouring to detect cycles at the same time.
+
+--- recognise | Recognise it | write
+✍️ "prerequisites", "order of tasks / courses / build steps", "dependencies", "alien dictionary" (derive edges from adjacent words), "can all be completed".
+
+--- complexity | Complexity | screenshot
+O(n + m) time and space.
+
+=== page: graph-dijkstra
+title: Dijkstra's algorithm — shortest paths with non-negative weights
+topic: graphs
+kind: pattern
+summary: Repeatedly finalise the closest unfinalised vertex using a min-heap, and relax its edges. O((n + m) log n). Fails with negative edges.
+prereqs: graph-bfs, cpp-priority-queue
+related: graph-bellman-ford-and-k-stops
+--- idea | Idea | write
+✍️ Generalises BFS to weighted edges. Keep `dist[v]` = best known distance. A min-heap gives the vertex with the smallest tentative distance.
+✍️ When a vertex is popped with its current best distance, that distance is **final**: any other path to it would go through vertices that are at least as far (weights are non-negative), so it cannot be shorter.
+✍️ **Relax** each outgoing edge: if `dist[u] + w < dist[v]`, improve `dist[v]` and push `(dist[v], v)`.
+
+--- template | Template | write
+```cpp
+vector<long long> dijkstra(int src, vector<vector<pair<int,int>>>& adj) {
+    int n = adj.size();
+    vector<long long> dist(n, LLONG_MAX);
+    priority_queue<pair<long long,int>, vector<pair<long long,int>>, greater<>> pq;
+    dist[src] = 0; pq.push({0, src});
+    while (!pq.empty()) {
+        auto [d, u] = pq.top(); pq.pop();
+        if (d > dist[u]) continue;                    // stale entry: skip
+        for (auto [v, w] : adj[u]) {
+            if (d + w < dist[v]) { dist[v] = d + w; pq.push({dist[v], v}); }
+        }
+    }
+    return dist;
+}
+```
+
+--- lazy-deletion | Lazy deletion: skipping stale entries | write
+✍️ `priority_queue` cannot decrease a key. Instead, push a new entry each time a distance improves. Old entries for the same vertex stay in the heap; when popped, `d > dist[u]` identifies them as stale → skip.
+✍️ Forgetting the skip still gives correct distances but can be much slower.
+
+--- variations | Variations | screenshot
+- Network delay time (LeetCode 743): answer = max over dist (−1 if any unreachable).
+- Path with minimum effort (LeetCode 1631): cost of a path = **maximum** edge on it; relax with `max(d, w)` instead of `d + w`. Dijkstra still works because the cost never decreases along a path.
+- Probability paths: maximise a product of probabilities ≤ 1 → max-heap.
+- Grid Dijkstra: state = (r, c), push tuples (cost, r, c).
+
+--- pitfalls | Pitfalls | write
+✍️ Negative edge weights break the "popped = final" argument → use Bellman–Ford.
+✍️ Using a max-heap by accident (forgot `greater<>`).
+✍️ `dist + w` overflow if dist is INT_MAX — use LLONG_MAX with long long, or check `dist[u] != INF` first.
+
+--- complexity | Complexity | screenshot
+O((n + m) log n) with a binary heap. O(n + m) space.
+
+=== page: graph-bellman-ford-and-k-stops
+title: Bellman–Ford and shortest paths with at most k edges
+topic: graphs
+kind: pattern
+summary: Relax every edge n−1 times; after round i, dist holds the shortest paths using at most i edges. Copying dist each round enforces the "at most k stops" limit.
+prereqs: graph-dijkstra
+related: graph-dijkstra
+--- idea | Idea | write
+✍️ A shortest path has at most n − 1 edges. Relaxing **all** edges once extends every shortest path by one more edge. After n − 1 rounds, all shortest paths are found — even with negative weights.
+✍️ A further improvement in round n means a **negative cycle**.
+
+--- k-stops | At most k stops (Cheapest Flights) | write
+✍️ k stops = at most k + 1 edges. Run exactly k + 1 rounds, and in each round relax using the distances from the **previous** round (a copy), so one round adds at most one edge.
+```cpp
+int findCheapestPrice(int n, vector<vector<int>>& flights, int src, int dst, int k) {
+    const int INF = 1e9;
+    vector<int> dist(n, INF); dist[src] = 0;
+    for (int round = 0; round <= k; round++) {
+        vector<int> nd = dist;                         // copy: use last round's values
+        for (auto& f : flights) {
+            int u = f[0], v = f[1], w = f[2];
+            if (dist[u] != INF && dist[u] + w < nd[v]) nd[v] = dist[u] + w;
+        }
+        dist = nd;
+    }
+    return dist[dst] == INF ? -1 : dist[dst];
+}
+```
+✍️ Without the copy, one round can chain several edges and break the stop limit.
+
+--- why-not-dijkstra | Why plain Dijkstra fails here | mixed
+✍️ Dijkstra finalises the cheapest route to a city, but that route might use too many stops; a more expensive route with fewer stops could be the only valid one. The state must include the number of stops (Dijkstra on (city, stops) also works).
+
+--- complexity | Complexity | screenshot
+O(k · m) for the k-stops version; O(n · m) for full Bellman–Ford.
+
+=== page: graph-dsu
+title: Union-find (disjoint set union)
+topic: graphs
+kind: pattern
+summary: Each set is a tree with a root representative. find follows parents to the root (with path compression); union links roots (by size or rank). Nearly O(1) per operation.
+prereqs: graph-representations
+related: graph-connected-components, graph-cycle-detection, graph-mst
+--- idea | Idea | write
+✍️ Maintain groups of elements that merge over time. Each element points to a parent; the root of the tree is the group's representative.
+✍️ `find(x)` → the root of x's group. `unite(a, b)` → make one root the parent of the other. Two elements are connected iff `find(a) == find(b)`.
+
+--- template | Template | write
+```cpp
+struct DSU {
+    vector<int> p, sz;
+    DSU(int n) : p(n), sz(n, 1) { iota(p.begin(), p.end(), 0); }
+    int find(int x) { return p[x] == x ? x : p[x] = find(p[x]); }   // path compression
+    bool unite(int a, int b) {
+        a = find(a); b = find(b);
+        if (a == b) return false;                 // already connected
+        if (sz[a] < sz[b]) swap(a, b);            // union by size: attach smaller under larger
+        p[b] = a; sz[a] += sz[b];
+        return true;
+    }
+};
+```
+✍️ `unite` returning false is how you detect a **redundant edge** (it would close a cycle).
+
+--- why-fast | Why it is fast | mixed
+✍️ Path compression flattens trees during `find`; union by size keeps them shallow. Together, the cost per operation is O(α(n)) — the inverse Ackermann function, ≤ 4 for any realistic n. Treat it as O(1).
+- With neither optimisation, trees can become chains and operations O(n).
+
+--- recognise | Recognise it | write
+✍️ "connected / same group" queries mixed with merges, "redundant connection", "number of provinces/components", "accounts merge", "smallest equivalent string", Kruskal's MST.
+✍️ Edges arrive over time and you need connectivity after each one (a DFS would have to restart).
+
+--- uses | Mapping problems onto DSU | screenshot
+- Accounts merge: union all emails of one account; group emails by root.
+- Stones removed (same row or column): union a stone's row with its column (offset columns by 10⁴); answer = stones − components.
+- Grids: index cells as `r·C + c` ([[mat-traversal-and-directions#flatten]]).
+
+--- complexity | Complexity | screenshot
+O(α(n)) amortised per operation, O(n) space.
+
+=== page: graph-mst
+title: Minimum spanning tree — Kruskal and Prim (recognition level)
+topic: graphs
+kind: skim
+summary: Connect all vertices with minimum total edge weight. Kruskal: sort edges, add each one that joins two different components (DSU). Prim: grow from a vertex with a min-heap.
+prereqs: graph-dsu, graph-dijkstra
+related: gr-what-greedy-is-and-proofs
+--- kruskal | Kruskal | write
+✍️ Sort all edges by weight. For each edge, if its endpoints are in different components (`dsu.unite` returns true), take it. Stop after n − 1 edges. O(m log m).
+
+--- prim | Prim | write
+✍️ Start from any vertex; a min-heap holds edges leaving the tree; repeatedly take the cheapest edge to a vertex not yet in the tree. O(m log n). For dense graphs (all pairs, like LeetCode 1584 points) an O(n²) array version is simplest.
+
+--- why-greedy | Why greedy works | mixed
+✍️ Cut property: for any split of the vertices into two sides, the cheapest edge crossing the split belongs to some MST. Both algorithms only ever take such edges.
+
+=== page: graph-tarjan-bridges
+title: Bridges and articulation points — Tarjan (recognition level)
+topic: graphs
+kind: skim
+summary: An edge is a bridge if removing it disconnects the graph. DFS with discovery times and low-links finds all bridges in O(n + m).
+prereqs: graph-dfs
+related: graph-cycle-detection
+--- idea | Idea | write
+✍️ `tin[u]` = DFS discovery time; `low[u]` = smallest discovery time reachable from u's subtree using at most one back edge.
+✍️ Tree edge (u, v) is a **bridge** iff `low[v] > tin[u]`: nothing under v can climb back to u or above without that edge.
+
+--- code | Code (for reference) | screenshot
+```cpp
+int timer = 0; vector<int> tin, low; vector<vector<int>> bridges;
+void dfs(int u, int parent, vector<vector<int>>& adj) {
+    tin[u] = low[u] = timer++;
+    for (int v : adj[u]) {
+        if (v == parent) continue;
+        if (tin[v] != -1) low[u] = min(low[u], tin[v]);          // back edge
+        else {
+            dfs(v, u, adj);
+            low[u] = min(low[u], low[v]);
+            if (low[v] > tin[u]) bridges.push_back({u, v});
+        }
+    }
+}
+```
+
+--- interview | Interview level | mixed
+✍️ Appears as "critical connections in a network" (LeetCode 1192). Rare in campus OAs; know the definition and the `low[v] > tin[u]` condition.
+
+=== page: graph-implicit-graphs
+title: Implicit graphs — BFS over states
+topic: graphs
+kind: pattern
+summary: When vertices are states (words, lock combinations, board positions) and edges are allowed moves, generate neighbours on the fly and BFS for the minimum number of moves.
+prereqs: graph-bfs
+related: graph-multi-source-bfs
+--- idea | Idea | write
+✍️ Not every graph is given as a list. "Change one letter at a time", "turn one wheel of a lock", "swap two tiles" define edges between **states**.
+✍️ BFS from the start state, generating each state's neighbours when it is popped, with a visited set of states. The BFS level at which the target appears is the minimum number of moves.
+
+--- word-ladder | Example: word ladder | write
+✍️ State = a word. Neighbours = words in the dictionary differing by one letter. Generate them by changing each position to 'a'..'z' and checking the dictionary set: O(L · 26) per word, instead of comparing against every word.
+✍️ Remove a word from the dictionary set when it is first visited — that doubles as the visited set.
+
+--- tips | Tips | mixed
+✍️ Encode states compactly (string, or an integer) so the visited set is fast.
+- Bidirectional BFS (from both ends, always expanding the smaller frontier) cuts the explored states dramatically for word ladder.
+- Open the lock (LeetCode 752): states are 4-digit strings, deadends are pre-marked visited.
+
+--- complexity | Complexity | screenshot
+O(states × neighbours per state × cost to build a neighbour).
+
+=== page: graph-floyd-warshall
+title: Floyd–Warshall — all-pairs shortest paths (recognition level)
+topic: graphs
+kind: skim
+summary: dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j]) for every intermediate k. O(n³), n ≤ ~400.
+prereqs: graph-dijkstra
+related: graph-bellman-ford-and-k-stops
+--- idea | Idea | write
+✍️ After processing intermediate vertices 0..k, `dist[i][j]` is the shortest path from i to j using only those vertices in between. Loop **k outermost**.
+```cpp
+for (int k = 0; k < n; k++)
+  for (int i = 0; i < n; i++)
+    for (int j = 0; j < n; j++)
+      if (d[i][k] < INF && d[k][j] < INF) d[i][j] = min(d[i][j], d[i][k] + d[k][j]);
+```
+
+--- when | When to use | mixed
+✍️ Small n (≤ 400), many queries between arbitrary pairs, e.g. "city with the smallest number of neighbours within a threshold" (LeetCode 1334).

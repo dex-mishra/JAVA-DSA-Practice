@@ -1,0 +1,1252 @@
+{
+ "problems": [
+  {
+   "id": "maximum-average-subarray-i",
+   "theory_refs": [
+    {
+     "stage": "brainstorm",
+     "at": "Recomputing k elements when only 2 changed",
+     "page": "sw-fixed-window",
+     "section": "think",
+     "why": "The bottleneck behind every fixed window."
+    },
+    {
+     "stage": "pseudocode",
+     "at": "Add, remove, record — in that order",
+     "page": "sw-fixed-window",
+     "section": "template",
+     "why": "The three-line skeleton."
+    },
+    {
+     "stage": "edges",
+     "at": "Compare sums, divide once",
+     "page": "sw-fixed-window",
+     "section": "pitfalls",
+     "why": "Avoiding floating-point issues."
+    }
+   ],
+   "stuck_refs": {
+    "10": {
+     "page": "arr-single-pass-running-state",
+     "section": "template"
+    },
+    "20": {
+     "page": "sw-fixed-window",
+     "section": "idea"
+    },
+    "30": {
+     "page": "sw-fixed-window",
+     "section": "template"
+    }
+   },
+   "stages": [
+    {
+     "id": "understand",
+     "title": "Understand",
+     "note": "mixed",
+     "body": "✍️ f(array, k) → the maximum average of any contiguous subarray of length exactly k.\n- n ≤ 10⁵, k ≤ n, values ±10⁴.\n- [1,12,−5,−6,50,3], k = 4 → 12.75 ((12 − 5 − 6 + 50) / 4)."
+    },
+    {
+     "id": "analyse",
+     "title": "Analyse",
+     "note": "write",
+     "body": "✍️ Max average with fixed length = max sum / k. So find the max window sum.\n✍️ By hand: the window [1,12,−5,−6] has sum 2. Sliding right: remove 1, add 50 → 51. I never re-add the middle three.\n✍️ Edges: k = n (one window); k = 1 (max element); all negative."
+    },
+    {
+     "id": "brainstorm",
+     "title": "Brainstorm: brute → optimal",
+     "note": "write",
+     "body": "✍️ **1. Brute.** Sum each of the n−k+1 windows from scratch. O(n·k) → up to 10¹⁰ when k ≈ n/2.\n✍️ ↳ Bottleneck: consecutive windows share k−1 elements, but each is re-summed.\n✍️ **2. Optimal.** Maintain the window sum: + entering, − leaving. O(n), O(1).\n✍️ (Prefix sums also work: window sum = pre[i+1] − pre[i−k+1], O(n) time but O(n) space.)"
+    },
+    {
+     "id": "algorithm",
+     "title": "Algorithm in words",
+     "note": "write",
+     "body": "✍️ 1. Walk i from 0 to n−1, adding a[i] to the window sum.\n✍️ 2. Once i ≥ k, subtract a[i−k], the element that just left.\n✍️ 3. Once i ≥ k−1 (the first full window), update the best sum.\n✍️ 4. Return best / k."
+    },
+    {
+     "id": "pseudocode",
+     "title": "Pseudocode",
+     "note": "write",
+     "body": "```\nSTATE   win = 0; best = -infinity\nLOOP    for i in 0..n-1\nUPDATE    win += a[i]\n          if i >= k: win -= a[i-k]\nCHECK     if i >= k-1: best = max(best, win)\nRETURN  best / k   (as double)\n```"
+    },
+    {
+     "id": "solution",
+     "title": "Reference C++",
+     "note": "screenshot",
+     "body": "```cpp\nclass Solution {\npublic:\n    double findMaxAverage(vector<int>& a, int k) {\n        long long win = 0, best = LLONG_MIN;\n        for (int i = 0; i < (int)a.size(); i++) {\n            win += a[i];\n            if (i >= k) win -= a[i - k];\n            if (i >= k - 1) best = max(best, win);\n        }\n        return (double)best / k;\n    }\n};\n```"
+    },
+    {
+     "id": "dry_run",
+     "title": "Dry run",
+     "note": "screenshot",
+     "body": "a = [1, 12, −5, −6, 50, 3], k = 4\n| i | add | remove | win | best |\n|---|---|---|---|---|\n| 0 | 1 | | 1 | – |\n| 1 | 12 | | 13 | – |\n| 2 | −5 | | 8 | – |\n| 3 | −6 | | 2 | 2 |\n| 4 | 50 | 1 | 51 | 51 |\n| 5 | 3 | 12 | 42 | 51 |\n51 / 4 = 12.75."
+    },
+    {
+     "id": "edges",
+     "title": "Edge cases and complexity",
+     "note": "mixed",
+     "body": "✍️ O(n) time, O(1) space.\n✍️ Initialise best to −∞ (or the first window), not 0 — all-negative windows exist.\n- Divide once at the end; comparing averages each step adds float error for nothing."
+    },
+    {
+     "id": "carry",
+     "title": "Carry forward",
+     "note": "write",
+     "body": "✍️ \"Subarray of length k\" → fixed window: one add, one remove, record when full.\n✍️ Max average with fixed length = max sum."
+    },
+    {
+     "id": "followups",
+     "title": "Interview follow-ups",
+     "note": "screenshot",
+     "body": "- *Length at least k* (LeetCode 644, Hard): binary search on the average + prefix sums (beyond this plan).\n- *Count windows with average ≥ threshold* (LeetCode 1343): same window, compare sum ≥ threshold·k."
+    }
+   ],
+   "siblings": [
+    {
+     "id": "maximum-number-of-vowels-in-a-substring-of-given-length",
+     "title": "Maximum Number of Vowels in a Substring of Given Length",
+     "tier": "must",
+     "lc": {
+      "id": "1456",
+      "slug": "maximum-number-of-vowels-in-a-substring-of-given-length",
+      "url": "https://leetcode.com/problems/maximum-number-of-vowels-in-a-substring-of-given-length/",
+      "difficulty": "Medium"
+     },
+     "maps": "Same fixed window; the summary is a vowel count instead of a sum.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Max number of vowels in any substring of length k."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Recount each window → O(n·k). Maintain the vowel count: +1 if the entering char is a vowel, −1 if the leaving char is. O(n)."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ Fixed-window skeleton with \"is vowel\" as the value of each character."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\ncnt = 0; best = 0\nfor i: cnt += vowel(s[i]); if i >= k: cnt -= vowel(s[i-k]); if i >= k-1: best = max(best, cnt)\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\n    bool v(char c) { return c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u'; }\npublic:\n    int maxVowels(string s, int k) {\n        int cnt = 0, best = 0;\n        for (int i = 0; i < (int)s.size(); i++) {\n            cnt += v(s[i]);\n            if (i >= k) cnt -= v(s[i - k]);\n            if (i >= k - 1) best = max(best, cnt);\n        }\n        return best;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ Any additive summary (sum, count of a property) slides in O(1) ([[sw-fixed-window#variations]])."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\n    bool v(char c) { return c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u'; }\npublic:\n    int maxVowels(string s, int k) {\n        int cnt = 0, best = 0;\n        for (int i = 0; i < (int)s.size(); i++) {\n            cnt += v(s[i]);\n            if (i >= k) cnt -= v(s[i - k]);\n            if (i >= k - 1) best = max(best, cnt);\n        }\n        return best;\n    }\n};\n",
+      "tests": "Solution s;\nCHECK(s.maxVowels(\"abciiidef\", 3) == 3);\nCHECK(s.maxVowels(\"aeiou\", 2) == 2);\nCHECK(s.maxVowels(\"leetcode\", 3) == 2);\n"
+     }
+    },
+    {
+     "id": "k-radius-subarray-averages",
+     "title": "K Radius Subarray Averages",
+     "tier": "optional",
+     "lc": {
+      "id": "2090",
+      "slug": "k-radius-subarray-averages",
+      "url": "https://leetcode.com/problems/k-radius-subarray-averages/",
+      "difficulty": "Medium"
+     },
+     "maps": "Window of size 2k+1 centred at i; the answer is written at the centre, not the right end.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ avg[i] = integer average of a[i−k..i+k], or −1 if that range leaves the array."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Fixed window of size w = 2k+1 with a long long sum; when the window [i−w+1, i] is full, write sum / w at position i−k."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ Initialise all answers to −1; slide; assign at the centre."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\nw = 2k+1; sum = 0; out = [-1]*n\nfor i: sum += a[i]; if i >= w: sum -= a[i-w]; if i >= w-1: out[i-k] = sum / w\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    vector<int> getAverages(vector<int>& a, int k) {\n        int n = a.size();\n        long long w = 2LL * k + 1, sum = 0;\n        vector<int> out(n, -1);\n        for (int i = 0; i < n; i++) {\n            sum += a[i];\n            if (i >= w) sum -= a[i - w];\n            if (i >= w - 1) out[i - k] = (int)(sum / w);\n        }\n        return out;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ Sums of 10⁵ values up to 10⁵ reach 10¹⁰ → long long ([[cpp-integer-overflow#where]])."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    vector<int> getAverages(vector<int>& a, int k) {\n        int n = a.size();\n        long long w = 2LL * k + 1, sum = 0;\n        vector<int> out(n, -1);\n        for (int i = 0; i < n; i++) {\n            sum += a[i];\n            if (i >= w) sum -= a[i - w];\n            if (i >= w - 1) out[i - k] = (int)(sum / w);\n        }\n        return out;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {7, 4, 3, 9, 1, 8, 5, 2, 6};\nCHECK((s.getAverages(a, 3) == vector<int>{-1, -1, -1, 5, 4, 4, -1, -1, -1}));\nvector<int> b = {100000};\nCHECK((s.getAverages(b, 0) == vector<int>{100000}));\nvector<int> c = {8};\nCHECK((s.getAverages(c, 100000) == vector<int>{-1}));\n"
+     }
+    },
+    {
+     "id": "number-of-sub-arrays-of-size-k-and-average-greater-than-or-equal-to-threshold",
+     "title": "Number of Sub-arrays of Size K and Average Greater than or Equal to Threshold",
+     "tier": "optional",
+     "lc": {
+      "id": "1343",
+      "slug": "number-of-sub-arrays-of-size-k-and-average-greater-than-or-equal-to-threshold",
+      "url": "https://leetcode.com/problems/number-of-sub-arrays-of-size-k-and-average-greater-than-or-equal-to-threshold/",
+      "difficulty": "Medium"
+     },
+     "maps": "Count fixed windows whose sum ≥ threshold × k.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Count windows of size k whose average is at least the threshold."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Compare sums with threshold·k (no division). Fixed window, O(n)."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ Slide the window; count each full window that meets the target sum."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\ntarget = threshold * k; sum = 0; cnt = 0\nfor i: sum += a[i]; if i >= k: sum -= a[i-k]; if i >= k-1 and sum >= target: cnt++\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    int numOfSubarrays(vector<int>& a, int k, int threshold) {\n        long long target = 1LL * threshold * k, sum = 0;\n        int cnt = 0;\n        for (int i = 0; i < (int)a.size(); i++) {\n            sum += a[i];\n            if (i >= k) sum -= a[i - k];\n            if (i >= k - 1 && sum >= target) cnt++;\n        }\n        return cnt;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ Turn average comparisons into sum comparisons to stay in integers."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    int numOfSubarrays(vector<int>& a, int k, int threshold) {\n        long long target = 1LL * threshold * k, sum = 0;\n        int cnt = 0;\n        for (int i = 0; i < (int)a.size(); i++) {\n            sum += a[i];\n            if (i >= k) sum -= a[i - k];\n            if (i >= k - 1 && sum >= target) cnt++;\n        }\n        return cnt;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {2, 2, 2, 2, 5, 5, 5, 8};\nCHECK(s.numOfSubarrays(a, 3, 4) == 3);\nvector<int> b = {11, 13, 17, 23, 29, 31, 7, 5, 2, 3};\nCHECK(s.numOfSubarrays(b, 3, 5) == 6);\n"
+     }
+    }
+   ],
+   "verify": {
+    "solution": "class Solution {\npublic:\n    double findMaxAverage(vector<int>& a, int k) {\n        long long win = 0, best = LLONG_MIN;\n        for (int i = 0; i < (int)a.size(); i++) {\n            win += a[i];\n            if (i >= k) win -= a[i - k];\n            if (i >= k - 1) best = max(best, win);\n        }\n        return (double)best / k;\n    }\n};\n",
+    "tests": "Solution s;\nvector<int> a = {1, 12, -5, -6, 50, 3};\nCHECK(fabs(s.findMaxAverage(a, 4) - 12.75) < 1e-9);\nvector<int> b = {5};\nCHECK(fabs(s.findMaxAverage(b, 1) - 5.0) < 1e-9);\nvector<int> c = {-1, -2, -3};\nCHECK(fabs(s.findMaxAverage(c, 2) - (-1.5)) < 1e-9);\n"
+   }
+  },
+  {
+   "id": "longest-substring-without-repeating-characters",
+   "theory_refs": [
+    {
+     "stage": "understand",
+     "at": "\"longest substring such that\"",
+     "page": "sw-variable-window",
+     "section": "recognise",
+     "why": "The trigger for a variable window."
+    },
+    {
+     "stage": "brainstorm",
+     "at": "If [l, r] is invalid, so is [l, r+1]",
+     "page": "sw-variable-window",
+     "section": "think",
+     "why": "Why l never needs to move back."
+    },
+    {
+     "stage": "pseudocode",
+     "at": "Shrink while invalid, record after",
+     "page": "sw-variable-window",
+     "section": "template-longest",
+     "why": "Longest-window skeleton."
+    },
+    {
+     "stage": "solution",
+     "at": "Counts of characters in the window",
+     "page": "sw-frequency-map-window",
+     "section": "idea",
+     "why": "The window's state."
+    },
+    {
+     "stage": "followups",
+     "at": "Jump l with last-seen index",
+     "page": "sw-variable-window",
+     "section": "interview",
+     "why": "Removing the inner loop."
+    }
+   ],
+   "stuck_refs": {
+    "10": {
+     "page": "cx-constraints-to-target",
+     "section": "table"
+    },
+    "20": {
+     "page": "sw-variable-window",
+     "section": "idea"
+    },
+    "30": {
+     "page": "sw-variable-window",
+     "section": "template-longest"
+    },
+    "40": {
+     "page": "sw-frequency-map-window",
+     "section": "idea"
+    }
+   },
+   "stages": [
+    {
+     "id": "understand",
+     "title": "Understand",
+     "note": "mixed",
+     "body": "✍️ f(string) → length of the longest substring (contiguous) with all characters distinct.\n- Length ≤ 5·10⁴; letters, digits, symbols, spaces.\n- \"abcabcbb\" → 3 (\"abc\"). \"bbbbb\" → 1. \"pwwkew\" → 3 (\"wke\")."
+    },
+    {
+     "id": "analyse",
+     "title": "Analyse",
+     "note": "write",
+     "body": "✍️ By hand on \"pwwkew\": I grow \"pw\"; the next 'w' repeats, so I drop characters from the left until the old 'w' is gone → \"w\"; grow \"wke\"; next 'w' repeats → drop \"wk\" … → \"ew\".\n✍️ Hard part: knowing how far to drop from the left.\n✍️ Edges: empty string → 0; all identical; spaces count as characters."
+    },
+    {
+     "id": "brainstorm",
+     "title": "Brainstorm: brute → optimal",
+     "note": "write",
+     "body": "✍️ **1. Brute.** Every substring, check distinctness with a set. O(n³) or O(n²).\n✍️ ↳ Bottleneck: for each end r, retrying every start from scratch.\n✍️ ↳ Observation: if [l, r] has a repeat, every longer window [l, r+1] does too. So once a start is invalid for r, it stays invalid → the best start only moves right.\n✍️ **2. Optimal (window + counts).** Expand r; while the new character's count > 1, remove s[l] and l++. Record r − l + 1. O(n).\n✍️ **3. Variant.** Store each character's last index and jump l to max(l, last[c] + 1) — no inner loop."
+    },
+    {
+     "id": "algorithm",
+     "title": "Algorithm in words",
+     "note": "write",
+     "body": "✍️ 1. Keep a count of characters in the window [l, r]; l starts at 0.\n✍️ 2. For each r, add s[r] to the counts.\n✍️ 3. While s[r] appears more than once, remove s[l] from the counts and move l right.\n✍️ 4. The window is now valid; update the best length."
+    },
+    {
+     "id": "pseudocode",
+     "title": "Pseudocode",
+     "note": "write",
+     "body": "```\nSTATE   cnt[256] = 0; l = 0; best = 0\nLOOP    for r in 0..n-1\nUPDATE    cnt[s[r]]++\n          while cnt[s[r]] > 1:          (only s[r] can be duplicated)\n              cnt[s[l]]--; l++\nCHECK     best = max(best, r - l + 1)\nRETURN  best\n```"
+    },
+    {
+     "id": "solution",
+     "title": "Reference C++",
+     "note": "screenshot",
+     "body": "```cpp\nclass Solution {\npublic:\n    int lengthOfLongestSubstring(string s) {\n        int cnt[256] = {0};\n        int l = 0, best = 0;\n        for (int r = 0; r < (int)s.size(); r++) {\n            cnt[(unsigned char)s[r]]++;\n            while (cnt[(unsigned char)s[r]] > 1) {\n                cnt[(unsigned char)s[l]]--;\n                l++;\n            }\n            best = max(best, r - l + 1);\n        }\n        return best;\n    }\n};\n```"
+    },
+    {
+     "id": "dry_run",
+     "title": "Dry run",
+     "note": "screenshot",
+     "body": "\"pwwkew\":\n| r | s[r] | shrink? | window | best |\n|---|---|---|---|---|\n| 0 | p | no | p | 1 |\n| 1 | w | no | pw | 2 |\n| 2 | w | drop p, drop w | w | 2 |\n| 3 | k | no | wk | 2 |\n| 4 | e | no | wke | 3 |\n| 5 | w | drop w | kew | 3 |"
+    },
+    {
+     "id": "edges",
+     "title": "Edge cases and complexity",
+     "note": "mixed",
+     "body": "✍️ O(n) time: r moves n times, l at most n times in total. O(1) space (256 counters).\n✍️ Only the newly added character can create a duplicate, so the while condition checks `cnt[s[r]]`.\n- Casting to `unsigned char` keeps the index non-negative for any byte."
+    },
+    {
+     "id": "carry",
+     "title": "Carry forward",
+     "note": "write",
+     "body": "✍️ \"Longest substring with a property that breaks by adding and heals by removing\" → variable window.\n✍️ Expand always; shrink while invalid; record after the shrink.\n✍️ The window's state is a count table; validity is a question about it."
+    },
+    {
+     "id": "followups",
+     "title": "Interview follow-ups",
+     "note": "screenshot",
+     "body": "- *Avoid the inner loop.* last[c] = last index; l = max(l, last[c] + 1). Still O(n).\n- *At most k distinct characters.* Track distinct count; shrink while distinct > k ([[sw-frequency-map-window#distinct]]).\n- *Return the substring.* Remember l when best improves."
+    }
+   ],
+   "siblings": [
+    {
+     "id": "fruit-into-baskets",
+     "title": "Fruit Into Baskets",
+     "tier": "must",
+     "lc": {
+      "id": "904",
+      "slug": "fruit-into-baskets",
+      "url": "https://leetcode.com/problems/fruit-into-baskets/",
+      "difficulty": "Medium"
+     },
+     "maps": "Longest window with at most 2 distinct values — the rule changes from \"no repeats\" to \"≤ 2 kinds\".",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Longest contiguous run containing at most two distinct fruit types."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Variable window with a count map and a distinct counter; shrink while distinct > 2. O(n)."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ Add fruit[r] (if its count was 0, distinct++); while distinct > 2 remove fruit[l] (if count becomes 0, distinct−−); record."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\nfor r: if cnt[f[r]]++ == 0: d++\n    while d > 2: if --cnt[f[l]] == 0: d--; l++\n    best = max(best, r-l+1)\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    int totalFruit(vector<int>& f) {\n        unordered_map<int, int> cnt;\n        int l = 0, d = 0, best = 0;\n        for (int r = 0; r < (int)f.size(); r++) {\n            if (cnt[f[r]]++ == 0) d++;\n            while (d > 2) {\n                if (--cnt[f[l]] == 0) d--;\n                l++;\n            }\n            best = max(best, r - l + 1);\n        }\n        return best;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ \"At most k distinct\" → distinct counter updated on 0↔1 transitions ([[sw-frequency-map-window#distinct]])."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    int totalFruit(vector<int>& f) {\n        unordered_map<int, int> cnt;\n        int l = 0, d = 0, best = 0;\n        for (int r = 0; r < (int)f.size(); r++) {\n            if (cnt[f[r]]++ == 0) d++;\n            while (d > 2) {\n                if (--cnt[f[l]] == 0) d--;\n                l++;\n            }\n            best = max(best, r - l + 1);\n        }\n        return best;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {1, 2, 1};\nCHECK(s.totalFruit(a) == 3);\nvector<int> b = {0, 1, 2, 2};\nCHECK(s.totalFruit(b) == 3);\nvector<int> c = {1, 2, 3, 2, 2};\nCHECK(s.totalFruit(c) == 4);\n"
+     }
+    },
+    {
+     "id": "minimum-window-substring",
+     "title": "Minimum Window Substring",
+     "tier": "optional",
+     "lc": {
+      "id": "76",
+      "slug": "minimum-window-substring",
+      "url": "https://leetcode.com/problems/minimum-window-substring/",
+      "difficulty": "Hard"
+     },
+     "maps": "Shortest window that contains every character of t (with counts) — the \"shortest valid\" skeleton.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Smallest substring of s containing all characters of t, including duplicates; \"\" if none."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ need[c] = count in t; missing = |t|. Expand r: if need[s[r]] > 0 then missing−−; need[s[r]]−−. While missing == 0 (valid): record, then remove s[l] (need++, if it becomes > 0 missing++), l++. O(n + m)."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ Expand until all characters are covered; then shrink as long as it stays covered, recording the shortest."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\nneed from t; missing = |t|\nfor r: if need[s[r]]-- > 0: missing--\n    while missing == 0:\n        record window; if ++need[s[l]] > 0: missing++; l++\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    string minWindow(string s, string t) {\n        int need[128] = {0};\n        for (char c : t) need[(int)c]++;\n        int missing = t.size(), l = 0, bestL = 0, bestLen = INT_MAX;\n        for (int r = 0; r < (int)s.size(); r++) {\n            if (need[(int)s[r]]-- > 0) missing--;\n            while (missing == 0) {\n                if (r - l + 1 < bestLen) { bestLen = r - l + 1; bestL = l; }\n                if (++need[(int)s[l]] > 0) missing++;\n                l++;\n            }\n        }\n        return bestLen == INT_MAX ? \"\" : s.substr(bestL, bestLen);\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ Shortest valid: shrink **while valid**, record **inside** the loop ([[sw-variable-window#template-shortest]]).\n✍️ `need` going negative just means \"more than required in the window\" — that is fine."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    string minWindow(string s, string t) {\n        int need[128] = {0};\n        for (char c : t) need[(int)c]++;\n        int missing = t.size(), l = 0, bestL = 0, bestLen = INT_MAX;\n        for (int r = 0; r < (int)s.size(); r++) {\n            if (need[(int)s[r]]-- > 0) missing--;\n            while (missing == 0) {\n                if (r - l + 1 < bestLen) { bestLen = r - l + 1; bestL = l; }\n                if (++need[(int)s[l]] > 0) missing++;\n                l++;\n            }\n        }\n        return bestLen == INT_MAX ? \"\" : s.substr(bestL, bestLen);\n    }\n};\n",
+      "tests": "Solution s;\nCHECK(s.minWindow(\"ADOBECODEBANC\", \"ABC\") == \"BANC\");\nCHECK(s.minWindow(\"a\", \"a\") == \"a\");\nCHECK(s.minWindow(\"a\", \"aa\") == \"\");\n"
+     }
+    },
+    {
+     "id": "minimum-size-subarray-sum",
+     "title": "Minimum Size Subarray Sum",
+     "tier": "optional",
+     "lc": {
+      "id": "209",
+      "slug": "minimum-size-subarray-sum",
+      "url": "https://leetcode.com/problems/minimum-size-subarray-sum/",
+      "difficulty": "Medium"
+     },
+     "maps": "Shortest window with sum ≥ target; positive values make the sum monotone.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Minimal length of a subarray with sum ≥ target (all values positive); 0 if none."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Positive values → growing the window increases the sum, shrinking decreases it → monotone → shortest-valid window. O(n)."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ Add a[r]; while sum ≥ target: record length, remove a[l], l++."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\nfor r: sum += a[r]\n    while sum >= target: best = min(best, r-l+1); sum -= a[l++]\nreturn best == INF ? 0 : best\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    int minSubArrayLen(int target, vector<int>& a) {\n        int l = 0, best = INT_MAX;\n        long long sum = 0;\n        for (int r = 0; r < (int)a.size(); r++) {\n            sum += a[r];\n            while (sum >= target) {\n                best = min(best, r - l + 1);\n                sum -= a[l++];\n            }\n        }\n        return best == INT_MAX ? 0 : best;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ This only works because values are positive ([[sw-monotonicity-requirement#rule]])."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    int minSubArrayLen(int target, vector<int>& a) {\n        int l = 0, best = INT_MAX;\n        long long sum = 0;\n        for (int r = 0; r < (int)a.size(); r++) {\n            sum += a[r];\n            while (sum >= target) {\n                best = min(best, r - l + 1);\n                sum -= a[l++];\n            }\n        }\n        return best == INT_MAX ? 0 : best;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {2, 3, 1, 2, 4, 3};\nCHECK(s.minSubArrayLen(7, a) == 2);\nvector<int> b = {1, 4, 4};\nCHECK(s.minSubArrayLen(4, b) == 1);\nvector<int> c = {1, 1, 1, 1};\nCHECK(s.minSubArrayLen(11, c) == 0);\n"
+     }
+    }
+   ],
+   "verify": {
+    "solution": "class Solution {\npublic:\n    int lengthOfLongestSubstring(string s) {\n        int cnt[256] = {0};\n        int l = 0, best = 0;\n        for (int r = 0; r < (int)s.size(); r++) {\n            cnt[(unsigned char)s[r]]++;\n            while (cnt[(unsigned char)s[r]] > 1) {\n                cnt[(unsigned char)s[l]]--;\n                l++;\n            }\n            best = max(best, r - l + 1);\n        }\n        return best;\n    }\n};\n",
+    "tests": "Solution s;\nCHECK(s.lengthOfLongestSubstring(\"abcabcbb\") == 3);\nCHECK(s.lengthOfLongestSubstring(\"bbbbb\") == 1);\nCHECK(s.lengthOfLongestSubstring(\"pwwkew\") == 3);\nCHECK(s.lengthOfLongestSubstring(\"\") == 0);\nCHECK(s.lengthOfLongestSubstring(\"abba\") == 2);\nCHECK(s.lengthOfLongestSubstring(\" \") == 1);\n"
+   }
+  },
+  {
+   "id": "longest-repeating-character-replacement",
+   "theory_refs": [
+    {
+     "stage": "analyse",
+     "at": "Cost of a window = len − maxCount",
+     "page": "sw-variable-window",
+     "section": "budget",
+     "why": "Turning \"replace k\" into a budget."
+    },
+    {
+     "stage": "brainstorm",
+     "at": "Window with a frequency table",
+     "page": "sw-frequency-map-window",
+     "section": "idea",
+     "why": "The state you maintain."
+    },
+    {
+     "stage": "solution",
+     "at": "maxCount never decreases",
+     "page": "sw-frequency-map-window",
+     "section": "maxcount",
+     "why": "Why a stale maximum is safe."
+    },
+    {
+     "stage": "carry",
+     "at": "Budget windows",
+     "page": "sw-variable-window",
+     "section": "budget",
+     "why": "The family this belongs to."
+    }
+   ],
+   "stuck_refs": {
+    "10": {
+     "page": "sw-variable-window",
+     "section": "recognise"
+    },
+    "20": {
+     "page": "sw-variable-window",
+     "section": "budget"
+    },
+    "30": {
+     "page": "sw-frequency-map-window",
+     "section": "maxcount"
+    },
+    "40": {
+     "page": "sw-variable-window",
+     "section": "template-longest"
+    }
+   },
+   "stages": [
+    {
+     "id": "understand",
+     "title": "Understand",
+     "note": "mixed",
+     "body": "✍️ f(uppercase string s, k) → length of the longest substring that can be made all one letter by changing at most k characters.\n- n ≤ 10⁵.\n- \"ABAB\", k = 2 → 4. \"AABABBA\", k = 1 → 4 (\"AABA\" → \"AAAA\")."
+    },
+    {
+     "id": "analyse",
+     "title": "Analyse",
+     "note": "write",
+     "body": "✍️ For a fixed window, the cheapest way to make it uniform is to keep its most frequent letter and change the rest. Changes needed = length − maxCount.\n✍️ So a window is valid ⇔ len − maxCount ≤ k. That is a budget rule → variable window.\n✍️ Hard part: maintaining maxCount as the window shrinks.\n✍️ Edges: k = 0 (longest run of equal letters); k ≥ n (whole string)."
+    },
+    {
+     "id": "brainstorm",
+     "title": "Brainstorm: brute → optimal",
+     "note": "write",
+     "body": "✍️ **1. Brute.** Every substring, compute counts, check len − max ≤ k. O(n²·26).\n✍️ ↳ Bottleneck: retrying every start for each end.\n✍️ ↳ The rule is monotone (a valid window's sub-windows are valid) → variable window.\n✍️ **2. Window, recompute max.** Expand r; while len − max(cnt) > k, shrink. O(26n). Already fine.\n✍️ **3. Optimal trick.** Keep maxCount as the highest count ever seen and do not decrease it on shrink. The answer only improves when maxCount increases, so a stale value never produces a wrong answer. O(n)."
+    },
+    {
+     "id": "algorithm",
+     "title": "Algorithm in words",
+     "note": "write",
+     "body": "✍️ 1. Count letters in the window [l, r]; maxCount = the largest count seen.\n✍️ 2. For each r: add s[r], update maxCount.\n✍️ 3. If the window needs more than k changes (len − maxCount > k), remove s[l] and move l right once.\n✍️ 4. Record the window length."
+    },
+    {
+     "id": "pseudocode",
+     "title": "Pseudocode",
+     "note": "write",
+     "body": "```\nSTATE   cnt[26] = 0; l = 0; maxCount = 0; best = 0\nLOOP    for r in 0..n-1\nUPDATE    cnt[s[r]]++; maxCount = max(maxCount, cnt[s[r]])\nCHECK     if (r - l + 1) - maxCount > k:\n              cnt[s[l]]--; l++                    (one step is enough here)\nUPDATE    best = max(best, r - l + 1)\nRETURN  best\n```"
+    },
+    {
+     "id": "solution",
+     "title": "Reference C++",
+     "note": "screenshot",
+     "body": "```cpp\nclass Solution {\npublic:\n    int characterReplacement(string s, int k) {\n        int cnt[26] = {0};\n        int l = 0, maxCount = 0, best = 0;\n        for (int r = 0; r < (int)s.size(); r++) {\n            maxCount = max(maxCount, ++cnt[s[r] - 'A']);\n            if (r - l + 1 - maxCount > k) {\n                cnt[s[l] - 'A']--;\n                l++;\n            }\n            best = max(best, r - l + 1);\n        }\n        return best;\n    }\n};\n```"
+    },
+    {
+     "id": "dry_run",
+     "title": "Dry run",
+     "note": "screenshot",
+     "body": "\"AABABBA\", k = 1:\n| r | ch | maxCount | len before | shrink? | len | best |\n|---|---|---|---|---|---|---|\n| 0 | A | 1 | 1 | no | 1 | 1 |\n| 1 | A | 2 | 2 | no | 2 | 2 |\n| 2 | B | 2 | 3 | no (3−2=1) | 3 | 3 |\n| 3 | A | 3 | 4 | no | 4 | 4 |\n| 4 | B | 3 | 5 | yes (5−3=2) | 4 | 4 |\n| 5 | B | 3 | 5 | yes | 4 | 4 |\n| 6 | A | 3 | 5 | yes | 4 | 4 |"
+    },
+    {
+     "id": "edges",
+     "title": "Edge cases and complexity",
+     "note": "mixed",
+     "body": "✍️ O(n) time, O(1) space.\n✍️ With the `if` version the window never shrinks below the best length found; it slides. That is why `if` suffices here — in general use `while`.\n- If the trick feels risky in an interview, use `while` with max over 26 counts: O(26n), clearly correct."
+    },
+    {
+     "id": "carry",
+     "title": "Carry forward",
+     "note": "write",
+     "body": "✍️ \"Change at most k things to make it uniform\" → cost(window) = len − maxCount ≤ k.\n✍️ Turn every \"at most k operations\" rule into a count you can maintain as the window moves."
+    },
+    {
+     "id": "followups",
+     "title": "Interview follow-ups",
+     "note": "screenshot",
+     "body": "- *Binary string, flip at most k to get all 1s* → Max Consecutive Ones III (next problem).\n- *Two letters (T/F) and either can be the target* (LeetCode 2024): run the window for each target letter.\n- *Why is the stale maxCount safe?* The recorded best only grows when maxCount grows, and maxCount is a true count at the moment it grew."
+    }
+   ],
+   "siblings": [
+    {
+     "id": "maximize-the-confusion-of-an-exam",
+     "title": "Maximize the Confusion of an Exam",
+     "tier": "must",
+     "lc": {
+      "id": "2024",
+      "slug": "maximize-the-confusion-of-an-exam",
+      "url": "https://leetcode.com/problems/maximize-the-confusion-of-an-exam/",
+      "difficulty": "Medium"
+     },
+     "maps": "Two-letter version of character replacement: run a budget window for \"all T\" and for \"all F\".",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Answer key of 'T'/'F'; change at most k answers to maximise the longest run of identical answers."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Longest window with at most k 'F's (to make all T), and separately at most k 'T's. Answer = max of both. O(n)."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ A helper computes the longest window containing at most k of a given letter; call it for both letters."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\nbest(c): l = 0; bad = 0\n    for r: bad += (s[r] == c); while bad > k: bad -= (s[l++] == c); ans = max(ans, r-l+1)\nreturn max(best('T'), best('F'))\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\n    int longest(const string& s, int k, char bad) {\n        int l = 0, cnt = 0, ans = 0;\n        for (int r = 0; r < (int)s.size(); r++) {\n            cnt += (s[r] == bad);\n            while (cnt > k) cnt -= (s[l++] == bad);\n            ans = max(ans, r - l + 1);\n        }\n        return ans;\n    }\npublic:\n    int maxConsecutiveAnswers(string s, int k) {\n        return max(longest(s, k, 'T'), longest(s, k, 'F'));\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ Budget window: bad = count of the letter you would have to change ([[sw-variable-window#budget]])."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\n    int longest(const string& s, int k, char bad) {\n        int l = 0, cnt = 0, ans = 0;\n        for (int r = 0; r < (int)s.size(); r++) {\n            cnt += (s[r] == bad);\n            while (cnt > k) cnt -= (s[l++] == bad);\n            ans = max(ans, r - l + 1);\n        }\n        return ans;\n    }\npublic:\n    int maxConsecutiveAnswers(string s, int k) {\n        return max(longest(s, k, 'T'), longest(s, k, 'F'));\n    }\n};\n",
+      "tests": "Solution s;\nCHECK(s.maxConsecutiveAnswers(\"TTFF\", 2) == 4);\nCHECK(s.maxConsecutiveAnswers(\"TFFT\", 1) == 3);\nCHECK(s.maxConsecutiveAnswers(\"TTFTTFTT\", 1) == 5);\n"
+     }
+    },
+    {
+     "id": "frequency-of-the-most-frequent-element",
+     "title": "Frequency of the Most Frequent Element",
+     "tier": "optional",
+     "lc": {
+      "id": "1838",
+      "slug": "frequency-of-the-most-frequent-element",
+      "url": "https://leetcode.com/problems/frequency-of-the-most-frequent-element/",
+      "difficulty": "Medium"
+     },
+     "maps": "Sort, then a window is valid if raising everyone to the window's max costs ≤ k.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ You may increment elements (total at most k increments). Maximise the frequency of some value."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Sort. Making a window all equal to its largest element a[r] costs a[r]·len − sum(window). That cost only grows as the window grows → monotone → variable window with a running sum. O(n log n)."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ Sort; expand r adding a[r] to sum; while a[r]·len − sum > k, remove a[l]; record len."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\nsort a; l = 0; sum = 0\nfor r: sum += a[r]\n    while a[r]*(r-l+1) - sum > k: sum -= a[l++]\n    best = max(best, r-l+1)\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    int maxFrequency(vector<int>& a, int k) {\n        sort(a.begin(), a.end());\n        long long sum = 0;\n        int l = 0, best = 0;\n        for (int r = 0; r < (int)a.size(); r++) {\n            sum += a[r];\n            while ((long long)a[r] * (r - l + 1) - sum > k) sum -= a[l++];\n            best = max(best, r - l + 1);\n        }\n        return best;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ Sorting can create the monotonicity a window needs; the budget here is \"increments used\"."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    int maxFrequency(vector<int>& a, int k) {\n        sort(a.begin(), a.end());\n        long long sum = 0;\n        int l = 0, best = 0;\n        for (int r = 0; r < (int)a.size(); r++) {\n            sum += a[r];\n            while ((long long)a[r] * (r - l + 1) - sum > k) sum -= a[l++];\n            best = max(best, r - l + 1);\n        }\n        return best;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {1, 2, 4};\nCHECK(s.maxFrequency(a, 5) == 3);\nvector<int> b = {1, 4, 8, 13};\nCHECK(s.maxFrequency(b, 5) == 2);\nvector<int> c = {3, 9, 6};\nCHECK(s.maxFrequency(c, 2) == 1);\n"
+     }
+    },
+    {
+     "id": "get-equal-substrings-within-budget",
+     "title": "Get Equal Substrings Within Budget",
+     "tier": "optional",
+     "lc": {
+      "id": "1208",
+      "slug": "get-equal-substrings-within-budget",
+      "url": "https://leetcode.com/problems/get-equal-substrings-within-budget/",
+      "difficulty": "Medium"
+     },
+     "maps": "Cost per position = |s[i] − t[i]|; longest window whose total cost ≤ maxCost.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Changing s[i] to t[i] costs |s[i] − t[i]|. Longest substring you can make equal within the budget."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Costs are non-negative → window sums are monotone → longest window with sum ≤ maxCost. O(n)."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ Expand adding the cost; shrink while the total exceeds the budget; record."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\nfor r: cost += |s[r]-t[r]|; while cost > maxCost: cost -= |s[l]-t[l]|; l++\n    best = max(best, r-l+1)\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    int equalSubstring(string s, string t, int maxCost) {\n        int l = 0, cost = 0, best = 0;\n        for (int r = 0; r < (int)s.size(); r++) {\n            cost += abs(s[r] - t[r]);\n            while (cost > maxCost) { cost -= abs(s[l] - t[l]); l++; }\n            best = max(best, r - l + 1);\n        }\n        return best;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ Convert the input into a per-position cost array, then it is a plain \"sum ≤ budget\" window."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    int equalSubstring(string s, string t, int maxCost) {\n        int l = 0, cost = 0, best = 0;\n        for (int r = 0; r < (int)s.size(); r++) {\n            cost += abs(s[r] - t[r]);\n            while (cost > maxCost) { cost -= abs(s[l] - t[l]); l++; }\n            best = max(best, r - l + 1);\n        }\n        return best;\n    }\n};\n",
+      "tests": "Solution s;\nCHECK(s.equalSubstring(\"abcd\", \"bcdf\", 3) == 3);\nCHECK(s.equalSubstring(\"abcd\", \"cdef\", 3) == 1);\nCHECK(s.equalSubstring(\"abcd\", \"acde\", 0) == 1);\n"
+     }
+    }
+   ],
+   "verify": {
+    "solution": "class Solution {\npublic:\n    int characterReplacement(string s, int k) {\n        int cnt[26] = {0};\n        int l = 0, maxCount = 0, best = 0;\n        for (int r = 0; r < (int)s.size(); r++) {\n            maxCount = max(maxCount, ++cnt[s[r] - 'A']);\n            if (r - l + 1 - maxCount > k) {\n                cnt[s[l] - 'A']--;\n                l++;\n            }\n            best = max(best, r - l + 1);\n        }\n        return best;\n    }\n};\n",
+    "tests": "Solution s;\nCHECK(s.characterReplacement(\"ABAB\", 2) == 4);\nCHECK(s.characterReplacement(\"AABABBA\", 1) == 4);\nCHECK(s.characterReplacement(\"AAAA\", 0) == 4);\nCHECK(s.characterReplacement(\"ABCDE\", 1) == 2);\n"
+   }
+  },
+  {
+   "id": "max-consecutive-ones-iii",
+   "theory_refs": [
+    {
+     "stage": "analyse",
+     "at": "Flips = a budget of zeros",
+     "page": "sw-variable-window",
+     "section": "budget",
+     "why": "Reframing the statement as a window rule."
+    },
+    {
+     "stage": "brainstorm",
+     "at": "Day 1's streak with k allowed breaks",
+     "page": "arr-single-pass-running-state",
+     "section": "variations",
+     "why": "The link back to Max Consecutive Ones."
+    },
+    {
+     "stage": "pseudocode",
+     "at": "Shrink while zeros > k",
+     "page": "sw-variable-window",
+     "section": "template-longest",
+     "why": "The longest-window skeleton."
+    },
+    {
+     "stage": "edges",
+     "at": "Why O(n)",
+     "page": "cx-amortised-analysis",
+     "section": "counting-trick",
+     "why": "l moves at most n times overall."
+    }
+   ],
+   "stuck_refs": {
+    "10": {
+     "page": "arr-single-pass-running-state",
+     "section": "template"
+    },
+    "20": {
+     "page": "sw-variable-window",
+     "section": "budget"
+    },
+    "30": {
+     "page": "sw-variable-window",
+     "section": "template-longest"
+    }
+   },
+   "stages": [
+    {
+     "id": "understand",
+     "title": "Understand",
+     "note": "mixed",
+     "body": "✍️ f(binary array, k) → the maximum number of consecutive 1s if you may flip at most k zeros.\n- n ≤ 10⁵.\n- [1,1,1,0,0,0,1,1,1,1,0], k = 2 → 6."
+    },
+    {
+     "id": "analyse",
+     "title": "Analyse",
+     "note": "write",
+     "body": "✍️ DISGUISE: it reads like a flipping puzzle. Reframe: \"longest subarray containing at most k zeros\" — flipping those zeros makes it all ones.\n✍️ By hand: grow the window counting zeros; when a third zero enters (k = 2), drop elements from the left until a zero leaves.\n✍️ Edges: k = 0 (Day 1's problem); k ≥ number of zeros (answer n); all zeros."
+    },
+    {
+     "id": "brainstorm",
+     "title": "Brainstorm: brute → optimal",
+     "note": "write",
+     "body": "✍️ **1. Brute.** Every subarray, count zeros. O(n²).\n✍️ ↳ Bottleneck: retrying every start for each end.\n✍️ ↳ Rule \"zeros ≤ k\" is monotone → variable window.\n✍️ **2. Optimal.** Expand r counting zeros; while zeros > k, if a[l] is 0 decrement zeros, l++. Record. O(n), O(1)."
+    },
+    {
+     "id": "algorithm",
+     "title": "Algorithm in words",
+     "note": "write",
+     "body": "✍️ 1. Window [l, r], zero count 0.\n✍️ 2. For each r, if a[r] is 0 increase the zero count.\n✍️ 3. While the zero count exceeds k, remove a[l] (decrease the count if it was 0) and move l right.\n✍️ 4. Record the window length."
+    },
+    {
+     "id": "pseudocode",
+     "title": "Pseudocode",
+     "note": "write",
+     "body": "```\nSTATE   l = 0; zeros = 0; best = 0\nLOOP    for r in 0..n-1\nUPDATE    if a[r] == 0: zeros++\n          while zeros > k:\n              if a[l] == 0: zeros--\n              l++\nCHECK     best = max(best, r - l + 1)\nRETURN  best\n```"
+    },
+    {
+     "id": "solution",
+     "title": "Reference C++",
+     "note": "screenshot",
+     "body": "```cpp\nclass Solution {\npublic:\n    int longestOnes(vector<int>& a, int k) {\n        int l = 0, zeros = 0, best = 0;\n        for (int r = 0; r < (int)a.size(); r++) {\n            if (a[r] == 0) zeros++;\n            while (zeros > k) {\n                if (a[l] == 0) zeros--;\n                l++;\n            }\n            best = max(best, r - l + 1);\n        }\n        return best;\n    }\n};\n```"
+    },
+    {
+     "id": "dry_run",
+     "title": "Dry run",
+     "note": "screenshot",
+     "body": "a = [1,0,0,1,1,0,1], k = 1:\n| r | a[r] | zeros | shrink | window | best |\n|---|---|---|---|---|---|\n| 0 | 1 | 0 | | [0,0] | 1 |\n| 1 | 0 | 1 | | [0,1] | 2 |\n| 2 | 0 | 2 → 1 | drop 1, drop 0 | [2,2] | 2 |\n| 3 | 1 | 1 | | [2,3] | 2 |\n| 4 | 1 | 1 | | [2,4] | 3 |\n| 5 | 0 | 2 → 1 | drop 0 at 2 | [3,5] | 3 |\n| 6 | 1 | 1 | | [3,6] | 4 |"
+    },
+    {
+     "id": "edges",
+     "title": "Edge cases and complexity",
+     "note": "mixed",
+     "body": "✍️ O(n) time, O(1) space.\n✍️ k = 0 reduces to Day 1 (longest run of ones)."
+    },
+    {
+     "id": "carry",
+     "title": "Carry forward",
+     "note": "write",
+     "body": "✍️ \"You may change at most k elements\" → longest window with at most k bad elements.\n✍️ A DISGUISE becomes easy once you restate it in pattern words — practise the restating, not the code."
+    },
+    {
+     "id": "followups",
+     "title": "Interview follow-ups",
+     "note": "screenshot",
+     "body": "- *Must delete exactly one element* (LeetCode 1493): window with ≤ 1 zero, answer = length − 1.\n- *Return the positions to flip.* Track the best window; its zeros are the flips.\n- *Streaming input with k = 1.* Keep the index of the last zero."
+    }
+   ],
+   "siblings": [
+    {
+     "id": "longest-subarray-of-1s-after-deleting-one-element",
+     "title": "Longest Subarray of 1's After Deleting One Element",
+     "tier": "must",
+     "lc": {
+      "id": "1493",
+      "slug": "longest-subarray-of-1s-after-deleting-one-element",
+      "url": "https://leetcode.com/problems/longest-subarray-of-1s-after-deleting-one-element/",
+      "difficulty": "Medium"
+     },
+     "maps": "Window with at most one zero; the answer is window length − 1 because one element must be deleted.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Delete exactly one element; longest run of 1s afterwards. All ones → n − 1."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Same as Max Consecutive Ones III with k = 1, but the deleted element is not counted → record r − l (not r − l + 1)."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ Budget window with ≤ 1 zero; best = max(best, r − l)."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\nfor r: zeros += (a[r]==0); while zeros > 1: zeros -= (a[l++]==0)\n    best = max(best, r - l)\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    int longestSubarray(vector<int>& a) {\n        int l = 0, zeros = 0, best = 0;\n        for (int r = 0; r < (int)a.size(); r++) {\n            zeros += (a[r] == 0);\n            while (zeros > 1) zeros -= (a[l++] == 0);\n            best = max(best, r - l);\n        }\n        return best;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ Read what is counted in the answer — here the deleted element is excluded ([[sw-variable-window#budget]])."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    int longestSubarray(vector<int>& a) {\n        int l = 0, zeros = 0, best = 0;\n        for (int r = 0; r < (int)a.size(); r++) {\n            zeros += (a[r] == 0);\n            while (zeros > 1) zeros -= (a[l++] == 0);\n            best = max(best, r - l);\n        }\n        return best;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {1, 1, 0, 1};\nCHECK(s.longestSubarray(a) == 3);\nvector<int> b = {0, 1, 1, 1, 0, 1, 1, 0, 1};\nCHECK(s.longestSubarray(b) == 5);\nvector<int> c = {1, 1, 1};\nCHECK(s.longestSubarray(c) == 2);\n"
+     }
+    },
+    {
+     "id": "longest-nice-subarray",
+     "title": "Longest Nice Subarray",
+     "tier": "optional",
+     "lc": {
+      "id": "2401",
+      "slug": "longest-nice-subarray",
+      "url": "https://leetcode.com/problems/longest-nice-subarray/",
+      "difficulty": "Medium"
+     },
+     "maps": "Window state is the OR of its elements; valid when the new element shares no bit with it.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Longest subarray where every pair has bitwise AND equal to 0 (no two elements share a set bit)."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Keep `used` = OR of the window. Adding x is valid iff `used & x == 0`. Removing a[l] works with XOR (its bits are unique in the window). Variable window, O(n)."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ While the new element conflicts, remove a[l] from `used`; then add the new element; record."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\nfor r: while used & a[r]: used ^= a[l++]\n    used |= a[r]; best = max(best, r-l+1)\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    int longestNiceSubarray(vector<int>& a) {\n        int used = 0, l = 0, best = 0;\n        for (int r = 0; r < (int)a.size(); r++) {\n            while (used & a[r]) used ^= a[l++];\n            used |= a[r];\n            best = max(best, r - l + 1);\n        }\n        return best;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ The window state can be any summary you can add to and remove from — even a bitmask ([[bits-binary-and-operators#operators]])."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    int longestNiceSubarray(vector<int>& a) {\n        int used = 0, l = 0, best = 0;\n        for (int r = 0; r < (int)a.size(); r++) {\n            while (used & a[r]) used ^= a[l++];\n            used |= a[r];\n            best = max(best, r - l + 1);\n        }\n        return best;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {1, 3, 8, 48, 10};\nCHECK(s.longestNiceSubarray(a) == 3);\nvector<int> b = {3, 1, 5, 11, 13};\nCHECK(s.longestNiceSubarray(b) == 1);\n"
+     }
+    },
+    {
+     "id": "subarray-product-less-than-k",
+     "title": "Subarray Product Less Than K",
+     "tier": "optional",
+     "lc": {
+      "id": "713",
+      "slug": "subarray-product-less-than-k",
+      "url": "https://leetcode.com/problems/subarray-product-less-than-k/",
+      "difficulty": "Medium"
+     },
+     "maps": "Count windows instead of measuring them: every valid window ending at r contributes r − l + 1 subarrays.",
+     "stages": [
+      {
+       "id": "analyse",
+       "title": "Analyse",
+       "note": "write",
+       "body": "✍️ Count contiguous subarrays with product strictly less than k (positive integers)."
+      },
+      {
+       "id": "brainstorm",
+       "title": "Brainstorm",
+       "note": "write",
+       "body": "✍️ Positive values → product is monotone in window size. For each r, after shrinking until product < k, every start in [l, r] works → add r − l + 1. O(n)."
+      },
+      {
+       "id": "algorithm",
+       "title": "Algorithm in words",
+       "note": "write",
+       "body": "✍️ Multiply in a[r]; while product ≥ k divide out a[l]; add the window length to the count."
+      },
+      {
+       "id": "pseudocode",
+       "title": "Pseudocode",
+       "note": "write",
+       "body": "```\nif k <= 1: return 0\nfor r: prod *= a[r]; while prod >= k: prod /= a[l++]\n    cnt += r - l + 1\n```"
+      },
+      {
+       "id": "solution",
+       "title": "Reference C++",
+       "note": "screenshot",
+       "body": "```cpp\nclass Solution {\npublic:\n    int numSubarrayProductLessThanK(vector<int>& a, int k) {\n        if (k <= 1) return 0;\n        long long prod = 1;\n        int l = 0, cnt = 0;\n        for (int r = 0; r < (int)a.size(); r++) {\n            prod *= a[r];\n            while (prod >= k) prod /= a[l++];\n            cnt += r - l + 1;\n        }\n        return cnt;\n    }\n};\n```"
+      },
+      {
+       "id": "quick_theory",
+       "title": "Quick theory",
+       "note": "mixed",
+       "body": "✍️ Counting subarrays with a monotone rule: add the number of valid starts for each end ([[sw-at-most-k-trick#idea]]).\n✍️ The k ≤ 1 guard prevents shrinking past r."
+      }
+     ],
+     "verify": {
+      "solution": "class Solution {\npublic:\n    int numSubarrayProductLessThanK(vector<int>& a, int k) {\n        if (k <= 1) return 0;\n        long long prod = 1;\n        int l = 0, cnt = 0;\n        for (int r = 0; r < (int)a.size(); r++) {\n            prod *= a[r];\n            while (prod >= k) prod /= a[l++];\n            cnt += r - l + 1;\n        }\n        return cnt;\n    }\n};\n",
+      "tests": "Solution s;\nvector<int> a = {10, 5, 2, 6};\nCHECK(s.numSubarrayProductLessThanK(a, 100) == 8);\nvector<int> b = {1, 2, 3};\nCHECK(s.numSubarrayProductLessThanK(b, 0) == 0);\n"
+     }
+    }
+   ],
+   "verify": {
+    "solution": "class Solution {\npublic:\n    int longestOnes(vector<int>& a, int k) {\n        int l = 0, zeros = 0, best = 0;\n        for (int r = 0; r < (int)a.size(); r++) {\n            if (a[r] == 0) zeros++;\n            while (zeros > k) {\n                if (a[l] == 0) zeros--;\n                l++;\n            }\n            best = max(best, r - l + 1);\n        }\n        return best;\n    }\n};\n",
+    "tests": "Solution s;\nvector<int> a = {1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0};\nCHECK(s.longestOnes(a, 2) == 6);\nvector<int> b = {0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1};\nCHECK(s.longestOnes(b, 3) == 10);\nvector<int> c = {0, 0, 0};\nCHECK(s.longestOnes(c, 0) == 0);\nvector<int> d = {1, 0, 0, 1, 1, 0, 1};\nCHECK(s.longestOnes(d, 1) == 4);\n"
+   }
+  }
+ ],
+ "drill": [
+  {
+   "id": "grumpy-bookstore-owner",
+   "title": "Grumpy Bookstore Owner",
+   "lc": {
+    "id": "1052",
+    "slug": "grumpy-bookstore-owner",
+    "url": "https://leetcode.com/problems/grumpy-bookstore-owner/",
+    "difficulty": "Medium"
+   },
+   "statement": "Customers arrive each minute; on grumpy minutes they leave unsatisfied. The owner can stay calm for one block of m consecutive minutes. Maximise satisfied customers.",
+   "pattern_page": "sw-fixed-window",
+   "pattern_name": "Fixed window over the \"extra gain\"",
+   "approach": "Base = customers on non-grumpy minutes. Slide a window of size m summing customers on grumpy minutes inside it (the extra gained); answer = base + max window.",
+   "trigger": "\"choose one block of exactly m consecutive minutes\" → fixed window.",
+   "complexity": "O(n)"
+  },
+  {
+   "id": "substrings-of-size-three-with-distinct-characters",
+   "title": "Substrings of Size Three with Distinct Characters",
+   "lc": {
+    "id": "1876",
+    "slug": "substrings-of-size-three-with-distinct-characters",
+    "url": "https://leetcode.com/problems/substrings-of-size-three-with-distinct-characters/",
+    "difficulty": "Easy"
+   },
+   "statement": "Count the length-3 substrings whose three characters are all different.",
+   "pattern_page": "sw-fixed-window",
+   "pattern_name": "Fixed window of size 3",
+   "approach": "For each i ≥ 2 check s[i], s[i−1], s[i−2] are pairwise different (or keep counts in a size-3 window).",
+   "trigger": "\"substrings of length k\" with a per-window property.",
+   "complexity": "O(n)"
+  },
+  {
+   "id": "maximum-sum-of-distinct-subarrays-with-length-k",
+   "title": "Maximum Sum of Distinct Subarrays With Length K",
+   "lc": {
+    "id": "2461",
+    "slug": "maximum-sum-of-distinct-subarrays-with-length-k",
+    "url": "https://leetcode.com/problems/maximum-sum-of-distinct-subarrays-with-length-k/",
+    "difficulty": "Medium"
+   },
+   "statement": "Among windows of length k whose elements are all distinct, return the largest sum (0 if none).",
+   "pattern_page": "sw-frequency-map-window",
+   "pattern_name": "Fixed window with a count map and a distinct counter",
+   "approach": "Slide a window of size k keeping sum and a frequency map; the window qualifies when the number of distinct keys equals k.",
+   "trigger": "\"length k\" + \"all distinct\" → fixed window + frequency map.",
+   "complexity": "O(n)"
+  },
+  {
+   "id": "maximum-erasure-value",
+   "title": "Maximum Erasure Value",
+   "lc": {
+    "id": "1695",
+    "slug": "maximum-erasure-value",
+    "url": "https://leetcode.com/problems/maximum-erasure-value/",
+    "difficulty": "Medium"
+   },
+   "statement": "Pick one contiguous block with no repeated values; your score is its sum. Maximise the score.",
+   "pattern_page": "sw-variable-window",
+   "pattern_name": "Variable window with no repeats (sum instead of length)",
+   "approach": "Exactly Longest Substring Without Repeating Characters, but record the window sum instead of the length.",
+   "trigger": "\"contiguous + unique elements + maximise\" → variable window.",
+   "complexity": "O(n)"
+  },
+  {
+   "id": "find-the-difference-of-two-arrays",
+   "title": "Find the Difference of Two Arrays",
+   "lc": {
+    "id": "2215",
+    "slug": "find-the-difference-of-two-arrays",
+    "url": "https://leetcode.com/problems/find-the-difference-of-two-arrays/",
+    "difficulty": "Easy"
+   },
+   "statement": "Return the distinct values that appear only in the first array, and those that appear only in the second.",
+   "pattern_page": "hash-set-runs",
+   "pattern_name": "Set membership across two inputs",
+   "approach": "Build a set for each array; collect values of set A not in set B, and of set B not in set A.",
+   "trigger": "\"present in one but not the other\" → two hash sets.",
+   "complexity": "O(n + m)"
+  }
+ ],
+ "cs_core": {
+  "id": "oop-05-abstraction",
+  "subject": "OOP",
+  "title": "Abstraction, abstract classes and interfaces",
+  "sections": [
+   {
+    "id": "concept",
+    "title": "Concept",
+    "note": "write",
+    "body": "✍️ **Abstraction** = exposing *what* an object does and hiding *how*. Callers depend on an interface, not on implementation details.\n✍️ In C++ an **abstract class** has at least one **pure virtual** function (`virtual void draw() = 0;`). It cannot be instantiated; derived classes must override the pure virtual functions to be concrete.\n✍️ An **interface** (C++ convention) is an abstract class with only pure virtual functions and a virtual destructor. Java has a separate `interface` keyword; a class can implement many interfaces but extend only one class.\n✍️ The four pillars of OOP: encapsulation, abstraction, inheritance, polymorphism."
+   },
+   {
+    "id": "code",
+    "title": "C++ example",
+    "note": "screenshot",
+    "body": "```cpp\nclass PaymentMethod {                    // interface\npublic:\n    virtual bool pay(long long amount) = 0;\n    virtual ~PaymentMethod() = default;\n};\nclass Upi : public PaymentMethod {\npublic:\n    bool pay(long long amount) override { /* call UPI gateway */ return true; }\n};\nclass Card : public PaymentMethod {\npublic:\n    bool pay(long long amount) override { /* call card network */ return true; }\n};\nvoid checkout(PaymentMethod& m, long long total) { m.pay(total); }   // depends only on the interface\n```"
+   },
+   {
+    "id": "interview",
+    "title": "Interview questions",
+    "note": "mixed",
+    "body": "✍️ **Q: Abstract class vs interface?** An abstract class can have data members, constructors and implemented methods along with pure virtual ones; an interface has only pure virtual methods (no state). Use an interface for a capability shared by unrelated classes; an abstract class for a common base with shared code.\n✍️ **Q: Abstraction vs encapsulation?** Abstraction is a design idea (hide complexity, show the essential interface); encapsulation is the mechanism (bundle data + methods, restrict access).\n✍️ **Q: Can an abstract class have a constructor?** Yes — it runs when a derived object is created, to initialise the base part.\n- **Q: What happens if a derived class does not override a pure virtual function?** It is also abstract and cannot be instantiated.\n- Real-world framing interviewers like: a payment gateway, a logger, a database driver — code against the interface so implementations can be swapped (the Dependency Inversion principle from SOLID)."
+   }
+  ]
+ },
+ "day": 5,
+ "micro": {
+  "title": "Sliding window — add one, remove one, keep the rule",
+  "theory": [
+   "sw-fixed-window",
+   "sw-variable-window",
+   "sw-monotonicity-requirement",
+   "sw-frequency-map-window",
+   "cx-amortised-analysis"
+  ],
+  "sections": [
+   {
+    "id": "micro",
+    "title": "Micro-theory (10 minutes)",
+    "note": "mixed",
+    "body": "Every window problem is Day 1's running state, plus the ability to **remove** the element that leaves.\n\n✍️ **Fixed window (size k).** Each step: add `a[i]`, remove `a[i−k]`, record once `i ≥ k−1` ([[sw-fixed-window#template]]).\n✍️ **Variable window.** Expand `r` every step; while the window breaks the rule, shrink from `l`; record the length after shrinking ([[sw-variable-window#template-longest]]).\n✍️ **Budget form.** \"At most k bad things inside\" → count the bad things; valid ⇔ bad ≤ k ([[sw-variable-window#budget]]).\n✍️ **Why it is O(n)** even with a `while` inside the `for`: `l` only moves forward, at most n times in total ([[cx-amortised-analysis#counting-trick]]).\n- Windows need a monotone rule — counts of characters are always fine; sums with negatives are not ([[sw-monotonicity-requirement#decide]])."
+   },
+   {
+    "id": "card",
+    "title": "Pattern card",
+    "note": "write",
+    "body": "✍️ FIXED — add a[i]; if i ≥ k: remove a[i−k]; if i ≥ k−1: record.\n✍️ LONGEST VALID — for r: add; while invalid: remove a[l++]; best = max(best, r−l+1).\n✍️ SHORTEST VALID — for r: add; while valid: record; remove a[l++].\n✍️ BUDGET — bad ≤ k. Replacement: bad = len − maxCount."
+   }
+  ]
+ }
+}

@@ -1,0 +1,45 @@
+{
+ "id": "cpp-vector",
+ "title": "C++ vector — the container you will use in every problem",
+ "topic": "cpp",
+ "kind": "cpp",
+ "summary": "Declaring, filling, accessing and passing vectors; size and capacity; the operations that are secretly O(n).",
+ "prereqs": [],
+ "related": [
+  "cx-amortised-analysis",
+  "cpp-pass-by-reference-and-copies"
+ ],
+ "sections": [
+  {
+   "id": "basics",
+   "title": "Declaring and filling",
+   "note": "write",
+   "body": "✍️ `vector<int> a;` empty. `vector<int> a(n);` n zeros. `vector<int> a(n, -1);` n copies of −1.\n✍️ 2D: `vector<vector<int>> g(rows, vector<int>(cols, 0));`\n✍️ `a.push_back(x)` appends (amortised O(1)). `a.pop_back()` removes the last (O(1)). `a.back()` reads the last.\n✍️ `a.size()` returns an **unsigned** number. `a.size() - 1` on an empty vector is a huge number, not −1. Cast first: `(int)a.size() - 1`.\n\n```cpp\nvector<int> a = {3, 1, 4};\na.push_back(1);            // {3,1,4,1}\nint n = a.size();          // store as int once, use n everywhere\nfor (int i = 0; i < n; i++) cout << a[i];\nfor (int x : a) cout << x; // read-only copy of each element\nfor (int &x : a) x *= 2;   // reference: modifies the vector\n```"
+  },
+  {
+   "id": "costs",
+   "title": "Costs of common operations",
+   "note": "write",
+   "body": "| Operation | Cost |\n|---|---|\n| `a[i]`, `a.back()`, `push_back`, `pop_back` | O(1) (push amortised) |\n| `insert(a.begin()+i, x)`, `erase(a.begin()+i)` | O(n − i) — shifts everything after i |\n| `a.erase(a.begin())` (remove front) | O(n) — use a `deque` if you need this often |\n| `sort(a.begin(), a.end())` | O(n log n) |\n| `reverse(a.begin(), a.end())` | O(n) |\n| `find(a.begin(), a.end(), x)` | O(n) |\n| copying `vector<int> b = a;` | O(n) |"
+  },
+  {
+   "id": "emplace",
+   "title": "push_back vs emplace_back",
+   "note": "screenshot",
+   "body": "`emplace_back` constructs the element in place from constructor arguments; `push_back` takes an existing object. For `int` they are identical. For `pair` or structs, `v.emplace_back(a, b)` saves writing `v.push_back({a, b})`. In DSA code the difference rarely matters."
+  },
+  {
+   "id": "passing",
+   "title": "Passing to functions",
+   "note": "write",
+   "body": "✍️ `void f(vector<int> a)` copies the whole vector on every call → O(n) per call. In recursion this silently turns O(n) into O(n²).\n✍️ Use `const vector<int>& a` to read, `vector<int>& a` to modify. See [[cpp-pass-by-reference-and-copies]]."
+  },
+  {
+   "id": "pitfalls",
+   "title": "Pitfalls",
+   "note": "mixed",
+   "body": "✍️ Out-of-bounds `a[i]` does not throw; it reads garbage or crashes later. Check `i >= 0 && i < n` before indexing neighbours (`a[i-1]`, `a[i+1]`).\n✍️ Modifying a vector while iterating it with a range-for (`push_back` inside) invalidates iterators — undefined behaviour.\n- `a.clear()` sets size to 0 but keeps capacity; it is O(n) for destructors, effectively O(1) for ints."
+  }
+ ],
+ "used_by": []
+}

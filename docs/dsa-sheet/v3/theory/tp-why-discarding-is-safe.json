@@ -1,0 +1,63 @@
+{
+ "id": "tp-why-discarding-is-safe",
+ "title": "Why moving a pointer is safe — the exchange argument",
+ "topic": "two-pointers",
+ "kind": "concept",
+ "summary": "The proof that two-pointer scans do not skip the answer, for pair-sum and for Container With Most Water, phrased so you can say it in an interview.",
+ "prereqs": [
+  "tp-opposite-ends"
+ ],
+ "related": [
+  "gr-what-greedy-is-and-proofs"
+ ],
+ "sections": [
+  {
+   "id": "argument",
+   "title": "The argument for pair sum",
+   "note": "write",
+   "body": "✍️ Sorted array, `a[l] + a[r] < target`. Every pair `(l, j)` with `j < r` has sum ≤ `a[l] + a[r]` < target (because `a[j] ≤ a[r]`). So **no pair using index l can work**. Discard l → `l++`.\n✍️ Symmetric for `> target`: no pair using r can work → `r--`.\n✍️ So each move throws away only pairs that provably fail. The answer is never skipped."
+  },
+  {
+   "id": "container",
+   "title": "The argument for Container With Most Water",
+   "note": "write",
+   "body": "✍️ Area = `min(h[l], h[r]) × (r − l)`. Suppose `h[l] < h[r]`.\n✍️ Any container that keeps `l` and moves `r` inward has a smaller width, and its height is still capped by `h[l]` (the min can only stay or drop). So every such container is **no better** than the current one.\n✍️ Therefore the shorter side `l` has already achieved its best possible area. Discard it → `l++`. (If heights are equal, moving either is safe.)"
+  },
+  {
+   "id": "how-to-say",
+   "title": "How to say it in an interview",
+   "note": "mixed",
+   "body": "✍️ \"Moving the taller wall can never help: the width shrinks and the height is still limited by the shorter wall. So the shorter wall's best container is the current one, and I can discard it.\"\n- This style of proof — \"the option I am throwing away cannot beat what I already have\" — is an **exchange argument**, the same tool used to prove greedy algorithms ([[gr-what-greedy-is-and-proofs]])."
+  }
+ ],
+ "used_by": [
+  {
+   "problem": "two-sum-ii-input-array-is-sorted",
+   "day": 3,
+   "section": "argument",
+   "stage": "algorithm",
+   "at": "Move l when the sum is too small"
+  },
+  {
+   "problem": "container-with-most-water",
+   "day": 3,
+   "section": "container",
+   "stage": "analyse",
+   "at": "Area = min height × width"
+  },
+  {
+   "problem": "container-with-most-water",
+   "day": 3,
+   "section": "container",
+   "stage": "brainstorm",
+   "at": "Moving the taller wall never helps"
+  },
+  {
+   "problem": "container-with-most-water",
+   "day": 3,
+   "section": "how-to-say",
+   "stage": "followups",
+   "at": "How to say it"
+  }
+ ]
+}

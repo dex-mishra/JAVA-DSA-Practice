@@ -12,8 +12,11 @@
     "db:create": "wrangler d1 create launch-console",
     "db:init": "wrangler d1 execute launch-console --remote --file=./schema.sql",
     "db:init:local": "wrangler d1 execute launch-console --local --file=./schema.sql",
-    "test": "node --test worker/*.test.mjs",
-    "check": "node --check src/app.js && node tools/import-dsa.mjs --check && npm test"
+    "test": "node --test worker/*.test.mjs tools/*.test.mjs",
+    "check": "node --check src/app.js && node tools/import-dsa.mjs --check && npm test && node tools/verify-dsa.mjs --if-gxx",
+    "verify:dsa": "node tools/verify-dsa.mjs",
+    "db:migrate": "wrangler d1 execute launch-console --remote --file=./migrations/0003_dsa_v3.sql",
+    "db:migrate:local": "wrangler d1 execute launch-console --local --file=./migrations/0003_dsa_v3.sql"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

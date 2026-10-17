@@ -1,0 +1,41 @@
+{
+ "id": "str-char-arithmetic-and-counting",
+ "title": "Characters as numbers — counting, mapping and comparing",
+ "topic": "strings",
+ "kind": "concept",
+ "summary": "Using c − 'a' as an index, case handling, scanning several strings column by column, and comparing strings character by character.",
+ "prereqs": [
+  "cpp-string"
+ ],
+ "related": [
+  "hash-frequency-counting",
+  "cpp-container-choice"
+ ],
+ "sections": [
+  {
+   "id": "index",
+   "title": "Character → index",
+   "note": "write",
+   "body": "✍️ `c − 'a'` maps 'a'..'z' to 0..25; `c − 'A'` for uppercase; `c − '0'` for digits. Use the result to index a fixed array: `int cnt[26]`.\n✍️ For any printable ASCII character, `int cnt[128]` indexed by `c` directly covers everything."
+  },
+  {
+   "id": "case",
+   "title": "Case and character classes",
+   "note": "write",
+   "body": "✍️ `tolower(c)`, `toupper(c)`, `isalpha(c)`, `isdigit(c)`, `isalnum(c)`, `isspace(c)`.\n✍️ Ignoring case: normalise every character with `tolower` before comparing or counting."
+  },
+  {
+   "id": "vertical-scan",
+   "title": "Vertical scanning: many strings at once",
+   "note": "write",
+   "body": "✍️ Longest common prefix: look at column j of every string; stop at the first column where a string is too short or differs from the first string.\n```cpp\nstring lcp(vector<string>& v) {\n    for (int j = 0; j < (int)v[0].size(); j++)\n        for (auto& s : v)\n            if (j == (int)s.size() || s[j] != v[0][j]) return v[0].substr(0, j);\n    return v[0];\n}\n```\n✍️ Cost O(total characters). The check `j == s.size()` must come **before** reading `s[j]`.\n- Alternative: sort the strings; the LCP of the whole list is the LCP of the first and last string. O(n·L log n)."
+  },
+  {
+   "id": "compare",
+   "title": "Comparing strings",
+   "note": "mixed",
+   "body": "✍️ `a < b` compares lexicographically (dictionary order). \"apple\" < \"apply\" < \"b\". A prefix is smaller than the longer string: \"app\" < \"apple\".\n- Comparison cost is O(length of the common prefix + 1)."
+  }
+ ],
+ "used_by": []
+}

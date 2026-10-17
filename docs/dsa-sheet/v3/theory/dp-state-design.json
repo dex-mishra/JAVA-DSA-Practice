@@ -1,0 +1,35 @@
+{
+ "id": "dp-state-design",
+ "title": "Designing the DP state",
+ "topic": "dp",
+ "kind": "concept",
+ "summary": "The state must contain exactly the information needed to make the remaining decisions optimally. If the transition needs to know something the state does not say, add a dimension.",
+ "prereqs": [
+  "dp-what-dp-is"
+ ],
+ "related": [
+  "dp-state-machine",
+  "dp-1d-linear"
+ ],
+ "sections": [
+  {
+   "id": "question",
+   "title": "The question to ask",
+   "note": "write",
+   "body": "✍️ \"If I stopped halfway, what would I need to know to finish optimally?\" Everything in that answer belongs in the state; nothing else does.\n✍️ Typical state ingredients: an index (how far along the input), a remaining budget (capacity, target), a position in a second string, a mode (holding a stock or not, last action)."
+  },
+  {
+   "id": "prefix-vs-ending",
+   "title": "\"Best in prefix\" vs \"best ending at i\"",
+   "note": "write",
+   "body": "✍️ Two common definitions for sequences:\n✍️ `dp[i]` = best answer **using the first i elements** (house robber, word break, decode ways).\n✍️ `dp[i]` = best answer for something that **ends exactly at i** (LIS, Kadane, maximal square). The final answer is then the max over all i.\n✍️ Pick \"ending at i\" when the next element must connect to the previous one (increasing, adjacent)."
+  },
+  {
+   "id": "add-dimension",
+   "title": "When the transition needs more",
+   "note": "mixed",
+   "body": "✍️ Stock with cooldown: knowing the profit by day i is not enough — you need to know whether you hold a stock. Add a mode dimension: `dp[i][holding]` ([[dp-state-machine]]).\n✍️ House robber II (circle): the first and last houses interact. Instead of adding state, split into two linear problems (exclude the first, or exclude the last).\n- More dimensions = more time and memory; add only what the transition actually needs."
+  }
+ ],
+ "used_by": []
+}

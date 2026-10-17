@@ -1,0 +1,599 @@
+=== page: rec-how-recursion-works
+title: How recursion works — base case, call stack and the leap of faith
+topic: recursion
+kind: concept
+summary: A function that solves a problem by calling itself on a smaller version. Define what it returns, handle the smallest case, and trust the recursive call.
+prereqs: cx-big-o
+related: rec-recursion-tree-and-cost, cx-recursion-complexity, cpp-recursion-stack-limits
+--- parts | The three parts | write
+✍️ **Definition**: one sentence saying what `f(args)` returns. Everything depends on this sentence being precise.
+✍️ **Base case**: the smallest input, answered directly without recursion. Without it the recursion never stops (stack overflow).
+✍️ **Recursive case**: express the answer for this input using the answers for **smaller** inputs.
+
+--- call-stack | What the computer does | mixed
+✍️ Each call gets its own frame on the **call stack** with its own local variables. A call waits until the calls it made return, then continues where it left off.
+- Picture for `fact(3)`: fact(3) waits for fact(2), which waits for fact(1), which returns 1; then fact(2) returns 2·1, then fact(3) returns 3·2.
+- Space used = the deepest the stack ever gets ([[cx-space-and-in-place#recursion-space]]).
+
+--- leap-of-faith | The leap of faith | write
+✍️ When writing the recursive case, **do not trace the recursion in your head**. Assume the call on the smaller input already returns the correct answer (by its definition), and only ask: "given that answer, how do I build mine?"
+✍️ This is mathematical induction: base case true + (smaller true ⇒ this true) ⇒ all true.
+✍️ If you cannot build your answer from the smaller answer, the definition is wrong or incomplete — change what the function returns (e.g. return a pair, or pass extra parameters).
+
+--- example | Example | screenshot
+```cpp
+// Definition: sum(a, i) returns a[i] + a[i+1] + ... + a[n-1].
+int sum(const vector<int>& a, int i) {
+    if (i == (int)a.size()) return 0;          // base: empty suffix
+    return a[i] + sum(a, i + 1);               // trust sum(a, i+1)
+}
+```
+
+--- pitfalls | Pitfalls | write
+✍️ Base case that is never reached (e.g. `n == 0` when n can go negative). Make the base case cover every way the input can become "smallest".
+✍️ Not making the input smaller in the recursive call → infinite recursion.
+✍️ Passing large containers by value → hidden O(n) copies per call ([[cpp-pass-by-reference-and-copies]]).
+
+=== page: rec-recursion-tree-and-cost
+title: The recursion tree — seeing the cost of recursion
+topic: recursion
+kind: concept
+summary: Draw each call as a node and its recursive calls as children; the number of nodes is the number of calls, the height is the stack depth.
+prereqs: rec-how-recursion-works, cx-recursion-complexity
+related: dp-what-dp-is, bt-pick-or-skip
+--- draw | Draw it | write
+✍️ Root = the first call. Children = the calls it makes. Leaves = base cases.
+✍️ Total time ≈ (number of nodes) × (work per node). Space ≈ height of the tree.
+✍️ Branching factor b, depth d → up to bᵈ nodes.
+
+--- examples | Examples | write
+✍️ Subsets of n elements (pick or skip each): binary tree of depth n → 2ⁿ leaves. Each leaf copies a subset of size ≤ n → O(n·2ⁿ).
+✍️ Permutations: n choices, then n−1, … → n! leaves → O(n·n!).
+✍️ Naive Fibonacci: binary tree of depth n, but most nodes repeat the same subproblem → memoisation collapses it to n distinct nodes ([[dp-what-dp-is#overlap]]).
+
+--- repeated | Spotting repeated subproblems | mixed
+✍️ If the same arguments appear in several places in the tree, the recursion is doing repeated work → memoise (DP). If every node has different arguments (subsets, permutations), there is nothing to reuse — the output itself is exponential.
+
+=== page: rec-divide-and-conquer
+title: Divide and conquer
+topic: recursion
+kind: pattern
+summary: Split the problem into independent smaller parts, solve them recursively, combine. Fast power and merge sort are the two models.
+prereqs: rec-how-recursion-works, cx-recursion-complexity
+related: sort-merge-sort, sort-quick-sort-and-pivots
+--- idea | Idea | write
+✍️ Divide into parts (usually halves), conquer each part recursively, combine their answers.
+✍️ Gains come from halving: problems that take n steps naively take log n levels when each level halves the size.
+
+--- fast-power | Fast exponentiation | write
+✍️ xⁿ = (x^(n/2))² if n is even, x·(x^(n/2))² if odd. One recursive call per level → O(log n).
+```cpp
+double myPow(double x, long long n) {
+    if (n < 0) { x = 1 / x; n = -n; }          // long long: -INT_MIN overflows int
+    double res = 1;
+    while (n > 0) {                             // iterative version of the same idea
+        if (n & 1) res *= x;
+        x *= x;
+        n >>= 1;
+    }
+    return res;
+}
+```
+✍️ Compute the half **once** and square it. Writing `pow(x, n/2) * pow(x, n/2)` makes two calls per level → back to O(n).
+
+--- merge-sort | Merge sort as the second model | mixed
+✍️ Split in halves, sort each, merge in O(n) → O(n log n) ([[sort-merge-sort]]).
+- Other D&C problems: maximum subarray (crossing the middle), closest pair of points, counting inversions, building a balanced BST from a sorted array.
+
+--- pitfalls | Pitfalls | write
+✍️ Pow(x, n): n = INT_MIN cannot be negated in `int`; use `long long`.
+✍️ Repeating the same recursive call instead of storing its result.
+
+=== page: bt-pick-or-skip
+title: Backtracking I — pick or skip (subsets)
+topic: backtracking
+kind: pattern
+summary: At index i, either include a[i] in the current choice or not, and recurse to i+1. Every leaf is one subset. Choose → recurse → undo.
+prereqs: rec-how-recursion-works, rec-recursion-tree-and-cost, cpp-pass-by-reference-and-copies
+related: bt-for-loop-choice, bt-pruning, bt-dedup-sorted-skip
+--- idea | Idea | write
+✍️ Each element has two options: in or out. Walking the elements in order and branching on that choice visits all 2ⁿ subsets exactly once.
+✍️ Keep one shared `path` vector. Before recursing on "pick", push the element; after returning, pop it (**undo**), so the next branch sees the path as it was.
+
+--- recognise | Recognise it | write
+✍️ "all subsets / power set", "all combinations", "generate all strings that …", n ≤ ~20.
+✍️ Any problem where each item is independently included or excluded, and you must list (not count) the results.
+
+--- template | Template | write
+```cpp
+vector<vector<int>> res; vector<int> path;
+void dfs(const vector<int>& a, int i) {
+    if (i == (int)a.size()) { res.push_back(path); return; }   // one complete decision
+    path.push_back(a[i]);          // choose: pick a[i]
+    dfs(a, i + 1);
+    path.pop_back();               // undo
+    dfs(a, i + 1);                 // skip a[i]
+}
+```
+
+--- undo | Why "undo" is needed | write
+✍️ `path` is shared by all calls (passed by reference / global). After exploring the "pick" branch, the element must be removed, or it would still be in `path` while exploring "skip" and every later branch.
+✍️ Rule of thumb: **every change made before a recursive call is reversed right after it.**
+
+--- variations | Variations | screenshot
+- Iterative version: start with `{[]}`, for each element duplicate every existing subset and append the element.
+- Bitmask version: subset k ↔ the bits of k for k in 0..2ⁿ−1 ([[bits-common-tricks]]).
+- Generate parentheses (LeetCode 22): choices "(" and ")" with constraints open ≤ n and close ≤ open ([[bt-pruning]]).
+- Duplicates in the input → sort, then skip equal elements at the same level ([[bt-dedup-sorted-skip]]).
+- Path sum II on trees: the same choose → recurse → undo on a root-to-leaf path.
+
+--- complexity | Complexity | screenshot
+O(n·2ⁿ) time (2ⁿ leaves, each copied in O(n)), O(n) recursion depth plus the output.
+
+=== page: bt-for-loop-choice
+title: Backtracking II — choosing the next element with a for-loop (combinations)
+topic: backtracking
+kind: pattern
+summary: At each level, loop over which element to add next, starting from a start index so combinations are not repeated in different orders. Pass i to allow reuse, i+1 to forbid it.
+prereqs: bt-pick-or-skip
+related: bt-pruning, bt-dedup-sorted-skip, dp-unbounded-knapsack
+--- idea | Idea | write
+✍️ Instead of a binary pick/skip per element, each call asks: "which element goes next?" and loops over candidates from `start` to the end.
+✍️ Starting the loop at `start` (not 0) means elements are always added in index order, so [2, 3] and [3, 2] are never both generated.
+
+--- template | Template | write
+```cpp
+void dfs(const vector<int>& c, int start, int remain, vector<int>& path, vector<vector<int>>& res) {
+    if (remain == 0) { res.push_back(path); return; }
+    for (int i = start; i < (int)c.size(); i++) {
+        if (c[i] > remain) break;                 // sorted input → prune the rest
+        path.push_back(c[i]);
+        dfs(c, i, remain - c[i], path, res);      // i: c[i] may be reused; i+1: use once
+        path.pop_back();
+    }
+}
+```
+
+--- reuse | i versus i + 1 | write
+✍️ Recursing with `i` lets the same element be chosen again (Combination Sum, unlimited supply).
+✍️ Recursing with `i + 1` uses each element at most once (Combination Sum II, subsets).
+✍️ That one character is the whole difference between the two problems.
+
+--- variations | Variations | screenshot
+- Combinations of k numbers from 1..n (LeetCode 77): stop when `path.size() == k`; prune when not enough numbers remain.
+- Combination Sum III: k numbers from 1..9 summing to n.
+- Letter combinations of a phone number: each level loops over the letters of one digit (no start index — each level is a different digit).
+
+--- pitfalls | Pitfalls | write
+✍️ `break` on `c[i] > remain` is only valid when the input is **sorted**; otherwise use `continue` or no pruning.
+✍️ Starting the loop at 0 generates permutations of the same combination.
+
+--- complexity | Complexity | screenshot
+Exponential in the worst case; for Combination Sum roughly O(n^(T/m)) where T is the target and m the smallest candidate. Pruning matters more than the formula.
+
+=== page: bt-permutations-used-array
+title: Backtracking III — permutations with a used array
+topic: backtracking
+kind: pattern
+summary: At each position, try every element not yet used. A boolean used[] array (or swapping) tracks availability. n! results.
+prereqs: bt-pick-or-skip
+related: bt-dedup-sorted-skip
+--- idea | Idea | write
+✍️ A permutation fills positions one by one. Position k can take any element **not already used** in positions 0..k−1.
+✍️ Keep `used[i]`; set it before recursing, clear it after (undo).
+
+--- template | Template | write
+```cpp
+void dfs(const vector<int>& a, vector<bool>& used, vector<int>& path, vector<vector<int>>& res) {
+    if (path.size() == a.size()) { res.push_back(path); return; }
+    for (int i = 0; i < (int)a.size(); i++) {
+        if (used[i]) continue;
+        used[i] = true; path.push_back(a[i]);
+        dfs(a, used, path, res);
+        path.pop_back(); used[i] = false;
+    }
+}
+```
+✍️ Unlike combinations, the loop starts at 0 every time: order matters, so [1, 2] and [2, 1] are different answers.
+
+--- duplicates | With duplicate values (LeetCode 47) | write
+✍️ Sort, and skip `a[i]` if `a[i] == a[i−1]` and `used[i−1]` is false. This forces equal values to be used in their original order, so each distinct permutation is produced once.
+
+--- swap-version | Swap version | screenshot
+Fix position k by swapping each `a[i]` (i ≥ k) into it, recurse on k+1, swap back. No used array, O(1) extra space besides recursion. Harder to deduplicate.
+
+--- complexity | Complexity | screenshot
+O(n·n!) time, O(n) recursion depth.
+
+=== page: bt-dedup-sorted-skip
+title: Avoiding duplicate results in backtracking
+topic: backtracking
+kind: pattern
+summary: Sort the input; at one recursion level, skip a value equal to the one just tried. Produces each distinct subset or combination exactly once.
+prereqs: bt-for-loop-choice, tp-skip-duplicates
+related: bt-permutations-used-array
+--- idea | Idea | write
+✍️ With input [1, 2, 2], choosing "the first 2" or "the second 2" as the next element gives the same subsets. Duplicates come from trying **equal values at the same level** of the recursion.
+✍️ Sort so equal values are adjacent; in the for-loop, skip `a[i]` if `i > start && a[i] == a[i−1]`.
+
+--- template | Template | write
+```cpp
+void dfs(const vector<int>& a, int start, vector<int>& path, vector<vector<int>>& res) {
+    res.push_back(path);                              // every node is a subset
+    for (int i = start; i < (int)a.size(); i++) {
+        if (i > start && a[i] == a[i - 1]) continue;  // same value already tried at this level
+        path.push_back(a[i]);
+        dfs(a, i + 1, path, res);
+        path.pop_back();
+    }
+}
+```
+
+--- why-start | Why `i > start` and not `i > 0` | write
+✍️ `i > start` only blocks equal values at the **same level**. Going deeper (the next level) with the second 2 is still allowed, which is how [2, 2] gets generated.
+✍️ `i > 0` would also block it at deeper levels and lose valid answers like [1, 2, 2].
+
+--- pitfalls | Pitfalls | mixed
+✍️ Forgetting to sort first — the skip only works when duplicates are adjacent.
+- Using a `set<vector<int>>` to dedup at the end is correct but slower and hides the reasoning.
+
+=== page: bt-pruning
+title: Pruning — cutting branches that cannot succeed
+topic: backtracking
+kind: concept
+summary: Check validity before recursing, use sortedness to break early, and maintain O(1) constraint checks so whole subtrees are skipped.
+prereqs: bt-pick-or-skip
+related: bt-for-loop-choice, bt-grid-backtracking
+--- idea | Idea | write
+✍️ Backtracking is exponential; the only way to make it fast is to stop exploring a branch as soon as it **cannot** lead to a valid answer.
+✍️ Check before the recursive call, not at the leaf. A check at the leaf still pays for the whole subtree.
+
+--- tools | Pruning tools | write
+✍️ **Bounds**: remaining sum < 0, too many items, not enough items left (`n − i < k − path.size()`).
+✍️ **Sorted input + break**: once `c[i] > remain`, every later candidate is larger too.
+✍️ **Constraint counters**: generate parentheses only adds ")" if `close < open`, and "(" if `open < n` — invalid strings are never built.
+✍️ **O(1) conflict checks with marker arrays**: N-Queens keeps `col[c]`, `diag[r − c + n]`, `anti[r + c]` so "is this square attacked?" is O(1) instead of scanning the board.
+
+--- nqueens | N-Queens (recognition) | screenshot
+Place one queen per row. For row r, try each column c not attacked (three marker arrays), mark, recurse to r+1, unmark. n = 8 → 92 solutions; the pruning keeps it tiny compared with 8⁸ placements.
+
+=== page: bt-grid-backtracking
+title: Backtracking on a grid (Word Search)
+topic: backtracking
+kind: pattern
+summary: DFS from every cell, matching one character per step; mark the cell as used on the way in and restore it on the way out so other paths can use it.
+prereqs: bt-pick-or-skip, mat-traversal-and-directions
+related: graph-grid-as-graph
+--- idea | Idea | write
+✍️ Try every cell as the start. From a cell matching `word[k]`, move to any of 4 neighbours that matches `word[k+1]`, without revisiting a cell on the **current** path.
+✍️ Mark the cell (e.g. overwrite with '#') before exploring neighbours; restore it after. Unlike flood fill, cells must be restored because a different path may need them.
+
+--- template | Template | write
+```cpp
+bool dfs(vector<vector<char>>& g, const string& w, int r, int c, int k) {
+    if (k == (int)w.size()) return true;                       // matched everything
+    if (r < 0 || r >= (int)g.size() || c < 0 || c >= (int)g[0].size()) return false;
+    if (g[r][c] != w[k]) return false;                         // also fails on '#'
+    char saved = g[r][c]; g[r][c] = '#';                       // choose: mark used
+    bool found = dfs(g, w, r+1, c, k+1) || dfs(g, w, r-1, c, k+1) ||
+                 dfs(g, w, r, c+1, k+1) || dfs(g, w, r, c-1, k+1);
+    g[r][c] = saved;                                           // undo
+    return found;
+}
+```
+
+--- vs-flood-fill | Backtracking vs flood fill | write
+✍️ Flood fill (islands): a visited cell stays visited forever — each cell processed once, O(R·C).
+✍️ Backtracking (word search): a cell is "visited" only for the current path and restored after — cells are revisited by different paths, exponential in the word length.
+
+--- complexity | Complexity | screenshot
+O(R·C·3^L) worst case: each start, then up to 3 new directions per step (not going back). Pruning by character match makes it far smaller in practice.
+
+=== page: gr-what-greedy-is-and-proofs
+title: Greedy algorithms and how to trust them
+topic: greedy
+kind: concept
+summary: Make the locally best choice and never revisit it. Correct only when an exchange argument shows the greedy choice can always be part of an optimal answer.
+prereqs: tp-why-discarding-is-safe
+related: gr-interval-scheduling, gr-reach-and-jumps
+--- idea | Idea | write
+✍️ A greedy algorithm builds the answer step by step, each time taking the option that looks best **now**, and never undoes a choice.
+✍️ It is fast (often one sort + one pass) but often wrong. You need a reason it works before trusting it.
+
+--- exchange | The exchange argument | write
+✍️ To prove greedy: take any optimal solution. Show you can **swap** its first choice for the greedy choice without making it worse. Repeat for the next choice. Hence some optimal solution makes all the greedy choices.
+✍️ Example (interval scheduling): the interval that ends earliest can replace the first interval of any optimal schedule — it ends no later, so it conflicts with nothing the original did not.
+
+--- test | How to test a greedy idea quickly | write
+✍️ Try to break it with a small counterexample before coding: 3–4 elements, adversarial values. If you find one, it is DP, not greedy.
+✍️ Classic trap: coin change with coins {1, 3, 4} and amount 6 — greedy takes 4+1+1 (3 coins), optimal is 3+3 (2 coins). Coin change is DP ([[dp-unbounded-knapsack]]).
+
+--- recognise | Signs greedy is intended | mixed
+✍️ Sorting by one key makes the decision obvious; "maximum number of non-overlapping …"; "minimum number of jumps/arrows/platforms"; "can you reach the end".
+- Signs it is NOT greedy: you found a counterexample; choices interact far into the future; the problem asks for the number of ways.
+
+=== page: gr-reach-and-jumps
+title: Greedy reach — Jump Game I and II
+topic: greedy
+kind: pattern
+summary: Track the farthest index reachable so far; for minimum jumps, treat each jump as a BFS level whose range is [current end + 1, farthest].
+prereqs: gr-what-greedy-is-and-proofs
+related: graph-bfs
+--- reach | Can you reach the end? | write
+✍️ Walk i from left to right while `i <= reach`; update `reach = max(reach, i + a[i])`. If you ever stand at an index beyond `reach`, it is unreachable → false.
+```cpp
+bool canJump(vector<int>& a) {
+    int reach = 0;
+    for (int i = 0; i < (int)a.size(); i++) {
+        if (i > reach) return false;
+        reach = max(reach, i + a[i]);
+    }
+    return true;
+}
+```
+✍️ Why greedy works: every index ≤ reach is reachable (you can stop anywhere along a jump), so only the maximum reach matters.
+
+--- min-jumps | Minimum number of jumps | write
+✍️ Think BFS levels: indices reachable with 1 jump form a range, with 2 jumps the next range, and so on. Track `end` (last index of the current level) and `far` (farthest reachable from this level).
+```cpp
+int jump(vector<int>& a) {
+    int jumps = 0, end = 0, far = 0;
+    for (int i = 0; i < (int)a.size() - 1; i++) {   // stop before the last index
+        far = max(far, i + a[i]);
+        if (i == end) { jumps++; end = far; }       // finished this level → one more jump
+    }
+    return jumps;
+}
+```
+✍️ Loop to `n − 2`: when you are already at the last index you do not jump again.
+
+--- complexity | Complexity | screenshot
+Both O(n) time, O(1) space. A DP solution (min jumps to reach each index) is O(n²) — the greedy is the expected answer.
+
+=== page: gr-interval-sort-and-merge
+title: Intervals I — sort by start and merge
+topic: intervals
+kind: pattern
+summary: Sort intervals by start; each next interval either overlaps the last merged one (extend its end) or starts a new block.
+prereqs: cpp-sort-and-comparators
+related: gr-interval-scheduling
+--- idea | Idea | write
+✍️ After sorting by start, any interval that overlaps the current block must start before (or at) the block's end. So one pass with a "current block" is enough.
+✍️ Overlap test for sorted intervals: `next.start <= cur.end` → merge: `cur.end = max(cur.end, next.end)`.
+
+--- template | Template | write
+```cpp
+vector<vector<int>> merge(vector<vector<int>>& iv) {
+    sort(iv.begin(), iv.end());                     // vectors sort by [0] then [1]
+    vector<vector<int>> out;
+    for (auto& x : iv) {
+        if (out.empty() || x[0] > out.back()[1]) out.push_back(x);   // gap → new block
+        else out.back()[1] = max(out.back()[1], x[1]);               // overlap → extend
+    }
+    return out;
+}
+```
+✍️ `max` matters: an interval can be fully inside the block ([1, 10] then [2, 3]).
+
+--- variations | Variations | screenshot
+- Insert interval (LeetCode 57): input already sorted; copy intervals ending before the new one, merge all that overlap it, copy the rest. O(n).
+- Meeting rooms (can attend all?): sort, check `a[i].start < a[i−1].end`.
+- Minimum meeting rooms: sort starts and ends separately and sweep, or a min-heap of end times.
+- Interval intersection (two sorted lists): two pointers, advance the one that ends first.
+
+--- pitfalls | Pitfalls | write
+✍️ Touching intervals ([1, 2] and [2, 3]): LeetCode 56 merges them (`>` for the gap test). Read the statement — some problems treat touching as non-overlapping.
+
+--- complexity | Complexity | screenshot
+O(n log n) for the sort + O(n) pass. O(n) output.
+
+=== page: gr-interval-scheduling
+title: Intervals II — sort by end, keep the earliest finisher
+topic: intervals
+kind: pattern
+summary: To keep the maximum number of non-overlapping intervals (or remove the minimum), sort by end time and greedily keep each interval that starts after the last kept end.
+prereqs: gr-interval-sort-and-merge, gr-what-greedy-is-and-proofs
+related: gr-interval-sort-and-merge
+--- idea | Idea | write
+✍️ Among intervals that could come first, the one that **ends earliest** leaves the most room for the rest. Keep it; discard everything overlapping it; repeat.
+✍️ Max kept = greedy count. Minimum removals = n − max kept.
+
+--- template | Template | write
+```cpp
+int eraseOverlapIntervals(vector<vector<int>>& iv) {
+    sort(iv.begin(), iv.end(), [](auto& a, auto& b) { return a[1] < b[1]; });   // by END
+    int kept = 0; long long lastEnd = LLONG_MIN;
+    for (auto& x : iv) {
+        if (x[0] >= lastEnd) { kept++; lastEnd = x[1]; }   // no overlap with last kept
+    }
+    return iv.size() - kept;
+}
+```
+
+--- why-end | Why sort by end, not by start | write
+✍️ Sorting by start fails: [1, 100], [2, 3], [4, 5] — keeping [1, 100] first blocks two intervals.
+✍️ Exchange argument: swap the first interval of any optimal set for the earliest-ending interval; it ends no later, so nothing after it conflicts ([[gr-what-greedy-is-and-proofs#exchange]]).
+
+--- variations | Variations | screenshot
+- Minimum arrows to burst balloons (LeetCode 452): sort by end, shoot at the end of the first balloon, skip all balloons containing that point (start ≤ arrow).
+- Maximum length of pair chain (LeetCode 646): same as max non-overlapping with strict `>`.
+
+=== page: gr-balance-counting
+title: Greedy with running balance (gas station, parentheses with wildcards)
+topic: greedy
+kind: pattern
+summary: Track a running surplus; when it goes negative, the current start is impossible and the next index becomes the new start. Or track a range [low, high] of possible balances.
+prereqs: gr-what-greedy-is-and-proofs, arr-single-pass-running-state
+related: stq-stack-basics-and-matching
+--- gas | Gas station | write
+✍️ If total gas < total cost, no start works. Otherwise exactly one start works: walk once with a running tank; whenever the tank goes negative at i, no start between the current start and i can work, so set start = i + 1 and reset the tank.
+```cpp
+int canCompleteCircuit(vector<int>& gas, vector<int>& cost) {
+    int total = 0, tank = 0, start = 0;
+    for (int i = 0; i < (int)gas.size(); i++) {
+        total += gas[i] - cost[i];
+        tank += gas[i] - cost[i];
+        if (tank < 0) { start = i + 1; tank = 0; }
+    }
+    return total < 0 ? -1 : start;
+}
+```
+
+--- wildcard-parens | Parentheses with '*' wildcards | write
+✍️ Track the **range** of possible open counts `[lo, hi]`. '(' → lo++, hi++. ')' → lo−−, hi−−. '*' → lo−− (as ')'), hi++ (as '(').
+✍️ If hi < 0 → too many ')' → false. Clamp lo at 0. At the end, valid iff lo == 0.
+
+--- why | Why it works (gas) | mixed
+✍️ If you start at s and run dry at i, then every start between s and i also runs dry at or before i: they begin with an empty tank at a point where starting from s you had a non-negative surplus.
+
+=== page: heap-binary-heap-internals
+title: How a binary heap works
+topic: heaps
+kind: mechanics
+summary: A complete binary tree stored in an array, where each parent is ≥ its children. Push sifts up, pop moves the last element to the root and sifts down. O(log n) each.
+prereqs: cx-big-o
+related: cpp-priority-queue, heap-top-k
+--- structure | Structure | write
+✍️ A heap is a **complete** binary tree (filled level by level) stored in an array: node i has children `2i+1`, `2i+2` and parent `(i−1)/2`.
+✍️ Max-heap property: every parent ≥ its children. So the maximum is always at index 0. (Siblings are not ordered — a heap is not sorted.)
+
+--- operations | Operations | write
+✍️ **Push**: put the new element at the end, then **sift up**: swap with the parent while it is bigger than the parent. At most height = O(log n) swaps.
+✍️ **Pop**: move the last element to the root, remove the last slot, then **sift down**: swap with the larger child while smaller than it. O(log n).
+✍️ **Top**: read index 0. O(1).
+
+--- build | Building a heap in O(n) | mixed
+✍️ Sift down every non-leaf node from the last one up to the root. Most nodes are near the bottom and sift only a little, so the total is O(n), not O(n log n).
+- `priority_queue<int> pq(a.begin(), a.end())` and `make_heap` do this.
+
+--- interview | What gets asked | screenshot
+- "What is the difference between a heap and a BST?" — a heap only guarantees the root is the max/min (O(1) top, O(log n) insert/pop, no ordered iteration, no search); a BST keeps full order (O(log n) search, ordered iteration).
+- Heap sort: build a max-heap, repeatedly pop to the end. O(n log n), in place, not stable.
+
+=== page: heap-top-k
+title: Top k with a heap of size k
+topic: heaps
+kind: pattern
+summary: To keep the k largest, use a MIN-heap of size k: its top is the smallest of the k largest, and anything smaller than it can be discarded. O(n log k).
+prereqs: heap-binary-heap-internals, cpp-priority-queue
+related: heap-vs-quickselect, hash-frequency-counting, sort-counting-sort
+--- idea | Idea | write
+✍️ For the k **largest**, keep a **min**-heap of at most k elements. When it exceeds k, pop the smallest. At the end it holds exactly the k largest, and its top is the k-th largest.
+✍️ The heap's top is the "entry bar": any new element smaller than it cannot be among the k largest.
+✍️ For the k smallest, mirror it: a max-heap of size k.
+
+--- recognise | Recognise it | write
+✍️ "k-th largest / smallest", "top k frequent", "k closest points", "k most …", streams where k is small compared with n.
+
+--- think | Brute force → heap | mixed
+Brute force: sort everything and take the top k. O(n log n).
+✍️ Bottleneck: fully sorting n elements when only the order of the top k matters.
+✍️ Fix: maintain only the k best seen so far. Each element costs O(log k) → O(n log k), and O(k) memory (works on a stream).
+
+--- template | Template | write
+```cpp
+int findKthLargest(vector<int>& a, int k) {
+    priority_queue<int, vector<int>, greater<int>> pq;    // min-heap
+    for (int x : a) {
+        pq.push(x);
+        if ((int)pq.size() > k) pq.pop();                 // drop the smallest
+    }
+    return pq.top();                                      // smallest of the k largest
+}
+```
+
+--- frequent | Top k frequent | write
+✍️ Count frequencies with a map ([[hash-frequency-counting]]), then push `(count, value)` pairs into a min-heap of size k keyed by count.
+✍️ O(n) alternative: bucket by frequency (frequencies are 1..n) and read buckets from high to low ([[sort-counting-sort#buckets]]).
+
+--- complexity | Complexity | screenshot
+O(n log k) time, O(k) space. Quickselect gives O(n) average ([[heap-vs-quickselect]]).
+
+=== page: heap-vs-quickselect
+title: Heap vs quickselect vs sort for k-th element
+topic: heaps
+kind: concept
+summary: When to choose each approach for k-th largest, and what to say about their worst cases.
+prereqs: heap-top-k, sort-quick-sort-and-pivots
+related: heap-top-k
+--- compare | Comparison | write
+| Method | Time | Space | Notes |
+|---|---|---|---|
+| sort | O(n log n) | O(1)–O(n) | simplest, fine for n ≤ 10⁵ |
+| min-heap of size k | O(n log k) | O(k) | works on streams |
+| quickselect | O(n) avg, O(n²) worst | O(1) | modifies the array; randomise the pivot |
+| counting/buckets | O(n + range) | O(range) | only for small value ranges |
+
+--- answer | What to say in an interview | mixed
+✍️ Start with sorting, then offer the heap (better when k ≪ n or data streams in), then quickselect for O(n) average, mentioning the worst case and the random pivot fix.
+
+=== page: heap-k-way-merge
+title: K-way merge with a heap
+topic: heaps
+kind: pattern
+summary: Merge k sorted lists by keeping the current head of each list in a min-heap; repeatedly pop the smallest and push its successor. O(N log k).
+prereqs: heap-top-k, ll-merge-and-split
+related: ll-merge-and-split
+--- idea | Idea | write
+✍️ The next element of the merged output is the smallest among the k current heads. A min-heap of size k gives it in O(log k).
+✍️ After popping a node, push its `next` (if any). The heap always holds at most one node per list.
+
+--- template | Template | write
+```cpp
+ListNode* mergeKLists(vector<ListNode*>& lists) {
+    auto cmp = [](ListNode* a, ListNode* b) { return a->val > b->val; };   // min-heap
+    priority_queue<ListNode*, vector<ListNode*>, decltype(cmp)> pq(cmp);
+    for (auto* l : lists) if (l) pq.push(l);
+    ListNode dummy(0); ListNode* tail = &dummy;
+    while (!pq.empty()) {
+        ListNode* x = pq.top(); pq.pop();
+        tail->next = x; tail = x;
+        if (x->next) pq.push(x->next);
+    }
+    return dummy.next;
+}
+```
+
+--- alternatives | Alternatives | mixed
+✍️ Divide and conquer: merge lists pairwise (1+2, 3+4, …) then merge the results — also O(N log k), no heap.
+- Merging lists one by one into a growing result is O(N·k) — the slow answer.
+- Same idea: k-th smallest in a sorted matrix, smallest range covering k lists, merging k sorted arrays.
+
+--- complexity | Complexity | screenshot
+O(N log k) for N total nodes. O(k) heap space.
+
+=== page: heap-two-heaps-median
+title: Two heaps — running median
+topic: heaps
+kind: pattern
+summary: A max-heap holds the smaller half, a min-heap the larger half; keep their sizes within one. The median is read from the tops in O(1); each insert is O(log n).
+prereqs: heap-top-k
+related: heap-top-k
+--- idea | Idea | write
+✍️ Split all numbers seen so far into a **lower half** (max-heap `lo`) and an **upper half** (min-heap `hi`), with every element of lo ≤ every element of hi.
+✍️ Keep sizes balanced: `lo.size() == hi.size()` or `lo.size() == hi.size() + 1`. Then the median is `lo.top()` (odd count) or the average of both tops (even).
+
+--- template | Template | write
+```cpp
+class MedianFinder {
+    priority_queue<int> lo;                                   // max-heap
+    priority_queue<int, vector<int>, greater<int>> hi;        // min-heap
+public:
+    void addNum(int x) {
+        lo.push(x);
+        hi.push(lo.top()); lo.pop();                          // move the largest of lo to hi
+        if (hi.size() > lo.size()) { lo.push(hi.top()); hi.pop(); }   // rebalance
+    }
+    double findMedian() {
+        if (lo.size() > hi.size()) return lo.top();
+        return (lo.top() + (double)hi.top()) / 2.0;
+    }
+};
+```
+✍️ The "push to lo, move top to hi, rebalance" dance guarantees both the ordering and the size invariant with no case analysis.
+
+--- uses | Where else | screenshot
+Sliding window median (needs deletion → two multisets), IPO (LeetCode 502: a max-heap of affordable profits), scheduling with "best available now" choices.
+
+--- complexity | Complexity | screenshot
+addNum O(log n), findMedian O(1), O(n) space.

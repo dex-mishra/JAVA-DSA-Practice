@@ -1,0 +1,40 @@
+{
+ "id": "str-kmp-prefix-function",
+ "title": "KMP and the prefix function (recognition level)",
+ "topic": "strings",
+ "kind": "skim",
+ "summary": "Linear-time pattern matching using, for each prefix, the length of its longest proper prefix that is also a suffix. Know what it is and when it is needed; code it only if asked.",
+ "prereqs": [
+  "cpp-string"
+ ],
+ "related": [
+  "str-rolling-hash"
+ ],
+ "sections": [
+  {
+   "id": "what",
+   "title": "What it solves",
+   "note": "write",
+   "body": "✍️ Find all occurrences of a pattern p (length m) in a text s (length n) in **O(n + m)**, instead of O(n·m) for the naive check at every position.\n✍️ Needed when n·m is too large (both up to 10⁵), or when a problem asks about repeated prefixes/suffixes (\"shortest palindrome\", \"repeated substring pattern\")."
+  },
+  {
+   "id": "lps",
+   "title": "The prefix function (lps array)",
+   "note": "write",
+   "body": "✍️ `lps[i]` = length of the longest proper prefix of `p[0..i]` that is also a suffix of it. Example: p = \"ababc\" → lps = [0, 0, 1, 2, 0].\n✍️ On a mismatch after matching j characters, jump to `j = lps[j−1]` instead of restarting from 0 — the characters already matched tell you how much of the pattern still lines up."
+  },
+  {
+   "id": "code",
+   "title": "Code (for reference)",
+   "note": "screenshot",
+   "body": "```cpp\nvector<int> buildLps(const string& p) {\n    int m = p.size(); vector<int> lps(m, 0);\n    for (int i = 1, len = 0; i < m; ) {\n        if (p[i] == p[len]) lps[i++] = ++len;\n        else if (len) len = lps[len - 1];\n        else lps[i++] = 0;\n    }\n    return lps;\n}\nint strStr(const string& s, const string& p) {\n    auto lps = buildLps(p);\n    for (int i = 0, j = 0; i < (int)s.size(); ) {\n        if (s[i] == p[j]) { i++; j++; if (j == (int)p.size()) return i - j; }\n        else if (j) j = lps[j - 1];\n        else i++;\n    }\n    return -1;\n}\n```"
+  },
+  {
+   "id": "interview",
+   "title": "Interview level",
+   "note": "mixed",
+   "body": "✍️ For campus OAs, `s.find(p)` or the naive O(n·m) check usually passes. Mention KMP as the optimisation if asked \"can you do better than O(n·m)?\"."
+  }
+ ],
+ "used_by": []
+}

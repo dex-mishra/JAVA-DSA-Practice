@@ -26,7 +26,7 @@
  * public/ is derived and gitignored. Rebuild it; never edit it.
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -48,15 +48,15 @@ const placement = readJson("placement.json", { ranks: [], tracks: [], badges: []
 const mba = readJson("mba.json", { phases: [], schools: [], excluded: [] });
 const opportunities = readJson("opportunities.json", { opportunities: [] });
 
-// The DSA sheet is split deliberately. The thin index carries everything a
-// problem row needs and is baked in, so the day view paints with no network.
-// The learnings, theory and templates are the other 90% of the bytes -- ~2 MB
-// at the full 600 problems -- and are fetched per problem from /api/dsa/*.
-// Written by tools/import-dsa.mjs; absent until it has been run once.
-const dsaSpec = readJson(join("dsa", "spec.json"), null);
+// The DSA plan is split deliberately. The plan (without day bodies) and the
+// thin problem index are baked in, so the Today view paints its rows, roles,
+// links and header with no network. The teaching material -- stages, theory
+// pages, drill, CS core -- is the other 95% of the bytes and is fetched as
+// static files from public/data/dsa/. Written by tools/import-dsa.mjs.
+const dsaPlan = readJson(join("dsa", "plan.json"), null);
 const dsaIndex = readJson(join("dsa", "index.json"), null);
 
-const dsa = dsaSpec && dsaIndex ? { spec: dsaSpec, index: dsaIndex } : null;
+const dsa = dsaPlan && dsaIndex ? { plan: dsaPlan, index: dsaIndex } : null;
 
 const payload = { placement, mba, opportunities, dsa };
 
@@ -79,6 +79,11 @@ if (mbaItems === 0) throw new Error("refusing to build: no MBA items in data/mba
 const dsaProblems = dsa ? dsa.index.problems.length : 0;
 if (dsa && dsaProblems === 0) {
   throw new Error("refusing to build: data/dsa exists but carries no problems — run node tools/import-dsa.mjs");
+}
+// Day 1 is the day the tab opens on before the plan starts and on its first
+// morning. A build without it ships a Today view with nothing to do.
+if (dsa && !existsSync(join(DATA, "dsa", "day", "1.json"))) {
+  throw new Error("refusing to build: Day 1 content is missing from data/dsa — run node tools/import-dsa.mjs");
 }
 
 const styles = readFileSync(join(SRC, "styles.css"), "utf8");
@@ -115,109 +120,21 @@ function emit(relPath, value) {
   staticFiles++;
 }
 
+/* The importer has already written the finished files -- theory pages with
+   their reverse index, problem files with their siblings, day files -- so the
+   build only copies them. Copying everything the importer wrote, rather than
+   a list, means a new kind of file cannot be forgotten here; the importer is
+   also what guarantees no `verify` field and no hidden OA test is among them. */
 if (dsa) {
-  const dsaDir = join(DATA, "dsa");
-  const templates = readJson(join("dsa", "templates.json"), { templates: [] }).templates;
-  const templateById = new Map(templates.map((t) => [t.id, t]));
-  const bySlug = dsa.index.by_slug || {};
-  const rowById = new Map(dsa.index.problems.map((p) => [p.id, p]));
-  const theoryForTopic = dsa.index.theory_for_topic || {};
-
-  const learnings = [];
-  const templateUsers = new Map();
-
-  for (const phase of dsa.spec.phases) {
-    if (!phase.loaded) continue;
-    const payload = JSON.parse(readFileSync(join(dsaDir, `phase-${phase.key}.json`), "utf8"));
-
-    for (const t of payload.theory || []) emit(`data/dsa/theory/${t.id}.json`, { ...t, phase: phase.key });
-    for (const l of payload.learnings || []) learnings.push({ ...l, phase: phase.key });
-
-    for (const p of payload.problems || []) {
-      /* Cross-references are resolved here rather than in the browser.
-         The page would otherwise need the slug map and the whole problem
-         list in memory to turn a sibling slug into a link -- which it has,
-         but doing it once at build time means the fetched file is already
-         the finished answer. */
-      const siblings = ((p.learnings || {}).siblings || []).map((slug) => {
-        const sid = bySlug[slug];
-        const row = sid ? rowById.get(sid) : null;
-        return {
-          slug,
-          id: sid || "",
-          title: row ? row.title : slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-          // A sibling outside the 600 is a real thing, not a broken link:
-          // it leaves the sheet for LeetCode and the UI says so.
-          url: row ? row.url : `https://leetcode.com/problems/${slug}/`,
-          in_sheet: !!sid
-        };
-      });
-
-      const template = p.template ? templateById.get(p.template) : null;
-      if (p.template) {
-        if (!templateUsers.has(p.template)) templateUsers.set(p.template, []);
-        templateUsers.get(p.template).push({ id: p.id, title: p.title, topic: p.topic, day: p.day });
-      }
-
-      emit(`data/dsa/problem/${p.id}.json`, {
-        ...p,
-        siblings_resolved: siblings,
-        template_resolved: template || null,
-        // Referenced but not written yet. Said out loud so the UI can show
-        // that rather than a dead deep-link.
-        template_missing: !!(p.template && !template),
-        theory_id: theoryForTopic[p.topic] || ""
-      });
-    }
+  const from = join(DATA, "dsa");
+  const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? walk(join(dir, e.name)) : e.name.endsWith(".json") ? [join(dir, e.name)] : []);
+  for (const file of walk(from)) {
+    const rel = file.slice(from.length + 1);
+    // plan and index are already inside index.html.
+    if (rel === "plan.json" || rel === "index.json") continue;
+    emit(join("data", "dsa", rel), JSON.parse(readFileSync(file, "utf8")));
   }
-
-  learnings.sort((a, b) => a.day - b.day || a.id.localeCompare(b.id));
-  emit("data/dsa/learnings.json", { learnings });
-
-  /* The pattern index — PRD §3.4, and the revision surface the whole sheet
-     is built around. Read from the authored PATTERN-INDEX.json rather than
-     rebuilt by scanning the phases: it carries the template's display name
-     and the first line of each insight, neither of which the phase files
-     have, and both of which belong on this screen.
-
-     Grouped by pattern, not one row per problem. 124 distinct patterns cover
-     the 145 problems, so twenty-one of them teach two or three — and saying
-     so is the point. "Level-order and right-side-view are the same
-     traversal" is worth more than listing them apart. */
-  const indexRows = readJson(join("dsa", "pattern-index.json"), { patterns: [] }).patterns;
-  const patterns = new Map();
-  for (const row of indexRows) {
-    const key = row.pattern || "(unnamed)";
-    if (!patterns.has(key)) {
-      patterns.set(key, {
-        pattern: key,
-        topic: row.topic,
-        template_id: row.template_id || "",
-        template_name: row.template_name || "",
-        problems: []
-      });
-    }
-    patterns.get(key).problems.push({
-      id: row.problem_id, title: row.title, topic: row.topic, day: row.day,
-      phase: row.phase, difficulty: row.difficulty, url: row.lc_url,
-      insight: row.insight_first_line || ""
-    });
-  }
-  for (const entry of patterns.values()) entry.problems.sort((a, b) => a.day - b.day);
-
-  emit("data/dsa/patterns.json", {
-    count: patterns.size,
-    problem_count: indexRows.length,
-    patterns: [...patterns.values()].sort((a, b) =>
-      a.problems[0].day - b.problems[0].day || a.pattern.localeCompare(b.pattern))
-  });
-
-  emit("data/dsa/templates.json", {
-    templates: templates.map((t) => ({
-      id: t.id, name: t.name, topic: t.topic, when: t.when || "",
-      used_by: (templateUsers.get(t.id) || []).length
-    }))
-  });
 }
 
 const kb = (Buffer.byteLength(shell) / 1024).toFixed(1);
@@ -227,6 +144,6 @@ console.log(`  MBA items       ${mbaItems}`);
 console.log(`  opportunities   ${(opportunities.opportunities || []).length}`);
 console.log(
   `  DSA problems    ${dsaProblems}` +
-    (dsa ? ` (${dsa.spec.phases.filter((p) => p.loaded).length}/${dsa.spec.phases.length} phases)` : " — not imported")
+    (dsa ? ` (${dsa.plan.days.filter((d) => d.content === "ready").length}/${dsa.plan.days.length} days with notes)` : " — not imported")
 );
 console.log(`  public/         ${staticFiles} files`);
