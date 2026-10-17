@@ -233,7 +233,7 @@
 
   /* v3 key: the v2 cache holds rows for ids the plan no longer has. */
   var DSA_KEY = "launch-console-dsa-v3";
-  var DSA_S = { problems: {}, siblings: {}, drill: {}, days: {} };
+  var DSA_S = { problems: {}, siblings: {}, drill: {}, days: {}, page_notes: {}, recall: {}, core_days: {}, reading: {} };
   var DSA_SYNC = { on: false, ts: 0, ai: false };
 
   var DSA_DEFAULTS = {
@@ -260,7 +260,12 @@
       problems: (p && p.problems) || {},
       siblings: (p && p.siblings) || {},
       drill: (p && p.drill) || {},
-      days: (p && p.days) || {}
+      days: (p && p.days) || {},
+      // v3.1
+      page_notes: (p && p.page_notes) || {},
+      recall: (p && p.recall) || {},
+      core_days: (p && p.core_days) || {},
+      reading: (p && p.reading) || {}
     };
   }
 
@@ -356,6 +361,7 @@
         DSA_SYNC.on = true;
         DSA_SYNC.ts = res.updated_ts || 0;
         DSA_SYNC.ai = !!res.ai;
+        dsaReaderAdopt(res.reader);
         if (res.updated_ts) {
           dsaAdopt(res);
           dsaCache();
@@ -949,7 +955,9 @@
   TABS.push({ id: "career", label: "Opportunities", domain: "placement", section: "placement" });
   TABS.push({ id: "dsa-today", label: "Today", domain: "dsa", section: "dsa" });
   TABS.push({ id: "dsa-plan", label: "Plan", domain: "dsa", section: "dsa" });
-  TABS.push({ id: "dsa-theory", label: "Theory", domain: "dsa", section: "dsa" });
+  TABS.push({ id: "dsa-theory", label: "Library", domain: "dsa", section: "dsa" });
+  // The reader is a view, not a tab: reached from Today, problems and the Library.
+  TABS.push({ id: "dsa-read", label: "Reader", domain: "dsa", section: "dsa", hidden: true });
   TABS.push({ id: "dsa-revision", label: "Revision", domain: "dsa", section: "dsa" });
   TABS.push({ id: "dsa-browse", label: "Browse", domain: "dsa", section: "dsa" });
   TABS.push({ id: "dsa-oa", label: "OAs", domain: "dsa", section: "dsa" });
@@ -984,7 +992,7 @@
 
   function renderTabs() {
     var st = stats();
-    var mine = sectionTabs();
+    var mine = sectionTabs().filter(function (t) { return !t.hidden; });
     // A single-view section does not need a sub-tab bar above it.
     var bar = document.getElementById("tabs");
     bar.classList.toggle("hide", mine.length < 2);
@@ -1508,6 +1516,7 @@
     else if (tab.id === "dsa-browse") panel.innerHTML = renderDsaBrowse();
     else if (tab.id === "dsa-revision") panel.innerHTML = renderDsaRevision();
     else if (tab.id === "dsa-theory") panel.innerHTML = renderDsaTheory();
+    else if (tab.id === "dsa-read") panel.innerHTML = renderDsaRead();
     else if (tab.id === "dsa-oa") panel.innerHTML = renderDsaOa();
     else panel.innerHTML = renderTrack(tab.track);
 
@@ -1527,7 +1536,7 @@
     bind();
     if (tab.domain === "dsa") {
       bindDsa();
-      if (tab.id === "dsa-theory" && DSAV.theory) dsaFillTheory();
+      if (tab.id === "dsa-read") dsaFillRead();
       if (tab.id === "dsa-today") dsaMaybeKeep();
       if (tab.id === "dsa-oa") {
         bindOa();
@@ -1543,6 +1552,7 @@
          still open has to be refilled. Cached after the first fetch, so this
          is a dictionary lookup rather than a request. */
       if (DSAV.openId) dsaFillDetail(DSAV.openId);
+      dsaApplyPendingAnchor();
     }
   }
 
@@ -2036,103 +2046,25 @@
 
   var WRITE_MARK = /^\s*✍️\s?/;
 
-  /* `opts.wl` -- how write-lines render: "mark" (a mixed section: the line is
-     tagged, everything else is screenshot material) or "plain" (a write
-     section: every line is a write-line, so tagging each one is noise).
-     Either way a write-line is its own paragraph -- the source puts one
-     thought per line, and joining them would undo that. */
+  /* Markdown, via the shared renderer (shared/dsa-render.mjs): the same
+     code the tests check, with this page's escaping, inline links, C++
+     colouring and detour cards plugged in. `opts.anchor` stamps every block
+     with a stable id a Return can land on. */
   function md(text, opts) {
-    var wl = (opts && opts.wl) || "";
-    var lines = String(text == null ? "" : text).replace(/\r/g, "").split("\n");
-    var out = [];
-    var para = [];
-    var list = null;   // 'ul' | 'ol'
-    var items = [];
+    var o = opts || {};
+    return DSA_RENDER.renderMarkdown(text, {
+      esc: esc, inline: mdInline, code: mdCode, detour: dsaDetourCard,
+      wl: o.wl || "", anchor: o.anchor || null, collect: o.collect || null
+    });
+  }
 
-    function flushPara() {
-      if (!para.length) return;
-      out.push("<p>" + mdInline(para.join(" ")) + "</p>");
-      para = [];
-    }
-    function flushList() {
-      if (!list) return;
-      out.push("<" + list + ">" + items.map(function (i) {
-        return "<li>" + mdInline(i) + "</li>";
-      }).join("") + "</" + list + ">");
-      list = null;
-      items = [];
-    }
-    function flush() { flushPara(); flushList(); }
-
-    for (var i = 0; i < lines.length; i++) {
-      var line = lines[i];
-
-      var fence = line.match(/^\s*```(\w*)\s*$/);
-      if (fence) {
-        flush();
-        var buf = [];
-        i++;
-        while (i < lines.length && !/^\s*```\s*$/.test(lines[i])) buf.push(lines[i++]);
-        out.push(mdCode(buf.join("\n"), fence[1]));
-        continue;
-      }
-
-      if (WRITE_MARK.test(line)) {
-        flush();
-        out.push('<p class="' + (wl === "mark" ? "wl" : "wp") + '">' + mdInline(line.replace(WRITE_MARK, "")) + "</p>");
-        continue;
-      }
-
-      // A table is a header row followed by a |---|---| separator.
-      if (/^\s*\|/.test(line) && i + 1 < lines.length && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1])) {
-        flush();
-        var cells = function (row) {
-          return row.trim().replace(/^\||\|$/g, "").split("|").map(function (c) { return c.trim(); });
-        };
-        var head = cells(line);
-        i += 2;
-        var rows = [];
-        while (i < lines.length && /^\s*\|/.test(lines[i])) rows.push(cells(lines[i++]));
-        i--;
-        out.push('<div class="dsa-tablewrap"><table class="dsa-table"><thead><tr>' +
-          head.map(function (h) { return "<th>" + mdInline(h) + "</th>"; }).join("") +
-          "</tr></thead><tbody>" +
-          rows.map(function (r) {
-            return "<tr>" + r.map(function (c) { return "<td>" + mdInline(c) + "</td>"; }).join("") + "</tr>";
-          }).join("") + "</tbody></table></div>");
-        continue;
-      }
-
-      var heading = line.match(/^\s*(#{1,4})\s+(.*)$/);
-      if (heading) {
-        flush();
-        var lvl = Math.min(6, heading[1].length + 2);
-        out.push("<h" + lvl + ">" + mdInline(heading[2]) + "</h" + lvl + ">");
-        continue;
-      }
-
-      var ul = line.match(/^\s*[-*]\s+(.*)$/);
-      var ol = line.match(/^\s*\d+[.)]\s+(.*)$/);
-      if (ul || ol) {
-        flushPara();
-        var want = ul ? "ul" : "ol";
-        if (list && list !== want) flushList();
-        list = want;
-        items.push((ul || ol)[1]);
-        continue;
-      }
-
-      if (!line.trim()) { flush(); continue; }
-
-      if (list && /^\s{2,}\S/.test(line)) {
-        items[items.length - 1] += " " + line.trim();
-        continue;
-      }
-      flushList();
-      para.push(line.trim());
-    }
-    flush();
-    return out.join("");
+  /* A detour card (v3.1 §5.2), where the content put it. */
+  function dsaDetourCard(d, anchorId) {
+    return '<div class="dsa-detour"><div class="dsa-detour-hd">Detour · ' + d.minutes + " min</div>" +
+      "<p>" + mdInline(d.why) + "</p>" +
+      '<div class="dsa-detour-do"><button class="btn tiny" type="button" data-dsa-detour="' + esc(d.page) + '" data-dsa-sec="' +
+      esc(d.section || "") + '" data-dsa-why="' + esc(d.why) + '"' + (anchorId ? ' data-anchor-ref="' + esc(anchorId) + '"' : "") +
+      ">Take detour</button><span class=\"muted tiny\">" + esc(COPY["reader.detour"]) + " · " + esc(dsaTheoryTitle(d.page, d.section)) + "</span></div></div>";
   }
 
   /* A content section -- stage, theory section, micro-theory, CS card -- as
@@ -2151,13 +2083,13 @@
       (NOTE_BADGE[note] || "") + "</span>";
   }
 
-  function dsaSectionBody(section) {
+  function dsaSectionBody(section, anchor) {
     if (DSAV.writeOnly && section.note === "screenshot") return "";
     var body = section.body;
     if (DSAV.writeOnly && section.note === "mixed") {
       body = body.split("\n").filter(function (l) { return WRITE_MARK.test(l); }).join("\n");
     }
-    return md(body, { wl: section.note === "mixed" && !DSAV.writeOnly ? "mark" : "plain" });
+    return md(body, { wl: section.note === "mixed" && !DSAV.writeOnly ? "mark" : "plain", anchor: anchor || null });
   }
 
   /* ------------------------------------------------------ derived */
@@ -2406,15 +2338,24 @@
   function dsaStageEl(p, doc, s) {
     if (DSAV.writeOnly && s.note === "screenshot") return "";
     var refs = (doc.theory_refs || []).filter(function (r) { return r.stage === s.id; });
-    var chips = refs.length ? '<div class="dsa-chips">' + refs.map(function (r) {
-      return dsaTheoryChip(r.page, r.section, (r.at ? r.at + " → " : "") + dsaTheoryTitle(r.page, r.section), r.why);
+    /* v3.1 §8.2: each reference as a row with its why visible, opened as a
+       detour that returns to the exact line it quotes. */
+    var chips = refs.length ? '<div class="dsa-refrows">' + refs.map(function (r) {
+      var pn = DSA_S.page_notes[r.page];
+      return '<div class="dsa-refrow"><span class="dsa-when w-' + esc(r.when) + '">' + esc(r.when) + "</span>" +
+        (r.need === "must" ? '<span class="dsa-must">must</span>' : "") +
+        '<a href="#"' + dsaTheoryAttrs(r.page, r.section) + ' data-dsa-why="' + esc(r.why || "") + '" data-dsa-at="' + esc(r.at || "") +
+        '" data-dsa-at-stage="' + esc(s.id) + '">📘 ' + esc(dsaTheoryTitle(r.page, r.section)) + "</a>" +
+        (r.why ? ' <span class="dsa-refwhy">— ' + mdInline(r.why) + "</span>" : "") +
+        (pn && pn.noted ? ' <span class="dsa-noted">noted ✓' + (pn.goodnotes_ref ? " " + esc(pn.goodnotes_ref) : "") + "</span>" : "") +
+        "</div>";
     }).join("") + "</div>" : "";
     var hd = '<div class="dsa-stagehd"><h4>' + esc(s.title) + "</h4>" + dsaNoteBadge(s.note) + "</div>";
     if (dsaCovered(p, s.id)) {
       return '<div class="dsa-stage covered">' + hd +
         '<button class="btn tiny" type="button" data-dsa-reveal="' + esc(s.id) + '">reveal</button></div>';
     }
-    return '<div class="dsa-stage" data-stage="' + esc(s.id) + '">' + hd + dsaSectionBody(s) + chips + "</div>";
+    return '<div class="dsa-stage" data-stage="' + esc(s.id) + '">' + hd + dsaSectionBody(s, "p:" + p.id + ":" + s.id) + chips + "</div>";
   }
 
   function dsaToolbar(p) {
@@ -2432,7 +2373,16 @@
       return dsaCovered(p, s.id) && !(DSAV.writeOnly && s.note === "screenshot");
     });
     var done = isDoneStatus(dsaRow(p.id).status);
-    return '<p class="dsa-rolenote">' + dsaRoleBadge(p.role) + " " + esc(role.meaning) + "</p>" +
+    var tabs = '<div class="dsa-paneltabs">' + ["steps", "notes"].map(function (m) {
+      return '<button type="button" class="dsa-mode' + (DSAV.panelMode === m ? " on" : "") + '" data-dsa-panelmode="' + m + '">' +
+        (m === "steps" ? "Steps" : "Notes" + (doc.note ? "" : " (✍️ lines)")) + "</button>";
+    }).join("") + "</div>";
+    if (DSAV.panelMode === "notes") {
+      return '<p class="dsa-rolenote">' + dsaRoleBadge(p.role) + " " + esc(role.meaning) + "</p>" + tabs +
+        '<p class="muted tiny">' + esc(COPY["step.notes"]) + "</p>" + dsaProblemNotes(p, doc) + dsaUserPanel(p.id);
+    }
+    return '<p class="dsa-rolenote">' + dsaRoleBadge(p.role) + " " + esc(role.meaning) + "</p>" + tabs +
+      (p.role === "LEARN" ? dsaReadFirst(p, doc) : "") +
       dsaToolbar(p) +
       '<div class="dsa-stages">' + doc.stages.map(function (s) { return dsaStageEl(p, doc, s); }).join("") + "</div>" +
       (anyCovered ? '<p class="dsa-revealall"><button class="btn tiny ghost" type="button" data-dsa-revealall="1">reveal all</button></p>' : "") +
@@ -2459,6 +2409,8 @@
       if (DSAV.openId !== id) return;
       host.innerHTML = dsaPanel(p, doc);
       bindDsa();
+      dsaFillOpenNote();
+      dsaApplyPendingAnchor();
     }).catch(function () {
       host.innerHTML = '<div class="dsa-lblock"><p class="muted">The notes for this problem are a static file ' +
         "that is not reachable from here. Everything else on the row still works.</p></div>" +
@@ -2741,6 +2693,7 @@
         esc(dsaShortDate(mock.date)) + " · " + when + "</a>";
     }
     return '<div class="dsa-strip">' +
+      '<a href="#" class="dsa-strip-item help" data-dsa-guide="1" title="How this plan works">?</a>' +
       '<span class="dsa-strip-item day"><b>Day ' + d.day + "</b> of " + DSA_PLAN.days.length + " · " +
         esc(dsaShortDate(d.date)) + " · " + esc(dsaCluster(d.cluster).title) + "</span>" +
       mockTxt +
@@ -2955,7 +2908,10 @@
     var rows = dsaProblemsOn(n);
     var mock = dsaMockOn(n);
 
-    var out = dsaTodayHelp() + dsaHeaderStrip(todayN, n);
+    var out = dsaHeaderStrip(todayN, n) +
+      (DSAV.showGuide ? '<div class="dsa-guide">' + dsaTodayHelp().replace("<details ", "<details open ") +
+        '<p><a href="#" class="linkish tiny" data-dsa-guide="1">Close the guide ✕</a></p></div>' : "") +
+      (isToday || todayN < 1 ? dsaReturnCard() : "");
 
     if (todayN < 1 && !DSAV.day) {
       out += '<section class="card dsa-banner"><h3>Starts ' + esc(dsaShortDate(DSA_PLAN.start_date)) + "</h3>" +
@@ -3012,7 +2968,8 @@
       out += dsaMustSiblingBlock(today);
     }
 
-    // 3. Micro-theory and pattern card.
+    // 3. Today's reading path (v3.1), then micro-theory and pattern card.
+    if (d.content === "ready") out += dsaReadingBlock(n);
     if (d.content === "ready") out += dsaMicroBlock(n, doc);
 
     // 4. Carried over, then today's problems.
@@ -3035,7 +2992,7 @@
     // 5. Drill, 6. CS core.
     if (d.content === "ready") {
       out += dsaDrillBlock(n, doc);
-      out += dsaCsBlock(n, doc);
+      out += doc && doc.core ? dsaCoreBlock(n, doc.core) : dsaCsBlock(n, doc);
     } else {
       out += '<section class="card"><p class="muted">Micro-theory, drill and CS card for Day ' + n +
         " arrive with the notes, by " + esc(dsaShortDate(DSA_CORE.addDays(d.date, -5))) + ".</p></section>";
@@ -3106,6 +3063,524 @@
 
   /* ------------------------------------------------------ Theory */
 
+  /* ============================================================ v3.1 reader
+
+     All theory is read here (PRD-v3.1 §5): a day's reading path, a LEARN
+     problem's "read first", a page opened from the Library, and every
+     detour -- a theory link, a detour card, a stuck-ladder rung. A detour
+     pushes where you were onto a small stack; Return pops it and lands on
+     the exact paragraph, highlighted. The stack and the current step persist
+     to localStorage at once and to D1 within a second, so a reload, or the
+     next morning, resumes in the same place.
+  ============================================================ */
+
+  var DSA_READER_KEY = "launch-console-dsa-reader-v1";
+  DSAV.reader = DSA_RENDER.emptyReader();
+  DSAV.readerSavedAt = 0;
+  DSAV.read = null;          // { kind: "path", key, step } | { kind: "detour", page, section, why }
+  DSAV.readMode = "read";    // read | notes | revise
+  DSAV.readExpand = false;   // "Show the rest of this page"
+  DSAV.pendingAnchor = null; // { anchor, scrollY } to land on after the next paint
+  DSAV.panelMode = "steps";  // problem panel: steps | notes
+  DSAV.recallShown = {};
+
+  function dsaReaderLoad() {
+    try {
+      var raw = localStorage.getItem(DSA_READER_KEY);
+      if (!raw) return;
+      var parsed = JSON.parse(raw);
+      DSAV.reader = DSA_RENDER.restoreReader(parsed);
+      DSAV.readerSavedAt = (parsed && parsed.saved_at) || 0;
+    } catch (e) { /* first run, or storage blocked */ }
+  }
+
+  /* The server copy wins only when it is newer -- a phone that read ahead
+     overnight should move this laptop forward, not the other way round. */
+  function dsaReaderAdopt(serverDoc) {
+    if (!serverDoc || (serverDoc.saved_at || 0) <= DSAV.readerSavedAt) return;
+    DSAV.reader = DSA_RENDER.restoreReader(serverDoc);
+    DSAV.readerSavedAt = serverDoc.saved_at || 0;
+  }
+
+  var DSA_READER_TIMER = null;
+  function dsaReaderSave() {
+    DSAV.readerSavedAt = Date.now();
+    var doc = Object.assign({}, DSAV.reader, { saved_at: DSAV.readerSavedAt });
+    try { localStorage.setItem(DSA_READER_KEY, JSON.stringify(doc)); } catch (e) { /* full or blocked */ }
+    if (!DSA_SYNC.on) return;
+    clearTimeout(DSA_READER_TIMER);
+    DSA_READER_TIMER = setTimeout(function () {
+      api("/api/dsa/reader", { method: "PUT", body: JSON.stringify(doc) }).catch(function () { /* local copy stands */ });
+    }, 1000);
+  }
+
+  function dsaPageMeta(id) { return (DSA_INDEX.theory || {})[id] || { t: titleCase(id), k: "", s: {}, n: 0 }; }
+  function dsaFirstSection(id) { return Object.keys(dsaPageMeta(id).s || {})[0] || null; }
+
+  /* ------------------------------------------------------ paths
+
+     A path is an ordered list of { page, section, bridge, minutes } with a
+     title and somewhere to go back to. Built from data already fetched;
+     returns null (and starts the fetch) when it is not there yet. */
+  function dsaPathInfo(key) {
+    var m;
+    if ((m = /^day-(\d+)$/.exec(key))) {
+      var n = +m[1];
+      var doc = DSA_CACHE.day[n] || dsaDayDoc(n);
+      if (!doc) return null;
+      var steps = (doc.reading_path && doc.reading_path.length) ? doc.reading_path
+        : ((doc.micro && doc.micro.theory) || []).map(function (pg) {
+            return { page: pg, section: dsaFirstSection(pg), bridge: "", minutes: 3 };
+          });
+      return {
+        key: key, title: "Day " + n + " reading path", steps: steps,
+        back: { label: n === dsaTodayN() ? "Back to Today" : "Back to Day " + n, hash: n === dsaTodayN() ? "#dsa/today" : "#dsa/day/" + n },
+        doneLabel: "back to Day " + n
+      };
+    }
+    if ((m = /^before-(.+)$/.exec(key))) {
+      var p = DSA_BY_ID[m[1]];
+      if (!p) return null;
+      var pd = DSA_CACHE.problem[p.id];
+      if (!pd) { dsaGet("problem", p.id).then(function () { if (ACTIVE === "dsa-read") render(); }).catch(function () {}); return null; }
+      var order = PROBLEM_STAGE_ORDER;
+      var refs = (pd.theory_refs || []).filter(function (r) { return r.when === "before"; })
+        .sort(function (a, b) { return order.indexOf(a.stage) - order.indexOf(b.stage); });
+      return {
+        key: key, title: "Read first · " + p.title,
+        steps: refs.map(function (r) { return { page: r.page, section: r.section, bridge: r.why, minutes: 3 }; }),
+        back: { label: "Back to " + p.title, hash: "#dsa/problem/" + p.id + "/understand" },
+        doneLabel: "on to Understand"
+      };
+    }
+    if ((m = /^page-(.+)$/.exec(key))) {
+      var meta = dsaPageMeta(m[1]);
+      return {
+        key: key, title: meta.t,
+        steps: Object.keys(meta.s || {}).map(function (sec) { return { page: m[1], section: sec, bridge: "", minutes: 3 }; }),
+        back: { label: "Library", hash: "#dsa/library" },
+        doneLabel: "back to the Library"
+      };
+    }
+    return null;
+  }
+
+  var PROBLEM_STAGE_ORDER = ["understand", "analyse", "brainstorm", "algorithm", "pseudocode",
+    "solution", "dry_run", "edges", "carry", "followups"];
+
+  function dsaPathMinutes(steps) { return steps.reduce(function (n, s) { return n + (s.minutes || 0); }, 0); }
+
+  function dsaReadingState(key) { return DSA_S.reading[key] || { step: 0, done: false }; }
+
+  function dsaPatchReading(key, patch) { return dsaLedgerPatch("reading", "/api/dsa/reading/", key, patch, "reading"); }
+
+  /* ------------------------------------------------------ navigation */
+
+  function dsaGo(hash, opts) {
+    var o = opts || {};
+    if (location.hash !== hash) {
+      if (o.replace) history.replaceState(null, "", hash); else history.pushState(null, "", hash);
+    }
+    dsaRoute(hash);
+    if (o.why !== undefined && DSAV.read && DSAV.read.kind === "detour") DSAV.read.why = o.why;
+    render();
+    if (!DSAV.pendingAnchor) window.scrollTo({ top: 0 });
+  }
+
+  /* Where you are now, as a route a Return can come back to. On Today with a
+     problem open that is the problem and the stage the click came from. */
+  function dsaCurrentRoute(fromEl) {
+    if (ACTIVE === "dsa-read" && DSAV.read) {
+      return DSAV.read.kind === "path" ? "#dsa/read/" + DSAV.read.key + "/" + DSAV.read.step
+        : "#dsa/page/" + DSAV.read.page + "/" + (DSAV.read.section || "") + (DSAV.readMode !== "read" ? "?mode=" + DSAV.readMode : "");
+    }
+    if (ACTIVE === "dsa-today") {
+      var stageEl = fromEl && fromEl.closest && fromEl.closest("[data-stage]");
+      var rowEl = fromEl && fromEl.closest && fromEl.closest("[data-dsa-row]");
+      if (rowEl) return "#dsa/problem/" + rowEl.dataset.dsaRow + "/" + (stageEl ? stageEl.dataset.stage : "understand");
+      return DSAV.day ? "#dsa/day/" + DSAV.day : "#dsa/today";
+    }
+    if (ACTIVE === "dsa-theory") return "#dsa/library";
+    if (ACTIVE === "dsa-plan") return "#dsa/plan";
+    if (ACTIVE === "dsa-revision") return "#dsa/revision";
+    return "#dsa/today";
+  }
+
+  function dsaHereLabel(fromEl, anchorEl) {
+    var quoteEl = anchorEl;
+    if (quoteEl && quoteEl.querySelector && quoteEl.querySelector(".dsa-detour")) {
+      var prev = quoteEl.previousElementSibling;
+      while (prev && !prev.hasAttribute("data-anchor")) prev = prev.previousElementSibling;
+      quoteEl = prev || null;
+    }
+    var snippet = quoteEl ? " — “" + quoteEl.innerText.replace(/\s+/g, " ").trim().slice(0, 48) + "”" : "";
+    if (ACTIVE === "dsa-read" && DSAV.read) {
+      var pg = DSAV.read.kind === "path" ? (dsaCurrentStep() || {}).page : DSAV.read.page;
+      var sec = DSAV.read.kind === "path" ? (dsaCurrentStep() || {}).section : DSAV.read.section;
+      return dsaTheoryTitle(pg, sec) + snippet;
+    }
+    var rowEl = fromEl && fromEl.closest && fromEl.closest("[data-dsa-row]");
+    if (rowEl && DSA_BY_ID[rowEl.dataset.dsaRow]) {
+      var stageEl = fromEl.closest("[data-stage]");
+      var st = stageEl ? titleCase(stageEl.dataset.stage.replace("_", "-")) : "";
+      return DSA_BY_ID[rowEl.dataset.dsaRow].title + (st ? " › " + st : "") + snippet;
+    }
+    return (ACTIVE === "dsa-theory" ? "Library" : "Today") + snippet;
+  }
+
+  function dsaCurrentStep() {
+    if (!DSAV.read || DSAV.read.kind !== "path") return null;
+    var info = dsaPathInfo(DSAV.read.key);
+    return info ? info.steps[Math.max(0, Math.min(info.steps.length, DSAV.read.step) - 1)] : null;
+  }
+
+  /* Take a detour from `el` (a detour card's button, a theory chip, an
+     inline link, a stuck rung). The return anchor is the block it sits in,
+     or, for a reference that quotes a line (`at`), the block holding it. */
+  function dsaTakeDetour(page, section, why, el) {
+    var anchor = null, anchorEl = null;
+    if (el && el.dataset.dsaAt && el.dataset.dsaAtStage) {
+      var blocks = [];
+      document.querySelectorAll('[data-stage="' + cssEsc(el.dataset.dsaAtStage) + '"] [data-anchor]').forEach(function (b) {
+        blocks.push({ anchor: b.dataset.anchor, text: b.innerText });
+      });
+      anchor = DSA_RENDER.findQuoteAnchor(blocks, el.dataset.dsaAt);
+      anchorEl = anchor ? document.querySelector('[data-anchor="' + cssEsc(anchor) + '"]') : null;
+    }
+    if (!anchor && el) {
+      anchorEl = el.dataset.anchorRef ? document.querySelector('[data-anchor="' + cssEsc(el.dataset.anchorRef) + '"]') : el.closest("[data-anchor]");
+      anchor = anchorEl ? anchorEl.dataset.anchor : null;
+    }
+    var res = DSA_RENDER.pushDetour(DSAV.reader, {
+      origin: dsaCurrentRoute(el), anchor: anchor, label: dsaHereLabel(el, anchorEl), scrollY: window.scrollY
+    });
+    if (res.error) { toast(res.error); return; }
+    DSAV.reader = res.reader;
+    dsaReaderSave();
+    DSAV.readMode = "read";
+    DSAV.readExpand = false;
+    dsaGo("#dsa/page/" + page + "/" + (section || dsaFirstSection(page) || ""), { why: why || "" });
+  }
+
+  function dsaReturn() {
+    var res = DSA_RENDER.popDetour(DSAV.reader);
+    if (!res.entry) return;
+    DSAV.reader = res.reader;
+    dsaReaderSave();
+    DSAV.pendingAnchor = { anchor: res.entry.anchor, scrollY: res.entry.scrollY };
+    var m = /^#dsa\/problem\/([^/]+)\/?([^/?]*)/.exec(res.entry.origin);
+    if (m && res.entry.anchor) {
+      // Coming back into a problem: the stage you left from must be open.
+      DSAV.returnReveal = m[2] || null;
+    }
+    dsaGo(res.entry.origin);
+    dsaApplyPendingAnchor();
+  }
+
+  /* Called after every paint that might contain the anchor (sync views, the
+     problem panel and the reader fill asynchronously). Gives up quietly
+     after a few seconds so a stale anchor never yanks the page later. */
+  function dsaApplyPendingAnchor() {
+    var p = DSAV.pendingAnchor;
+    if (!p) return;
+    var el = p.anchor ? document.querySelector('[data-anchor="' + cssEsc(p.anchor) + '"]') : null;
+    if (el) {
+      DSAV.pendingAnchor = null;
+      el.scrollIntoView({ block: "center" });
+      el.classList.add("flash");
+      setTimeout(function () { el.classList.remove("flash"); }, 2000);
+      return;
+    }
+    if (!p.waitingSince) p.waitingSince = Date.now();
+    if (Date.now() - p.waitingSince > 4000) { DSAV.pendingAnchor = null; window.scrollTo({ top: p.scrollY || 0 }); }
+  }
+
+  /* ------------------------------------------------------ reader view */
+
+  function dsaReturnBar() {
+    var top = DSAV.reader.stack[DSAV.reader.stack.length - 1];
+    if (!top) return "";
+    return '<div class="dsa-returnbar"><span>↩ Return to: <b>' + esc(top.label) + "</b></span>" +
+      (DSAV.reader.stack.length > 1 ? '<span class="muted tiny">' + DSAV.reader.stack.length + " detours deep</span>" : "") +
+      '<button class="btn tiny" type="button" data-dsa-return="1" title="' + esc(COPY["reader.return"]) + '">Return</button></div>';
+  }
+
+  function dsaModeTabs() {
+    return '<span class="dsa-modes">' + ["read", "notes", "revise"].map(function (m) {
+      return '<button type="button" class="dsa-mode' + (DSAV.readMode === m ? " on" : "") + '" data-dsa-mode="' + m + '">' +
+        titleCase(m) + "</button>";
+    }).join("") + "</span>";
+  }
+
+  function renderDsaRead() {
+    var r = DSAV.read;
+    if (!r) return '<section class="card"><p class="muted">Nothing to read here.</p></section>';
+    var page, section, why, head, foot;
+    if (r.kind === "path") {
+      var info = dsaPathInfo(r.key);
+      if (!info) return '<section class="card dsa-reader"><div class="dsa-loading">Loading…</div></section>';
+      if (!info.steps.length) {
+        return '<section class="card dsa-reader"><p class="muted">This path has no steps.</p>' +
+          '<a href="#" class="linkish" data-dsa-go="' + esc(info.back.hash) + '">‹ ' + esc(info.back.label) + "</a></section>";
+      }
+      var n = Math.max(1, Math.min(info.steps.length, r.step || 1));
+      var st = info.steps[n - 1];
+      page = st.page; section = st.section; why = st.bridge;
+      var next = info.steps[n];
+      head = '<div class="dsa-readhd"><a href="#" class="linkish" data-dsa-go="' + esc(info.back.hash) + '">‹ ' + esc(info.back.label) + "</a>" +
+        '<span class="muted tiny">' + esc(info.title) + " · step " + n + " of " + info.steps.length + " · ~" + (st.minutes || 3) + " min</span></div>";
+      foot = '<div class="dsa-readfoot"><button class="btn" type="button" data-dsa-step-done="' + n + '">✓ Done — ' +
+        (next ? "next: " + esc(dsaTheoryTitle(next.page, next.section)) : esc(info.doneLabel)) + "</button>" +
+        (next ? '<a href="#" class="linkish tiny" data-dsa-step-skip="' + n + '">skip this step ›</a>' : "") + "</div>";
+    } else {
+      page = r.page; section = r.section; why = r.why;
+      var top = DSAV.reader.stack[DSAV.reader.stack.length - 1];
+      head = '<div class="dsa-readhd">' + (top
+        ? '<a href="#" class="linkish" data-dsa-return="1">‹ Back to ' + esc(top.label.split(" — ")[0]) + "</a>"
+        : '<a href="#" class="linkish" data-dsa-go="#dsa/library">‹ Library</a>') +
+        '<span class="muted tiny">' + (top ? "Detour" : "Library page") + "</span></div>";
+      foot = top
+        ? '<div class="dsa-readfoot"><button class="btn" type="button" data-dsa-return="1">↩ Return to where you were</button>' +
+          '<span class="muted tiny">' + esc(COPY["reader.detour"]) + "</span></div>"
+        : '<div class="dsa-readfoot"><a href="#" class="linkish" data-dsa-go="#dsa/read/page-' + esc(page) + '/1">Read this page as a path ›</a></div>';
+    }
+    return '<section class="card dsa-reader">' + head + dsaReturnBar() +
+      (why ? '<div class="dsa-why"><b>' + esc(COPY["reader.why"]) + "</b> " + mdInline(why) + "</div>" : "") +
+      '<div class="dsa-readtitle"><h2>' + esc(dsaPageMeta(page).t) + (section ? ' <span class="muted">› ' +
+        esc((dsaPageMeta(page).s || {})[section] || section) + "</span>" : "") + "</h2>" + dsaModeTabs() + "</div>" +
+      '<div id="dsaReadBody" data-page="' + esc(page) + '" data-section="' + esc(section || "") + '"><div class="dsa-loading">Loading…</div></div>' +
+      foot + "</section>";
+  }
+
+  function dsaFillRead() {
+    var host = document.getElementById("dsaReadBody");
+    if (!host) return;
+    var page = host.dataset.page, section = host.dataset.section || null;
+    dsaGet("theory", page).then(function (doc) {
+      if (!document.getElementById("dsaReadBody") || host.dataset.page !== page) return;
+      if (DSAV.readMode === "notes") host.innerHTML = dsaPageNotes(doc, section);
+      else if (DSAV.readMode === "revise") host.innerHTML = dsaRevise(doc.recall || [], doc.id, doc.title);
+      else host.innerHTML = dsaPageRead(doc, section);
+      if (section) { DSAV.reader.lastAnchorByPage[page] = section; dsaReaderSave(); }
+      bindDsa();
+      dsaApplyPendingAnchor();
+    }).catch(function () {
+      host.innerHTML = '<p class="muted">That page is not reachable from here.</p>';
+    });
+  }
+
+  function dsaSectionHtml(doc, s, withUsedBy) {
+    var body = dsaSectionBody(s, "t:" + doc.id + ":" + s.id);
+    return '<div class="dsa-tsec" id="dsa-sec-' + esc(doc.id) + "-" + esc(s.id) + '">' +
+      '<div class="dsa-stagehd"><h4>' + esc(s.title) + "</h4>" + dsaNoteBadge(s.note) + "</div>" + body +
+      (withUsedBy ? dsaUsedBy((doc.used_by || []).filter(function (u) { return u.section === s.id; })) : "") + "</div>";
+  }
+
+  function dsaPageRead(doc, section) {
+    var secs = doc.sections || [];
+    var target = secs.filter(function (s) { return s.id === section; })[0] || secs[0];
+    var rest = secs.filter(function (s) { return s !== target; });
+    var noted = DSA_S.page_notes[doc.id];
+    return (noted && noted.noted ? '<p class="dsa-noted">✓ already in your notes' + (noted.goodnotes_ref ? " · " + esc(noted.goodnotes_ref) : "") + "</p>" : "") +
+      '<label class="dsa-toggle"><input type="checkbox" data-dsa-writeonly="1"' + (DSAV.writeOnly ? " checked" : "") + "> ✍️ only</label>" +
+      dsaSectionHtml(doc, target, true) +
+      (rest.length ? (DSAV.readExpand
+        ? rest.map(function (s) { return dsaSectionHtml(doc, s, true); }).join("") +
+          '<p><a href="#" class="linkish tiny" data-dsa-expand="0">Hide the rest ▴</a></p>'
+        : '<p><a href="#" class="linkish" data-dsa-expand="1">Show the rest of this page ▸</a> <span class="muted tiny">' +
+          rest.length + " more section" + (rest.length === 1 ? "" : "s") + "</span></p>") : "");
+  }
+
+  /* ------------------------------------------------------ notes (§6) */
+
+  function dsaNoteSheet(title, chip, noteText, anchorId, pageId) {
+    var pn = pageId ? (DSA_S.page_notes[pageId] || {}) : null;
+    return '<div class="dsa-sheet"><div class="dsa-sheet-hd"><b>' + esc(title) + "</b>" +
+      (chip ? '<span class="dsa-kind">' + esc(chip) + "</span>" : "") +
+      (pn ? '<span class="dsa-gn">GoodNotes p.<input type="text" data-dsa-gnref="' + esc(pageId) + '" value="' +
+        esc(pn.goodnotes_ref || "") + '" placeholder="__"></span>' : "") + "</div>" +
+      '<p class="muted tiny">' + esc(COPY["notes.sheet"]) + "</p>" +
+      DSA_RENDER.renderOutline(noteText, { esc: esc, inline: mdInline, anchor: anchorId }) + "</div>";
+  }
+
+  function dsaRecallList(items, sourceId) {
+    if (!items.length) return "";
+    return '<div class="dsa-recall"><h4>Recall (' + items.length + ')</h4><p class="muted tiny">' + esc(COPY["notes.recall"]) + "</p><ol>" +
+      items.map(function (r, i) {
+        var id = sourceId + "#r" + (i + 1);
+        return "<li><b>" + mdInline(r.q) + "</b>" + (DSAV.recallShown[id]
+          ? '<div class="dsa-recall-a">' + mdInline(r.a) + "</div>"
+          : ' <a href="#" class="linkish tiny" data-dsa-recall-show="' + esc(id) + '">show answer</a>') + "</li>";
+      }).join("") + "</ol></div>";
+  }
+
+  function dsaShotCard(shot) {
+    if (!shot) return "";
+    return '<div class="dsa-shot"><div class="dsa-shot-hd"><b>Screenshot card</b> <span class="muted tiny">' +
+      esc(COPY["notes.shot"]) + "</span></div><div class=\"dsa-shot-card\"><div class=\"dsa-shot-title\">" + esc(shot.title) + "</div>" +
+      md(shot.body) + "</div></div>";
+  }
+
+  function dsaNotedControl(pageId) {
+    var pn = DSA_S.page_notes[pageId] || {};
+    return '<div class="dsa-notedctl"><button type="button" class="btn' + (pn.noted ? " ghost" : "") + '" data-dsa-noted="' + esc(pageId) + '">' +
+      (pn.noted ? "✓ Written in GoodNotes" : "✓ I've written this in GoodNotes") + "</button>" +
+      '<span class="muted tiny">' + esc(COPY["notes.noted"]) + "</span></div>";
+  }
+
+  /* Pages without notes yet (Days 3–30 for now) fall back to the v3 ✍️
+     lines of the section, under a banner that says so (§12). */
+  function dsaPageNotes(doc, section) {
+    if (doc.notes_status !== "ready" || !doc.note) {
+      var secs = (doc.sections || []).filter(function (s) { return !section || s.id === section; });
+      var lines = secs.map(function (s) {
+        return s.body.split("\n").filter(function (l) { return /^\s*✍️/.test(l) || s.note === "write"; }).join("\n");
+      }).join("\n");
+      return '<div class="dsa-pending-notes">Full outline notes for this page arrive with its day\'s batch. Until then, these are the ✍️ lines to copy.</div>' +
+        '<div class="dsa-sheet">' + md(lines, { wl: "plain" }) + "</div>";
+    }
+    return dsaNoteSheet(doc.title, titleCase(doc.topic) + " · " + doc.kind, doc.note, "n:" + doc.id, doc.id) +
+      dsaRecallList(doc.recall || [], doc.id) + dsaShotCard(doc.shot) + dsaNotedControl(doc.id);
+  }
+
+  /* Revise mode (§7): recall questions only. Answer from memory, reveal,
+     self-mark; a miss comes back in two days. */
+  function dsaRevise(items, sourceId, title) {
+    if (!items.length) return '<p class="muted">No recall questions for ' + esc(title) + " yet — they arrive with its notes.</p>";
+    return '<p class="muted tiny">' + esc(COPY["revise.item"]) + "</p>" + items.map(function (r, i) {
+      var id = sourceId + "#r" + (i + 1);
+      var got = DSA_S.recall[id];
+      var shown = DSAV.recallShown[id];
+      return '<div class="dsa-revq' + (got && got.last_result === 1 ? " right" : got && got.last_result === 0 ? " wrong" : "") + '">' +
+        "<p><b>" + (i + 1) + ".</b> " + mdInline(r.q) + "</p>" +
+        (shown
+          ? '<div class="dsa-recall-a">' + mdInline(r.a) + '</div><div class="dsa-drill-mark">' +
+            '<button type="button" class="dsa-check' + (got && got.last_result === 1 ? " on" : "") + '" data-dsa-recall-mark="' + esc(id) + '" data-source="' + esc(sourceId) + '" data-v="1">✓ knew it</button>' +
+            '<button type="button" class="dsa-check' + (got && got.last_result === 0 ? " on bad" : "") + '" data-dsa-recall-mark="' + esc(id) + '" data-source="' + esc(sourceId) + '" data-v="0">✗ missed</button>' +
+            (got && got.due_on ? '<span class="muted tiny">next on ' + esc(got.due_on) + "</span>" : got && got.stage > 3 ? '<span class="muted tiny">retired</span>' : "") + "</div>"
+          : '<button type="button" class="btn tiny" data-dsa-recall-show="' + esc(id) + '">Show answer</button>') + "</div>";
+    }).join("");
+  }
+
+  function dsaAnswerRecall(id, source, result) {
+    var cur = DSA_S.recall[id] || { stage: 0 };
+    var next = DSA_CORE.recallNext(cur.stage, !!result, dsaToday());
+    DSA_S.recall[id] = { source: source, stage: next.stage, due_on: next.due_on, last_result: result ? 1 : 0 };
+    dsaCache();
+    if (!DSA_SYNC.on) return Promise.resolve();
+    return api("/api/dsa/recall/" + encodeURIComponent(id), { method: "PATCH", body: JSON.stringify({ result: result ? 1 : 0, source: source }) })
+      .then(function (res) { DSA_S.recall[id] = res.recall; dsaCache(); })
+      .catch(function (e) { toast("Not saved to the server: " + e.message); });
+  }
+
+  /* Problem Notes mode (§6.3): the problem's own sheet, then its must
+     references' sheets (titles, opened on demand), then the must sibling's
+     short note once studied. */
+  function dsaProblemNotes(p, doc) {
+    if (!doc.note) {
+      var lines = doc.stages.map(function (s) {
+        return s.note === "screenshot" ? "" : s.body.split("\n").filter(function (l) { return s.note === "write" || /^\s*✍️/.test(l); }).join("\n");
+      }).join("\n");
+      return '<div class="dsa-pending-notes">The outline note for this problem arrives with Day ' + p.day + "'s batch. Until then, the ✍️ lines:</div>" +
+        '<div class="dsa-sheet">' + md(lines, { wl: "plain" }) + "</div>";
+    }
+    var musts = [];
+    (doc.theory_refs || []).forEach(function (r) {
+      if (r.need === "must" && musts.indexOf(r.page) === -1) musts.push(r.page);
+    });
+    var must = (doc.siblings || []).filter(function (s) { return s.tier === "must"; })[0];
+    var studied = must && (DSA_S.siblings[must.id] || {}).studied;
+    return dsaNoteSheet(p.title, p.role + " · " + (p.pattern || ""), doc.note, "pn:" + p.id, null) +
+      (musts.length ? '<div class="dsa-mustnotes"><h4>Notes this problem relies on</h4>' + musts.map(function (pg) {
+        var meta = dsaPageMeta(pg);
+        var pn = DSA_S.page_notes[pg];
+        var open = DSAV.openNote === pg;
+        return '<div class="dsa-mustnote"><div class="dsa-rhead"><b>' + esc(meta.t) + "</b>" +
+          (pn && pn.noted ? '<span class="dsa-noted">noted ✓' + (pn.goodnotes_ref ? " " + esc(pn.goodnotes_ref) : "") + "</span>" : "") +
+          (meta.n ? '<a href="#" class="linkish tiny" data-dsa-opennote="' + esc(pg) + '">' + (open ? "Close note ▴" : "Open note ▸") + "</a>"
+            : '<span class="muted tiny">notes arrive with its batch</span>') + "</div>" +
+          (open ? '<div class="dsa-mustnote-body" data-dsa-notebody="' + esc(pg) + '"><div class="dsa-loading">Loading…</div></div>' : "") + "</div>";
+      }).join("") + "</div>" : "") +
+      (must && must.note ? '<div class="dsa-mustnote"><h4>Sibling: ' + esc(must.title) + "</h4>" +
+        (studied ? md(must.note) : '<p class="muted tiny">Its short note shows here once you mark it studied.</p>') + "</div>" : "");
+  }
+
+  function dsaFillOpenNote() {
+    var host = DSAV.openNote && document.querySelector('[data-dsa-notebody="' + cssEsc(DSAV.openNote) + '"]');
+    if (!host) return;
+    var pg = DSAV.openNote;
+    dsaGet("theory", pg).then(function (doc) {
+      if (!host.isConnected) return;
+      host.innerHTML = doc.note ? DSA_RENDER.renderOutline(doc.note, { esc: esc, inline: mdInline, anchor: "n:" + pg }) +
+        dsaRecallList(doc.recall || [], doc.id) + dsaNotedControl(doc.id) : '<p class="muted">No note yet.</p>';
+      bindDsa();
+    });
+  }
+
+  function dsaPatchPageNote(id, patch) { return dsaLedgerPatch("page_notes", "/api/dsa/page-note/", id, patch, "note"); }
+
+  /* ------------------------------------------------------ CS core (§14)
+
+     Days with the v3.1 `core` block get the guided pieces as one card:
+     intro, topics opened in the reader (read, then notes, then recall),
+     MCQs with instant feedback (a miss becomes a recall item), and a
+     two-minute explanation Groq grades. Days 3–5 keep the legacy card. */
+  function dsaCoreDay(n) {
+    return DSA_S.core_days[n] || { topics_done: [], mcq_answers: {}, mcq_score: null, mcq_total: null, explain_text: "", explain_feedback: null, done: false };
+  }
+
+  function dsaPatchCore(n, patch) { return dsaLedgerPatch("core_days", "/api/dsa/core-day/", n, patch, "core"); }
+
+  function dsaCoreBlock(n, core) {
+    var cd = dsaCoreDay(n);
+    var answered = Object.keys(cd.mcq_answers || {}).length;
+    var right = (core.mcqs || []).filter(function (q) { return (cd.mcq_answers || {})[q.id] === q.answer; }).length;
+    var fb = cd.explain_feedback;
+    return '<section class="card dsa-block" data-block="core"><div class="dsa-blockhd"><h3>CS core · ' + esc(core.subject) + "</h3>" +
+      '<span class="muted tiny">' + (core.minutes || 45) + " min</span>" +
+      '<label class="dsa-toggle right"><input type="checkbox" data-dsa-coredone="' + n + '"' + (cd.done ? " checked" : "") + "> done</label></div>" +
+      '<h4 class="dsa-microtitle">' + esc(core.title) + "</h4>" +
+      (core.intro || []).map(function (s) { return '<div class="dsa-stage">' + dsaSectionBody(s, "c:" + n + ":" + s.id) + "</div>"; }).join("") +
+      '<h4 class="dsa-sub">1 · Topics — read, write the note, answer recall</h4>' +
+      (core.topics || []).map(function (t, i) {
+        var done = (cd.topics_done || []).indexOf(t) !== -1;
+        var pn = DSA_S.page_notes[t];
+        return '<div class="dsa-coretopic' + (done ? " done" : "") + '"><b>' + (i + 1) + ". " + esc(dsaPageMeta(t).t) + "</b>" +
+          '<span class="dsa-coreacts">' +
+          '<a href="#" class="btn tiny" data-dsa-go="#dsa/read/page-' + esc(t) + '/1">Read</a>' +
+          '<a href="#" class="btn tiny ghost" data-dsa-go="#dsa/page/' + esc(t) + "/" + esc(dsaFirstSection(t) || "") + '?mode=notes">Notes</a>' +
+          '<a href="#" class="btn tiny ghost" data-dsa-go="#dsa/page/' + esc(t) + "/" + esc(dsaFirstSection(t) || "") + '?mode=revise">Recall</a>' +
+          (pn && pn.noted ? '<span class="dsa-noted">noted ✓</span>' : "") +
+          '<label class="dsa-toggle"><input type="checkbox" data-dsa-coretopic="' + esc(t) + '" data-day="' + n + '"' + (done ? " checked" : "") + "> done</label>" +
+          "</span></div>";
+      }).join("") +
+      '<h4 class="dsa-sub">2 · MCQs <span class="muted tiny">' + (answered ? right + " / " + answered + " right" : esc(COPY["core.mcq"])) + "</span></h4>" +
+      (core.mcqs || []).map(function (q, i) {
+        var mine = (cd.mcq_answers || {})[q.id];
+        return '<div class="dsa-mcq' + (mine ? (mine === q.answer ? " right" : " wrong") : "") + '"><p><b>' + (i + 1) + ".</b> " + mdInline(q.q) + "</p>" +
+          '<div class="dsa-mcq-opts">' + Object.keys(q.options).map(function (k) {
+            var cls = mine ? (k === q.answer ? " correct" : k === mine ? " picked" : "") : "";
+            return '<button type="button" class="dsa-mcq-opt' + cls + '" data-dsa-mcq="' + esc(q.id) + '" data-day="' + n + '" data-opt="' + k + '"' +
+              (mine ? " disabled" : "") + "><b>" + k + ".</b> " + mdInline(q.options[k]) + "</button>";
+          }).join("") + "</div>" +
+          (mine ? '<p class="dsa-mcq-why">' + (mine === q.answer ? "✓ Right. " : "✗ The answer is " + q.answer + ". ") + mdInline(q.why) + "</p>" : "") + "</div>";
+      }).join("") +
+      '<h4 class="dsa-sub">3 · Explain it (2 minutes)</h4>' +
+      '<p class="dsa-explain-q">' + mdInline(core.explain) + "</p>" +
+      '<p class="muted tiny">' + esc(COPY["core.explain"]) + "</p>" +
+      '<textarea class="dsa-drill-guess" rows="5" data-dsa-explain="' + n + '" placeholder="Say it the way you would in an interview…">' + esc(cd.explain_text || "") + "</textarea>" +
+      '<div class="dsa-drill-do">' + (DSA_SYNC.ai
+        ? '<button type="button" class="btn tiny" data-dsa-explaincheck="' + n + '"' + (DSAV.explainBusy ? " disabled" : "") + ">" +
+          (DSAV.explainBusy ? "checking…" : fb ? "check again" : "check with Groq") + "</button>"
+        : '<span class="muted tiny">AI check unavailable — compare with the key points in the topic notes.</span>') + "</div>" +
+      (fb && fb.grade ? '<div class="dsa-drill-verdict ' + ({ good: "ok", partial: "part", weak: "bad" }[fb.grade] || "part") + '"><b>' +
+        ({ good: "✓ good", partial: "≈ partly there", weak: "✗ needs work" }[fb.grade] || fb.grade) + (fb.score !== undefined ? " · " + fb.score + "/10" : "") + "</b> " +
+        esc(fb.feedback || "") + ((fb.missing || []).length ? '<br><span class="muted tiny">Add: ' + fb.missing.map(esc).join(" · ") + "</span>" : "") + "</div>" : "") +
+      "</section>";
+  }
+
+  /* ------------------------------------------------------ Library (§9) */
+
   function dsaTopicOrder() {
     var first = {};
     DSA_PROBLEMS.forEach(function (p) {
@@ -3125,6 +3600,7 @@
     var n = dsaClampDay(dsaTodayN());
     var ids = [];
     var d = DSA_PLAN.days[n - 1];
+    (d.reading_path || []).forEach(function (s) { if (ids.indexOf(s.page) === -1) ids.push(s.page); });
     ((d.micro && d.micro.theory) || []).forEach(function (t) { if (ids.indexOf(t) === -1) ids.push(t); });
     dsaProblemsOn(n).forEach(function (p) {
       (p.theory || []).forEach(function (t) { if (ids.indexOf(t) === -1) ids.push(t); });
@@ -3133,11 +3609,15 @@
   }
 
   function dsaPageCard(row) {
-    return '<a class="dsa-theorycard"' + dsaTheoryAttrs(row.id, null) + ">" +
-      '<span class="dsa-kind k-' + esc(row.kind) + '">' + esc(row.kind) + "</span>" +
+    var pn = DSA_S.page_notes[row.id];
+    var last = DSAV.reader.lastAnchorByPage[row.id];
+    return '<a class="dsa-theorycard" href="#dsa/read/page-' + esc(row.id) + '/1" data-dsa-go="#dsa/read/page-' + esc(row.id) + '/1">' +
+      '<span class="dsa-cardtags"><span class="dsa-kind k-' + esc(row.kind) + '">' + esc(row.kind) + "</span>" +
+      '<span class="dsa-nstatus ' + (row.notes_status === "ready" ? "ready" : "") + '">' + (row.notes_status === "ready" ? "notes ready" : "notes pending") + "</span>" +
+      (pn && pn.noted ? '<span class="dsa-noted">noted' + (pn.goodnotes_ref ? " · " + esc(pn.goodnotes_ref) : "") + "</span>" : "") + "</span>" +
       "<b>" + esc(row.title) + "</b>" +
       '<span class="muted tiny">' + esc(row.summary || "") + "</span>" +
-      (row.used ? '<span class="muted tiny">used ' + row.used + "×</span>" : "") + "</a>";
+      (last ? '<span class="muted tiny">continue at § ' + esc((dsaPageMeta(row.id).s || {})[last] || last) + "</span>" : "") + "</a>";
   }
 
   function dsaTheoryList() {
@@ -3146,17 +3626,29 @@
     var byId = {};
     DSA_TINDEX.pages.forEach(function (r) { byId[r.id] = r; });
     var match = function (r) {
-      return !q || r.title.toLowerCase().indexOf(q) !== -1 || (r.summary || "").toLowerCase().indexOf(q) !== -1 ||
-        r.id.indexOf(q) !== -1;
+      return !q || r.title.toLowerCase().indexOf(q) !== -1 || (r.summary || "").toLowerCase().indexOf(q) !== -1 || r.id.indexOf(q) !== -1;
     };
-    var pinned = q ? [] : dsaTodayPages().map(function (id) { return byId[id]; }).filter(Boolean);
-    return (pinned.length ? '<h4 class="dsa-sub">Used today</h4><div class="dsa-theorylist">' + pinned.map(dsaPageCard).join("") + "</div>" : "") +
-      dsaTopicOrder().map(function (topic) {
+    var topics = dsaTopicOrder();
+    var group = function (title, list) {
+      var html = list.map(function (topic) {
         var pages = (DSA_TINDEX.topics[topic] || []).map(function (id) { return byId[id]; }).filter(Boolean).filter(match);
         if (!pages.length) return "";
         return '<h4 class="dsa-sub">' + esc(titleCase(topic)) + ' <span class="muted tiny">' + pages.length + "</span></h4>" +
           '<div class="dsa-theorylist">' + pages.map(dsaPageCard).join("") + "</div>";
-      }).join("") || '<div class="empty">No page matches.</div>';
+      }).join("");
+      return html ? '<h3 class="dsa-libgroup">' + esc(title) + "</h3>" + html : "";
+    };
+    var isCore = function (t) { return (DSA_TINDEX.topics[t] || []).some(function (id) { return (byId[id] || {}).kind === "core"; }); };
+    var pinned = q ? [] : dsaTodayPages().map(function (id) { return byId[id]; }).filter(Boolean);
+    var plan = (DSA_PLAN.core_plan && DSA_PLAN.core_plan.days) || [];
+    var upcoming = q ? [] : plan.filter(function (d) { return d.content !== "ready"; }).slice(0, 8);
+    return (pinned.length ? '<h4 class="dsa-sub">Used today</h4><div class="dsa-theorylist">' + pinned.map(dsaPageCard).join("") + "</div>" : "") +
+      group("DSA", topics.filter(function (t) { return !isCore(t); })) +
+      group("CS core", topics.filter(isCore)) +
+      (upcoming.length ? '<h4 class="dsa-sub">CS core still to come</h4><div class="dsa-coming">' + upcoming.map(function (d) {
+        return '<div class="dsa-coming-row"><span class="muted tiny">' + esc(d.day ? "Day " + d.day : dsaShortDate(d.date)) + "</span> " +
+          esc(d.subject) + " — " + esc((d.topics || []).map(function (t) { return t.title; }).join(" · ")) + "</div>";
+      }).join("") + "</div>" : "") || '<div class="empty">No page matches.</div>';
   }
 
   function dsaPatternList() {
@@ -3173,13 +3665,9 @@
   }
 
   function renderDsaTheory() {
-    if (DSAV.theory) {
-      return '<section class="card"><button class="btn tiny" type="button" data-dsa-theory-back="1">‹ all theory</button>' +
-        '<div id="dsaTheoryBody"><div class="dsa-loading">Loading…</div></div></section>';
-    }
     if (!DSA_TINDEX) dsaTheoryIndex().then(function () { if (ACTIVE === "dsa-theory") render(); }).catch(function () {});
-    return '<section class="card"><h2>Theory</h2>' +
-      '<p class="muted">161 short pages. Problems link to exact sections; every section says which problems use it.</p>' +
+    return '<section class="card"><h2>Library</h2>' +
+      '<p class="muted">Every theory page — DSA and CS core. Open one to read it section by section; links inside always bring you back.</p>' +
       '<div class="dsa-seg">' +
         '<button type="button" class="tab' + (DSAV.theoryView === "pages" ? " on" : "") + '" data-dsa-tview="pages">Pages</button>' +
         '<button type="button" class="tab' + (DSAV.theoryView === "patterns" ? " on" : "") + '" data-dsa-tview="patterns">Patterns</button>' +
@@ -3190,22 +3678,36 @@
       "</section>";
   }
 
+  /* Used by, per section: where (problem › stage › quote, a day's reading
+     step, another page), why and when. Clicking a source opens it; from a
+     reader page that is a detour, so it comes back here. */
   function dsaUsedByLink(u) {
-    if (u.kind === "problem" && DSA_BY_ID[u.id]) {
+    var where = u.stage && u.stage !== "primary" ? titleCase(String(u.stage).replace("_", "-")) : "";
+    var tail = (where ? " › " + esc(where) : "") + (u.at ? " — “" + esc(u.at) + "”" : "") +
+      (u.when ? ' <span class="dsa-when w-' + esc(u.when) + '">' + esc(u.when) + (u.need === "must" ? " · must" : "") + "</span>" : "") +
+      (u.why ? '<div class="muted tiny">' + esc(u.why) + "</div>" : "");
+    if ((u.src === "problem" || u.kind === "primary") && DSA_BY_ID[u.id]) {
       return '<a href="#" class="linkish" data-dsa-goto="' + esc(u.id) + '">' + esc(DSA_BY_ID[u.id].title) + "</a>" +
-        ' <span class="muted tiny">D' + u.day + (u.stage && u.stage !== "primary" ? " · " + esc(u.stage.replace("_", " ")) : "") +
-        (u.at ? " · " + esc(u.at) : "") + "</span>";
+        ' <span class="muted tiny">D' + u.day + "</span>" + tail;
     }
-    if (u.kind === "sibling") {
-      var parent = DSA_BY_ID[u.at];
+    if (u.src === "sibling") {
+      var parent = DSA_BY_ID[u.parent];
       return esc(titleCase(u.id)) + ' <span class="muted tiny">sibling of ' +
-        (parent ? '<a href="#" class="linkish" data-dsa-goto="' + esc(parent.id) + '">' + esc(parent.title) + "</a>" : esc(u.at)) + "</span>";
+        (parent ? '<a href="#" class="linkish" data-dsa-goto="' + esc(parent.id) + '">' + esc(parent.title) + "</a>" : "") + "</span>" + tail;
     }
-    if (u.kind === "micro" || u.kind === "drill") {
+    if (u.kind === "path") {
+      return '<a href="#" class="linkish" data-dsa-go="#dsa/read/day-' + u.day + "/" + u.step + '">Day ' + u.day + " reading path · step " + u.step + "</a>" + tail;
+    }
+    if (u.src === "page") {
+      return '<a href="#" class="linkish" data-dsa-th="' + esc(u.from_page) + '" data-dsa-sec="' + esc(u.from_section || "") + '">' +
+        esc(dsaTheoryTitle(u.from_page, u.from_section)) + "</a> <span class=\"muted tiny\">" + esc(u.kind) + "</span>" + tail;
+    }
+    if (u.src === "core") return "CS core · Day " + u.day + tail;
+    if (u.src === "day" || u.src === "drill") {
       return '<a href="#" class="linkish" data-dsa-day="' + u.day + '" data-dsa-tab="dsa-today">Day ' + u.day + " " +
-        (u.kind === "micro" ? "micro-theory" : "drill") + "</a>" + (u.at ? ' <span class="muted tiny">' + esc(u.at) + "</span>" : "");
+        (u.src === "drill" ? "drill" : "micro-theory") + "</a>" + tail;
     }
-    return esc(titleCase(u.id)) + ' <span class="muted tiny">' + esc(u.kind) + " · D" + u.day + "</span>";
+    return esc(titleCase(u.id || "")) + ' <span class="muted tiny">' + esc(u.kind) + (u.day ? " · D" + u.day : "") + "</span>" + tail;
   }
 
   function dsaUsedBy(rows) {
@@ -3214,127 +3716,96 @@
       rows.map(function (u) { return "<li>" + dsaUsedByLink(u) + "</li>"; }).join("") + "</ul></details>";
   }
 
-  function dsaTheoryPageHtml(doc) {
-    var used = doc.used_by || [];
-    var pageLevel = used.filter(function (u) { return !u.section; });
-    var chips = function (label, ids) {
-      return (ids || []).length ? '<div class="dsa-chips"><span class="muted tiny">' + label + "</span>" +
-        ids.map(function (id) { return dsaTheoryChip(id, null); }).join("") + "</div>" : "";
-    };
-    return '<div class="dsa-tpage">' +
-      '<h2>' + esc(doc.title) + ' <span class="dsa-kind k-' + esc(doc.kind) + '">' + esc(doc.kind) + "</span></h2>" +
-      '<p class="muted">' + mdInline(doc.summary || "") + "</p>" +
-      chips("prereqs", doc.prereqs) + chips("related", doc.related) +
-      '<div class="dsa-toolbar"><label class="dsa-toggle"><input type="checkbox" data-dsa-writeonly="1"' +
-        (DSAV.writeOnly ? " checked" : "") + "> ✍️ only</label>" + dsaUsedBy(pageLevel) + "</div>" +
-      (doc.sections || []).map(function (s) {
-        var body = dsaSectionBody(s);
-        if (!body && DSAV.writeOnly) return "";
-        return '<div class="dsa-tsec" id="dsa-sec-' + esc(doc.id) + "-" + esc(s.id) + '">' +
-          '<div class="dsa-stagehd"><h4>' + esc(s.title) + "</h4>" + dsaNoteBadge(s.note) + "</div>" + body +
-          dsaUsedBy(used.filter(function (u) { return u.section === s.id; })) + "</div>";
-      }).join("") + "</div>";
-  }
+  /* ------------------------------------------------------ routes
 
-  function dsaFlash(el) {
-    if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
-    el.classList.add("flash");
-    setTimeout(function () { el.classList.remove("flash"); }, 2000);
-  }
-
-  function dsaFillTheory() {
-    var host = document.getElementById("dsaTheoryBody");
-    if (!host || !DSAV.theory) return;
-    var page = DSAV.theory, sec = DSAV.theorySec;
-    dsaGet("theory", page).then(function (doc) {
-      if (DSAV.theory !== page) return;
-      host.innerHTML = dsaTheoryPageHtml(doc);
-      bindDsa();
-      if (sec) { DSAV.theorySec = null; dsaFlash(document.getElementById("dsa-sec-" + page + "-" + sec)); }
-    }).catch(function () {
-      host.innerHTML = '<p class="muted">That theory page is not reachable from here.</p>';
-    });
-  }
-
-  /* The side drawer: a theory section opened from inside a problem, on a
-     screen wide enough to read both at once. The open row stays exactly as
-     it was underneath. */
-  function dsaDrawerWide() { return window.innerWidth >= 1100; }
-
-  function dsaOpenDrawer(page, sec) {
-    var el = document.getElementById("dsaDrawer");
-    if (!el) {
-      el = document.createElement("aside");
-      el.id = "dsaDrawer";
-      el.className = "dsa-drawer";
-      document.body.appendChild(el);
-    }
-    DSAV.drawer = { page: page, sec: sec };
-    el.innerHTML = '<div class="dsa-drawerhd"><a class="linkish tiny"' + dsaTheoryAttrs(page, sec) +
-      ' data-dsa-full="1">open full page</a><button class="btn tiny" type="button" data-dsa-drawer-close="1">close ✕</button></div>' +
-      '<div class="dsa-drawerbody"><div class="dsa-loading">Loading…</div></div>';
-    el.classList.add("on");
-    dsaGet("theory", page).then(function (doc) {
-      if (!DSAV.drawer || DSAV.drawer.page !== page) return;
-      el.querySelector(".dsa-drawerbody").innerHTML = dsaTheoryPageHtml(doc);
-      bindDsa();
-      var target = sec ? document.getElementById("dsa-sec-" + page + "-" + sec) : null;
-      if (target) {
-        el.querySelector(".dsa-drawerbody").scrollTop = target.offsetTop - 60;
-        target.classList.add("flash");
-        setTimeout(function () { target.classList.remove("flash"); }, 2000);
-      }
-    }).catch(function () {
-      el.querySelector(".dsa-drawerbody").innerHTML = '<p class="muted">That theory page is not reachable from here.</p>';
-    });
-  }
-
-  function dsaCloseDrawer() {
-    DSAV.drawer = null;
-    var el = document.getElementById("dsaDrawer");
-    if (el) el.classList.remove("on");
-  }
-
-  function dsaOpenTheory(page, sec, push) {
-    dsaCloseDrawer();
-    SECTION = "dsa";
-    ACTIVE = "dsa-theory";
-    DSAV.theory = page;
-    DSAV.theorySec = sec || null;
-    if (push !== false) {
-      var h = "#dsa/theory/" + page + (sec ? "/" + sec : "");
-      if (location.hash !== h) history.pushState(null, "", h);
-    }
-    render();
-    window.scrollTo({ top: 0 });
-  }
-
-  /* #dsa/theory/<page>/<section>, #dsa/plan, #dsa/day/<n>. Anything else
-     under #dsa lands on Today. */
+     #dsa/today · #dsa/day/<n> · #dsa/problem/<id>/<stage> ·
+     #dsa/read/<pathKey>/<step> · #dsa/page/<page>/<section>?mode= ·
+     #dsa/plan · #dsa/library · #dsa/revision · #dsa/browse · #dsa/oa
+     (the v3 #dsa/theory/<page>/<section> still works). */
   function dsaRoute(hash) {
-    var parts = String(hash || "").replace(/^#/, "").split("/");
+    var h = String(hash || "").replace(/^#/, "");
+    var q = "";
+    if (h.indexOf("?") !== -1) { q = h.slice(h.indexOf("?") + 1); h = h.slice(0, h.indexOf("?")); }
+    var parts = h.split("/");
     if (parts[0] !== "dsa" || !DSA_PLAN) return false;
     SECTION = "dsa";
-    if (parts[1] === "theory") {
-      if (parts[2]) { dsaOpenTheory(parts[2], parts[3], false); return true; }
-      DSAV.theory = null;
-      ACTIVE = "dsa-theory";
-    } else if (parts[1] === "plan") ACTIVE = "dsa-plan";
+    var mode = (/(?:^|&)mode=(read|notes|revise)/.exec(q) || [])[1];
+    if (parts[1] === "read" && parts[2]) {
+      ACTIVE = "dsa-read";
+      DSAV.read = { kind: "path", key: parts[2], step: Math.max(1, +parts[3] || 1) };
+      DSAV.readMode = mode || "read";
+    } else if ((parts[1] === "page" || parts[1] === "theory") && parts[2]) {
+      ACTIVE = "dsa-read";
+      var why = DSAV.read && DSAV.read.kind === "detour" && DSAV.read.page === parts[2] ? DSAV.read.why : "";
+      DSAV.read = { kind: "detour", page: parts[2], section: parts[3] || dsaFirstSection(parts[2]), why: why };
+      DSAV.readMode = mode || "read";
+    } else if (parts[1] === "theory" || parts[1] === "library") { ACTIVE = "dsa-theory"; }
+    else if (parts[1] === "plan") ACTIVE = "dsa-plan";
     else if (parts[1] === "revision") ACTIVE = "dsa-revision";
     else if (parts[1] === "browse") ACTIVE = "dsa-browse";
     else if (parts[1] === "oa") ACTIVE = "dsa-oa";
-    else if (parts[1] === "day" && +parts[2]) { ACTIVE = "dsa-today"; DSAV.day = dsaClampDay(+parts[2]); }
+    else if (parts[1] === "day" && +parts[2]) { ACTIVE = "dsa-today"; DSAV.day = dsaClampDay(+parts[2]) === dsaTodayN() ? 0 : dsaClampDay(+parts[2]); }
     else if (parts[1] === "problem" && DSA_BY_ID[parts[2]]) {
-      // The nudge email's deep link: open that row on its day.
       var pr = DSA_BY_ID[parts[2]];
       ACTIVE = "dsa-today";
       DSAV.day = pr.day === dsaTodayN() ? 0 : pr.day;
+      if (DSAV.openId !== pr.id) { DSAV.revealed = {}; DSAV.cover = false; }
       DSAV.openId = pr.id;
+      DSAV.panelMode = "steps";
+      var stage = parts[3] || DSAV.returnReveal;
+      if (stage) DSAV.revealed[stage] = true;
+      DSAV.returnReveal = null;
       DSA_AUTO_OPENED[pr.day] = true;
     }
-    else ACTIVE = "dsa-today";
+    else {
+      // #dsa, #dsa/today, or anything unknown: today's plan day.
+      ACTIVE = "dsa-today";
+      if (!parts[1] || parts[1] === "today") DSAV.day = 0;
+    }
     return true;
+  }
+
+  function dsaOpenTheory(page, sec) { dsaTakeDetour(page, sec, "", null); }
+  function dsaCloseDrawer() { /* the drawer became the reader (v3.1) */ }
+
+  /* ------------------------------------------------------ Today pieces */
+
+  function dsaReturnCard() {
+    var top = DSAV.reader.stack[DSAV.reader.stack.length - 1];
+    if (!top) return "";
+    return '<section class="card dsa-nextup"><div class="dsa-nextup-kind">Return</div>' +
+      "<h3>You left mid-detour</h3><p>" + esc(COPY["today.next.return"]) + "</p>" +
+      '<button class="btn" type="button" data-dsa-return="1">↩ Return to ' + esc(top.label) + "</button></section>";
+  }
+
+  function dsaReadingBlock(n) {
+    var d = DSA_PLAN.days[n - 1];
+    var steps = d.reading_path && d.reading_path.length ? d.reading_path : null;
+    if (!steps) return "";
+    var key = "day-" + n;
+    var st = dsaReadingState(key);
+    var at = Math.min(steps.length, (st.step || 0) + 1);
+    return dsaBlock("reading", "Today's reading path", dsaPathMinutes(steps),
+      '<p class="muted tiny">' + esc(COPY["today.next.read"]) + "</p>" +
+      '<div class="dsa-pathsteps">' + steps.map(function (s, i) {
+        var done = st.done || i < (st.step || 0);
+        return '<a href="#" class="dsa-pathstep' + (done ? " done" : "") + (i + 1 === at && !st.done ? " now" : "") +
+          '" data-dsa-go="#dsa/read/' + key + "/" + (i + 1) + '"><span class="n">' + (done ? "✓" : i + 1) + "</span>" +
+          esc(dsaTheoryTitle(s.page, s.section)) + ' <span class="muted tiny">' + s.minutes + " min</span></a>";
+      }).join("") + "</div>" +
+      (st.done ? '<p class="dsa-noted">✓ Reading path done</p>'
+        : '<button class="btn" type="button" data-dsa-go="#dsa/read/' + key + "/" + at + '">' + (st.step ? "Continue reading · step " + at + " of " + steps.length : "Start reading · " + steps.length + " steps") + "</button>"));
+  }
+
+  /* LEARN problems with 'before' references open on "Read first". */
+  function dsaReadFirst(p, doc) {
+    var refs = (doc.theory_refs || []).filter(function (r) { return r.when === "before"; });
+    if (!refs.length) return "";
+    var st = dsaReadingState("before-" + p.id);
+    return '<div class="dsa-readfirst' + (st.done ? " done" : "") + '"><div><b>' + (st.done ? "✓ Read first — done" : "Read first") + "</b> " +
+      '<span class="muted tiny">' + refs.length + " step" + (refs.length === 1 ? "" : "s") + " · ~" + refs.length * 3 + " min · " + esc(COPY["step.read_first"]) + "</span></div>" +
+      '<button class="btn tiny' + (st.done ? " ghost" : "") + '" type="button" data-dsa-go="#dsa/read/before-' + esc(p.id) + "/" + Math.min(refs.length, (st.step || 0) + 1) + '">' +
+      (st.done ? "read again" : st.step ? "continue ▸" : "start ▸") + "</button></div>";
   }
 
   /* ------------------------------------------------------ Revision */
@@ -3477,6 +3948,7 @@
     DSAV.openId = id;
     DSAV.revealed = {};
     DSAV.cover = false;
+    DSAV.panelMode = "steps";
     DSA_AUTO_OPENED[p.day] = true;
     render();
     var el = document.querySelector('[data-dsa-row="' + cssEsc(id) + '"]');
@@ -3524,6 +3996,7 @@
         DSAV.openId = DSAV.openId === id ? null : id;
         DSAV.revealed = {};
         DSAV.cover = false;
+        DSAV.panelMode = "steps";
         render();
         if (before !== null) {
           var now = document.querySelector('[data-dsa-row="' + cssEsc(id) + '"]');
@@ -3557,7 +4030,6 @@
         DSAV.writeOnly = c.checked;
         dsaUiSave();
         var y = window.scrollY;
-        if (DSAV.drawer) dsaOpenDrawer(DSAV.drawer.page, null);
         render();
         window.scrollTo(0, y);
       };
@@ -3666,34 +4138,146 @@
       a.onclick = function (e) { e.preventDefault(); dsaGoto(a.dataset.dsaGoto); };
     });
 
-    /* A theory link from anywhere. Inside the Theory tab, or on a narrow
-       screen, it navigates; from a problem on a wide screen it opens the
-       drawer so the problem stays in view. */
-    document.querySelectorAll("[data-dsa-th]").forEach(function (a) {
+    /* v3.1: every theory link, chip, stuck rung and detour card opens the
+       reader as a detour that comes back to where it was clicked. */
+    document.querySelectorAll("[data-dsa-th],[data-dsa-detour]").forEach(function (a) {
       a.onclick = function (e) {
         if (e.metaKey || e.ctrlKey) return;
         e.preventDefault();
-        var page = a.dataset.dsaTh, sec = a.dataset.dsaSec || null;
-        if (!a.dataset.dsaFull && ACTIVE !== "dsa-theory" && dsaDrawerWide()) dsaOpenDrawer(page, sec);
-        else dsaOpenTheory(page, sec);
+        dsaTakeDetour(a.dataset.dsaDetour || a.dataset.dsaTh, a.dataset.dsaSec || null, a.dataset.dsaWhy || "", a);
       };
+    });
+    document.querySelectorAll("[data-dsa-go]").forEach(function (a) {
+      a.onclick = function (e) { e.preventDefault(); dsaGo(a.dataset.dsaGo); };
+    });
+    document.querySelectorAll("[data-dsa-return]").forEach(function (b) {
+      b.onclick = function (e) { e.preventDefault(); dsaReturn(); };
+    });
+    document.querySelectorAll("[data-dsa-mode]").forEach(function (b) {
+      b.onclick = function () {
+        DSAV.readMode = b.dataset.dsaMode;
+        var h = dsaCurrentRoute(null);
+        history.replaceState(null, "", h.replace(/\?mode=\w+$/, "") + (DSAV.readMode !== "read" && /^#dsa\/page\//.test(h) ? "?mode=" + DSAV.readMode : ""));
+        render();
+      };
+    });
+    document.querySelectorAll("[data-dsa-panelmode]").forEach(function (b) {
+      b.onclick = function () { DSAV.panelMode = b.dataset.dsaPanelmode; dsaRepaintOpen(); };
+    });
+    document.querySelectorAll("[data-dsa-expand]").forEach(function (a) {
+      a.onclick = function (e) { e.preventDefault(); DSAV.readExpand = a.dataset.dsaExpand === "1"; dsaFillRead(); };
+    });
+    document.querySelectorAll("[data-dsa-step-done],[data-dsa-step-skip]").forEach(function (b) {
+      b.onclick = function (e) {
+        e.preventDefault();
+        var info = dsaPathInfo(DSAV.read.key);
+        var n = +(b.dataset.dsaStepDone || b.dataset.dsaStepSkip);
+        var last = n >= info.steps.length;
+        var cur = dsaReadingState(info.key);
+        if (b.dataset.dsaStepDone) dsaPatchReading(info.key, { step: Math.max(cur.step || 0, n), done: cur.done || last });
+        DSAV.reader.pathKey = info.key;
+        DSAV.reader.step = last ? n : n + 1;
+        dsaReaderSave();
+        if (!last) { DSAV.readMode = "read"; DSAV.readExpand = false; dsaGo("#dsa/read/" + info.key + "/" + (n + 1)); return; }
+        // A day's path done counts as "micro-theory read" for the v3 ledger.
+        var dm = /^day-(\d+)$/.exec(info.key);
+        if (dm) dsaPatchDay(+dm[1], { micro_read: true });
+        toast("Path done — " + info.doneLabel + ".");
+        dsaGo(info.back.hash);
+      };
+    });
+    document.querySelectorAll("[data-dsa-recall-show]").forEach(function (b) {
+      b.onclick = function (e) { e.preventDefault(); DSAV.recallShown[b.dataset.dsaRecallShow] = true; if (ACTIVE === "dsa-read") dsaFillRead(); else dsaRepaintOpen(); };
+    });
+    document.querySelectorAll("[data-dsa-recall-mark]").forEach(function (b) {
+      b.onclick = function () {
+        dsaAnswerRecall(b.dataset.dsaRecallMark, b.dataset.source, b.dataset.v === "1").then(function () { if (ACTIVE === "dsa-read") dsaFillRead(); });
+        if (ACTIVE === "dsa-read") dsaFillRead();
+      };
+    });
+    document.querySelectorAll("[data-dsa-noted]").forEach(function (b) {
+      b.onclick = function () {
+        var id = b.dataset.dsaNoted;
+        var ref = document.querySelector('[data-dsa-gnref="' + cssEsc(id) + '"]');
+        var cur = DSA_S.page_notes[id] || {};
+        dsaPatchPageNote(id, { noted: !cur.noted, goodnotes_ref: ref ? ref.value.trim() : cur.goodnotes_ref || "" }).then(function () {
+          if (ACTIVE === "dsa-read") dsaFillRead(); else dsaRepaintOpen();
+        });
+      };
+    });
+    document.querySelectorAll("[data-dsa-gnref]").forEach(function (el) {
+      el.onblur = function () {
+        var id = el.dataset.dsaGnref;
+        if ((DSA_S.page_notes[id] || {}).goodnotes_ref === el.value.trim()) return;
+        dsaPatchPageNote(id, { goodnotes_ref: el.value.trim() });
+      };
+    });
+    document.querySelectorAll("[data-dsa-opennote]").forEach(function (a) {
+      a.onclick = function (e) {
+        e.preventDefault();
+        DSAV.openNote = DSAV.openNote === a.dataset.dsaOpennote ? null : a.dataset.dsaOpennote;
+        dsaRepaintOpen();
+      };
+    });
+    document.querySelectorAll("[data-dsa-coretopic]").forEach(function (c) {
+      c.onchange = function () {
+        var n = +c.dataset.day;
+        var done = (dsaCoreDay(n).topics_done || []).filter(function (t) { return t !== c.dataset.dsaCoretopic; });
+        if (c.checked) done.push(c.dataset.dsaCoretopic);
+        dsaPatchCore(n, { topics_done: done });
+      };
+    });
+    document.querySelectorAll("[data-dsa-mcq]").forEach(function (b) {
+      b.onclick = function () {
+        var n = +b.dataset.day;
+        var doc = DSA_CACHE.day[n];
+        var q = ((doc && doc.core && doc.core.mcqs) || []).filter(function (x) { return x.id === b.dataset.dsaMcq; })[0];
+        if (!q) return;
+        var answers = Object.assign({}, dsaCoreDay(n).mcq_answers || {});
+        answers[q.id] = b.dataset.opt;
+        var right = doc.core.mcqs.filter(function (x) { return answers[x.id] === x.answer; }).length;
+        dsaPatchCore(n, { mcq_answers: answers, mcq_score: right, mcq_total: Object.keys(answers).length });
+        // A wrong answer becomes a recall item, due in two days (§7).
+        if (b.dataset.opt !== q.answer) dsaAnswerRecall("mcq:" + q.id, "core-day-" + n, false);
+        render();
+      };
+    });
+    document.querySelectorAll("[data-dsa-explain]").forEach(function (ta) {
+      ta.onblur = function () {
+        var n = +ta.dataset.dsaExplain;
+        if (dsaCoreDay(n).explain_text === ta.value) return;
+        dsaPatchCore(n, { explain_text: ta.value });
+      };
+    });
+    document.querySelectorAll("[data-dsa-explaincheck]").forEach(function (b) {
+      b.onclick = function () {
+        var n = +b.dataset.dsaExplaincheck;
+        var ta = document.querySelector('[data-dsa-explain="' + n + '"]');
+        var text = ta ? ta.value.trim() : "";
+        if (text.length < 20) { toast("Write a few sentences first."); return; }
+        DSAV.explainBusy = true;
+        render();
+        api("/api/dsa/ask", { method: "POST", body: JSON.stringify({ mode: "explain_grade", context: { day: n, text: text } }) })
+          .then(function (res) { DSA_S.core_days[n] = res.core; dsaCache(); })
+          .catch(function (e) { toast("Groq check failed: " + e.message); })
+          .then(function () { DSAV.explainBusy = false; render(); });
+      };
+    });
+    document.querySelectorAll("[data-dsa-coredone]").forEach(function (c) {
+      c.onchange = function () {
+        var n = +c.dataset.dsaCoredone;
+        dsaPatchCore(n, { done: c.checked });
+        // The v3 day ledger still drives "today complete" for the nudges.
+        dsaPatchDay(n, { cs_core_done: c.checked });
+      };
+    });
+    document.querySelectorAll("[data-dsa-guide]").forEach(function (b) {
+      b.onclick = function (e) { e.preventDefault(); DSAV.showGuide = !DSAV.showGuide; render(); };
     });
     document.querySelectorAll("[data-dsa-drawer-close]").forEach(function (b) { b.onclick = dsaCloseDrawer; });
     document.querySelectorAll("[data-dsa-theory-back]").forEach(function (b) {
-      b.onclick = function () { DSAV.theory = null; history.pushState(null, "", "#dsa/theory"); render(); };
+      b.onclick = function () { dsaGo("#dsa/library"); };
     });
-    document.querySelectorAll("[data-dsa-tview]").forEach(function (b) {
-      b.onclick = function () { DSAV.theoryView = b.dataset.dsaTview; render(); };
-    });
-    var tq = document.getElementById("dsaTheoryQ");
-    if (tq) {
-      tq.oninput = function () {
-        DSAV.theoryQ = tq.value;
-        var host = document.getElementById("dsaTheoryList");
-        if (host) { host.innerHTML = dsaTheoryList(); bindDsa(); }
-      };
-    }
-
     document.querySelectorAll("[data-copy]").forEach(function (b) {
       b.onclick = function () {
         var pre = document.getElementById(b.dataset.copy);
@@ -4639,6 +5223,7 @@
     load();
     dsaLoad();
     dsaUiLoad();
+    dsaReaderLoad();
     refreshBadges(stats());
     // A link straight to a section, e.g. /#dsa, opens on that section --
     // and #dsa/theory/<page>/<section> straight to a theory section.
@@ -4648,6 +5233,11 @@
       ACTIVE = sectionTabs()[0].id;
     }
     window.addEventListener("popstate", function () { if (dsaRoute(location.hash)) render(); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Escape" || SECTION !== "dsa" || !DSAV.reader.stack.length) return;
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || "")) return;
+      dsaReturn();
+    });
     document.getElementById("loading").classList.add("hide");
     document.getElementById("panel").classList.remove("hide");
     render();

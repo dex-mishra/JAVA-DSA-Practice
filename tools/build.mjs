@@ -87,16 +87,19 @@ if (dsa && !existsSync(join(DATA, "dsa", "day", "1.json"))) {
 }
 
 const styles = readFileSync(join(SRC, "styles.css"), "utf8");
-/* shared/dsa-core.mjs is the plan arithmetic the Worker also imports. The
-   page is a classic script, not a module, so the file is inlined with its
-   `export` keywords stripped and its names collected onto DSA_CORE. One
-   source, two consumers, no bundler. */
-const coreSrc = readFileSync(join(ROOT, "shared", "dsa-core.mjs"), "utf8");
-const coreNames = [...coreSrc.matchAll(/^export (?:function|const) ([A-Za-z_$][\w$]*)/gm)].map((m) => m[1]);
-if (/^\s*import\s/m.test(coreSrc)) throw new Error("shared/dsa-core.mjs must not import anything -- it is inlined into the page");
-const core = "var DSA_CORE = (function () {\n" + coreSrc.replace(/^export /gm, "") +
-  "\nreturn { " + coreNames.join(", ") + " };\n})();\n";
-const app = core + readFileSync(join(SRC, "app.js"), "utf8");
+/* shared/*.mjs are modules the Worker and the tests import. The page is a
+   classic script, not a module, so each is inlined with its `export`
+   keywords stripped and its exported names collected onto one object --
+   DSA_CORE (plan arithmetic) and DSA_RENDER (markdown, outlines, reader
+   stack). One source, two consumers, no bundler. */
+function inlineModule(file, name) {
+  const src = readFileSync(join(ROOT, "shared", file), "utf8");
+  if (/^\s*import\s/m.test(src)) throw new Error(`shared/${file} must not import anything -- it is inlined into the page`);
+  const names = [...src.matchAll(/^export (?:function|const) ([A-Za-z_$][\w$]*)/gm)].map((m) => m[1]);
+  return `var ${name} = (function () {\n` + src.replace(/^export /gm, "") + `\nreturn { ${names.join(", ")} };\n})();\n`;
+}
+const app = inlineModule("dsa-core.mjs", "DSA_CORE") + inlineModule("dsa-render.mjs", "DSA_RENDER") +
+  readFileSync(join(SRC, "copy.js"), "utf8") + "\n" + readFileSync(join(SRC, "app.js"), "utf8");
 let shell = readFileSync(join(SRC, "shell.html"), "utf8");
 
 // `</script>` inside the JSON payload would close the tag early. Escape it.
