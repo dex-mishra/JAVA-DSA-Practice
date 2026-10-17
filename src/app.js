@@ -4021,7 +4021,7 @@
       '<div class="dsa-dayhd"><h2>Day ' + n + " · " + esc(d.title) + "</h2>" +
         '<div class="muted">' + esc(dsaShortDate(d.date)) + (mock ? ' · <b class="dsa-mockday">' + esc(dsaMockLabel(mock)) + " today</b>" : "") +
         " · ✓ " + listDone + " / " + listAll +
-        (isToday ? "" : ' · <a href="#" class="linkish" data-dsa-day="0">back to today</a>') +
+        (isToday || todayN < 1 || todayN > DSA_PLAN.days.length ? "" : ' · <a href="#" class="linkish" data-dsa-day="0">back to today</a>') +
         ' · <a href="#" class="linkish" data-dsa-full="1">Show everything</a></div></div>' +
       '<button class="btn tiny" type="button" data-dsa-day="' + Math.min(DSA_PLAN.days.length, n + 1) + '"' + (n >= DSA_PLAN.days.length ? " disabled" : "") + ">›</button>" +
       "</div>";
