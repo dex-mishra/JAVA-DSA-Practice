@@ -47,6 +47,19 @@ const CUT_STATES = new Set(["", "skim", "queued"]);
 const MAX_PSEUDOCODE = 20_000;
 const MAX_GUESS = 1_000;
 
+/* The wall clock for the DSA routes. In local development only, with
+   DSA_FAKE_CLOCK=1 in .dev.vars, a request may carry X-DSA-Clock (an ISO
+   instant) -- the page sends it when opened with ?clock=..., which is how
+   the PRD §17 walk-through runs on any date. Ignored everywhere else, so a
+   deployed Worker always uses the real time. */
+function clock(env, request) {
+  if (env.DSA_FAKE_CLOCK === "1" && request) {
+    const t = Date.parse(request.headers.get("x-dsa-clock") || "");
+    if (!Number.isNaN(t)) return t;
+  }
+  return Date.now();
+}
+
 const json = (body, status = 200, headers = {}) =>
   new Response(JSON.stringify(body), {
     status,
@@ -471,9 +484,9 @@ route("GET", /^\/api\/overview$/, async (_m, _r, env) => {
 /* One read for everything the DSA tab writes: problem rows plus the v3
    ledgers (siblings, drill, per-day). The page boots from this in one round
    trip instead of four. */
-route("GET", /^\/api\/dsa\/progress$/, async (_m, _r, env) => {
+route("GET", /^\/api\/dsa\/progress$/, async (_m, request, env) => {
   const [progress, ledgers] = await Promise.all([readDsaProgress(env.DB), readDsaLedgers(env.DB)]);
-  return json({ ...progress, ...ledgers, today: istDate() });
+  return json({ ...progress, ...ledgers, today: istDate(clock(env, request)) });
 });
 
 route("PATCH", /^\/api\/dsa\/progress\/([^/]+)$/, async (match, request, env) => {
@@ -541,7 +554,7 @@ route("PATCH", /^\/api\/dsa\/progress\/([^/]+)$/, async (match, request, env) =>
 
   if (!Object.keys(patch).length) return bad("nothing to update");
 
-  const row = await patchDsaProgress(env.DB, id, patch);
+  const row = await patchDsaProgress(env.DB, id, patch, { now: clock(env, request) });
   return json({ id, progress: row });
 });
 
@@ -559,10 +572,11 @@ route("POST", /^\/api\/dsa\/resolve\/([^/]+)$/, async (match, request, env) => {
   if (!row.first_done_at) return bad("this problem has not been solved yet, so there is nothing to re-solve", 409);
   if (!row.next_resolve_on) return bad("every re-solve for this problem is already done", 409);
 
-  const today = istDate();
+  const now = clock(env, request);
+  const today = istDate(now);
   const progress = await patchDsaProgress(env.DB, id, {
     ...afterResolve(row, n, today), confidence: n, last_revised: today
-  });
+  }, { now });
   return json({ id, progress });
 });
 
@@ -576,7 +590,7 @@ route("PATCH", /^\/api\/dsa\/sibling\/([^/]+)$/, async (match, request, env) => 
   if ("notes" in payload) patch.notes = String(payload.notes).slice(0, MAX_NOTES);
   if (!Object.keys(patch).length) return bad("nothing to update");
   try {
-    return json({ id, sibling: await patchSibling(env.DB, id, patch) });
+    return json({ id, sibling: await patchSibling(env.DB, id, patch, { now: clock(env, request) }) });
   } catch (e) {
     return bad(e.message);
   }
@@ -595,7 +609,7 @@ route("PATCH", /^\/api\/dsa\/drill\/([^/]+)$/, async (match, request, env) => {
   if ("correct" in payload) patch.correct = payload.correct === null ? null : !!payload.correct;
   if (!Object.keys(patch).length) return bad("nothing to update");
   try {
-    return json({ id, drill: await patchDrill(env.DB, id, patch) });
+    return json({ id, drill: await patchDrill(env.DB, id, patch, { now: clock(env, request) }) });
   } catch (e) {
     return bad(e.message);
   }
@@ -609,7 +623,7 @@ route("PATCH", /^\/api\/dsa\/day\/(\d+)$/, async (match, request, env) => {
   for (const k of ["kept", "micro_read", "cs_core_done"]) if (k in payload) patch[k] = !!payload[k];
   if ("note" in payload) patch.note = String(payload.note).slice(0, MAX_NOTES);
   if (!Object.keys(patch).length) return bad("nothing to update");
-  return json({ day, ledger: await patchDay(env.DB, day, patch) });
+  return json({ day, ledger: await patchDay(env.DB, day, patch, { now: clock(env, request) }) });
 });
 
 // -- opportunities ---------------------------------------------------------

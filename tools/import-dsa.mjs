@@ -456,13 +456,29 @@ export function importDsa({ src, today = new Date().toISOString().slice(0, 10) }
       problems: (d.problems || []).map((p) => p.id),
       skims: (d.skims || []).map((s) => ({ id: s.id, title: s.title, lc: s.lc, theory: s.theory || [] })),
       micro: dayOut.has(d.day) ? { title: dayOut.get(d.day).micro.title, theory: dayOut.get(d.day).micro.theory || [] } : null
-    }))
+    })),
+    // The schedule is public by design (PRD D9): dates from Day 1, unlock times never.
+    mocks: mocks.map((m) => ({ id: m.id, day: m.day, date: m.date, weekday: m.weekday, kind: m.kind,
+      duration_min: m.duration_min, covers_days: m.covers_days, content: m.content })),
+    mock_rules: schedule.rules
   };
+
+  /* Titles of every theory page and section, so a chip or an inline
+     [[page#section]] link renders its real name on first paint instead of
+     waiting for the 140 KB catalogue. Kind rides along for the badge. */
+  const theoryTitles = {};
+  for (const page of pages.values()) {
+    theoryTitles[page.id] = {
+      t: page.title, k: page.kind, topic: page.topic,
+      s: Object.fromEntries((page.sections || []).map((x) => [x.id, x.title]))
+    };
+  }
 
   const indexOut = {
     version: 3,
     total: rows.length,
     problems: rows,
+    theory: theoryTitles,
     legacy_map: Object.fromEntries(rows.filter((r) => r.legacy_id).map((r) => [r.legacy_id, r.id])),
     patterns: patternList
   };
