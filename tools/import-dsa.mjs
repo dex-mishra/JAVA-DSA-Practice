@@ -563,7 +563,9 @@ export function importDsa({ src, today = new Date().toISOString().slice(0, 10) }
     legacy_id: p.legacy_id || null,
     content: problemOut.has(p.id) ? "ready" : "pending",
     must: mustOf.get(p.id) || null,
-    siblings: siblingCount.get(p.id) || 0
+    siblings: siblingCount.get(p.id) || 0,
+    before: problemOut.has(p.id) ? problemOut.get(p.id).theory_refs.filter((x) => x.when === "before").length : 0,
+    refs: problemOut.has(p.id) ? problemOut.get(p.id).theory_refs.length : 0
   }));
 
   const patternList = [...patterns].map((pattern) => {
@@ -634,9 +636,12 @@ export function importDsa({ src, today = new Date().toISOString().slice(0, 10) }
       micro_theory: d.micro ? d.micro.theory : [],
       drill: dayOut.has(d.day) ? dayOut.get(d.day).drill.map((it) => it.id) : [],
       cs_core: dayOut.has(d.day) && dayOut.get(d.day).cs_core ? dayOut.get(d.day).cs_core.id : null,
+      core: dayOut.has(d.day) && dayOut.get(d.day).core ? { title: dayOut.get(d.day).core.title, subject: dayOut.get(d.day).core.subject } : null,
+      reading_steps: dayOut.has(d.day) ? dayOut.get(d.day).reading_path.length : 0,
       problems: rows.filter((r) => r.day === d.day).sort((a, b) => a.ord - b.ord).map((r) => ({
         id: r.id, ord: r.ord, role: r.role, title: r.title, url: r.url, difficulty: r.difficulty,
-        theory: r.theory, must: r.must
+        theory: r.theory, must: r.must,
+        before: problemOut.has(r.id) ? problemOut.get(r.id).theory_refs.filter((x) => x.when === "before").length : 0
       }))
     })),
     rules: schedule.rules,

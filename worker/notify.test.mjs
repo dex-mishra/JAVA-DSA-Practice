@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { makeD1 } from "./d1-shim.mjs";
 import { istInstant } from "../shared/dsa-core.mjs";
 import { tick } from "./notify.js";
-import { patchDsaProgress, patchDay, patchDrill } from "./store.js";
+import { patchDsaProgress, patchDay, patchDrill, patchReading, patchCoreDay } from "./store.js";
 import { PLAN } from "./schedule.js";
 
 const at = (iso, hhmm) => istInstant(iso, hhmm);
@@ -22,8 +22,9 @@ function harness() {
   return { env, sent, run: (now) => tick(env, now, { send, rand: () => 0.5 }) };
 }
 
-test("Day 1, 11:00, Running Sum done: exactly one nudge, naming Max Consecutive Ones", async () => {
+test("Day 1, 11:00, reading path and Running Sum done: exactly one nudge, naming Max Consecutive Ones", async () => {
   const h = harness();
+  await patchReading(h.env.DB, "day-1", { step: 7, done: true }, { now: at("2026-10-18", "10:00") });
   await patchDsaProgress(h.env.DB, "running-sum-of-1d-array", { status: "solved" }, { now: at("2026-10-18", "10:30") });
   await h.run(at("2026-10-18", "11:00"));
   assert.equal(h.sent.length, 1);
@@ -37,11 +38,35 @@ test("Day 1, 11:00, Running Sum done: exactly one nudge, naming Max Consecutive 
   assert.equal(h.sent.length, 1);
 });
 
-test("Day 1, 09:00, nothing done: the nudge names the first problem", async () => {
+test("Day 1, 09:00, nothing done: the nudge says to start the reading path (v3.1 §4.2)", async () => {
   const h = harness();
   await h.run(at("2026-10-18", "09:00"));
   assert.equal(h.sent.length, 1);
+  assert.match(h.sent[0].subject, /next: continue reading \(step 1 of 7\)/);
+  assert.match(h.sent[0].html, /#dsa\/read\/day-1\/1/);
+});
+
+test("halfway through the path, the nudge resumes at the saved step", async () => {
+  const h = harness();
+  await patchReading(h.env.DB, "day-1", { step: 3 }, { now: at("2026-10-18", "09:30") });
+  await h.run(at("2026-10-18", "11:00"));
+  assert.match(h.sent[0].subject, /step 4 of 7/);
+});
+
+test("after the path, a LEARN problem's nudge links to its Read first", async () => {
+  const h = harness();
+  await patchReading(h.env.DB, "day-1", { step: 7, done: true }, { now: at("2026-10-18", "09:30") });
+  await h.run(at("2026-10-18", "11:00"));
   assert.match(h.sent[0].subject, /next: Running Sum of 1d Array/);
+  assert.match(h.sent[0].html, /#dsa\/read\/before-running-sum-of-1d-array\/1/);
+});
+
+test("a detour left open comes first", async () => {
+  const h = harness();
+  const { writeDoc } = await import("./store.js");
+  await writeDoc(h.env.DB, "dsa_reader", { stack: [{ origin: "#dsa/read/day-1/7", label: "Read pointer § Idea" }] });
+  await h.run(at("2026-10-18", "13:00"));
+  assert.match(h.sent[0].subject, /next: Read pointer § Idea/);
 });
 
 test("before the plan starts, nothing is sent", async () => {
@@ -57,7 +82,8 @@ test("a complete day stops the nudges", async () => {
   const now = at("2026-10-18", "10:00");
   for (const p of PLAN.days[0].problems) await patchDsaProgress(db, p.id, { status: "solved" }, { now });
   for (const id of PLAN.days[0].drill) await patchDrill(db, id, { day: 1, correct: true }, { now });
-  await patchDay(db, 1, { cs_core_done: true }, { now });
+  await patchReading(db, "day-1", { step: 7, done: true }, { now });
+  await patchCoreDay(db, 1, { done: true }, { now });
   await h.run(at("2026-10-18", "11:00"));
   assert.equal(h.sent.length, 0);
 });

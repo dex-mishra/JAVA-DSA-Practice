@@ -1535,6 +1535,7 @@
     renderTabs();
     bind();
     if (tab.domain === "dsa") {
+      dsaSlimHeader();
       bindDsa();
       if (tab.id === "dsa-read") dsaFillRead();
       if (tab.id === "dsa-today") dsaMaybeKeep();
@@ -1554,6 +1555,19 @@
       if (DSAV.openId) dsaFillDetail(DSAV.openId);
       dsaApplyPendingAnchor();
     }
+  }
+
+  /* Inside the DSA section the placement/MBA tile grid collapses into one
+     line (v3.1 §3); the full grid stays on the Placement tab. */
+  function dsaSlimHeader() {
+    var el = document.getElementById("dsaSlim");
+    if (!el || !DSA_PLAN) return;
+    var st = stats();
+    var rank = rankFor(st.rating);
+    var left = DSA_CORE.daysBetween(dsaToday(), DSA_PLAN.placement_day);
+    el.innerHTML = '<span>Rating <b>' + st.rating + "</b> · " + esc(rank.n) + "</span>" +
+      "<span><b>" + left + "</b> days to placements</span>" +
+      "<span>DSA <b>" + st.dsa.done + "</b> / " + DSA_POOL + "</span>";
   }
 
   /* The streak counts days you actually moved something, so reverting the
@@ -2381,6 +2395,9 @@
       return '<p class="dsa-rolenote">' + dsaRoleBadge(p.role) + " " + esc(role.meaning) + "</p>" + tabs +
         '<p class="muted tiny">' + esc(COPY["step.notes"]) + "</p>" + dsaProblemNotes(p, doc) + dsaUserPanel(p.id);
     }
+    if (true) {
+      return '<p class="dsa-rolenote">' + dsaRoleBadge(p.role) + " " + esc(role.meaning) + "</p>" + tabs + dsaStepPanel(p, doc);
+    }
     return '<p class="dsa-rolenote">' + dsaRoleBadge(p.role) + " " + esc(role.meaning) + "</p>" + tabs +
       (p.role === "LEARN" ? dsaReadFirst(p, doc) : "") +
       dsaToolbar(p) +
@@ -2546,12 +2563,13 @@
       DSAV.help = ui.help || {};
       DSAV.writeOnly = !!ui.writeOnly;
       DSAV.timers = ui.timers || {};
+      DSAV.full = !!ui.full;
     } catch (e) { /* first run, or storage blocked */ }
   }
 
   function dsaUiSave() {
     try {
-      localStorage.setItem(DSA_UI_KEY, JSON.stringify({ help: DSAV.help, writeOnly: DSAV.writeOnly, timers: DSAV.timers }));
+      localStorage.setItem(DSA_UI_KEY, JSON.stringify({ help: DSAV.help, writeOnly: DSAV.writeOnly, timers: DSAV.timers, full: DSAV.full }));
     } catch (e) { /* cache only */ }
   }
 
@@ -2908,7 +2926,15 @@
     var rows = dsaProblemsOn(n);
     var mock = dsaMockOn(n);
 
-    var out = dsaHeaderStrip(todayN, n) +
+    if (!DSAV.full) {
+      return dsaHeaderStrip(todayN, n) +
+        (DSAV.showGuide ? '<div class="dsa-guide">' + dsaTodayHelp().replace("<details ", "<details open ") +
+          '<p><a href="#" class="linkish tiny" data-dsa-guide="1">Close the guide ✕</a></p></div>' : "") +
+        (todayN < 1 && !DSAV.day ? '<section class="card dsa-banner"><h3>Starts ' + esc(dsaShortDate(DSA_PLAN.start_date)) + "</h3>" +
+          '<p class="muted">' + (1 - todayN) + " day" + (todayN === 0 ? "" : "s") + " to go. Below is Day 1 — the list you will see on the morning.</p></section>" : "") +
+        renderDsaFocus(n, todayN, today, doc);
+    }
+    var out = '<p class="dsa-fullbar"><a href="#" class="linkish tiny" data-dsa-full="0">‹ Focus view</a></p>' + dsaHeaderStrip(todayN, n) +
       (DSAV.showGuide ? '<div class="dsa-guide">' + dsaTodayHelp().replace("<details ", "<details open ") +
         '<p><a href="#" class="linkish tiny" data-dsa-guide="1">Close the guide ✕</a></p></div>' : "") +
       (isToday || todayN < 1 ? dsaReturnCard() : "");
@@ -3153,6 +3179,16 @@
         doneLabel: "on to Understand"
       };
     }
+    if ((m = /^core-(\d+)$/.exec(key))) {
+      var cs = dsaCoreSteps(+m[1]);
+      if (!cs) return null;
+      var cn = +m[1];
+      return {
+        key: key, title: "CS core", steps: cs, core: true,
+        back: cn === dsaTodayN() ? { label: "Back to Today", hash: "#dsa/today" } : { label: "Back to Day " + cn, hash: "#dsa/day/" + cn },
+        doneLabel: "CS core done"
+      };
+    }
     if ((m = /^page-(.+)$/.exec(key))) {
       var meta = dsaPageMeta(m[1]);
       return {
@@ -3197,7 +3233,10 @@
     if (ACTIVE === "dsa-today") {
       var stageEl = fromEl && fromEl.closest && fromEl.closest("[data-stage]");
       var rowEl = fromEl && fromEl.closest && fromEl.closest("[data-dsa-row]");
-      if (rowEl) return "#dsa/problem/" + rowEl.dataset.dsaRow + "/" + (stageEl ? stageEl.dataset.stage : "understand");
+      if (rowEl) {
+        var pid = rowEl.dataset.dsaRow;
+        return "#dsa/problem/" + pid + "/" + (stageEl ? stageEl.dataset.stage : (DSAV.step[pid] || "understand"));
+      }
       return DSAV.day ? "#dsa/day/" + DSAV.day : "#dsa/today";
     }
     if (ACTIVE === "dsa-theory") return "#dsa/library";
@@ -3251,8 +3290,12 @@
       anchorEl = el.dataset.anchorRef ? document.querySelector('[data-anchor="' + cssEsc(el.dataset.anchorRef) + '"]') : el.closest("[data-anchor]");
       anchor = anchorEl ? anchorEl.dataset.anchor : null;
     }
+    var origin = (el && el.dataset.origin) || dsaCurrentRoute(el);
+    var label = dsaHereLabel(el, anchorEl);
+    var om = /^#dsa\/problem\/([^/]+)\/(.+)$/.exec(origin);
+    if (el && el.dataset.origin && om && DSA_BY_ID[om[1]]) label = DSA_BY_ID[om[1]].title + " › " + titleCase(om[2].replace("_", "-"));
     var res = DSA_RENDER.pushDetour(DSAV.reader, {
-      origin: dsaCurrentRoute(el), anchor: anchor, label: dsaHereLabel(el, anchorEl), scrollY: window.scrollY
+      origin: origin, anchor: anchor, label: label, scrollY: window.scrollY
     });
     if (res.error) { toast(res.error); return; }
     DSAV.reader = res.reader;
@@ -3316,6 +3359,7 @@
     var r = DSAV.read;
     if (!r) return '<section class="card"><p class="muted">Nothing to read here.</p></section>';
     var page, section, why, head, foot;
+    if (r.kind === "path" && /^core-\d+$/.test(r.key)) return renderDsaCoreFlow(r);
     if (r.kind === "path") {
       var info = dsaPathInfo(r.key);
       if (!info) return '<section class="card dsa-reader"><div class="dsa-loading">Loading…</div></section>';
@@ -3358,6 +3402,9 @@
     var page = host.dataset.page, section = host.dataset.section || null;
     dsaGet("theory", page).then(function (doc) {
       if (!document.getElementById("dsaReadBody") || host.dataset.page !== page) return;
+      // In the CS core flow a topic is read whole, all sections open.
+      var inCore = DSAV.read && DSAV.read.kind === "path" && /^core-/.test(DSAV.read.key);
+      if (inCore && DSAV.readMode === "read") DSAV.readExpand = true;
       if (DSAV.readMode === "notes") host.innerHTML = dsaPageNotes(doc, section);
       else if (DSAV.readMode === "revise") host.innerHTML = dsaRevise(doc.recall || [], doc.id, doc.title);
       else host.innerHTML = dsaPageRead(doc, section);
@@ -3753,7 +3800,11 @@
       DSAV.openId = pr.id;
       DSAV.panelMode = "steps";
       var stage = parts[3] || DSAV.returnReveal;
-      if (stage) DSAV.revealed[stage] = true;
+      if (stage) {
+        DSAV.revealed[stage] = true;
+        DSAV.step[pr.id] = dsaStepOfStage(stage);
+        if (["solution", "dry_run", "edges"].indexOf(stage) !== -1) DSAV.codeTab = stage;
+      }
       DSAV.returnReveal = null;
       DSA_AUTO_OPENED[pr.day] = true;
     }
@@ -3806,6 +3857,464 @@
       '<span class="muted tiny">' + refs.length + " step" + (refs.length === 1 ? "" : "s") + " · ~" + refs.length * 3 + " min · " + esc(COPY["step.read_first"]) + "</span></div>" +
       '<button class="btn tiny' + (st.done ? " ghost" : "") + '" type="button" data-dsa-go="#dsa/read/before-' + esc(p.id) + "/" + Math.min(refs.length, (st.step || 0) + 1) + '">' +
       (st.done ? "read again" : st.step ? "continue ▸" : "start ▸") + "</button></div>";
+  }
+
+  /* ============================================================ v3.1 Today focus
+
+     Today opens on one card -- the next thing to do -- and a one-line-per-
+     item checklist of the whole day (PRD-v3.1 §4). The next-up order is
+     DSA_CORE.dayAgenda, the same function the nudge emails use, so the card
+     and the 11:00 email always name the same thing. "Show everything" is the
+     v3 full view, for anyone who wants all blocks at once.
+  ============================================================ */
+
+  DSAV.full = false;        // focus view by default (remembered per browser)
+  DSAV.focusOpen = null;    // checklist item opened below the list: "drill" | "core" | "micro" | null
+  DSAV.step = {};           // problem id -> current step in the step bar
+  DSAV.codeTab = "solution";
+  DSAV.stuckOpen = false;
+  DSAV.mapOpen = false;
+  DSAV.mcqIdx = {};         // core day -> MCQ shown in the guided flow
+
+  function dsaAgendaCtx(n, today) {
+    var ctx = dsaCtx(n, today);
+    ctx.days = DSA_PLAN.days.map(function (d) {
+      var doc = DSA_CACHE.day[d.day];
+      return {
+        day: d.day, date: d.date,
+        problems: dsaProblemsOn(d.day).map(function (p) {
+          return { id: p.id, ord: p.ord, role: p.role, title: p.title, url: p.url, must: p.must, before: p.before || 0 };
+        }),
+        drill: doc ? (doc.drill || []).map(function (it) { return it.id; }) : [],
+        reading_steps: (d.reading_path || []).length,
+        core: d.core ? { title: d.core.title } : null,
+        cs_core: doc && doc.cs_core ? doc.cs_core.id : null
+      };
+    });
+    ctx.reading = DSA_S.reading;
+    ctx.coreDays = DSA_S.core_days;
+    ctx.stack = DSAV.reader.stack;
+    return ctx;
+  }
+
+  var ROLE_HELP = { LEARN: "today.next.learn", APPLY: "today.next.apply", TWIST: "today.next.twist", DISGUISE: "today.next.disguise" };
+  var ROLE_PLAIN = { LEARN: "New idea", APPLY: "Try it cold", TWIST: "One change", DISGUISE: "Hidden idea" };
+
+  function dsaNextUpCard(n, item) {
+    var kind, title = esc(item.title), help, button, extra = "";
+    if (item.kind === "return") {
+      kind = "Return"; help = COPY["today.next.return"];
+      button = '<button class="btn" type="button" data-dsa-return="1">↩ Return to where you were</button>';
+    } else if (item.kind === "resolve") {
+      kind = "Re-solve"; help = COPY["today.next.resolve"];
+      button = ""; extra = dsaResolveRow(DSA_BY_ID[item.id]);
+    } else if (item.kind === "sibling") {
+      kind = "Sibling to study"; help = COPY["today.next.sibling"];
+      button = '<button class="btn" type="button" data-dsa-gosib="' + esc(item.parent) + '" data-sib="' + esc(item.id) + '">Open ' + title + "</button>";
+    } else if (item.kind === "read") {
+      kind = "Read"; help = COPY["today.next.read"];
+      button = '<button class="btn" type="button" data-dsa-go="#dsa/read/' + esc(item.id) + "/" + item.step + '">' +
+        (item.step > 1 ? "Continue reading" : "Start reading") + "</button>";
+      extra = '<span class="muted tiny">resume where you left off</span>';
+    } else if (item.kind === "problem" || item.kind === "carried") {
+      var p = DSA_BY_ID[item.id];
+      kind = (item.kind === "carried" ? "Carried over · " : "") + p.role + " · " + (ROLE_PLAIN[p.role] || "");
+      help = COPY[ROLE_HELP[p.role]] || "";
+      button = item.readFirst
+        ? '<button class="btn" type="button" data-dsa-go="#dsa/read/before-' + esc(p.id) + '/1">Read first (' + p.before + " step" + (p.before === 1 ? "" : "s") + ")</button>"
+        : '<button class="btn" type="button" data-dsa-goto="' + esc(p.id) + '">Open ' + esc(p.title) + "</button>";
+      extra = '<a class="linkish tiny" href="' + esc(p.url) + '" target="_blank" rel="noopener">LeetCode ↗</a>';
+    } else if (item.kind === "drill") {
+      kind = "Recognition drill"; help = COPY["today.next.drill"];
+      button = '<button class="btn" type="button" data-dsa-focus="drill">Open the drill</button>';
+    } else {
+      kind = "CS core"; help = COPY["today.next.core"];
+      var d = DSA_PLAN.days[n - 1];
+      button = d.core
+        ? '<button class="btn" type="button" data-dsa-go="#dsa/read/core-' + n + "/" + Math.max(1, (dsaReadingState("core-" + n).step || 0) + 1) + '">Start CS core</button>'
+        : '<button class="btn" type="button" data-dsa-focus="core">Open the card</button>';
+    }
+    return '<section class="card dsa-nextup"><div class="dsa-nextup-kind">Next up · ' + esc(kind) + "</div>" +
+      "<h3>" + title + "</h3>" + (help ? "<p>" + esc(help) + "</p>" : "") + extra +
+      (button ? '<div class="dsa-nextup-do">' + button + "</div>" : "") + "</section>";
+  }
+
+  function dsaFinishCard(n) {
+    var next = DSA_PLAN.days[n];
+    var first = next && next.reading_path && next.reading_path[0];
+    var mins = DSA_PROBLEMS.filter(function (p) { return dsaRow(p.id).first_done_at === dsaToday(); })
+      .reduce(function (t, p) { return t + (dsaRow(p.id).minutes_spent || 0); }, 0);
+    return '<section class="card dsa-nextup done"><div class="dsa-nextup-kind">Day done</div>' +
+      "<h3>Everything on today's list is done.</h3>" +
+      "<p>" + (mins ? mins + " tracked minutes on problems today · " : "") + "streak " + dsaStreak(dsaTodayN()) + "</p>" +
+      (next ? "<p>" + esc(COPY.finish.replace("{first step}", first ? dsaTheoryTitle(first.page, first.section) : next.title)) + "</p>" +
+        (first ? '<div class="dsa-nextup-do"><button class="btn ghost" type="button" data-dsa-go="#dsa/read/day-' + next.day + '/1">Preview tomorrow\'s reading</button></div>' : "") : "") +
+      "</section>";
+  }
+
+  /* One line per thing to do today, with its status, badge and time. */
+  function dsaChecklist(n, today, isToday) {
+    var d = DSA_PLAN.days[n - 1];
+    var doc = DSA_CACHE.day[n];
+    var lines = [];
+    var line = function (done, label, meta, attrs, cls) {
+      lines.push('<a href="#" class="dsa-check-line' + (done ? " done" : "") + (cls ? " " + cls : "") + '" ' + attrs + '>' +
+        '<span class="dsa-check-box">' + (done ? "☑" : "☐") + "</span><span class=\"dsa-check-label\">" + label + "</span>" +
+        (meta ? '<span class="dsa-check-meta">' + meta + "</span>" : "") + "</a>");
+    };
+    if (isToday) {
+      dsaDueResolves(today).slice(0, 2).forEach(function (p) {
+        line(false, "Re-solve · " + esc(p.title), "cold", 'data-dsa-goto="' + esc(p.id) + '"');
+      });
+      dsaDueSiblings(today).slice(0, 4).forEach(function (p) {
+        line(false, "Sibling · " + esc(p.must.title), "study", 'data-dsa-gosib="' + esc(p.id) + '" data-sib="' + esc(p.must.id) + '"');
+      });
+    }
+    if ((d.reading_path || []).length) {
+      var rs = dsaReadingState("day-" + n);
+      line(rs.done, "Reading path", d.reading_path.length + " steps · " + dsaPathMinutes(d.reading_path) + " min" + (rs.step && !rs.done ? " · at " + (rs.step + 1) : ""),
+        'data-dsa-go="#dsa/read/day-' + n + "/" + Math.min(d.reading_path.length, (rs.step || 0) + 1) + '"');
+    } else if (d.content === "ready") {
+      line(dsaDayLedger(n).micro_read, "Micro-theory and pattern card", "10 min", 'data-dsa-focus="micro"');
+    }
+    if (isToday) {
+      dsaCarried(dsaTodayN()).slice(0, 4).forEach(function (p) {
+        line(false, esc(p.title) + " " + dsaRoleBadge(p.role), "from Day " + p.day, 'data-dsa-goto="' + esc(p.id) + '"', "carried");
+      });
+    }
+    dsaProblemsOn(n).forEach(function (p) {
+      var g = dsaRow(p.id);
+      line(isDoneStatus(g.status) || g.cut_state === "queued", esc(p.title) + " " + dsaRoleBadge(p.role),
+        g.cut_state === "queued" ? "moved to revision" : p.difficulty, 'data-dsa-goto="' + esc(p.id) + '"');
+    });
+    if (doc) {
+      var answered = (doc.drill || []).filter(function (it) { var x = DSA_S.drill[it.id]; return x && x.correct !== null && x.correct !== undefined; }).length;
+      line(answered === (doc.drill || []).length, "Recognition drill", answered + " / " + (doc.drill || []).length, 'data-dsa-focus="drill"');
+      if (doc.core) {
+        var cd = dsaCoreDay(n);
+        line(cd.done, "CS core · " + esc(doc.core.subject), (doc.core.topics || []).length + " topics · " + (doc.core.minutes || 45) + " min",
+          'data-dsa-go="#dsa/read/core-' + n + "/" + Math.max(1, (dsaReadingState("core-" + n).step || 0) + 1) + '"');
+      } else if (doc.cs_core) {
+        line(dsaDayLedger(n).cs_core_done, "CS core card · " + esc(doc.cs_core.subject), "20 min", 'data-dsa-focus="core"');
+      }
+    }
+    var floor = isToday ? dsaFloor(n, today) : null;
+    var fp = dsaFloorProblem(n);
+    return '<section class="card dsa-checklist"><h4 class="dsa-sub">Today</h4>' + lines.join("") +
+      '<p class="dsa-minimum"><b>Today\'s minimum:</b> ' + (floor && floor.ok ? "done ✓" : "due re-solves + " + esc(fp ? fp.title : "the first problem")) +
+      ' <span class="dsa-q" title="' + esc(COPY["today.minimum"]) + '">?</span> · streak ' + (isToday ? dsaStreak(n) : "—") + "</p></section>";
+  }
+
+  function renderDsaFocus(n, todayN, today, doc) {
+    var d = DSA_PLAN.days[n - 1];
+    var isToday = n === todayN;
+    var agenda = isToday && todayN >= 1 && todayN <= DSA_PLAN.days.length ? DSA_CORE.dayAgenda(dsaAgendaCtx(n, today)) : [];
+    var listDone = 0, listAll = 0;
+    // Count for the "✓ x / y" in the title line.
+    var tmp = document.createElement("div");
+    tmp.innerHTML = dsaChecklist(n, today, isToday);
+    listAll = tmp.querySelectorAll(".dsa-check-line").length;
+    listDone = tmp.querySelectorAll(".dsa-check-line.done").length;
+    var mock = dsaMockOn(n);
+    var out = '<div class="dsa-daynav">' +
+      '<button class="btn tiny" type="button" data-dsa-day="' + Math.max(1, n - 1) + '"' + (n <= 1 ? " disabled" : "") + ">‹</button>" +
+      '<div class="dsa-dayhd"><h2>Day ' + n + " · " + esc(d.title) + "</h2>" +
+        '<div class="muted">' + esc(dsaShortDate(d.date)) + (mock ? ' · <b class="dsa-mockday">' + esc(dsaMockLabel(mock)) + " today</b>" : "") +
+        " · ✓ " + listDone + " / " + listAll +
+        (isToday ? "" : ' · <a href="#" class="linkish" data-dsa-day="0">back to today</a>') +
+        ' · <a href="#" class="linkish" data-dsa-full="1">Show everything</a></div></div>' +
+      '<button class="btn tiny" type="button" data-dsa-day="' + Math.min(DSA_PLAN.days.length, n + 1) + '"' + (n >= DSA_PLAN.days.length ? " disabled" : "") + ">›</button>" +
+      "</div>";
+    if (isToday) out += agenda.length ? dsaNextUpCard(n, agenda[0]) : (d.content === "ready" ? dsaFinishCard(n) : "");
+    out += dsaChecklist(n, today, isToday);
+
+    // Whatever was opened from the list, below it.
+    if (DSAV.openId) {
+      var p = DSA_BY_ID[DSAV.openId];
+      if (p) out += '<section class="card"><div class="dsa-rows">' + dsaRowEl(p, p.day !== n ? { note: "from Day " + p.day } : undefined) + "</div></section>";
+    }
+    if (DSAV.focusOpen === "drill" && d.content === "ready") out += dsaDrillBlock(n, doc);
+    if (DSAV.focusOpen === "micro" && d.content === "ready") out += dsaMicroBlock(n, doc);
+    if (DSAV.focusOpen === "core" && doc) out += doc.core ? dsaCoreBlock(n, doc.core) : dsaCsBlock(n, doc);
+    if (DSAV.focusOpen === "sibling" && DSAV.openSib) out += dsaMustSiblingBlock(today);
+    if (d.content !== "ready") {
+      out += '<section class="card"><p class="muted">Notes for Day ' + n + " arrive by " + esc(dsaShortDate(DSA_CORE.addDays(d.date, -5))) +
+        ". The problems are already here — open one from the list.</p></section>";
+    }
+    return out;
+  }
+
+  /* ------------------------------------------------------ problem step bar (§8.1) */
+
+  var STEPS = [
+    { id: "readfirst", label: "Read first", copy: "step.read_first" },
+    { id: "understand", label: "Understand", copy: "step.understand", stages: ["understand"] },
+    { id: "analyse", label: "Analyse", copy: "step.analyse", stages: ["analyse"] },
+    { id: "brainstorm", label: "Brainstorm", copy: "step.brainstorm", stages: ["brainstorm"] },
+    { id: "algorithm", label: "Algorithm", copy: "step.algorithm", stages: ["algorithm"] },
+    { id: "pseudocode", label: "Pseudocode", copy: "step.pseudocode", stages: ["pseudocode"] },
+    { id: "code", label: "Code", copy: "step.code", stages: ["solution", "dry_run", "edges"] },
+    { id: "notes", label: "Notes", copy: "step.notes", stages: ["carry", "followups"] },
+    { id: "done", label: "Done", copy: "step.done" }
+  ];
+
+  function dsaStepsFor(p, doc) {
+    var hasBefore = (doc.theory_refs || []).some(function (r) { return r.when === "before"; });
+    return STEPS.filter(function (s) { return s.id !== "readfirst" || (p.role === "LEARN" && hasBefore); });
+  }
+
+  function dsaStepOfStage(stage) {
+    for (var i = 0; i < STEPS.length; i++) if ((STEPS[i].stages || []).indexOf(stage) !== -1) return STEPS[i].id;
+    return stage;
+  }
+
+  /* A step is covered when every stage in it is (role rules from v3). */
+  function dsaStepCovered(p, step) {
+    if (!step.stages) return false;
+    return step.stages.every(function (st) { return dsaCovered(p, st); });
+  }
+
+  function dsaCurrentStepId(p, doc) {
+    var steps = dsaStepsFor(p, doc);
+    var cur = DSAV.step[p.id];
+    if (cur && steps.some(function (s) { return s.id === cur; })) return cur;
+    var rf = steps[0].id === "readfirst" && !dsaReadingState("before-" + p.id).done;
+    return rf ? "readfirst" : "understand";
+  }
+
+  function dsaStageBody(p, doc, stageId) {
+    var s = doc.stages.filter(function (x) { return x.id === stageId; })[0];
+    if (!s) return "";
+    if (DSAV.writeOnly && s.note === "screenshot") return '<p class="muted tiny">' + esc(s.title) + " is screenshot material — hidden in ✍️ only.</p>";
+    return dsaStageEl(p, doc, s);
+  }
+
+  function dsaStepBody(p, doc, step) {
+    if (step.id === "readfirst") return dsaReadFirst(p, doc);
+    if (step.id === "done") return dsaDoneStep(p, doc);
+    if (dsaStepCovered(p, step)) {
+      return '<div class="dsa-stage covered"><div class="dsa-stagehd"><h4>' + esc(step.label) + '</h4></div>' +
+        '<button class="btn tiny" type="button" data-dsa-revealstep="' + esc(step.id) + '">Reveal ' + esc(step.label) + "</button></div>";
+    }
+    if (step.id === "code") {
+      var tabs = [["solution", "Reference C++"], ["dry_run", "Dry run"], ["edges", "Edge cases"]];
+      return '<div class="dsa-codetabs">' + tabs.map(function (t) {
+        return '<button type="button" class="dsa-mode' + (DSAV.codeTab === t[0] ? " on" : "") + '" data-dsa-codetab="' + t[0] + '">' + t[1] + "</button>";
+      }).join("") + "</div>" + dsaStageBody(p, doc, DSAV.codeTab);
+    }
+    if (step.id === "notes") {
+      return (doc.note ? dsaNoteSheet(p.title, p.role + " · " + (p.pattern || ""), doc.note, "pn:" + p.id, null) : "") +
+        dsaStageBody(p, doc, "carry") + dsaStageBody(p, doc, "followups") +
+        '<p><a href="#" class="linkish tiny" data-dsa-panelmode="notes">Full notes view (with the pages this problem relies on) ›</a></p>';
+    }
+    return step.stages.map(function (st) { return dsaStageBody(p, doc, st); }).join("");
+  }
+
+  /* Done step: status, confidence and pseudocode up front; the rest under
+     "More". The pseudocode is the soft gate (v3): without it the row shows
+     "no pseudocode". */
+  function dsaDoneStep(p, doc) {
+    var g = dsaRow(p.id);
+    return '<div class="dsa-donestep">' +
+      '<div class="dsa-donerow"><span class="muted tiny">Status</span>' + dsaStatusButton(p.id) +
+        '<span class="muted tiny">Confidence</span>' + dsaConfidence(p.id) + dsaStar(p.id) + "</div>" +
+      '<label class="dsa-field wide"><span>My pseudocode <i>✍️</i></span>' +
+        '<textarea data-dsa-pseudo="' + esc(p.id) + '" rows="5" spellcheck="false" placeholder="the pseudocode you wrote on paper">' +
+        esc(g.my_pseudocode) + "</textarea></label>" +
+      '<details class="dsa-more"><summary>More ▸ approach, GoodNotes, notes, tags</summary>' + dsaUserPanel(p.id) + "</details>" +
+      (isDoneStatus(g.status) ? dsaSiblings(p, doc) : "") + "</div>";
+  }
+
+  /* §8.2 Theory map: every reference grouped by when, with where, why,
+     must/optional and noted status. Read ▸ is a detour that comes back to
+     the exact line the reference quotes (found offline from the stage text,
+     so it works even when that stage is not on screen). */
+  function dsaQuoteAnchor(p, doc, stageId, at) {
+    var s = doc.stages.filter(function (x) { return x.id === stageId; })[0];
+    if (!s) return null;
+    var blocks = [];
+    md(s.body, { anchor: "p:" + p.id + ":" + s.id, collect: blocks, wl: s.note === "mixed" ? "mark" : "plain" });
+    return DSA_RENDER.findQuoteAnchor(blocks, at);
+  }
+
+  function dsaTheoryMap(p, doc) {
+    var groups = [["before", "Before you start"], ["while", "While solving"], ["stuck", "If stuck"], ["after", "After (go deeper)"]];
+    var refs = doc.theory_refs || [];
+    return '<div class="dsa-map"><div class="dsa-maphd"><b>Theory map</b> <span class="muted tiny">' + refs.length + " references</span>" +
+      '<a href="#" class="linkish tiny" data-dsa-map="0">close ✕</a></div>' +
+      groups.map(function (g) {
+        var rows = refs.filter(function (r) { return r.when === g[0]; });
+        if (!rows.length) return "";
+        return '<div class="dsa-mapgroup"><h5>' + g[1] + "</h5>" + rows.map(function (r) {
+          var pn = DSA_S.page_notes[r.page];
+          var anchor = dsaQuoteAnchor(p, doc, r.stage, r.at);
+          return '<div class="dsa-maprow"><div class="dsa-maprow-hd"><b>' + esc(dsaTheoryTitle(r.page, r.section)) + "</b>" +
+            '<span class="' + (r.need === "must" ? "dsa-must" : "dsa-opt") + '">' + r.need + "</span></div>" +
+            '<div class="muted tiny">where: ' + esc(titleCase(r.stage.replace("_", "-"))) + (r.at ? " — “" + esc(r.at) + "”" : "") + "</div>" +
+            (r.why ? '<div class="dsa-mapwhy">why: ' + mdInline(r.why) + "</div>" : "") +
+            '<div class="dsa-maprow-do"><a href="#" class="btn tiny" data-dsa-th="' + esc(r.page) + '" data-dsa-sec="' + esc(r.section || "") +
+              '" data-dsa-why="' + esc(r.why || "") + '" data-anchor-ref="' + esc(anchor || "") + '" data-origin="#dsa/problem/' + esc(p.id) + "/" + esc(r.stage) + '">Read ▸</a>' +
+              (pn && pn.noted ? '<span class="dsa-noted">noted ✓' + (pn.goodnotes_ref ? " " + esc(pn.goodnotes_ref) : "") + "</span>" : "") + "</div></div>";
+        }).join("") + "</div>";
+      }).join("") + "</div>";
+  }
+
+  /* §8.1 Stuck?: only the rung for the minute you are on, and its section. */
+  function dsaStuckMini(p, doc) {
+    var ladder = DSA_PLAN.stuck_ladder || [];
+    var started = DSAV.timers[p.id];
+    var mins = started ? Math.floor((dsaNow() - started) / 60000) : 0;
+    var rung = ladder.filter(function (r) { return mins >= r.from_min && mins < r.to_min; })[0] || ladder[0];
+    var link = rung && ((doc && doc.stuck_refs) || {})[String(rung.from_min)];
+    return '<div class="dsa-stuckmini"><div class="dsa-maphd"><b>Stuck? At ' + (started ? mins + " min" : "the start") + "</b>" +
+      '<a href="#" class="linkish tiny" data-dsa-stuck="0">close ✕</a></div>' +
+      (started ? "" : '<p class="muted tiny">Start the timer so this can follow the minute you are on.</p>') +
+      (rung ? "<p>" + mdInline(rung.do) + "</p>" : "") +
+      (link ? '<p><a href="#" class="btn tiny" data-dsa-th="' + esc(link.page) + '" data-dsa-sec="' + esc(link.section || "") + '" data-dsa-why="' +
+        esc("The section for the " + rung.from_min + "-minute rung.") + '" data-origin="#dsa/problem/' + esc(p.id) + "/" + esc(dsaCurrentStepId(p, doc)) +
+        '">Read: ' + esc(dsaTheoryTitle(link.page, link.section)) + " ▸</a></p>" : "") +
+      '<details class="dsa-ai"><summary>The whole ladder · using AI</summary><ol class="dsa-ladder">' + ladder.map(function (r) {
+        return "<li><span class=\"dsa-rung\">" + r.from_min + (r.to_min > 900 ? "+" : "–" + r.to_min) + " min</span> " + mdInline(r.do) + "</li>";
+      }).join("") + "</ol><ul>" + (DSA_PLAN.ai_protocol || []).map(function (a) { return "<li>" + mdInline(a) + "</li>"; }).join("") + "</ul></details></div>";
+  }
+
+  function dsaStepPanel(p, doc) {
+    var steps = dsaStepsFor(p, doc);
+    var curId = dsaCurrentStepId(p, doc);
+    var idx = Math.max(0, steps.findIndex(function (s) { return s.id === curId; }));
+    var cur = steps[idx];
+    var next = steps[idx + 1];
+    var started = DSAV.timers[p.id];
+    var mins = started ? Math.floor((dsaNow() - started) / 60000) : 0;
+    var nextCovered = next && dsaStepCovered(p, next);
+    return '<div class="dsa-stephead">' +
+        '<span class="dsa-timer" data-dsa-timer="' + esc(p.id) + '">⏱ ' + (started ? mins + " min" : "0:00") + "</span>" +
+        '<button class="btn tiny ghost" type="button" data-dsa-start="' + esc(p.id) + '">' + (started ? "reset timer" : "Start timer") + "</button>" +
+        '<button class="btn tiny ghost" type="button" data-dsa-stuck="' + (DSAV.stuckOpen ? 0 : 1) + '" title="' + esc(COPY["stuck.button"]) + '">Stuck?</button>' +
+        '<button class="btn tiny ghost" type="button" data-dsa-map="' + (DSAV.mapOpen ? 0 : 1) + '">Theory map (' + (doc.theory_refs || []).length + ")</button>" +
+        '<label class="dsa-toggle"><input type="checkbox" data-dsa-writeonly="1"' + (DSAV.writeOnly ? " checked" : "") + "> ✍️ only</label>" +
+        '<a href="#" class="linkish tiny" data-dsa-panelmode="notes">Notes</a>' +
+      "</div>" +
+      (DSAV.stuckOpen ? dsaStuckMini(p, doc) : "") +
+      (DSAV.mapOpen ? dsaTheoryMap(p, doc) : "") +
+      '<div class="dsa-stepbar">' + steps.map(function (s, i) {
+        var state = i < idx ? "past" : i === idx ? "now" : "";
+        return '<button type="button" class="dsa-stepbtn ' + state + (dsaStepCovered(p, s) ? " covered" : "") + '" data-dsa-step="' + esc(s.id) + '">' +
+          '<span class="dot">' + (i <= idx ? "●" : "○") + "</span>" + esc(s.label) + "</button>";
+      }).join("") + "</div>" +
+      '<p class="dsa-helper"><b>' + esc(cur.label) + ".</b> " + esc(COPY[cur.copy] || "") + "</p>" +
+      '<div class="dsa-stepbody">' + dsaStepBody(p, doc, cur) + "</div>" +
+      (next ? '<div class="dsa-stepfoot">' + (nextCovered
+        ? '<button class="btn" type="button" data-dsa-revealstep="' + esc(next.id) + '" data-dsa-andgo="1">Reveal ' + esc(next.label) + "</button>" +
+          '<span class="muted tiny">' + esc(ROLE_PLAIN[p.role] || "") + ": try it yourself first</span>"
+        : '<button class="btn" type="button" data-dsa-step="' + esc(next.id) + '">Next: ' + esc(next.label) + "</button>") + "</div>" : "");
+  }
+
+  /* ------------------------------------------------------ CS core flow (§14)
+
+     The day's core block as a guided path in the reader (key core-<n>):
+     intro → for each topic: read, write the note, answer recall → MCQs one
+     at a time → the explanation, graded by Groq → done. Progress persists
+     like a reading path. The card on Today ("Show everything") stays as the
+     all-at-once view of the same state. */
+
+  function dsaCoreSteps(n) {
+    var doc = DSA_CACHE.day[n] || dsaDayDoc(n);
+    if (!doc) return null;
+    if (!doc.core) return [];
+    var steps = [{ type: "intro", label: "Intro" }];
+    (doc.core.topics || []).forEach(function (t) {
+      var title = dsaPageMeta(t).t;
+      steps.push({ type: "topic", page: t, mode: "read", label: title + " · read" });
+      steps.push({ type: "topic", page: t, mode: "notes", label: title + " · write the note" });
+      steps.push({ type: "topic", page: t, mode: "revise", label: title + " · recall" });
+    });
+    steps.push({ type: "mcq", label: "MCQs" }, { type: "explain", label: "Explain it" }, { type: "done", label: "Finish" });
+    return steps;
+  }
+
+  function dsaCoreStepBody(n, core, st) {
+    var cd = dsaCoreDay(n);
+    if (st.type === "intro") {
+      return (core.intro || []).map(function (s) { return '<div class="dsa-stage">' + dsaSectionBody(s, "c:" + n + ":" + s.id) + "</div>"; }).join("") +
+        '<h4 class="dsa-sub">Today</h4><ol class="dsa-loop">' + (core.topics || []).map(function (t) {
+          return "<li>" + esc(dsaPageMeta(t).t) + ' <span class="muted tiny">read · note · recall</span></li>';
+        }).join("") + "<li>" + (core.mcqs || []).length + " MCQs</li><li>A two-minute explanation</li></ol>" +
+        '<p class="muted tiny">' + esc((DSA_PLAN.core_plan && DSA_PLAN.core_plan.minimum_for_bad_days) ? "On a bad day, the minimum: " + DSA_PLAN.core_plan.minimum_for_bad_days + "." : "") + "</p>";
+    }
+    if (st.type === "topic") {
+      return '<div id="dsaReadBody" data-page="' + esc(st.page) + '" data-section="' + esc(dsaFirstSection(st.page) || "") + '"><div class="dsa-loading">Loading…</div></div>';
+    }
+    if (st.type === "mcq") {
+      var qs = core.mcqs || [];
+      var i = Math.max(0, Math.min(qs.length - 1, DSAV.mcqIdx[n] || 0));
+      var q = qs[i];
+      var mine = (cd.mcq_answers || {})[q.id];
+      var right = qs.filter(function (x) { return (cd.mcq_answers || {})[x.id] === x.answer; }).length;
+      return '<p class="muted tiny">Question ' + (i + 1) + " of " + qs.length + " · " + esc(COPY["core.mcq"]) +
+        (Object.keys(cd.mcq_answers || {}).length ? " · " + right + " right so far" : "") + "</p>" +
+        '<div class="dsa-mcq' + (mine ? (mine === q.answer ? " right" : " wrong") : "") + '"><p>' + mdInline(q.q) + "</p>" +
+          '<div class="dsa-mcq-opts">' + Object.keys(q.options).map(function (k) {
+            var cls = mine ? (k === q.answer ? " correct" : k === mine ? " picked" : "") : "";
+            return '<button type="button" class="dsa-mcq-opt' + cls + '" data-dsa-mcq="' + esc(q.id) + '" data-day="' + n + '" data-opt="' + k + '"' +
+              (mine ? " disabled" : "") + "><b>" + k + ".</b> " + mdInline(q.options[k]) + "</button>";
+          }).join("") + "</div>" +
+          (mine ? '<p class="dsa-mcq-why">' + (mine === q.answer ? "✓ Right. " : "✗ The answer is " + q.answer + ". ") + mdInline(q.why) + "</p>" : "") + "</div>" +
+        '<div class="dsa-mcqnav">' + (i > 0 ? '<button class="btn tiny ghost" type="button" data-dsa-mcqgo="' + (i - 1) + '" data-day="' + n + '">‹ previous</button>' : "") +
+          (i < qs.length - 1 && mine ? '<button class="btn tiny" type="button" data-dsa-mcqgo="' + (i + 1) + '" data-day="' + n + '">next question ›</button>' : "") + "</div>";
+    }
+    if (st.type === "explain") {
+      var fb = cd.explain_feedback;
+      return '<p class="dsa-explain-q">' + mdInline(core.explain) + "</p>" +
+        '<p class="muted tiny">' + esc(COPY["core.explain"]) + "</p>" +
+        '<textarea class="dsa-drill-guess" rows="6" data-dsa-explain="' + n + '" placeholder="Say it the way you would in an interview…">' + esc(cd.explain_text || "") + "</textarea>" +
+        '<div class="dsa-drill-do">' + (DSA_SYNC.ai
+          ? '<button type="button" class="btn tiny" data-dsa-explaincheck="' + n + '"' + (DSAV.explainBusy ? " disabled" : "") + ">" +
+            (DSAV.explainBusy ? "checking…" : fb ? "check again" : "Check with Groq") + "</button>"
+          : '<span class="muted tiny">AI check unavailable — compare with the key points below.</span>') + "</div>" +
+        (fb && fb.grade ? '<div class="dsa-drill-verdict ' + ({ good: "ok", partial: "part", weak: "bad" }[fb.grade] || "part") + '"><b>' +
+          ({ good: "✓ good", partial: "≈ partly there", weak: "✗ needs work" }[fb.grade] || fb.grade) + (fb.score !== undefined ? " · " + fb.score + "/10" : "") + "</b> " +
+          esc(fb.feedback || "") + ((fb.missing || []).length ? '<br><span class="muted tiny">Add: ' + fb.missing.map(esc).join(" · ") + "</span>" : "") + "</div>" : "") +
+        (!DSA_SYNC.ai ? '<div class="dsa-keypoints"><b>Key points</b><ul>' + (core.topics || []).map(function (t) {
+          return "<li>" + esc(dsaPageMeta(t).t) + "</li>";
+        }).join("") + "</ul></div>" : "");
+    }
+    // done
+    var answered = Object.keys(cd.mcq_answers || {}).length;
+    var right2 = (core.mcqs || []).filter(function (x) { return (cd.mcq_answers || {})[x.id] === x.answer; }).length;
+    return '<ul class="dsa-coresum">' +
+      (core.topics || []).map(function (t) {
+        var pn = DSA_S.page_notes[t];
+        return "<li>" + esc(dsaPageMeta(t).t) + " — " + (pn && pn.noted ? "note written ✓" : "note not marked written") + "</li>";
+      }).join("") +
+      "<li>MCQs: " + right2 + " / " + (core.mcqs || []).length + (answered < (core.mcqs || []).length ? " (" + ((core.mcqs || []).length - answered) + " unanswered)" : "") + "</li>" +
+      "<li>Explanation: " + (cd.explain_feedback && cd.explain_feedback.grade ? cd.explain_feedback.grade : cd.explain_text ? "written" : "not written") + "</li></ul>" +
+      (cd.done ? '<p class="dsa-noted">✓ CS core done for today</p>' : "");
+  }
+
+  function renderDsaCoreFlow(r) {
+    var n = +/^core-(\d+)$/.exec(r.key)[1];
+    var steps = dsaCoreSteps(n);
+    if (!steps) return '<section class="card dsa-reader"><div class="dsa-loading">Loading…</div></section>';
+    var doc = DSA_CACHE.day[n];
+    if (!steps.length) return '<section class="card dsa-reader"><p class="muted">Day ' + n + " has no CS core flow yet.</p></section>";
+    var i = Math.max(1, Math.min(steps.length, r.step || 1));
+    var st = steps[i - 1];
+    var next = steps[i];
+    if (st.type === "topic") DSAV.readMode = st.mode;
+    var back = n === dsaTodayN() ? { label: "Back to Today", hash: "#dsa/today" } : { label: "Back to Day " + n, hash: "#dsa/day/" + n };
+    return '<section class="card dsa-reader"><div class="dsa-readhd"><a href="#" class="linkish" data-dsa-go="' + back.hash + '">‹ ' + esc(back.label) + "</a>" +
+      '<span class="muted tiny">CS core · ' + esc(doc.core.subject) + " · step " + i + " of " + steps.length + " · " + (doc.core.minutes || 45) + " min total</span></div>" +
+      dsaReturnBar() +
+      '<div class="dsa-corebar">' + steps.map(function (s, k) {
+        return '<span class="' + (k + 1 < i ? "past" : k + 1 === i ? "now" : "") + '" title="' + esc(s.label) + '"></span>';
+      }).join("") + "</div>" +
+      '<div class="dsa-readtitle"><h2>' + esc(st.type === "topic" ? dsaPageMeta(st.page).t : doc.core.title) +
+        ' <span class="muted">› ' + esc(st.type === "topic" ? { read: "Read", notes: "Write the note", revise: "Recall" }[st.mode] : st.label) + "</span></h2></div>" +
+      dsaCoreStepBody(n, doc.core, st) +
+      '<div class="dsa-readfoot"><button class="btn" type="button" data-dsa-step-done="' + i + '">' +
+        (next ? "✓ Done — next: " + esc(next.label) : "✓ Mark CS core done") + "</button>" +
+        (next ? '<a href="#" class="linkish tiny" data-dsa-step-skip="' + i + '">skip ›</a>' : "") + "</div></section>";
   }
 
   /* ------------------------------------------------------ Revision */
@@ -4178,10 +4687,21 @@
         DSAV.reader.pathKey = info.key;
         DSAV.reader.step = last ? n : n + 1;
         dsaReaderSave();
+        var cm = /^core-(\d+)$/.exec(info.key);
+        if (cm && b.dataset.dsaStepDone) {
+          // Finishing a topic's recall step marks the topic done.
+          var cst = info.steps[n - 1];
+          if (cst.type === "topic" && cst.mode === "revise") {
+            var td = (dsaCoreDay(+cm[1]).topics_done || []).filter(function (t) { return t !== cst.page; });
+            td.push(cst.page);
+            dsaPatchCore(+cm[1], { topics_done: td });
+          }
+        }
         if (!last) { DSAV.readMode = "read"; DSAV.readExpand = false; dsaGo("#dsa/read/" + info.key + "/" + (n + 1)); return; }
         // A day's path done counts as "micro-theory read" for the v3 ledger.
         var dm = /^day-(\d+)$/.exec(info.key);
         if (dm) dsaPatchDay(+dm[1], { micro_read: true });
+        if (cm) { dsaPatchCore(+cm[1], { done: true }); dsaPatchDay(+cm[1], { cs_core_done: true }); }
         toast("Path done — " + info.doneLabel + ".");
         dsaGo(info.back.hash);
       };
@@ -4270,6 +4790,53 @@
         // The v3 day ledger still drives "today complete" for the nudges.
         dsaPatchDay(n, { cs_core_done: c.checked });
       };
+    });
+    document.querySelectorAll("[data-dsa-full]").forEach(function (a) {
+      a.onclick = function (e) { e.preventDefault(); DSAV.full = a.dataset.dsaFull === "1"; dsaUiSave(); render(); window.scrollTo({ top: 0 }); };
+    });
+    document.querySelectorAll("[data-dsa-focus]").forEach(function (a) {
+      a.onclick = function (e) {
+        e.preventDefault();
+        DSAV.focusOpen = DSAV.focusOpen === a.dataset.dsaFocus ? null : a.dataset.dsaFocus;
+        DSAV.openId = null;
+        render();
+        var el = document.querySelector('[data-block="' + (DSAV.focusOpen === "core" ? "core" : DSAV.focusOpen) + '"]') || document.querySelector('[data-block="cs_core"]');
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      };
+    });
+    document.querySelectorAll("[data-dsa-gosib]").forEach(function (a) {
+      a.onclick = function (e) {
+        e.preventDefault();
+        DSAV.focusOpen = "sibling";
+        DSAV.openSib = a.dataset.sib;
+        DSAV.openId = null;
+        render();
+        var el = document.querySelector('[data-block="must_sibling"]');
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      };
+    });
+    document.querySelectorAll("[data-dsa-step]").forEach(function (b) {
+      b.onclick = function () { if (!DSAV.openId) return; DSAV.step[DSAV.openId] = b.dataset.dsaStep; dsaRepaintOpen(); };
+    });
+    document.querySelectorAll("[data-dsa-revealstep]").forEach(function (b) {
+      b.onclick = function () {
+        var st = STEPS.filter(function (x) { return x.id === b.dataset.dsaRevealstep; })[0];
+        (st && st.stages || []).forEach(function (s) { DSAV.revealed[s] = true; });
+        if (b.dataset.dsaAndgo && DSAV.openId) DSAV.step[DSAV.openId] = st.id;
+        dsaRepaintOpen();
+      };
+    });
+    document.querySelectorAll("[data-dsa-codetab]").forEach(function (b) {
+      b.onclick = function () { DSAV.codeTab = b.dataset.dsaCodetab; dsaRepaintOpen(); };
+    });
+    document.querySelectorAll("[data-dsa-map]").forEach(function (b) {
+      b.onclick = function (e) { e.preventDefault(); DSAV.mapOpen = b.dataset.dsaMap === "1"; DSAV.stuckOpen = false; dsaRepaintOpen(); };
+    });
+    document.querySelectorAll("[data-dsa-stuck]").forEach(function (b) {
+      b.onclick = function (e) { e.preventDefault(); DSAV.stuckOpen = b.dataset.dsaStuck === "1"; DSAV.mapOpen = false; dsaRepaintOpen(); };
+    });
+    document.querySelectorAll("[data-dsa-mcqgo]").forEach(function (b) {
+      b.onclick = function () { DSAV.mcqIdx[+b.dataset.day] = +b.dataset.dsaMcqgo; render(); };
     });
     document.querySelectorAll("[data-dsa-guide]").forEach(function (b) {
       b.onclick = function (e) { e.preventDefault(); DSAV.showGuide = !DSAV.showGuide; render(); };
@@ -4393,7 +4960,7 @@
         if (!started) return;
         any = true;
         var mins = Math.floor((dsaNow() - started) / 60000);
-        el.textContent = mins + " min elapsed";
+        el.textContent = "⏱ " + mins + " min";
         var panel = el.parentNode && el.parentNode.parentNode;
         if (!panel) return;
         var ladder = DSA_PLAN.stuck_ladder || [];

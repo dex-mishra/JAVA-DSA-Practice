@@ -146,13 +146,28 @@ export function floorStatus(ctx) {
   return { ok: resolvesOk && firstOk, missing, first };
 }
 
-/** Everything still to do today, in block order (PRD §11's "one next
- *  action" is the first entry). Empty means the day is complete. */
+/** Everything still to do today, in next-up order (v3.1 §4.2). The first
+ *  entry is "next up" on Today and the "one next action" in a nudge; an
+ *  empty list means the day is complete.
+ *
+ *  v3.1 additions to ctx (all optional, so v3 callers still work):
+ *    stack      the reader's return stack
+ *    reading    { pathKey: { step, done } }
+ *    coreDays   { day: { done } }
+ *  and per day: reading_steps (count), core ({ title } | null);
+ *  per problem: before (count of 'before' references). */
 export function dayAgenda(ctx) {
   const items = [];
   const n = ctx.todayN;
   const d = ctx.days[n - 1];
   if (!d) return items;
+  const reading = ctx.reading || {};
+
+  const stack = ctx.stack || [];
+  if (stack.length) {
+    const top = stack[stack.length - 1];
+    items.push({ kind: "return", id: "return", title: top.label || "where you were", origin: top.origin, day: n });
+  }
 
   if (resolvedToday(ctx) < 2) {
     for (const p of dueResolves(ctx).slice(0, 2 - Math.min(2, resolvedToday(ctx)))) {
@@ -168,6 +183,11 @@ export function dayAgenda(ctx) {
     .slice(0, 4)
     .forEach((p) => items.push({ kind: "sibling", id: p.must.id, title: p.must.title, parent: p.id, day: p.day }));
 
+  if (d.reading_steps && !(reading["day-" + n] || {}).done) {
+    const at = Math.min(d.reading_steps, ((reading["day-" + n] || {}).step || 0) + 1);
+    items.push({ kind: "read", id: "day-" + n, title: `Reading path · step ${at} of ${d.reading_steps}`, step: at, of: d.reading_steps, day: n });
+  }
+
   all.filter((p) => {
     const r = row(ctx, p.id);
     return p.day < n && (p.role === "LEARN" || p.role === "APPLY") && (r.status || "todo") === "todo" && !r.cut_state;
@@ -177,9 +197,10 @@ export function dayAgenda(ctx) {
 
   d.problems.slice().sort((a, b) => a.ord - b.ord).forEach((p) => {
     const r = row(ctx, p.id);
-    if ((r.status || "todo") === "todo" && !r.cut_state) {
-      items.push({ kind: "problem", id: p.id, title: p.title, url: p.url, day: n, role: p.role });
-    }
+    if ((r.status || "todo") !== "todo" || r.cut_state) return;
+    // A LEARN problem's before-reading comes first (§4.2 item 6).
+    const readFirst = p.role === "LEARN" && p.before > 0 && !(reading["before-" + p.id] || {}).done;
+    items.push({ kind: "problem", id: p.id, title: p.title, url: p.url, day: n, role: p.role, readFirst });
   });
 
   const unanswered = (d.drill || []).filter((id) => {
@@ -188,8 +209,9 @@ export function dayAgenda(ctx) {
   });
   if (unanswered.length) items.push({ kind: "drill", id: `drill-${n}`, title: `Recognition drill (${unanswered.length} left)`, day: n });
 
-  if (d.cs_core && !((ctx.ledger || {})[n] || {}).cs_core_done) {
-    items.push({ kind: "cs_core", id: d.cs_core, title: "CS core card", day: n });
+  const coreDone = ((ctx.coreDays || {})[n] || {}).done || ((ctx.ledger || {})[n] || {}).cs_core_done;
+  if ((d.core || d.cs_core) && !coreDone) {
+    items.push({ kind: "cs_core", id: d.core ? "core-" + n : d.cs_core, title: d.core ? "CS core · " + d.core.title : "CS core card", day: n });
   }
   return items;
 }

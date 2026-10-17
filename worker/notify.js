@@ -20,7 +20,7 @@ import {
   istDate, istMinutes, istClock, planDay, floorStatus, dayAgenda
 } from "../shared/dsa-core.mjs";
 import { PLAN, MOCKS, RULES, ensureRevealed, mockStatus, applyMockDayCut, cryptoRand } from "./schedule.js";
-import { readDsaProgress, readDsaLedgers, patchDsaProgress, patchDay } from "./store.js";
+import { readDsaProgress, readDsaLedgers, patchDsaProgress, patchDay, readV31 } from "./store.js";
 
 export const NUDGE_HOURS = [9, 11, 13, 15, 17, 19];
 const SLOT_MIN = 15; // the cron interval: each slot is seen by exactly one run
@@ -85,8 +85,8 @@ function page(body) {
 }
 
 const KIND_LABEL = {
-  resolve: "Cold re-solve", sibling: "Must-study sibling", carried: "Carried over",
-  problem: "Today's problem", drill: "Recognition drill", cs_core: "CS core card"
+  return: "Finish your detour", resolve: "Cold re-solve", sibling: "Must-study sibling", read: "Continue reading",
+  carried: "Carried over", problem: "Today's problem", drill: "Recognition drill", cs_core: "CS core"
 };
 
 function mockLabel(m) {
@@ -98,13 +98,17 @@ export function nudgeMessage(env, dayN, agenda) {
   const d = PLAN.days[dayN - 1];
   const url = base(env);
   const rowLink = next.kind === "sibling" ? `${url}/#dsa/problem/${encodeURIComponent(next.parent)}`
+    : next.kind === "read" ? `${url}/#dsa/read/day-${dayN}/${next.step}`
+    : next.kind === "return" ? `${url}/#dsa/today`
+    : next.kind === "cs_core" && d.core ? `${url}/#dsa/read/core-${dayN}/1`
+    : next.kind === "problem" && next.readFirst ? `${url}/#dsa/read/before-${encodeURIComponent(next.id)}/1`
     : next.kind === "drill" || next.kind === "cs_core" ? `${url}/#dsa/day/${dayN}`
     : `${url}/#dsa/problem/${encodeURIComponent(next.id)}`;
   const micro = (d.micro_theory || [])[0];
   const rest = agenda.slice(1);
   const html = page(
     `<p style="color:#0d9488;font-size:12px;letter-spacing:.08em;text-transform:uppercase;margin:0">Day ${dayN} · ${esc(d.title)}</p>` +
-    `<h2 style="margin:6px 0 4px;font-size:20px">Next: ${esc(next.title)}</h2>` +
+    `<h2 style="margin:6px 0 4px;font-size:20px">Next: ${esc(next.readFirst ? "Read first · " + next.title : next.title)}</h2>` +
     `<p style="margin:0 0 14px;color:#495260">${esc(KIND_LABEL[next.kind])}${next.role ? ` · ${esc(next.role)}` : ""}</p>` +
     `<p><a href="${esc(rowLink)}" style="background:#0d9488;color:#fff;padding:9px 14px;border-radius:5px;text-decoration:none">Open it in the console</a>` +
     (next.url ? ` &nbsp; <a href="${esc(next.url)}">LeetCode</a>` : "") + "</p>" +
@@ -112,7 +116,7 @@ export function nudgeMessage(env, dayN, agenda) {
     (rest.length ? `<p style="font-size:13px;color:#495260">After that, ${rest.length} more today: ` +
       rest.slice(0, 5).map((i) => esc(i.title)).join(" · ") + (rest.length > 5 ? " …" : "") + "</p>" : "")
   );
-  return { subject: `DSA Day ${dayN} · next: ${next.title}`, html };
+  return { subject: `DSA Day ${dayN} · next: ${next.kind === "read" ? "continue reading (step " + next.step + " of " + next.of + ")" : next.title}`, html };
 }
 
 export function missMessage(env, dayN, floor) {
@@ -170,13 +174,16 @@ export function mockOpenMessage(env, mock, status) {
 
 export async function dayContext(db, now) {
   const today = istDate(now);
-  const [progress, ledgers] = await Promise.all([readDsaProgress(db), readDsaLedgers(db)]);
+  const [progress, ledgers, v31] = await Promise.all([readDsaProgress(db), readDsaLedgers(db), readV31(db)]);
   return {
     days: PLAN.days,
     progress: progress.problems,
     siblings: ledgers.siblings,
     drill: ledgers.drill,
     ledger: ledgers.days,
+    reading: v31.reading,
+    coreDays: v31.core_days,
+    stack: (v31.reader && v31.reader.stack) || [],
     today,
     todayN: planDay(PLAN.start_date, today)
   };
