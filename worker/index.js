@@ -32,6 +32,8 @@ import {
   band, remainingMs, rawRemainingMs, expired, failedPatterns, MAX_SOURCE, GRACE_MIN
 } from "./oa.js";
 import { runnerStatus, LANGS } from "./runner.js";
+import { scheduledMock, mockStatus, allStatuses, attemptKind, linkScoredAttempt } from "./schedule.js";
+import { tick } from "./notify.js";
 
 // A tick is an id and a boolean. Tens of thousands still fit well inside
 // this; anything larger is a bug or someone poking at the endpoint.
@@ -801,10 +803,17 @@ async function prerequisites(db, mock) {
   return { solved_count: done.size, covers_days: mock.covers_days };
 }
 
-route("GET", /^\/api\/oa\/mocks$/, async (_m, _r, env) => {
+route("GET", /^\/api\/oa\/mocks$/, async (_m, request, env) => {
+  const now = clock(env, request);
+  const progress = (await readDsaProgress(env.DB)).problems;
   const mocks = [];
   for (const mock of allMocks()) {
-    mocks.push({ ...forList(mock), prerequisites: await prerequisites(env.DB, mock) });
+    const sched = scheduledMock(mock.id);
+    mocks.push({
+      ...forList(mock),
+      prerequisites: await prerequisites(env.DB, mock),
+      schedule: sched ? await mockStatus(env.DB, sched, now, { progress }) : null
+    });
   }
 
   const { results } = await env.DB
@@ -821,7 +830,19 @@ route("GET", /^\/api\/oa\/mocks$/, async (_m, _r, env) => {
       return mock && !expired(r, mock);
     });
 
-  return json({ mocks, in_progress: live, runner: runnerStatus(env), langs: LANGS });
+  return json({
+    mocks, in_progress: live, runner: runnerStatus(env), langs: LANGS,
+    // Every scheduled mock, including those whose content has not landed.
+    schedule: await allStatuses(env.DB, now, { progress }),
+    now
+  });
+});
+
+/* The schedule alone, for the header countdown: cheap enough to poll. */
+route("GET", /^\/api\/oa\/schedule$/, async (_m, request, env) => {
+  const now = clock(env, request);
+  const progress = (await readDsaProgress(env.DB)).problems;
+  return json({ schedule: await allStatuses(env.DB, now, { progress }), now });
 });
 
 route("POST", /^\/api\/oa\/attempt$/, async (_m, request, env) => {
@@ -842,14 +863,26 @@ route("POST", /^\/api\/oa\/attempt$/, async (_m, request, env) => {
     }
   }
 
+  /* The schedule decides what kind of attempt this is (PRD §10): scored
+     inside the 3-hour window, practice after it or after the scored one,
+     refused before the unlock. The timer itself stays on the real clock --
+     a faked clock is for walking through dates, not for grading. */
+  const now = clock(env, request);
+  const sched = scheduledMock(mock.id);
+  const status = sched ? await mockStatus(env.DB, sched, now) : null;
+  const kind = attemptKind(status);
+  if (kind.error) return json({ error: kind.error, schedule: status }, 423);
+
   const started = Date.now() / 1000;
   const res = await env.DB
-    .prepare("INSERT INTO oa_attempt (mock_id, started_at, per_problem) VALUES (?, ?, '{}')")
-    .bind(mock.id, started).run();
+    .prepare("INSERT INTO oa_attempt (mock_id, started_at, per_problem, kind) VALUES (?, ?, '{}', ?)")
+    .bind(mock.id, started, kind.kind).run();
 
   const id = res.meta.last_row_id;
+  if (kind.kind === "scored") await linkScoredAttempt(env.DB, mock.id, id, now);
   return json({
     attempt_id: id,
+    kind: kind.kind,
     started_at: started,
     remaining_ms: remainingMs({ started_at: started }, mock),
     mock: forAttempt(mock)
@@ -1036,7 +1069,9 @@ route("GET", /^\/api\/oa\/attempt\/(\d+)\/review$/, async (match, _r, env) => {
     band: band(attempt.score || 0, mock.total_marks),
     per_problem: attempt.per_problem,
     mock: forAttempt(mock),
-    review: forReview(mock)
+    review: forReview(mock),
+    kind: attempt.kind || "scored",
+    notes: attempt.notes || ""
   });
 });
 
@@ -1070,7 +1105,7 @@ route("GET", /^\/api\/oa\/history$/, async (_m, _r, env) => {
     });
 
     attempts.push({
-      id: row.id, mock_id: row.mock_id, mock_title: mock.title,
+      id: row.id, mock_id: row.mock_id, mock_title: mock.title, kind: row.kind || "scored",
       started_at: row.started_at, ended_at: row.ended_at,
       score: row.score, total_marks: mock.total_marks,
       band: band(row.score || 0, mock.total_marks),
@@ -1084,6 +1119,28 @@ route("GET", /^\/api\/oa\/history$/, async (_m, _r, env) => {
       .map((p) => ({ ...p, percent: p.out_of ? Math.round((p.earned / p.out_of) * 100) : 0 }))
       .sort((a, b) => a.percent - b.percent)
   });
+});
+
+/* "Explain your approach (2 minutes)" on the review screen (§10). Stored
+   now, graded in the v3 phase. Only once the attempt is over -- typing an
+   explanation mid-attempt is just a slower way to think. */
+route("PATCH", /^\/api\/oa\/attempt\/(\d+)\/notes$/, async (match, request, env) => {
+  const found = await openAttempt(env, match[1], { mustBeLive: false });
+  if (found.error) return found.error;
+  if (!found.attempt.ended_at) return bad("the explanation opens when the attempt is finished", 403);
+  const payload = await body(request);
+  const notes = String(payload.notes || "").slice(0, MAX_NOTES);
+  await env.DB.prepare("UPDATE oa_attempt SET notes = ? WHERE id = ?").bind(notes, found.id).run();
+  return json({ attempt_id: found.id, notes });
+});
+
+/* Run the cron now. What it sends is still de-duplicated by notify_log, so
+   pressing it twice, or alongside the real cron, sends nothing extra. With
+   DSA_FAKE_CLOCK in local dev it runs at the page's faked time -- the
+   "forced cron run at 11:00" of the PRD §17 walk-through. */
+route("POST", /^\/api\/notify\/tick$/, async (_m, request, env) => {
+  const now = clock(env, request);
+  return json({ now, done: await tick(env, now) });
 });
 
 // ---------------------------------------------------------------- dispatch
@@ -1123,5 +1180,14 @@ export default {
     // A path under /api that matches no route, or matches with the wrong
     // method, is a 404 rather than falling through to the site.
     return bad(`no route for ${request.method} ${url.pathname}`, 404);
+  },
+
+  /* Every 15 minutes (wrangler.toml). The handler decides in IST what is
+     due; see worker/notify.js. */
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(tick(env, event.scheduledTime || Date.now()).then(
+      (done) => { if (done.length) console.log("[notify]", JSON.stringify(done)); },
+      (err) => console.error("[notify] tick failed", err && err.stack)
+    ));
   }
 };

@@ -30,81 +30,68 @@ closed, and a score that healed itself would be lying.
 The one place the systems meet is the **countdown spine** — the next four open
 dated commitments from either domain. They share time, nothing else.
 
-## The DSA sheet
+## The DSA plan
 
-A section of its own, alongside Placement and MBA — not a fifth placement
-track. **145 problems across 30 days**, one per transferable concept. A
-problem carries a LeetCode link, a difficulty, a pattern, company tags, a
-C++ template and a learnings payload, and you write notes, tags, confidence,
-an approach line and a GoodNotes reference against it. None of that is a
-checkbox, so none of it was forced into the topics table.
+A 30-day beginner plan, 2026-10-18 to 2026-11-16: 120 LeetCode problems,
+four a day, foundations first (arrays → linear structures → recursion →
+trees → graphs → DP). The spec is `docs/dsa-sheet/v3/PRD-v3.md`. Day N is a
+calendar date in IST; days never move and nothing in the app can re-plan.
 
-This replaced a 600-problem version that optimised for coverage over
-understanding. The surviving rule from it is the one that mattered: problem
-ids are `{topic}-{slug}` and stable, so re-keying the phases from `P*` to
-`V*` and cutting 495 problems left every progress row intact.
+**Today** opens on the day's blocks in a fixed order — due cold re-solves
+(+2/+7/+14 days), yesterday's must-study siblings, micro-theory and pattern
+card, carried-over problems then today's four, a five-statement recognition
+drill, a CS core card — with the first unfinished item already expanded. A
+header strip shows the day, the next mock, how far behind you are, the floor
+and the streak.
 
-**It does move the rating**, weighted by tier: a CORE problem is worth ten
-topic ticks, a DRILL two, a SKIM one. Those track the time each asks for —
-SPEC defines CORE as a full solve against an empty file, DRILL as a
-variation under ten minutes, SKIM as read-and-move-on, so roughly 45 / 10 /
-5 minutes. At the full 145 that puts DSA at 49% of the ladder.
-`DSA_WEIGHT` in `src/app.js` is the single constant; set all three to 1 for
-flat scoring.
+Each problem has a **role** (LEARN, APPLY, TWIST, DISGUISE) and a nine-stage
+thinking pipeline (understand → analyse → brainstorm → algorithm →
+pseudocode → solution → dry run → edges → carry, plus follow-ups). LEARN
+shows every stage; the others start covered and are revealed one at a time.
+Every line is tagged ✍️ (write by hand) or 📸 (screenshot); the **✍️ only**
+switch shows just what goes on paper. Stages link to exact sections of a
+161-page **theory library**, whose pages say which problems use each section.
 
-Three decisions worth knowing:
+**Bad days** are handled by rules, not by re-planning: a day is *kept* when
+its floor (due re-solves + the first LEARN problem) is met; unfinished
+LEARN/APPLY problems are carried over; the cut order queues DISGUISE problems
+and downgrades TWISTs to *skimmed*.
 
-- **The denominator is the 145-problem pool, not the problems imported so
-  far.** Four of six phases are in. Using the imported count would drop the
-  rating every time a phase landed, purely because the target moved.
-- **`revisit` counts the same as `solved`.** It is the status for *I got
-  there but I want it again cold*. Scoring it as zero meant that admitting
-  shaky recall cost you rating, which trains the wrong reflex — you stop
-  marking things honestly. The flag earns its keep by putting the problem in
-  the revision queue, not by docking you. The two statuses stay distinct
-  everywhere else and are always counted separately.
-- **CORE carries no badge.** It is 87% of the sheet, and labelling the
-  default is noise. DRILL and SKIM do, because they change what the row asks
-  of you.
+**Mocks** are on fixed dates (23 Oct, 28 Oct, 31 Oct, 6 Nov, 9 Nov, 13 Nov,
+grand on 16 Nov). At 08:45 IST on the day the Worker draws the unlock time
+(09:00–17:00, 15-minute steps) and emails it; from the unlock there are three
+hours to start, after which the mock is *missed* and stays available as
+unscored practice. On a mock day the DISGUISE problem moves to revision.
 
-On the day view **one problem is open at a time** — opening a row closes
-whichever was open, and the row you clicked holds its position rather than
-jumping as the one above it collapses. Five sets of notes, tags and timers on
-screen at once is a wall; one is a next action. The learnings panel inside
-always starts closed, including on a row you had it open on, because the
-insight is the one thing on the page you can spoil for yourself.
+**Notifications** come from a Worker cron every 15 minutes (`worker/notify.js`):
+nudges at 09/11/13/15/17/19 naming the one next action, the mock email, a
+"mock is open" mail, and a 21:00 floor check. Each send is keyed in
+`notify_log`, so nothing goes out twice. Needs `RESEND_API_KEY` and `NOTIFY_TO`
+as secrets; without them the cron runs and only logs.
 
-The **pattern index** is the revision surface: 97 pattern names grouped by
-topic, each linking to the problem that teaches it and its C++ template.
-Read it cold and anything you cannot explain in a sentence is a gap.
+**Rating.** A plan problem done is worth 10 topic ticks, *skimmed* 3, a
+studied must-sibling 2, out of the full 120 + 120 — so a content batch landing
+never moves the number. Re-solves, drill and CS cards are habits and do not
+count.
 
-Content arrives as JSON in `docs/dsa-sheet/` and is imported, never edited
-in place. The importer reads exactly the phase files `SPEC.json` declares, so
-the quarantined 600-problem version and the unscheduled optional appendix
-sitting beside them cannot be picked up by accident:
+Content arrives as data in `docs/dsa-sheet/v3/` (Days 6–30 in five-day
+batches) and is imported, never edited in place:
 
 ```bash
-node tools/import-dsa.mjs        # validate, normalise, report what moved
-node tools/build.mjs
+npm run import        # validate every cross-reference, report what moved
+npm run verify:dsa    # compile and test every reference C++ solution
+npm run build
 ```
 
-The importer is idempotent — it upserts by problem id and reports
-added/changed/unchanged per phase. `--check` validates and writes nothing.
-Problem ids are `{topic}-{lc-slug}` and survive a problem moving day or tier,
-which is what lets progress key on them. **Re-importing never touches
-progress**: content lives in `data/dsa/`, progress lives in its own bucket
-blob that the importer cannot reach.
+The importer refuses on any dangling theory link, wrong stage list, missing
+must-sibling, drill count, mock coverage mismatch or misdated mock, and
+drops the `verify` fields before anything reaches `public/`. OA mocks with
+hidden tests go into the Worker bundle (`worker/oa-content.json`), never
+`public/`.
 
-That blob is separate from the tracker's on purpose. `console/progress.json`
-is capped at 512 KB because a tick is an id and a boolean; a sheet where
-every problem carries free-text notes would eventually push a placement tick
-over that cap and start failing saves that had nothing to do with DSA.
-
-The page bakes in a thin index — everything a problem row needs, ~140 KB — and
-fetches the learnings, theory and templates per problem from `/api/dsa/*`.
-Baking all of it would be a 2 MB parse to show one day's fourteen rows.
-Opened from disk with no server the sheet still lists, filters and ticks;
-only the teaching material needs the API, and it says so when it is missing.
+To walk through any date locally: put `DSA_FAKE_CLOCK=1` in `.dev.vars`, run
+`npm run dev`, and open `/?clock=2026-10-23T08:50#dsa`. `POST /api/notify/tick`
+runs the cron at the page's clock. A deployed Worker ignores the fake clock.
 
 ## Layout
 
@@ -112,14 +99,19 @@ only the teaching material needs the API, and it says so when it is missing.
 data/              content only. Safe for an updater to rewrite.
   placement.json     ranks, tracks, badge display text
   mba.json           phases, schools, excluded options
-  dsa/               the DSA sheet, written by tools/import-dsa.mjs
-docs/dsa-sheet/    the sheet's source: specs, phase JSON, templates
+  dsa/               the DSA plan, written by tools/import-dsa.mjs
+docs/dsa-sheet/
+  v3/                the plan's source: PRD, PLAN.json, days, theory, mocks
+  _superseded-v2/    the 145-problem sheet, kept, never read
   _superseded-600-plan/  the abandoned 600-problem version, kept, never read
+shared/dsa-core.mjs  IST dates, floor, agenda, mock state -- page and Worker both use it
+migrations/        one-off D1 migrations for databases created before a schema change
 src/               rendering and logic. Not machine-edited.
   shell.html         page skeleton
   styles.css         unified design system
   app.js             scoring, badge rules, rendering
-worker/            the API: progress, MBA overlay, goals, opportunities
+worker/            the API: progress, MBA overlay, goals, opportunities, OAs,
+                   the mock schedule and the notification cron
 tools/
   import-dsa.mjs     idempotent DSA import, with an added/changed report
   build.mjs          inlines data/ + src/ into index.html, lays out public/

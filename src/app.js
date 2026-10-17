@@ -2180,6 +2180,20 @@
     return null;
   }
 
+  /* Runtime state of the mocks (unlock time once revealed, open, missed...),
+     from /api/oa/schedule. The dates are baked in; this adds what only the
+     server can know. Polled every five minutes while the page is open. */
+  var DSA_SCHED = {};
+  function dsaAdoptSchedule(list) {
+    (list || []).forEach(function (m) { DSA_SCHED[m.id] = m; });
+  }
+  function dsaLoadSchedule() {
+    return api("/api/oa/schedule").then(function (d) {
+      dsaAdoptSchedule(d.schedule);
+      if (SECTION === "dsa" && ACTIVE === "dsa-today") render();
+    }).catch(function () { /* the baked dates still show */ });
+  }
+
   function dsaNextMock(today) {
     var ms = DSA_PLAN.mocks || [];
     for (var i = 0; i < ms.length; i++) if (ms[i].date >= today) return ms[i];
@@ -2200,34 +2214,27 @@
     return rows[0] || null;
   }
 
+  /* The inputs DSA_CORE's day functions take -- the same shape the cron
+     builds from D1, so the floor and the re-solve list here are computed by
+     the very code that decides whether a nudge or a miss mail goes out. */
+  function dsaCtx(day, today) {
+    return {
+      days: DSA_PLAN.days.map(function (d) {
+        return { day: d.day, date: d.date, problems: dsaProblemsOn(d.day).map(function (p) {
+          return { id: p.id, ord: p.ord, role: p.role, title: p.title, url: p.url, must: p.must };
+        }) };
+      }),
+      progress: DSA_S.problems, siblings: DSA_S.siblings, drill: DSA_S.drill, ledger: DSA_S.days,
+      today: today, todayN: day
+    };
+  }
+
   function dsaDueResolves(today) {
-    return DSA_PROBLEMS.filter(function (p) {
-      var g = dsaRow(p.id);
-      return g.next_resolve_on && g.next_resolve_on <= today;
-    }).sort(function (a, b) {
-      return dsaRow(a.id).next_resolve_on.localeCompare(dsaRow(b.id).next_resolve_on) || a.day - b.day || a.ord - b.ord;
-    });
+    return DSA_CORE.dueResolves(dsaCtx(dsaTodayN(), today)).map(function (p) { return DSA_BY_ID[p.id]; });
   }
 
-  function dsaResolvedToday(today) {
-    return DSA_PROBLEMS.filter(function (p) {
-      var g = dsaRow(p.id);
-      return g.resolve_stage > 0 && g.last_revised === today;
-    }).length;
-  }
-
-  /* The day is kept when the floor is met. Re-solves count as met once none
-     are due or two were done today -- two is all the block ever shows, so a
-     third that surfaces after the first two are done is tomorrow's. */
   function dsaFloor(day, today) {
-    var due = dsaDueResolves(today);
-    var resolvesOk = due.length === 0 || dsaResolvedToday(today) >= 2;
-    var first = dsaFloorProblem(day);
-    var firstOk = !first || isDoneStatus(dsaRow(first.id).status);
-    var missing = [];
-    if (!resolvesOk) missing.push("re-solves");
-    if (!firstOk) missing.push(first.title);
-    return { ok: resolvesOk && firstOk, missing: missing, first: first };
+    return DSA_CORE.floorStatus(dsaCtx(day, today));
   }
 
   function isDoneStatus(s) { return DSA_CORE.isDone(s); }
@@ -2657,8 +2664,16 @@
     var mockTxt = "";
     if (mock) {
       var left = DSA_CORE.daysBetween(today, mock.date);
+      var live = DSA_SCHED[mock.id] || {};
+      var when = left > 0 ? left + " day" + (left === 1 ? "" : "s")
+        : live.state === "unlocked" ? "<b>open now</b> · start by " + DSA_CORE.istClock(live.window_closes)
+        : live.state === "revealed" ? "<b>unlocks " + DSA_CORE.istClock(live.unlock_at) + "</b> · start by " + DSA_CORE.istClock(live.window_closes)
+        : live.state === "started" ? "<b>in progress</b>"
+        : live.state === "submitted" ? "taken"
+        : live.state === "missed" ? "missed — practice open"
+        : "<b>today</b> · time at 08:45";
       mockTxt = '<a href="#" class="dsa-strip-item mock" data-dsa-tab="dsa-oa">' + esc(dsaMockLabel(mock)) + " · " +
-        esc(dsaShortDate(mock.date)) + " · " + (left === 0 ? "<b>today</b>" : left + " day" + (left === 1 ? "" : "s")) + "</a>";
+        esc(dsaShortDate(mock.date)) + " · " + when + "</a>";
     }
     return '<div class="dsa-strip">' +
       '<span class="dsa-strip-item day"><b>Day ' + d.day + "</b> of " + DSA_PLAN.days.length + " · " +
@@ -2848,6 +2863,22 @@
       }
     }
 
+    // Coverage warning, two days out and on the day (PRD §10): never a lock.
+    var nextMock = dsaNextMock(today);
+    if (isToday && nextMock && DSA_CORE.daysBetween(today, nextMock.date) <= 2) {
+      var unfinished = DSA_PROBLEMS.filter(function (p) {
+        return nextMock.covers_days.indexOf(p.day) !== -1 && dsaRow(p.id).status === "todo";
+      }).length;
+      var ms = DSA_SCHED[nextMock.id] || {};
+      if (unfinished && ms.state !== "started" && ms.state !== "submitted" && ms.state !== "missed") {
+        out += '<div class="dsa-alert soft">' + esc(dsaMockLabel(nextMock)) + " on " + esc(dsaShortDate(nextMock.date)) +
+          " covers days " + nextMock.covers_days[0] + "–" + nextMock.covers_days[nextMock.covers_days.length - 1] +
+          ". You have <b>" + unfinished + "</b> unfinished problem" + (unfinished === 1 ? "" : "s") +
+          " from those days — take it anyway; it measures where you are.</div>";
+      }
+    }
+    if (isToday && mock) dsaMockDayCut(mock, today);
+
     out += '<div class="dsa-daynav">' +
       '<button class="btn tiny" type="button" data-dsa-day="' + Math.max(1, n - 1) + '"' + (n <= 1 ? " disabled" : "") + ">‹ prev</button>" +
       '<div class="dsa-dayhd"><h2>Day ' + n + " · " + esc(d.title) + "</h2>" +
@@ -2882,7 +2913,12 @@
         carried.slice(0, 4).map(function (p) { return dsaRowEl(p, { note: "carried over from Day " + p.day }); }).join("") + "</div>" +
         (carried.length > 4 ? '<p class="muted tiny">+' + (carried.length - 4) + ' more — see the <a href="#" class="linkish" data-dsa-tab="dsa-plan">plan</a>.</p>' : "") +
         '<h4 class="dsa-sub">Today</h4>' : "") +
-      '<div class="dsa-rows">' + rows.map(function (p) { return dsaRowEl(p); }).join("") + "</div>" + dsaSkims(d));
+      '<div class="dsa-rows">' + rows.map(function (p) {
+        var g = dsaRow(p.id);
+        return dsaRowEl(p, g.cut_state === "queued" && g.status === "todo"
+          ? { note: mock ? "moved to the revision queue (mock day) — due " + esc(g.next_resolve_on || "") : "queued for revision by the cut order" }
+          : undefined);
+      }).join("") + "</div>" + dsaSkims(d));
 
     // 5. Drill, 6. CS core.
     if (d.content === "ready") {
@@ -2893,6 +2929,21 @@
         " arrive with the notes, by " + esc(dsaShortDate(DSA_CORE.addDays(d.date, -5))) + ".</p></section>";
     }
     return out;
+  }
+
+  /* Mock-day load (PRD §8.2): three problems, so the DISGUISE one (or the
+     last) goes to the revision queue for two days later. The cron does this
+     at 08:45; this is the same move for a page opened first, and a no-op
+     once done or once the problem has been touched. */
+  var DSA_CUT_DONE = {};
+  function dsaMockDayCut(mock, today) {
+    if (DSA_CUT_DONE[mock.id]) return;
+    DSA_CUT_DONE[mock.id] = true;
+    var p = DSA_CORE.mockDayCut(dsaCtx(mock.day, today), mock.day);
+    if (!p) return;
+    var g = dsaRow(p.id);
+    if (g.status !== "todo" || g.cut_state) return;
+    dsaPatch(p.id, { cut_state: "queued", next_resolve_on: DSA_CORE.addDays(today, 2) });
   }
 
   /* Keep the day when its floor is met. Written once, never un-kept: a day
@@ -3162,6 +3213,14 @@
     else if (parts[1] === "browse") ACTIVE = "dsa-browse";
     else if (parts[1] === "oa") ACTIVE = "dsa-oa";
     else if (parts[1] === "day" && +parts[2]) { ACTIVE = "dsa-today"; DSAV.day = dsaClampDay(+parts[2]); }
+    else if (parts[1] === "problem" && DSA_BY_ID[parts[2]]) {
+      // The nudge email's deep link: open that row on its day.
+      var pr = DSA_BY_ID[parts[2]];
+      ACTIVE = "dsa-today";
+      DSAV.day = pr.day === dsaTodayN() ? 0 : pr.day;
+      DSAV.openId = pr.id;
+      DSA_AUTO_OPENED[pr.day] = true;
+    }
     else ACTIVE = "dsa-today";
     return true;
   }
@@ -3171,7 +3230,10 @@
   function renderDsaRevision() {
     var today = dsaToday();
     var due = dsaDueResolves(today);
-    var queued = DSA_PROBLEMS.filter(function (p) { return dsaRow(p.id).cut_state === "queued"; });
+    var queued = DSA_PROBLEMS.filter(function (p) {
+      var g = dsaRow(p.id);
+      return g.cut_state === "queued" && g.status === "todo";
+    });
     var weak = DSA_PROBLEMS.filter(function (p) {
       var g = dsaRow(p.id);
       if (g.status === "todo") return false;
@@ -3785,10 +3847,13 @@
       "about where they came from. That gap — recognition under time pressure, with no label " +
       "— is the only thing this tab trains.</p>" +
 
-      "<p><b>A mock only ever uses days you have already done.</b> Every problem records the " +
-      "day it was drawn from, and the mock declares the days it covers. That is what makes a " +
-      "bad score diagnostic rather than demoralising: it can only tell you about material you " +
-      "have actually studied.</p>" +
+      "<p><b>Mocks are on fixed dates</b>, shown from Day 1 in the header. Each covers every plan " +
+      "day before it, done or not — if you are behind, you get a warning, never a lock. On the " +
+      "morning, at 08:45 IST, the exact unlock time is drawn (somewhere between 09:00 and 17:00) " +
+      "and emailed. From the unlock you have <b>three hours to start</b>; once started, the usual " +
+      "clock runs. A window that passes without a start is recorded as <b>missed</b>, and the mock " +
+      "stays available as an unscored <b>practice</b> attempt — as does any mock after its scored " +
+      "attempt.</p>" +
 
       "<h5>During the attempt</h5>" +
       dl([
@@ -3834,69 +3899,76 @@
       "<i>Run Code</i> and <i>Submit</i> are what need it.</p></div>";
   }
 
+  var OA_STATE_LABEL = {
+    scheduled: "scheduled", revealed: "unlock time set", unlocked: "open now",
+    started: "in progress", submitted: "taken", missed: "missed"
+  };
+
+  /* One card per scheduled mock, content or not. What the card offers is
+     the server's decision (scored inside the window, practice after it,
+     locked before it) -- this only labels it. */
+  function oaCard(sched, content, live) {
+    var today = dsaToday();
+    var left = DSA_CORE.daysBetween(today, sched.date);
+    var label = dsaMockLabel(sched);
+    var days = sched.covers_days.length ? "days " + sched.covers_days[0] + "–" + sched.covers_days[sched.covers_days.length - 1] : "";
+    var times = sched.unlock_at
+      ? '<p class="oa-times">Unlocks <b>' + DSA_CORE.istClock(sched.unlock_at) + "</b> · start by <b>" +
+        DSA_CORE.istClock(sched.window_closes) + "</b> IST</p>"
+      : sched.state === "scheduled" && left >= 0
+        ? '<p class="muted tiny">The unlock time is drawn and emailed at 08:45 IST on ' + esc(dsaShortDate(sched.date)) + ".</p>"
+        : "";
+    var warn = sched.unfinished && left <= 2 && (sched.state === "scheduled" || sched.state === "revealed" || sched.state === "unlocked")
+      ? '<p class="oa-unmet">You have ' + sched.unfinished + " unfinished problem" + (sched.unfinished === 1 ? "" : "s") +
+        " from " + esc(days) + ". Take it anyway — it is a diagnostic of where you are, not a gate.</p>" : "";
+    var late = !content && left <= 3
+      ? '<p class="oa-unmet">This mock\'s problems have not landed yet — the content batch is late.</p>' : "";
+
+    var action;
+    if (!content) action = '<button class="btn" type="button" disabled>Content pending</button>';
+    else if (live && live.mock_id === sched.id) action = '<button class="btn" data-oa-resume="' + live.id + '" type="button">Resume it</button>';
+    else if (sched.state === "unlocked") action = '<button class="btn" data-oa-start="' + esc(sched.id) + '" type="button">Start the scored attempt</button>';
+    else if (sched.state === "missed" || sched.state === "submitted") {
+      action = '<button class="btn ghost" data-oa-start="' + esc(sched.id) + '" type="button">Take as practice (unscored)</button>';
+    } else action = '<button class="btn" type="button" disabled>Locked</button>';
+
+    return '<div class="oa-card st-' + esc(sched.state) + '">' +
+      '<div class="oa-card-hd"><h4>' + esc(label) + "</h4>" +
+        '<span class="oa-chip st">' + esc(OA_STATE_LABEL[sched.state] || sched.state) + "</span>" +
+        '<span class="oa-chip">' + esc(dsaShortDate(sched.date)) + (left > 0 ? " · in " + left + " day" + (left === 1 ? "" : "s") : left === 0 ? " · today" : "") + "</span>" +
+        '<span class="oa-chip">' + sched.duration_min + " min</span>" +
+        (content ? '<span class="oa-chip">' + content.problem_count + " problems · " + content.total_marks + " marks</span>" : "") +
+        (sched.score !== null && sched.score !== undefined ? '<span class="oa-chip">scored ' + sched.score + "</span>" : "") +
+      "</div>" +
+      '<p class="muted">Covers ' + esc(days) + " of the plan" + (sched.kind === "grand" ? " — the grand mock" : "") + ".</p>" +
+      times + warn + late + action + "</div>";
+  }
+
   function oaList() {
-    var mocks = OAV.list || null;
+    var data = OAV.list || null;
     if (OAV.error) {
       return '<div class="card"><h3>Online assessments</h3><p class="muted">' + esc(OAV.error) + "</p></div>";
     }
-    if (!mocks) return '<div class="card"><h3>Online assessments</h3><p class="muted">Loading…</p></div>';
+    if (!data) return '<div class="card"><h3>Online assessments</h3><p class="muted">Loading…</p></div>';
 
     var live = (OAV.inProgress || [])[0];
-
-    var rows = mocks.mocks.map(function (m) {
-      var days = m.covers_days.length
-        ? "days " + m.covers_days[0] + "–" + m.covers_days[m.covers_days.length - 1]
-        : "";
-      /* The prerequisite is reported, not enforced. See the note on the
-         server: the only evidence here is what has been ticked in this
-         tracker, and days done on paper are common enough that a hard lock
-         would mostly be wrong. */
-      var unmet = oaUnmetDays(m);
-      return '<div class="oa-card">' +
-        '<div class="oa-card-hd"><h4>' + esc(m.title) + "</h4>" +
-          '<span class="oa-chip">' + m.duration_min + " min</span>" +
-          '<span class="oa-chip">' + m.problem_count + " problems</span>" +
-          '<span class="oa-chip">' + m.total_marks + " marks</span></div>" +
-        '<p class="muted">Built from ' + esc(days) + " of the sheet. " +
-          esc(m.difficulty.replace(/-/g, " ")) + ".</p>" +
-        (unmet
-          ? '<p class="oa-unmet">You have not ticked everything in ' + esc(days) +
-            " yet. You can still take it — the warning is here because a mock is only a fair " +
-            "diagnostic of material you have actually worked through.</p>"
-          : "") +
-        '<button class="btn" data-oa-start="' + esc(m.id) + '" type="button">' +
-          (live ? "Start a new attempt" : "Start the assessment") + "</button>" +
-      "</div>";
-    }).join("");
+    var contentById = {};
+    (data.mocks || []).forEach(function (m) { contentById[m.id] = m; });
+    var cards = (data.schedule || []).map(function (s) { return oaCard(s, contentById[s.id], live); }).join("");
 
     return '<div class="card">' +
       "<h3>Online assessments</h3>" +
-      '<p class="muted">Ninety minutes, three problems, no hints, and a clock that does not ' +
-        "stop. Everything here is drawn from days the sheet says you have done.</p>" +
+      '<p class="muted">Fixed dates, a random unlock time on the day, three hours to start, then ' +
+        "a clock that does not stop. No hints, no pattern names.</p>" +
       oaHelpPanel() +
       oaRunnerNote() +
-      (live
+      (live && !(data.schedule || []).some(function (s) { return s.id === live.mock_id; })
         ? '<div class="oa-resume"><b>You have an attempt in progress.</b> ' +
-          '<button class="btn" data-oa-resume="' + live.id + '" type="button">Resume it</button>' +
-          "</div>"
+          '<button class="btn" data-oa-resume="' + live.id + '" type="button">Resume it</button></div>'
         : "") +
-      '<div class="oa-cards">' + rows + "</div>" +
+      '<div class="oa-cards">' + cards + "</div>" +
       '<p class="oa-histlink"><a href="#" data-oa-history="1">Past attempts and per-pattern accuracy →</a></p>' +
     "</div>";
-  }
-
-  /* A day counts as done when every problem the sheet puts on it is done.
-     Same definition the rest of the tab uses, so the two cannot disagree. */
-  function oaUnmetDays(mock) {
-    if (!DSA_PROBLEMS || !DSA_PROBLEMS.length) return false;
-    for (var i = 0; i < mock.covers_days.length; i++) {
-      var day = mock.covers_days[i];
-      var onDay = DSA_PROBLEMS.filter(function (p) { return p.day === day; });
-      if (!onDay.length) continue;
-      var done = onDay.filter(function (p) { return dsaIsDone(dsaRow(p.id).status); });
-      if (done.length < onDay.length) return true;
-    }
-    return false;
   }
 
   // ------------------------------------------------------ the assessment
@@ -4115,7 +4187,11 @@
       "</div>" +
       '<div class="oa-band b-' + esc(r.band.key) + '"><b>' + esc(r.band.reading) + ".</b> " +
         esc(r.band.action) + "</div>" +
-      '<p class="muted">Finished in ' + mins + " minutes.</p>" +
+      '<p class="muted">Finished in ' + mins + " minutes" + (r.kind === "practice" ? " · practice attempt, unscored" : "") + ".</p>" +
+      '<div class="dsa-lblock"><h4>Explain your approach (2 minutes)</h4>' +
+        '<p class="muted tiny">Out loud, then here: the pattern you saw in each problem, the approach, and its complexity — ' +
+        "what an interviewer would ask you to say.</p>" +
+        '<textarea data-oa-notes="' + r.attempt_id + '" rows="5" placeholder="Q1: … Q2: … Q3: …">' + esc(r.notes || "") + "</textarea></div>" +
       problems +
       '<p class="oa-histlink"><a href="#" data-oa-back="1">← Back to the assessments</a> · ' +
         '<a href="#" data-oa-history="1">Past attempts →</a></p>' +
@@ -4136,7 +4212,8 @@
 
     var rows = h.attempts.map(function (a) {
       return "<tr>" +
-        '<td><a href="#" data-oa-review="' + a.id + '">' + esc(a.mock_title) + "</a></td>" +
+        '<td><a href="#" data-oa-review="' + a.id + '">' + esc(a.mock_title) + "</a>" +
+          (a.kind === "practice" ? ' <span class="oa-chip">practice</span>' : "") + "</td>" +
         "<td>" + esc(new Date(a.started_at * 1000).toISOString().slice(0, 10)) + "</td>" +
         '<td><b>' + a.score + "</b> / " + a.total_marks + "</td>" +
         '<td><span class="oa-bandtag b-' + esc(a.band.key) + '">' + esc(a.band.reading) + "</span></td>" +
@@ -4174,6 +4251,7 @@
   function oaLoadList() {
     return api("/api/oa/mocks").then(function (d) {
       OAV.list = d;
+      dsaAdoptSchedule(d.schedule);
       OAV.inProgress = d.in_progress || [];
       OAV.runner = d.runner;
       OAV.langs = d.langs || [];
@@ -4346,6 +4424,15 @@
   }
 
   function bindOa() {
+    document.querySelectorAll("[data-oa-notes]").forEach(function (ta) {
+      ta.onblur = function () {
+        var id = ta.dataset.oaNotes;
+        if (OAV.review && OAV.review.notes === ta.value) return;
+        api("/api/oa/attempt/" + id + "/notes", { method: "PATCH", body: JSON.stringify({ notes: ta.value }) })
+          .then(function (d) { if (OAV.review) OAV.review.notes = d.notes; toast("Explanation saved."); })
+          .catch(function (e) { toast("Not saved: " + e.message); });
+      };
+    });
     document.querySelectorAll("[data-oa-start]").forEach(function (b) {
       b.onclick = function () { oaStart(b.dataset.oaStart); };
     });
@@ -4467,6 +4554,8 @@
         render();
       });
       if (Object.keys(DSAV.timers).length) dsaStartTick();
+      dsaLoadSchedule();
+      setInterval(dsaLoadSchedule, 5 * 60 * 1000);
     }
 
     refreshOpportunities();

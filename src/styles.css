@@ -1670,3 +1670,11 @@ a.dsa-theorycard { text-decoration: none; color: inherit; }
   .dsa-drills { grid-template-columns: 1fr; }
   .dsa-pdays-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
 }
+
+/* mocks */
+.dsa-alert.soft { border-color: var(--warn); background: #fffaf2; }
+.oa-times { font-family: var(--mono); font-size: 12px; margin: 4px 0 8px; }
+.oa-card.st-unlocked { border-color: var(--dsa); box-shadow: 0 0 0 2px var(--dsa-soft); }
+.oa-card.st-missed, .oa-card.st-submitted { opacity: .85; }
+.oa-chip.st { font-weight: 700; }
+.oa-card.st-unlocked .oa-chip.st { background: var(--dsa); color: #fff; border-color: var(--dsa); }
