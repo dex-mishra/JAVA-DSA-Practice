@@ -11,6 +11,9 @@
   "cpp-priority-queue",
   "heap-top-k"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "structure",
@@ -37,5 +40,6 @@
    "body": "- \"What is the difference between a heap and a BST?\" — a heap only guarantees the root is the max/min (O(1) top, O(log n) insert/pop, no ordered iteration, no search); a BST keeps full order (O(log n) search, ordered iteration).\n- Heap sort: build a max-heap, repeatedly pop to the end. O(n log n), in place, not stable."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

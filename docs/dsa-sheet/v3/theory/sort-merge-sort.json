@@ -13,6 +13,9 @@
   "sort-stability-and-bounds",
   "ll-merge-and-split"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -45,5 +48,21 @@
    "body": "- Stable: yes (with `<=` in the merge). Quick sort: no.\n- Preferred for linked lists: merging lists needs no extra array, and random access (which quick sort needs) is expensive on lists ([[ll-merge-and-split]]).\n- External sorting (data bigger than memory) is merge-based."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "rec-divide-and-conquer",
+   "from_section": "merge-sort",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "problem": "remove-duplicates-from-sorted-array",
+   "sibling": "merge-sorted-array",
+   "day": 1,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "merge"
+  }
+ ],
+ "notes_status": "pending"
 }

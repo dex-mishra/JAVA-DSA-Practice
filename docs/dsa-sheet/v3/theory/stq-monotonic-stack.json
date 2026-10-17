@@ -12,6 +12,9 @@
   "stq-histogram-area",
   "stq-monotonic-deque"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -56,5 +59,25 @@
    "body": "✍️ `<` vs `<=` decides how duplicates are handled. For \"strictly greater\", pop on `<`. For histogram areas, one side uses strict and the other non-strict to avoid double counting.\n✍️ Elements left in the stack at the end have **no** answer — initialise the result array with the \"none\" value (−1 or 0)."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "meta-bottleneck-method",
+   "from_section": "name-waste",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-question-words",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "cx-amortised-analysis",
+   "from_section": "counting-trick",
+   "kind": "link",
+   "section": "complexity"
+  }
+ ],
+ "notes_status": "pending"
 }

@@ -12,6 +12,9 @@
  "related": [
   "graph-cycle-detection"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -44,5 +47,25 @@
    "body": "O(n + m) time and space."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-input-shape",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "graph-dfs",
+   "from_section": "uses",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "graph-cycle-detection",
+   "from_section": "kahn",
+   "kind": "link",
+   "section": "kahn"
+  }
+ ],
+ "notes_status": "pending"
 }

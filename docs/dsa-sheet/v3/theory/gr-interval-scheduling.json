@@ -11,6 +11,9 @@
  "related": [
   "gr-interval-sort-and-merge"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -37,5 +40,6 @@
    "body": "- Minimum arrows to burst balloons (LeetCode 452): sort by end, shoot at the end of the first balloon, skip all balloons containing that point (start ≤ arrow).\n- Maximum length of pair chain (LeetCode 646): same as max non-overlapping with strict `>`."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

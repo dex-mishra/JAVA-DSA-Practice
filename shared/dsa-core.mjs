@@ -245,3 +245,15 @@ export function istClock(ms) {
   const d = new Date(ms + IST_OFFSET_MS);
   return String(d.getUTCHours()).padStart(2, "0") + ":" + String(d.getUTCMinutes()).padStart(2, "0");
 }
+
+/* ------------------------------------------------------------ recall
+
+   v3.1 §7: a ✗ comes back in 2 days from stage 0; a ✓ advances the stage
+   (+2, +7, +14 days) and retires the item after the third. */
+export const RECALL_OFFSETS = [2, 7, 14];
+
+export function recallNext(stage, result, today) {
+  if (!result) return { stage: 0, due_on: addDays(today, 2) };
+  const next = (stage || 0) + 1;
+  return { stage: next, due_on: next > RECALL_OFFSETS.length ? null : addDays(today, RECALL_OFFSETS[next - 1]) };
+}

@@ -11,6 +11,9 @@
   "dp-0-1-knapsack",
   "dp-grid-paths"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "rolling",
@@ -37,5 +40,19 @@
    "body": "✍️ Optimise space only after the full-table version works, or when memory limits demand it. If you need to reconstruct the actual choices (not just the value), keep the full table."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "dp-memo-vs-tabulation",
+   "from_section": "tab",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "dp-grid-paths",
+   "from_section": "complexity",
+   "kind": "link",
+   "section": "rows"
+  }
+ ],
+ "notes_status": "pending"
 }

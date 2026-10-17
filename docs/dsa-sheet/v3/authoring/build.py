@@ -87,8 +87,40 @@ def strip_fence(code):
 
 # ------------------------------------------------------------------ theory
 pages = {}
+note_blocks = []   # (where, page id, sections) from '=== notes: <page>' blocks
+SPECIAL = {"note", "recall", "shot"}
+
+
+def parse_recall(body, where):
+    out = []
+    for l in body.split("\n"):
+        l = l.strip()
+        if not l:
+            continue
+        if not l.startswith("- ") or " :: " not in l:
+            errors.append(f"{where}: recall line must be '- question :: answer': {l!r}")
+            continue
+        q, a = l[2:].split(" :: ", 1)
+        out.append(dict(q=q.strip(), a=a.strip()))
+    return out
+
+
+def attach_notes(page, secs, where):
+    for sct in secs:
+        if sct["id"] == "note":
+            page["note"] = sct["body"]
+        elif sct["id"] == "recall":
+            page["recall"] = parse_recall(sct["body"], where)
+        elif sct["id"] == "shot":
+            page["shot"] = dict(title=sct["title"], body=sct["body"])
+
+
 for path in sorted(glob.glob(os.path.join(HERE, "theory", "*.txt"))):
     text = open(path).read()
+    for blk in split_blocks(text, "=== notes: "):
+        nid = blk[0][len("=== notes: "):].strip()
+        _, nsecs = parse_sections(blk[1:], f"notes {nid}")
+        note_blocks.append((f"{os.path.basename(path)}:notes {nid}", nid, nsecs))
     for blk in split_blocks(text, "=== page: "):
         pid = blk[0][len("=== page: "):].strip()
         where = f"{os.path.basename(path)}:{pid}"
@@ -100,9 +132,30 @@ for path in sorted(glob.glob(os.path.join(HERE, "theory", "*.txt"))):
             errors.append(f"{where}: duplicate page id")
         if len(secs) < 2:
             errors.append(f"{where}: only {len(secs)} sections")
-        pages[pid] = dict(id=pid, title=head.get("title"), topic=head.get("topic"), kind=head.get("kind"),
-                          summary=head.get("summary"), prereqs=csv(head.get("prereqs", "")),
-                          related=csv(head.get("related", "")), sections=secs, used_by=[])
+        page = dict(id=pid, title=head.get("title"), topic=head.get("topic"), kind=head.get("kind"),
+                    summary=head.get("summary"), prereqs=csv(head.get("prereqs", "")),
+                    related=csv(head.get("related", "")), note=None, recall=[], shot=None,
+                    sections=[x for x in secs if x["id"] not in SPECIAL], used_by=[])
+        attach_notes(page, secs, where)
+        pages[pid] = page
+
+for where, nid, nsecs in note_blocks:
+    if nid not in pages:
+        errors.append(f"{where}: notes for unknown page {nid!r}")
+        continue
+    if pages[nid]["note"]:
+        errors.append(f"{where}: page {nid} already has a note")
+    attach_notes(pages[nid], nsecs, where)
+
+for pid, p in pages.items():
+    has = [bool(p["note"]), bool(p["recall"]), bool(p["shot"])]
+    if any(has) and not all(has):
+        errors.append(f"page {pid}: note, recall and shot must come together (has note={has[0]} recall={has[1]} shot={has[2]})")
+    if p["recall"] and len(p["recall"]) < 3:
+        errors.append(f"page {pid}: recall needs at least 3 questions")
+    if p["kind"] == "core" and not p["note"]:
+        errors.append(f"page {pid}: core pages need note, recall and shot")
+    p["notes_status"] = "ready" if p["note"] else "pending"
 
 
 def check_ref(ref, where):
@@ -117,12 +170,31 @@ def check_ref(ref, where):
 
 
 INLINE_REF = re.compile(r"\[\[([a-z0-9-]+(?:#[a-z0-9_-]+)?)\]\]")
+DETOUR = re.compile(r"^>> detour ([a-z0-9-]+(?:#[a-z0-9_-]+)?) \| (.+?) \| (\d+) min\s*$", re.M)
+backrefs = []   # (page, section, row) for the reverse index
+
+
+def scan_body(body, where, origin):
+    for r in INLINE_REF.findall(body):
+        check_ref(r, f"{where} inline")
+        pg, _, sc = r.partition("#")
+        backrefs.append((pg, sc, dict(origin, kind="link")))
+    for line in body.split("\n"):
+        if line.startswith(">> ") and not DETOUR.match(line):
+            errors.append(f"{where}: malformed detour line {line!r} (want '>> detour page#section | why | N min')")
+    for r, why, mins in DETOUR.findall(body):
+        check_ref(r, f"{where} detour")
+        pg, _, sc = r.partition("#")
+        backrefs.append((pg, sc, dict(origin, kind="detour", why=why)))
+
+
 for pid, p in pages.items():
     for r in p["prereqs"] + p["related"]:
         check_ref(r, f"page {pid} prereq/related")
-    for s in p["sections"]:
-        for r in INLINE_REF.findall(s["body"]):
-            check_ref(r, f"page {pid}#{s['id']} inline")
+    for s_ in p["sections"]:
+        scan_body(s_["body"], f"page {pid}#{s_['id']}", dict(from_page=pid, from_section=s_["id"]))
+    if p["note"]:
+        scan_body(p["note"], f"page {pid}#note", dict(from_page=pid, from_section="note"))
 
 # ------------------------------------------------------------------ plan cross-check
 plan_problems = {p["id"]: (d["day"], p) for d in PLAN["days"] for p in d["problems"]}
@@ -147,13 +219,21 @@ def parse_refs(lines, where):
     out = []
     for l in lines or []:
         parts = [x.strip() for x in l.split("|")]
-        if len(parts) != 4:
-            errors.append(f"{where}: theory_refs line needs 4 '|' fields: {l!r}")
+        if len(parts) == 4:
+            parts += ["while", "optional"]
+        if len(parts) != 6:
+            errors.append(f"{where}: theory_refs line needs 6 '|' fields (stage|at|page#sec|why|when|need): {l!r}")
             continue
-        stage, at, ref, why = parts
+        stage, at, ref, why, when, need = parts
+        if when not in ("before", "while", "stuck", "after"):
+            errors.append(f"{where}: when must be before|while|stuck|after: {when!r}")
+        if need not in ("must", "optional"):
+            errors.append(f"{where}: need must be must|optional: {need!r}")
+        if stage not in STAGES + ["note"]:
+            errors.append(f"{where}: unknown stage {stage!r} in theory_refs")
         check_ref(ref, where)
         page, _, sec = ref.partition("#")
-        out.append(dict(stage=stage, at=at, page=page, section=sec, why=why))
+        out.append(dict(stage=stage, at=at, page=page, section=sec, why=why, when=when, need=need))
     return out
 
 
@@ -170,7 +250,7 @@ def parse_stuck(lines, where):
 for path in sorted(glob.glob(os.path.join(HERE, "days", "day-*.txt"))):
     text = open(path).read()
     top = split_blocks(text, "=== ")
-    doc = dict(problems=[], drill=[], cs_core=None)
+    doc = dict(problems=[], drill=[], cs_core=None, core=None, reading_path=[])
     dn = None
     for blk in top:
         hdr = blk[0][4:].strip()
@@ -181,9 +261,17 @@ for path in sorted(glob.glob(os.path.join(HERE, "days", "day-*.txt"))):
                                           sections=secs))
             for r in doc["micro"]["theory"]:
                 check_ref(r, f"day {dn} micro")
-            for s in secs:
-                for r in INLINE_REF.findall(s["body"]):
-                    check_ref(r, f"day {dn} micro#{s['id']}")
+            for s_ in secs:
+                scan_body(s_["body"], f"day {dn} micro#{s_['id']}", dict(day=dn, block="micro"))
+            for i, l in enumerate(head.get("reading_path") or [], 1):
+                parts = [x.strip() for x in l.split("|")]
+                if len(parts) != 3 or not parts[2].isdigit():
+                    errors.append(f"day {dn}: reading_path line needs 'page#section | bridge | minutes': {l!r}")
+                    continue
+                check_ref(parts[0], f"day {dn} reading_path")
+                pg, _, sc = parts[0].partition("#")
+                doc["reading_path"].append(dict(step=i, page=pg, section=sc, bridge=parts[1], minutes=int(parts[2])))
+                backrefs.append((pg, sc, dict(day=dn, block="reading_path", step=i, kind="path", why=parts[1])))
         elif hdr.startswith("problem:"):
             slug = hdr.split(":", 1)[1].strip()
             where = f"day {dn} {slug}"
@@ -201,13 +289,13 @@ for path in sorted(glob.glob(os.path.join(HERE, "days", "day-*.txt"))):
                 main_lines = first
                 sib_blocks = subs
             head, secs = parse_sections(main_lines, where)
-            got = [s["id"] for s in secs]
+            got = [x["id"] for x in secs if x["id"] != "note"]
             if got != STAGES:
                 errors.append(f"{where}: stages {got} != {STAGES}")
-            sec = {s["id"]: s for s in secs}
-            for s in secs:
-                for r in INLINE_REF.findall(s["body"]):
-                    check_ref(r, f"{where}#{s['id']} inline")
+            sec = {x["id"]: x for x in secs}
+            pnote = sec.get("note", {}).get("body")
+            for x in secs:
+                scan_body(x["body"], f"{where}#{x['id']}", dict(problem=slug, day=dn, stage=x["id"]))
             siblings = []
             for sb in sib_blocks:
                 sh = [x.strip() for x in sb[0][len("+++ sibling: "):].split("|")]
@@ -220,18 +308,18 @@ for path in sorted(glob.glob(os.path.join(HERE, "days", "day-*.txt"))):
                     errors.append(f"{sw}: slug already used in plan, skims or another sibling")
                 all_slugs_seen.add(sslug)
                 shead, ssecs = parse_sections(sb[1:], sw)
-                if [s["id"] for s in ssecs] != SIB_STAGES:
-                    errors.append(f"{sw}: stages {[s['id'] for s in ssecs]} != {SIB_STAGES}")
-                for s in ssecs:
-                    for r in INLINE_REF.findall(s["body"]):
-                        check_ref(r, f"{sw}#{s['id']} inline")
-                ssec = {s["id"]: s for s in ssecs}
+                if [x["id"] for x in ssecs if x["id"] != "note"] != SIB_STAGES:
+                    errors.append(f"{sw}: stages {[x['id'] for x in ssecs]} != {SIB_STAGES}")
+                for x in ssecs:
+                    scan_body(x["body"], f"{sw}#{x['id']}", dict(problem=slug, sibling=sslug, day=dn, stage=x["id"]))
+                ssec = {x["id"]: x for x in ssecs}
                 if "solution" in ssec and "tests" in ssec:
                     compile_jobs.append((sw, ssec["solution"]["body"], ssec["tests"]["body"]))
                 siblings.append(dict(id=sslug, title=stitle, tier=tier,
                                      lc=dict(id=lcid, slug=sslug, url=f"https://leetcode.com/problems/{sslug}/", difficulty=sdiff),
                                      maps=shead.get("maps", ""),
-                                     stages=[s for s in ssecs if s["id"] != "tests"],
+                                     note=ssec.get("note", {}).get("body"),
+                                     stages=[x for x in ssecs if x["id"] not in ("tests", "note")],
                                      verify=dict(solution=strip_fence(ssec.get("solution", {}).get("body", "")),
                                                  tests=strip_fence(ssec.get("tests", {}).get("body", "")))))
             if sum(1 for s in siblings if s["tier"] == "must") != 1:
@@ -243,9 +331,16 @@ for path in sorted(glob.glob(os.path.join(HERE, "days", "day-*.txt"))):
             if not refs:
                 errors.append(f"{where}: no theory_refs")
             for r in refs:
-                pages[r["page"]]["used_by"].append(dict(problem=slug, day=dn, section=r["section"], stage=r["stage"], at=r["at"]))
-            doc["problems"].append(dict(id=slug, theory_refs=refs, stuck_refs=stuck,
-                                        stages=[s for s in secs if s["id"] != "tests"], siblings=siblings,
+                backrefs.append((r["page"], r["section"], dict(problem=slug, day=dn, stage=r["stage"], at=r["at"],
+                                                               why=r["why"], when=r["when"], need=r["need"], kind="ref")))
+            for m, v in stuck.items():
+                backrefs.append((v["page"], v["section"], dict(problem=slug, day=dn, kind="stuck", minutes=m)))
+            if dn <= 2 and not pnote:
+                errors.append(f"{where}: days 1-2 problems need a 'note' outline")
+            if dn <= 2 and not any(r["when"] == "before" for r in refs) and pp["role"] == "LEARN":
+                errors.append(f"{where}: LEARN problems need at least one 'before' reference")
+            doc["problems"].append(dict(id=slug, theory_refs=refs, stuck_refs=stuck, note=pnote,
+                                        stages=[x for x in secs if x["id"] not in ("tests", "note")], siblings=siblings,
                                         verify=dict(solution=strip_fence(sec.get("solution", {}).get("body", "")),
                                                     tests=strip_fence(sec.get("tests", {}).get("body", "")))))
         elif hdr.startswith("drill"):
@@ -261,8 +356,9 @@ for path in sorted(glob.glob(os.path.join(HERE, "days", "day-*.txt"))):
                     if not h.get(k):
                         errors.append(f"{w}: missing {k}")
                 check_ref(h.get("pattern", ""), w)
-                # Optional full statement (input, output, constraints, an
-                # example), in original words -- never LeetCode's text.
+                # Optional full statement (task, input, output, constraints, an
+                # example), in original words -- never LeetCode's text, and no
+                # hint of the technique (the drill tests recognising it).
                 details = next((x["body"] for x in isecs if x["id"] == "details"), None)
                 if [x["id"] for x in isecs if x["id"] != "details"]:
                     errors.append(f"{w}: the only section a drill item may have is 'details'")
@@ -273,6 +369,33 @@ for path in sorted(glob.glob(os.path.join(HERE, "days", "day-*.txt"))):
                                          approach=h.get("approach"), trigger=h.get("trigger"),
                                          complexity=h.get("complexity", ""),
                                          **({"details": details} if details else {})))
+        elif hdr.startswith("core:"):
+            cw = f"day {dn} core"
+            parts_ = "\n".join(blk).split("\n+++ mcq: ")
+            h, csecs = parse_sections(parts_[0].split("\n")[1:], cw)
+            topics = csv(h.get("topics", ""))
+            for t in topics:
+                check_ref(t, cw)
+                if t in pages and pages[t]["kind"] != "core":
+                    errors.append(f"{cw}: topic {t} is not a core page")
+                backrefs.append((t, "", dict(day=dn, block="core", kind="core")))
+            mcqs = []
+            for chunk in parts_[1:]:
+                lines = chunk.split("\n")
+                mid = lines[0].strip()
+                mh, _ = parse_sections(lines[1:], f"{cw} mcq {mid}")
+                opts = {k: mh.get(k) for k in "abcd" if mh.get(k)}
+                if not mh.get("q") or len(opts) < 3 or mh.get("answer") not in opts or not mh.get("why"):
+                    errors.append(f"{cw} mcq {mid}: needs q, at least a-c, answer among options, why")
+                mcqs.append(dict(id=mid, q=mh.get("q"), options=opts, answer=mh.get("answer"), why=mh.get("why"),
+                                 topic=mh.get("topic", "")))
+            if len(mcqs) < 5:
+                errors.append(f"{cw}: needs at least 5 MCQs, has {len(mcqs)}")
+            if not h.get("explain"):
+                errors.append(f"{cw}: needs an explain prompt")
+            doc["core"] = dict(subject=h.get("subject"), unit=h.get("unit"), minutes=int(h.get("minutes") or 45),
+                               title=h.get("title"), topics=topics, explain=h.get("explain"),
+                               intro=csecs, mcqs=mcqs)
         elif hdr.startswith("cs_core:"):
             cid = hdr.split(":", 1)[1].strip()
             h, secs = parse_sections(blk[1:], f"day {dn} cs_core")
@@ -287,8 +410,14 @@ for path in sorted(glob.glob(os.path.join(HERE, "days", "day-*.txt"))):
         errors.append(f"day {dn}: problems {have} != PLAN {want}")
     if len(doc["drill"]) != 5:
         errors.append(f"day {dn}: drill has {len(doc['drill'])} items, want 5")
-    if not doc["cs_core"]:
-        errors.append(f"day {dn}: no cs_core card")
+    if not doc["cs_core"] and not doc["core"]:
+        errors.append(f"day {dn}: no core block")
+    if dn <= 2 and not doc["reading_path"]:
+        errors.append(f"day {dn}: days 1-2 need a reading_path")
+    if dn <= 2:
+        for st in doc["reading_path"]:
+            if pages.get(st["page"], {}).get("notes_status") != "ready":
+                errors.append(f"day {dn}: reading_path page {st['page']} has no note yet")
     day_docs[dn] = doc
 
 # ------------------------------------------------------------------ compile
@@ -327,6 +456,9 @@ if errors:
         print("  -", e)
     sys.exit(1)
 
+for pg, sc, row in backrefs:
+    if pg in pages:
+        pages[pg]["used_by"].append(dict(row, section=sc))
 os.makedirs(os.path.join(OUT, "theory"), exist_ok=True)
 os.makedirs(os.path.join(OUT, "days"), exist_ok=True)
 for f in glob.glob(os.path.join(OUT, "theory", "*.json")):
@@ -335,7 +467,8 @@ index = []
 for pid, p in sorted(pages.items()):
     json.dump(p, open(os.path.join(OUT, "theory", f"{pid}.json"), "w"), indent=1, ensure_ascii=False)
     index.append(dict(id=pid, title=p["title"], topic=p["topic"], kind=p["kind"], summary=p["summary"],
-                      sections=[dict(id=s["id"], title=s["title"], note=s["note"]) for s in p["sections"]],
+                      sections=[dict(id=x["id"], title=x["title"], note=x["note"]) for x in p["sections"]],
+                      notes_status=p["notes_status"],
                       prereqs=p["prereqs"], related=p["related"]))
 topics = {}
 for e in index:

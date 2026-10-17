@@ -1,0 +1,101 @@
+{
+ "id": "oop-classes-objects-memory",
+ "title": "Classes, objects and what they look like in memory",
+ "topic": "oop",
+ "kind": "core",
+ "summary": "A class is a blueprint, an object is one instance in memory. Know struct vs class, object layout and padding, where member functions and static members live, the this pointer, and stack vs heap objects.",
+ "prereqs": [],
+ "related": [
+  "oop-constructors-destructors",
+  "oop-encapsulation-access",
+  "cpp-pass-by-reference-and-copies"
+ ],
+ "note": "1. Class vs object\n   • **Class** = blueprint: data members + member functions\n   • **Object** = one instance in memory with its own copy of the data members\n2. struct vs class (C++)\n   • Identical except **default access**: struct → public, class → private\n   • Same for default inheritance: struct → public, class → private\n3. What an object contains\n   • Only **non-static data members** (+ padding, + a hidden vptr if the class has virtual functions)\n   • Member functions are **not** stored per object — one copy in the code segment\n   • **static** members: one copy for the whole class, not inside objects\n   • Empty class → `sizeof` = **1** (every object needs a unique address)\n4. Padding and alignment\n   • Members are aligned to their size → compiler inserts padding\n       ◦ `{char c; int x;}` → 1 + 3 padding + 4 = **8**\n   • Order members large → small to reduce padding\n5. this\n   • Hidden pointer parameter to every non-static member function = address of the calling object\n   • Used for: name clashes (`this->x = x`), returning `*this` for chaining\n   • static member functions have **no** this\n6. Where objects live\n   • `A a;` → stack, destroyed automatically at end of scope\n   • `A* p = new A;` → heap, lives until `delete p` (forget it → memory leak)\n✎ In my words: ______________________________________________",
+ "recall": [
+  {
+   "q": "Only difference between struct and class in C++?",
+   "a": "Default access (and default inheritance): public for struct, private for class."
+  },
+  {
+   "q": "What is stored inside each object?",
+   "a": "Its non-static data members, padding, and a vptr if the class has virtual functions."
+  },
+  {
+   "q": "Where do member functions live?",
+   "a": "Once in the code segment, shared by all objects — not inside each object."
+  },
+  {
+   "q": "sizeof an empty class and why?",
+   "a": "1 — every object must have a distinct address."
+  },
+  {
+   "q": "sizeof `{char c; int x;}` and why?",
+   "a": "8 — 3 bytes of padding align the int to 4 bytes."
+  },
+  {
+   "q": "What is `this` and which functions lack it?",
+   "a": "A hidden pointer to the calling object; static member functions have no this."
+  },
+  {
+   "q": "Stack object vs `new` object lifetime?",
+   "a": "Stack: destroyed at end of scope automatically; heap: lives until delete."
+  }
+ ],
+ "shot": {
+  "title": "Object layout",
+  "body": "```\nclass Account {               Account a;   (on the stack)\n  char  type;    // 1          ┌──────┬─────────┬──────────┬──────────┐\n  int   id;      // 4          │ type │ pad (3) │ id (4)   │ bal (8)  │  sizeof = 16\n  double bal;    // 8          └──────┴─────────┴──────────┴──────────┘\n  static int count;   → stored ONCE, outside every object\n  void deposit();     → code segment, shared; called as deposit(&a) ← \"this\"\n};\n```"
+ },
+ "sections": [
+  {
+   "id": "what",
+   "title": "Class and object",
+   "note": "write",
+   "body": "✍️ A **class** describes a type: what data each instance holds (data members) and what it can do (member functions).\n✍️ An **object** is one instance created from it, occupying memory, with its own copy of every non-static data member.\n- Analogy: a class is the form for an account; each filled-in form is an object."
+  },
+  {
+   "id": "struct-vs-class",
+   "title": "struct vs class in C++",
+   "note": "write",
+   "body": "✍️ They are the same feature with one difference: **default access**. Members of a `struct` are public unless stated otherwise; members of a `class` are private.\n✍️ Default inheritance follows the same rule: `struct D : B` is public inheritance, `class D : B` is private inheritance.\n- Convention: `struct` for plain data bundles (a Point, a Node), `class` when the type protects invariants.\n- Interview trap: \"Can a struct have constructors / virtual functions / inherit?\" — yes to all, in C++. (In C, a struct is data only.)"
+  },
+  {
+   "id": "layout",
+   "title": "Object layout, padding and sizeof",
+   "note": "mixed",
+   "body": "✍️ An object stores only its **non-static data members**, laid out in declaration order, plus padding.\n✍️ **Alignment**: a 4-byte int usually must start at an address divisible by 4, an 8-byte double at a multiple of 8. The compiler inserts padding bytes to satisfy this, and pads the end so arrays of the object stay aligned.\n```cpp\nstruct A { char c; int x; };            // 1 + 3 pad + 4        = 8\nstruct B { char c; double d; char e; }; // 1 + 7 + 8 + 1 + 7    = 24\nstruct C { double d; char c; char e; }; // 8 + 1 + 1 + 6        = 16  (same members, reordered)\nstruct E { };                           // 1\n```\n✍️ Reordering members from largest to smallest reduces padding.\n- If the class has virtual functions, each object also holds a hidden **vptr** (8 bytes on 64-bit) pointing to the class's vtable — covered with polymorphism.\n- Exact sizes are implementation-defined; say \"on a typical 64-bit compiler\" in interviews."
+  },
+  {
+   "id": "functions-static",
+   "title": "Member functions and static members",
+   "note": "write",
+   "body": "✍️ Member functions are compiled **once** and shared by all objects. Calling `a.deposit(5)` is effectively `Account::deposit(&a, 5)` — the object's address is passed as the hidden `this` parameter.\n✍️ A **static data member** belongs to the class, not to any object: one copy shared by all objects, stored outside them (so it does not count in `sizeof`). It must be defined once outside the class (or declared `inline static` in C++17).\n✍️ A **static member function** has no `this`, so it can only touch static members. Call it as `Account::count()`.\n```cpp\nclass Account {\n    static int created;               // one copy for the class\npublic:\n    Account() { created++; }\n    static int count() { return created; }   // no this\n};\nint Account::created = 0;             // definition\n```"
+  },
+  {
+   "id": "this-pointer",
+   "title": "The this pointer",
+   "note": "write",
+   "body": "✍️ Inside a non-static member function, `this` is a pointer to the object the function was called on.\n✍️ Uses: resolve name clashes (`this->balance = balance;`), return the object for chaining (`return *this;`), pass the object to other functions.\n- In a `const` member function, `this` is a pointer to const, which is why such functions cannot modify members."
+  },
+  {
+   "id": "stack-heap",
+   "title": "Stack objects vs heap objects",
+   "note": "mixed",
+   "body": "✍️ **Stack** (`Account a(100);`): memory is reserved when the scope starts; the destructor runs automatically when the scope ends. Fast, no leaks.\n✍️ **Heap** (`Account* p = new Account(100);`): memory comes from the free store; the object lives until `delete p;`. Forgetting `delete` leaks memory; deleting twice is undefined behaviour.\n✍️ Modern C++ avoids raw `new`/`delete`: use `std::unique_ptr` / `std::make_unique`, which delete automatically (RAII — Day 5).\n- `new` = allocate + call constructor; `delete` = call destructor + free. `malloc`/`free` do **not** call constructors or destructors."
+  },
+  {
+   "id": "interview",
+   "title": "Interview questions",
+   "note": "mixed",
+   "body": "✍️ **Q: Does an object store its member functions?** No. One copy of each function exists in the code segment; objects store data only.\n✍️ **Q: Why is sizeof an empty class 1?** So two distinct objects never share an address.\n✍️ **Q: new vs malloc?** new calls the constructor and is type-safe; malloc just returns raw bytes. delete calls the destructor; free does not.\n- **Q: Can a static member function be virtual or const?** No — both need `this`.\n- **Q: How would you reduce the size of a struct?** Reorder members from largest to smallest alignment."
+  }
+ ],
+ "used_by": [
+  {
+   "day": 1,
+   "block": "core",
+   "kind": "core",
+   "section": ""
+  }
+ ],
+ "notes_status": "ready"
+}

@@ -11,6 +11,9 @@
   "dp-edit-distance",
   "dp-lis"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -49,5 +52,13 @@
    "body": "O(n·m) time, O(n·m) space (O(min(n, m)) with two rows)."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "str-expand-around-center",
+   "from_section": "recognise",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

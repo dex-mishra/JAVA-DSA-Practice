@@ -10,6 +10,9 @@
  "related": [
   "graph-bellman-ford-and-k-stops"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -24,5 +27,6 @@
    "body": "✍️ Small n (≤ 400), many queries between arbitrary pairs, e.g. \"city with the smallest number of neighbours within a threshold\" (LeetCode 1334)."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

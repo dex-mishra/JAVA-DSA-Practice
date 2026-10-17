@@ -10,6 +10,9 @@
  "related": [
   "stq-monotonic-stack"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -36,5 +39,13 @@
    "body": "Maximal rectangle in a binary matrix (LeetCode 85): treat each row as the base of a histogram of consecutive 1s above it, and run this algorithm per row → O(R·C)."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "stq-monotonic-stack",
+   "from_section": "recognise",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

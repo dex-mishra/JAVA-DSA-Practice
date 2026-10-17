@@ -10,6 +10,9 @@
  "related": [
   "kad-kadane"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -30,5 +33,28 @@
    "body": "✍️ Compute new hi and lo from the **old** values (the swap trick, or temporary variables). Updating hi then using the new hi for lo is wrong.\n- Zero resets both to 0, and the `max(x, …)` restart handles the element after the zero."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "kad-kadane",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "problem": "maximum-subarray",
+   "day": 4,
+   "stage": "followups",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "problem": "maximum-subarray",
+   "sibling": "maximum-product-subarray",
+   "day": 4,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "idea"
+  }
+ ],
+ "notes_status": "pending"
 }

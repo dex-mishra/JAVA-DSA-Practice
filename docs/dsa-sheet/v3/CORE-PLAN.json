@@ -1,0 +1,849 @@
+{
+ "version": 1,
+ "title": "CS core plan",
+ "basis": "IIT campus SDE interviews: OS, DBMS (+SQL), OOP/C++ internals, CN asked broadly; LLD/machine coding at Indian product companies; system design light for freshers.",
+ "daily_format": [
+  "read topic 1 in the reader (detail sections), write its note",
+  "answer its recall questions before revealing",
+  "same for topic 2",
+  "MCQs (5–6)",
+  "2-minute explanation (typed, Groq-graded)",
+  "practice where listed (SQL 50 / machine coding / design)"
+ ],
+ "minimum_for_bad_days": "one topic: note + recall",
+ "lld_language": "C++",
+ "days": [
+  {
+   "day": 1,
+   "date": "2026-10-18",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "OOP & C++",
+   "topics": [
+    {
+     "title": "Classes, objects and their memory",
+     "page": "oop-classes-objects-memory"
+    },
+    {
+     "title": "Constructors and destructors",
+     "page": "oop-constructors-destructors"
+    }
+   ],
+   "extra": null,
+   "content": "ready"
+  },
+  {
+   "day": 2,
+   "date": "2026-10-19",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "OOP & C++",
+   "topics": [
+    {
+     "title": "Encapsulation and access control",
+     "page": "oop-encapsulation-access"
+    },
+    {
+     "title": "Abstraction, abstract classes and interfaces",
+     "page": "oop-abstraction-interfaces"
+    }
+   ],
+   "extra": null,
+   "content": "ready"
+  },
+  {
+   "day": 3,
+   "date": "2026-10-20",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "OOP & C++",
+   "topics": [
+    {
+     "title": "Inheritance: types, access modes, construction order",
+     "page": null
+    },
+    {
+     "title": "Diamond problem and virtual inheritance",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": 4,
+   "date": "2026-10-21",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "OOP & C++",
+   "topics": [
+    {
+     "title": "Static polymorphism: overloading, operator overloading, templates",
+     "page": null
+    },
+    {
+     "title": "Dynamic polymorphism: virtual, vtable/vptr, override, slicing, virtual destructors",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": 5,
+   "date": "2026-10-22",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "OOP & C++",
+   "topics": [
+    {
+     "title": "Memory: stack vs heap, new/delete, smart pointers and RAII",
+     "page": null
+    },
+    {
+     "title": "Copy vs move semantics; rule of three / five / zero",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": 6,
+   "date": "2026-10-23",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "OOP & C++",
+   "topics": [
+    {
+     "title": "STL internals: vector growth, map (red-black tree), unordered_map (buckets)",
+     "page": null
+    },
+    {
+     "title": "Keywords: static, const, inline, extern, volatile, mutable",
+     "page": null
+    }
+   ],
+   "extra": "OOP + C++ revision quiz (15 MCQs)",
+   "content": "pending"
+  },
+  {
+   "day": 7,
+   "date": "2026-10-24",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "DBMS",
+   "topics": [
+    {
+     "title": "What a DBMS is; keys: super, candidate, primary, foreign",
+     "page": null
+    },
+    {
+     "title": "ER model: entities, relationships, cardinality",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": 8,
+   "date": "2026-10-25",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "DBMS + SQL",
+   "topics": [
+    {
+     "title": "Relational model and relational algebra",
+     "page": null
+    },
+    {
+     "title": "SQL basics: SELECT, WHERE, ORDER BY, GROUP BY, HAVING",
+     "page": null
+    }
+   ],
+   "extra": "SQL 50: 3 problems",
+   "content": "pending"
+  },
+  {
+   "day": 9,
+   "date": "2026-10-26",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "DBMS + SQL",
+   "topics": [
+    {
+     "title": "Joins: inner, left/right/full outer, self, cross",
+     "page": null
+    },
+    {
+     "title": "Subqueries and correlated subqueries",
+     "page": null
+    }
+   ],
+   "extra": "SQL 50: 3 problems",
+   "content": "pending"
+  },
+  {
+   "day": 10,
+   "date": "2026-10-27",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "DBMS",
+   "topics": [
+    {
+     "title": "Functional dependencies and closures",
+     "page": null
+    },
+    {
+     "title": "Normalisation: 1NF, 2NF, 3NF, BCNF; denormalisation",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": 11,
+   "date": "2026-10-28",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "DBMS",
+   "topics": [
+    {
+     "title": "Transactions and ACID",
+     "page": null
+    },
+    {
+     "title": "Schedules and serialisability (conflict, view)",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": 12,
+   "date": "2026-10-29",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "DBMS",
+   "topics": [
+    {
+     "title": "Concurrency control: locks, two-phase locking, deadlocks in DBs",
+     "page": null
+    },
+    {
+     "title": "Isolation levels and anomalies (dirty, non-repeatable, phantom reads)",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": 13,
+   "date": "2026-10-30",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "DBMS",
+   "topics": [
+    {
+     "title": "Indexing: B-tree and B+ tree",
+     "page": null
+    },
+    {
+     "title": "Clustered vs non-clustered indexes; when an index hurts",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": 14,
+   "date": "2026-10-31",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "DBMS + SQL",
+   "topics": [
+    {
+     "title": "Window functions and CTEs",
+     "page": null
+    },
+    {
+     "title": "Classic queries: Nth highest salary, duplicates, ranking",
+     "page": null
+    }
+   ],
+   "extra": "SQL 50: 4 problems",
+   "content": "pending"
+  },
+  {
+   "day": 15,
+   "date": "2026-11-01",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "DBMS",
+   "topics": [
+    {
+     "title": "SQL vs NoSQL (document, key-value, column, graph)",
+     "page": null
+    },
+    {
+     "title": "Replication, sharding and partitioning basics",
+     "page": null
+    }
+   ],
+   "extra": "DBMS revision quiz (15 MCQs)",
+   "content": "pending"
+  },
+  {
+   "day": 16,
+   "date": "2026-11-02",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "OS",
+   "topics": [
+    {
+     "title": "What an OS does; kernel, user vs kernel mode",
+     "page": null
+    },
+    {
+     "title": "System calls and interrupts",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": 17,
+   "date": "2026-11-03",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "OS",
+   "topics": [
+    {
+     "title": "Processes: PCB, states, context switch",
+     "page": null
+    },
+    {
+     "title": "Threads vs processes; user vs kernel threads",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": 18,
+   "date": "2026-11-04",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "OS",
+   "topics": [
+    {
+     "title": "CPU scheduling: FCFS, SJF, SRTF, Round Robin, priority",
+     "page": null
+    },
+    {
+     "title": "Scheduling numericals: waiting and turnaround time",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": 19,
+   "date": "2026-11-05",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "OS",
+   "topics": [
+    {
+     "title": "Race conditions and the critical-section problem",
+     "page": null
+    },
+    {
+     "title": "Mutex, semaphores (binary, counting), monitors",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": 20,
+   "date": "2026-11-06",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "OS",
+   "topics": [
+    {
+     "title": "Producer–consumer and readers–writers",
+     "page": null
+    },
+    {
+     "title": "Dining philosophers",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": 21,
+   "date": "2026-11-07",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "OS",
+   "topics": [
+    {
+     "title": "Deadlock: four conditions, resource-allocation graph",
+     "page": null
+    },
+    {
+     "title": "Prevention, avoidance (Banker's), detection and recovery",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": 22,
+   "date": "2026-11-08",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "OS",
+   "topics": [
+    {
+     "title": "Memory management: contiguous allocation, fragmentation",
+     "page": null
+    },
+    {
+     "title": "Paging, page tables, TLB; segmentation",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": 23,
+   "date": "2026-11-09",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "OS",
+   "topics": [
+    {
+     "title": "Virtual memory and demand paging; page faults",
+     "page": null
+    },
+    {
+     "title": "Page replacement: FIFO, LRU, Optimal; Belady's anomaly; thrashing",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": 24,
+   "date": "2026-11-10",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "OS",
+   "topics": [
+    {
+     "title": "File systems and inodes",
+     "page": null
+    },
+    {
+     "title": "Disk scheduling: FCFS, SSTF, SCAN, C-SCAN",
+     "page": null
+    }
+   ],
+   "extra": "OS revision quiz (15 MCQs)",
+   "content": "pending"
+  },
+  {
+   "day": 25,
+   "date": "2026-11-11",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "CN",
+   "topics": [
+    {
+     "title": "OSI vs TCP/IP models: what each layer does",
+     "page": null
+    },
+    {
+     "title": "Devices: hub, switch, router; collision vs broadcast domains",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": 26,
+   "date": "2026-11-12",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "CN",
+   "topics": [
+    {
+     "title": "IP addressing, subnetting, CIDR",
+     "page": null
+    },
+    {
+     "title": "NAT, ARP, DHCP",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": 27,
+   "date": "2026-11-13",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "CN",
+   "topics": [
+    {
+     "title": "TCP vs UDP; three-way handshake and teardown",
+     "page": null
+    },
+    {
+     "title": "Flow control and congestion control",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": 28,
+   "date": "2026-11-14",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "CN",
+   "topics": [
+    {
+     "title": "DNS resolution",
+     "page": null
+    },
+    {
+     "title": "HTTP vs HTTPS, TLS handshake, cookies and sessions",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": 29,
+   "date": "2026-11-15",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "CN",
+   "topics": [
+    {
+     "title": "What happens when you type a URL — end to end",
+     "page": null
+    },
+    {
+     "title": "Sockets, ports, REST basics",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": 30,
+   "date": "2026-11-16",
+   "phase": "plan",
+   "minutes": 45,
+   "subject": "All",
+   "topics": [
+    {
+     "title": "Cross-subject revision from your recall boxes",
+     "page": null
+    },
+    {
+     "title": "Weak-topic rewrite",
+     "page": null
+    }
+   ],
+   "extra": "Mixed CS quiz (30 MCQs)",
+   "content": "pending"
+  },
+  {
+   "day": null,
+   "date": "2026-11-17",
+   "phase": "intensive",
+   "minutes": 180,
+   "subject": "LLD",
+   "topics": [
+    {
+     "title": "From OOP to LLD; class relationships: association, aggregation, composition, dependency",
+     "page": null
+    },
+    {
+     "title": "UML: class and sequence diagrams",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": null,
+   "date": "2026-11-18",
+   "phase": "intensive",
+   "minutes": 180,
+   "subject": "LLD",
+   "topics": [
+    {
+     "title": "SOLID principles with C++ examples",
+     "page": null
+    },
+    {
+     "title": "DRY, KISS, YAGNI; coupling and cohesion",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": null,
+   "date": "2026-11-19",
+   "phase": "intensive",
+   "minutes": 180,
+   "subject": "LLD",
+   "topics": [
+    {
+     "title": "Creational patterns: Singleton, Factory, Builder",
+     "page": null
+    },
+    {
+     "title": "Structural patterns: Adapter, Decorator, Facade",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": null,
+   "date": "2026-11-20",
+   "phase": "intensive",
+   "minutes": 180,
+   "subject": "LLD",
+   "topics": [
+    {
+     "title": "Behavioural patterns: Strategy, Observer, State, Command",
+     "page": null
+    },
+    {
+     "title": "Machine-coding playbook: clarify, model, structure, code, demo",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": null,
+   "date": "2026-11-21",
+   "phase": "intensive",
+   "minutes": 180,
+   "subject": "LLD practice",
+   "topics": [
+    {
+     "title": "Machine coding: Parking Lot in C++ (90 min) + review checklist",
+     "page": null
+    }
+   ],
+   "extra": "machine coding",
+   "content": "pending"
+  },
+  {
+   "day": null,
+   "date": "2026-11-22",
+   "phase": "intensive",
+   "minutes": 180,
+   "subject": "LLD practice",
+   "topics": [
+    {
+     "title": "Machine coding: Splitwise or Snake & Ladder (90 min)",
+     "page": null
+    },
+    {
+     "title": "Design discussion: Elevator system",
+     "page": null
+    }
+   ],
+   "extra": "machine coding",
+   "content": "pending"
+  },
+  {
+   "day": null,
+   "date": "2026-11-23",
+   "phase": "intensive",
+   "minutes": 180,
+   "subject": "System design",
+   "topics": [
+    {
+     "title": "Client–server, latency vs throughput, scaling up vs out",
+     "page": null
+    },
+    {
+     "title": "Availability, consistency, CAP and PACELC",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": null,
+   "date": "2026-11-24",
+   "phase": "intensive",
+   "minutes": 180,
+   "subject": "System design",
+   "topics": [
+    {
+     "title": "Load balancers and reverse proxies; CDNs",
+     "page": null
+    },
+    {
+     "title": "Caching: strategies, eviction, invalidation",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": null,
+   "date": "2026-11-25",
+   "phase": "intensive",
+   "minutes": 180,
+   "subject": "System design",
+   "topics": [
+    {
+     "title": "Databases at scale: replication, sharding, partitioning",
+     "page": null
+    },
+    {
+     "title": "Queues, async processing, rate limiting, idempotency, API design",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  },
+  {
+   "day": null,
+   "date": "2026-11-26",
+   "phase": "intensive",
+   "minutes": 180,
+   "subject": "HLD",
+   "topics": [
+    {
+     "title": "The design framework: requirements → estimates → API → data → architecture → scaling",
+     "page": null
+    },
+    {
+     "title": "Design: URL shortener",
+     "page": null
+    }
+   ],
+   "extra": "design",
+   "content": "pending"
+  },
+  {
+   "day": null,
+   "date": "2026-11-27",
+   "phase": "intensive",
+   "minutes": 180,
+   "subject": "HLD",
+   "topics": [
+    {
+     "title": "Design: rate limiter",
+     "page": null
+    },
+    {
+     "title": "Design: notification system",
+     "page": null
+    }
+   ],
+   "extra": "design",
+   "content": "pending"
+  },
+  {
+   "day": null,
+   "date": "2026-11-28",
+   "phase": "intensive",
+   "minutes": 180,
+   "subject": "HLD",
+   "topics": [
+    {
+     "title": "Design: chat (WhatsApp-style)",
+     "page": null
+    },
+    {
+     "title": "Design: ticket booking (BookMyShow)",
+     "page": null
+    }
+   ],
+   "extra": "design",
+   "content": "pending"
+  },
+  {
+   "day": null,
+   "date": "2026-11-29",
+   "phase": "intensive",
+   "minutes": 180,
+   "subject": "HLD",
+   "topics": [
+    {
+     "title": "Design: news feed",
+     "page": null
+    },
+    {
+     "title": "LLD + HLD revision from notes",
+     "page": null
+    }
+   ],
+   "extra": "design",
+   "content": "pending"
+  },
+  {
+   "day": null,
+   "date": "2026-11-30",
+   "phase": "intensive",
+   "minutes": 180,
+   "subject": "All",
+   "topics": [
+    {
+     "title": "Full CS revision from recall boxes",
+     "page": null
+    },
+    {
+     "title": "Mock: 20 CS MCQs + 1 design discussion",
+     "page": null
+    }
+   ],
+   "extra": null,
+   "content": "pending"
+  }
+ ]
+}

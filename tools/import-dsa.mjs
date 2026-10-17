@@ -47,6 +47,11 @@ const ROLES = new Set(["LEARN", "APPLY", "TWIST", "DISGUISE"]);
 const DIFFICULTY = new Set(["Easy", "Medium", "Hard"]);
 const DRILL_PER_DAY = 5;
 const LINK = /\[\[([a-z0-9-]+)(?:#([a-z0-9_-]+))?\]\]/g;
+// v3.1 §5.2: a pre-placed jump, `>> detour page#section | why | N min`.
+export const DETOUR = /^>> detour ([a-z0-9-]+)(?:#([a-z0-9_-]+))? \| (.+?) \| (\d+) min\s*$/;
+const WHEN = new Set(["before", "while", "stuck", "after"]);
+const NEED = new Set(["must", "optional"]);
+const KINDS = new Set(["concept", "mechanics", "cpp", "pattern", "meta", "skim", "core"]);
 
 /** Days after an ISO date, as an ISO date. Pure calendar arithmetic in UTC,
  *  so the machine's own timezone cannot shift a plan date. */
@@ -98,6 +103,8 @@ export function importDsa({ src, today = new Date().toISOString().slice(0, 10) }
     if (page.id !== f.replace(/\.json$/, "")) fail(`${where}: id '${page.id}' does not match the file name`);
     if (pages.has(page.id)) { fail(`${where}: duplicate theory page id ${page.id}`); continue; }
     checkSections(where, page.sections, null);
+    if (page.kind && !KINDS.has(page.kind)) fail(`${where}: kind '${page.kind}' is not one of ${[...KINDS].join("/")}`);
+    checkNotes(where, page);
     pages.set(page.id, page);
     sectionsOf.set(page.id, new Set((page.sections || []).map((s) => s.id)));
   }
@@ -126,6 +133,31 @@ export function importDsa({ src, today = new Date().toISOString().slice(0, 10) }
     }
   }
 
+  /* v3.1 §6.1/§12: note, recall and shot come together or not at all; recall
+     has at least three question/answer pairs; a CS core page always has
+     them; notes_status says which. */
+  function checkNotes(where, page) {
+    const has = [!!page.note, Array.isArray(page.recall) && page.recall.length > 0, !!page.shot];
+    if (has.some(Boolean) && !has.every(Boolean)) {
+      fail(`${where}: note, recall and shot must come together (note=${has[0]} recall=${has[1]} shot=${has[2]})`);
+    }
+    if (has[1]) {
+      if (page.recall.length < 3) fail(`${where}: recall needs at least 3 questions, has ${page.recall.length}`);
+      page.recall.forEach((r, i) => {
+        if (!r || typeof r.q !== "string" || !r.q.trim() || typeof r.a !== "string" || !r.a.trim()) {
+          fail(`${where}: recall[${i}] needs a question and an answer`);
+        }
+      });
+    }
+    if (has[2] && (typeof page.shot.title !== "string" || typeof page.shot.body !== "string" || !page.shot.body.trim())) {
+      fail(`${where}: shot needs a title and a body`);
+    }
+    const status = has[0] ? "ready" : "pending";
+    if (page.notes_status && page.notes_status !== status) fail(`${where}: notes_status '${page.notes_status}' but the page ${has[0] ? "has" : "has no"} notes`);
+    page.notes_status = status;
+    if (page.kind === "core" && !has[0]) fail(`${where}: CS core pages need note, recall and shot`);
+  }
+
   // Every reference anywhere funnels through here, which is also what builds
   // the reverse index -- a reference that resolves is a `used_by` row.
   const usedBy = new Map(); // page id -> rows
@@ -142,8 +174,18 @@ export function importDsa({ src, today = new Date().toISOString().slice(0, 10) }
       usedBy.get(page).push({ ...use, section: section || null });
     }
   }
+  /* Inline [[links]] and detour lines in any markdown body. A line that
+     starts with `>> ` but is not a well-formed detour is refused: it would
+     render as a stray line of punctuation instead of the card it meant. */
   function inlineLinks(where, body, use) {
-    for (const m of String(body || "").matchAll(LINK)) ref(where, m[1], m[2], use);
+    const text = String(body || "");
+    for (const m of text.matchAll(LINK)) ref(where, m[1], m[2], use ? { ...use, kind: "link" } : null);
+    for (const line of text.split("\n")) {
+      if (!line.startsWith(">> ")) continue;
+      const m = line.match(DETOUR);
+      if (!m) { fail(`${where}: malformed detour line '${line.slice(0, 80)}' (want '>> detour page#section | why | N min')`); continue; }
+      ref(`${where} detour`, m[1], m[2], use ? { ...use, kind: "detour", why: m[3], minutes: Number(m[4]) } : null);
+    }
   }
 
   // Page-to-page links resolve like any other, but a page only being some
@@ -151,7 +193,11 @@ export function importDsa({ src, today = new Date().toISOString().slice(0, 10) }
   for (const page of pages.values()) {
     for (const p of page.prereqs || []) ref(`theory/${page.id} prereqs`, p);
     for (const p of page.related || []) ref(`theory/${page.id} related`, p);
-    for (const s of page.sections || []) inlineLinks(`theory/${page.id}#${s.id}`, s.body, null);
+    for (const s of page.sections || []) {
+      inlineLinks(`theory/${page.id}#${s.id}`, s.body, { src: "page", id: page.id, from_page: page.id, from_section: s.id });
+    }
+    if (page.note) inlineLinks(`theory/${page.id} note`, page.note, null);
+    if (page.shot) inlineLinks(`theory/${page.id} shot`, page.shot.body, null);
   }
 
   // ------------------------------------------------------------ plan
@@ -178,13 +224,13 @@ export function importDsa({ src, today = new Date().toISOString().slice(0, 10) }
       claim(p.id, pw);
       if (!ROLES.has(p.role)) fail(`${pw}: role '${p.role}' is not LEARN/APPLY/TWIST/DISGUISE`);
       if (!p.lc || !p.lc.url || !DIFFICULTY.has(p.lc.difficulty)) fail(`${pw}: lc.url or lc.difficulty missing`);
-      for (const t of p.theory || []) ref(`${pw} theory`, t, null, { kind: "problem", id: p.id, day: d.day, stage: "primary", at: "" });
+      for (const t of p.theory || []) ref(`${pw} theory`, t, null, { kind: "primary", src: "problem", id: p.id, day: d.day });
       if (p.pattern) patterns.add(p.pattern);
       planProblems.push({ ...p, day: d.day });
     }
     for (const s of d.skims || []) {
       claim(s.id, `${where} skim`);
-      for (const t of s.theory || []) ref(`${where} skim ${s.id}`, t, null, { kind: "skim", id: s.id, day: d.day, stage: "", at: "" });
+      for (const t of s.theory || []) ref(`${where} skim ${s.id}`, t, null, { kind: "skim", src: "skim", id: s.id, day: d.day });
     }
   }
   if (planProblems.length !== plan.problem_count) {
@@ -226,21 +272,44 @@ export function importDsa({ src, today = new Date().toISOString().slice(0, 10) }
     // Micro-theory and pattern card.
     const micro = doc.micro || {};
     checkSections(`${where} micro`, micro.sections, null);
-    for (const t of micro.theory || []) ref(`${where} micro.theory`, t, null, { kind: "micro", id: `day-${d.day}`, day: d.day, stage: "micro", at: micro.title || "" });
-    for (const s of micro.sections || []) inlineLinks(`${where} micro#${s.id}`, s.body, { kind: "micro", id: `day-${d.day}`, day: d.day, stage: s.id, at: micro.title || "" });
+    for (const t of micro.theory || []) ref(`${where} micro.theory`, t, null, { kind: "micro", src: "day", id: `day-${d.day}`, day: d.day, at: micro.title || "" });
+    for (const s of micro.sections || []) inlineLinks(`${where} micro#${s.id}`, s.body, { src: "day", id: `day-${d.day}`, day: d.day, stage: "micro", at: micro.title || "" });
+
+    // Reading path (v3.1 §5.4). Days 1–2 must have one, built on pages that
+    // have notes; later days may leave it empty and fall back to micro.theory.
+    const path = Array.isArray(doc.reading_path) ? doc.reading_path : [];
+    path.forEach((st, i) => {
+      const sw = `${where} reading_path[${i + 1}]`;
+      if (st.step !== i + 1) fail(`${sw}: step is ${st.step}, expected ${i + 1}`);
+      if (!st.bridge || typeof st.bridge !== "string") fail(`${sw}: needs a bridge line`);
+      if (!Number.isInteger(st.minutes) || st.minutes < 1) fail(`${sw}: minutes must be a positive whole number`);
+      ref(sw, st.page, st.section, { kind: "path", src: "day", id: `day-${d.day}`, day: d.day, step: st.step, why: st.bridge });
+      if (d.day <= 2 && pages.has(st.page) && !pages.get(st.page).note) fail(`${sw}: page ${st.page} has no notes yet`);
+    });
+    if (d.day <= 2 && !path.length) fail(`${where}: days 1–2 need a reading_path`);
 
     // Problems.
     for (const p of doc.problems || []) {
       const pw = `${where} ${p.id}`;
       checkSections(pw, p.stages, PROBLEM_STAGES);
-      for (const s of p.stages || []) inlineLinks(`${pw}#${s.id}`, s.body, { kind: "problem", id: p.id, day: d.day, stage: s.id, at: "" });
-      for (const r of p.theory_refs || []) {
+      for (const s of p.stages || []) inlineLinks(`${pw}#${s.id}`, s.body, { src: "problem", id: p.id, day: d.day, stage: s.id });
+      // v3 rows have no when/need: they read as "while solving, optional".
+      const refs = (p.theory_refs || []).map((r) => ({ ...r, when: r.when || "while", need: r.need || "optional" }));
+      for (const r of refs) {
         if (!PROBLEM_STAGES.includes(r.stage)) fail(`${pw}: theory_ref stage '${r.stage}' is not a stage`);
-        ref(`${pw} theory_refs`, r.page, r.section, { kind: "problem", id: p.id, day: d.day, stage: r.stage, at: r.at || "" });
+        if (!WHEN.has(r.when)) fail(`${pw}: theory_ref when '${r.when}' is not before/while/stuck/after`);
+        if (!NEED.has(r.need)) fail(`${pw}: theory_ref need '${r.need}' is not must/optional`);
+        ref(`${pw} theory_refs`, r.page, r.section, { kind: "ref", src: "problem", id: p.id, day: d.day, stage: r.stage,
+          at: r.at || "", why: r.why || "", when: r.when, need: r.need });
       }
       for (const [min, r] of Object.entries(p.stuck_refs || {})) {
-        ref(`${pw} stuck_refs[${min}]`, r.page, r.section, { kind: "problem", id: p.id, day: d.day, stage: `stuck-${min}`, at: `stuck ladder, ${min} min` });
+        ref(`${pw} stuck_refs[${min}]`, r.page, r.section, { kind: "stuck", src: "problem", id: p.id, day: d.day, stage: `stuck-${min}`, at: `stuck ladder, ${min} min` });
       }
+      const prow = planProblems.find((x) => x.id === p.id) || {};
+      if (p.note !== undefined && p.note !== null && (typeof p.note !== "string" || !p.note.trim())) fail(`${pw}: note is present but empty`);
+      if (d.day <= 2 && !p.note) fail(`${pw}: days 1–2 problems need a note outline`);
+      if (d.day <= 2 && prow.role === "LEARN" && !refs.some((r) => r.when === "before")) fail(`${pw}: LEARN problems need at least one 'before' reference`);
+      if (p.note) inlineLinks(`${pw} note`, p.note, null);
 
       const sibs = p.siblings || [];
       const musts = sibs.filter((s) => s.tier === "must");
@@ -250,7 +319,8 @@ export function importDsa({ src, today = new Date().toISOString().slice(0, 10) }
         claim(s.id, sw);
         if (s.tier !== "must" && s.tier !== "optional") fail(`${sw}: tier '${s.tier}' is not must or optional`);
         checkSections(sw, s.stages, SIBLING_STAGES);
-        for (const st of s.stages || []) inlineLinks(`${sw}#${st.id}`, st.body, { kind: "sibling", id: s.id, day: d.day, stage: st.id, at: p.id });
+        for (const st of s.stages || []) inlineLinks(`${sw}#${st.id}`, st.body, { src: "sibling", id: s.id, parent: p.id, day: d.day, stage: st.id });
+        if (s.note !== undefined && s.note !== null && (typeof s.note !== "string" || !s.note.trim())) fail(`${sw}: note is present but empty`);
       }
       siblingTotal += sibs.length;
       siblingCount.set(p.id, sibs.length);
@@ -266,8 +336,9 @@ export function importDsa({ src, today = new Date().toISOString().slice(0, 10) }
         lc: row.lc,
         pattern: row.pattern || "",
         theory: row.theory || [],
-        theory_refs: p.theory_refs || [],
+        theory_refs: refs,
         stuck_refs: p.stuck_refs || {},
+        note: p.note || null,
         stages: p.stages,
         siblings: sibs.map(stripVerify)
       });
@@ -282,16 +353,17 @@ export function importDsa({ src, today = new Date().toISOString().slice(0, 10) }
       if (!it.statement) fail(`${iw}: no statement`);
       if (it.details !== undefined && (typeof it.details !== "string" || !it.details.trim())) fail(`${iw}: details is present but empty`);
       inlineLinks(`${iw} details`, it.details, null);
-      ref(`${iw} pattern_page`, it.pattern_page, null, { kind: "drill", id: it.id, day: d.day, stage: "drill", at: it.pattern_name || "" });
+      ref(`${iw} pattern_page`, it.pattern_page, null, { kind: "drill", src: "drill", id: it.id, day: d.day, at: it.pattern_name || "" });
     }
     drillTotal += drill.length;
 
-    // CS core.
-    if (!doc.cs_core) fail(`${where}: a ready day needs cs_core`);
-    else {
+    // CS core: the v3.1 `core` block, or the legacy `cs_core` card (Days 3–5).
+    if (!doc.cs_core && !doc.core) fail(`${where}: a ready day needs a core block (core or cs_core)`);
+    if (doc.cs_core) {
       checkSections(`${where} cs_core`, doc.cs_core.sections, null);
       for (const s of doc.cs_core.sections || []) inlineLinks(`${where} cs_core#${s.id}`, s.body, null);
     }
+    if (doc.core) checkCore(`${where} core`, doc.core, d.day);
 
     dayOut.set(d.day, {
       day: d.day,
@@ -302,8 +374,55 @@ export function importDsa({ src, today = new Date().toISOString().slice(0, 10) }
       micro,
       drill,
       cs_core: doc.cs_core || null,
+      core: doc.core || null,
+      reading_path: path,
       skims: d.skims || []
     });
+  }
+
+  function checkCore(cw, core, dayN) {
+    if (!core.subject || !core.title) fail(`${cw}: needs subject and title`);
+    if (!Array.isArray(core.topics) || !core.topics.length) fail(`${cw}: needs at least one topic`);
+    for (const t of core.topics || []) {
+      ref(`${cw} topic`, t, null, { kind: "core", src: "core", id: `core-day-${dayN}`, day: dayN, at: core.title || "" });
+      const pg = pages.get(t);
+      if (pg && pg.kind !== "core") fail(`${cw}: topic ${t} is not a CS core page`);
+      if (pg && !pg.note) fail(`${cw}: topic ${t} has no notes`);
+    }
+    if (!core.explain || typeof core.explain !== "string") fail(`${cw}: needs an explain prompt`);
+    if (core.intro) checkSections(`${cw} intro`, core.intro, null);
+    const mcqs = core.mcqs || [];
+    if (mcqs.length < 5) fail(`${cw}: needs at least 5 MCQs, has ${mcqs.length}`);
+    const seen = new Set();
+    for (const q of mcqs) {
+      const qw = `${cw} mcq ${q.id || "?"}`;
+      if (!q.id || seen.has(q.id)) fail(`${qw}: missing or duplicate id`);
+      seen.add(q.id);
+      const opts = Object.keys(q.options || {});
+      if (!q.q || opts.length < 3 || !opts.includes(q.answer) || !q.why) {
+        fail(`${qw}: needs q, at least options a–c, an answer among them, and why`);
+      }
+      if (q.topic && !(core.topics || []).includes(q.topic)) fail(`${qw}: topic ${q.topic} is not one of the day's topics`);
+    }
+  }
+
+  // ------------------------------------------------------------ CORE-PLAN
+
+  /* The CS core syllabus (v3.1 §14): 30 plan days plus the Nov 17–30
+     intensive. Topic pages are optional (pending subjects name topics before
+     their pages exist), but a page that is named must exist. */
+  const corePlan = existsSync(join(src, "CORE-PLAN.json")) ? readJson(join(src, "CORE-PLAN.json")) : null;
+  if (corePlan) {
+    for (const cd of corePlan.days || []) {
+      const cw = `CORE-PLAN ${cd.day ? "day " + cd.day : cd.date}`;
+      if (cd.day && cd.date !== addDays(start, cd.day - 1)) fail(`${cw}: date ${cd.date} is not start_date + ${cd.day - 1}`);
+      for (const t of cd.topics || []) {
+        if (t.page && !pages.has(t.page)) fail(`${cw}: topic page '${t.page}' does not exist`);
+      }
+      if (cd.day && cd.content === "ready" && dayOut.has(cd.day) && !dayOut.get(cd.day).core) {
+        fail(`${cw}: marked ready but day ${cd.day} has no core block`);
+      }
+    }
   }
 
   for (const d of days) {
@@ -366,6 +485,9 @@ export function importDsa({ src, today = new Date().toISOString().slice(0, 10) }
         if (typeof t.output !== "string") { fail(`${qw}: hidden[${i}] has no output`); continue; }
         hiddenMarks += Number(t.marks) || 0;
         if (typeof t.input === "string") {
+          // The code runner caps stdin at 100 KB; anything near that ships
+          // as a generator (gen.builder_js + a port in worker/oa-gen.js).
+          if (t.input.length > 95_000) fail(`${qw}: hidden[${i}] input is ${Math.round(t.input.length / 1024)} KB -- over 95 KB, make it a gen test`);
           hidden.push({ desc: t.desc || "", marks: Number(t.marks) || 0, input: t.input, output: t.output });
           continue;
         }
@@ -457,8 +579,14 @@ export function importDsa({ src, today = new Date().toISOString().slice(0, 10) }
       content: dayOut.has(d.day) ? "ready" : "pending",
       problems: (d.problems || []).map((p) => p.id),
       skims: (d.skims || []).map((s) => ({ id: s.id, title: s.title, lc: s.lc, theory: s.theory || [] })),
-      micro: dayOut.has(d.day) ? { title: dayOut.get(d.day).micro.title, theory: dayOut.get(d.day).micro.theory || [] } : null
+      micro: dayOut.has(d.day) ? { title: dayOut.get(d.day).micro.title, theory: dayOut.get(d.day).micro.theory || [] } : null,
+      reading_path: dayOut.has(d.day) ? dayOut.get(d.day).reading_path.map((st) => ({ page: st.page, section: st.section, minutes: st.minutes })) : [],
+      core: dayOut.has(d.day) && dayOut.get(d.day).core
+        ? { subject: dayOut.get(d.day).core.subject, title: dayOut.get(d.day).core.title, minutes: dayOut.get(d.day).core.minutes,
+            topics: dayOut.get(d.day).core.topics, mcqs: (dayOut.get(d.day).core.mcqs || []).length }
+        : null
     })),
+    core_plan: corePlan,
     // The schedule is public by design (PRD D9): dates from Day 1, unlock times never.
     mocks: mocks.map((m) => ({ id: m.id, day: m.day, date: m.date, weekday: m.weekday, kind: m.kind,
       duration_min: m.duration_min, covers_days: m.covers_days, content: m.content })),
@@ -471,7 +599,7 @@ export function importDsa({ src, today = new Date().toISOString().slice(0, 10) }
   const theoryTitles = {};
   for (const page of pages.values()) {
     theoryTitles[page.id] = {
-      t: page.title, k: page.kind, topic: page.topic,
+      t: page.title, k: page.kind, topic: page.topic, n: page.notes_status === "ready" ? 1 : 0,
       s: Object.fromEntries((page.sections || []).map((x) => [x.id, x.title]))
     };
   }
@@ -489,7 +617,9 @@ export function importDsa({ src, today = new Date().toISOString().slice(0, 10) }
     version: 3,
     count: theoryPages.length,
     topics: theoryIndex.topics,
-    pages: (theoryIndex.pages || []).map((row) => ({ ...row, used: (usedBy.get(row.id) || []).length }))
+    pages: (theoryIndex.pages || []).map((row) => ({
+      ...row, notes_status: pages.get(row.id).notes_status, used: (usedBy.get(row.id) || []).length
+    }))
   };
 
   /* What the cron needs, and nothing else. The Worker cannot read public/
@@ -531,6 +661,14 @@ export function importDsa({ src, today = new Date().toISOString().slice(0, 10) }
       "dsa-plan.json": workerPlan,
       // The drill with its answers, for the Groq check: the grader has to
       // know the reference pattern and approach to compare against.
+      // CS core explain prompts with the topics' note outlines: what the
+      // Groq grader compares an explanation against (v3.1 §7).
+      "dsa-core.json": {
+        days: Object.fromEntries([...dayOut.values()].filter((d) => d.core).map((d) => [d.day, {
+          subject: d.core.subject, title: d.core.title, explain: d.core.explain,
+          notes: (d.core.topics || []).map((t) => ({ page: t, title: pages.get(t).title, note: pages.get(t).note || "" }))
+        }]))
+      },
       "dsa-drill.json": {
         items: Object.fromEntries([...dayOut.values()].flatMap((d) => d.drill.map((it) => [it.id, {
           day: d.day, title: it.title, statement: it.statement, details: it.details || "",

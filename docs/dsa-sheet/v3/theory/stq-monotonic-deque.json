@@ -12,6 +12,9 @@
  "related": [
   "sw-fixed-window"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -38,5 +41,25 @@
    "body": "- Shortest subarray with sum ≥ K with negatives (LeetCode 862): monotonic deque over prefix sums.\n- Jump Game VI / constrained subsequence sum: DP where each state takes the max over the last k states → deque makes it O(n)."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-question-words",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "cpp-map-set-ordered",
+   "from_section": "when",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "sw-fixed-window",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

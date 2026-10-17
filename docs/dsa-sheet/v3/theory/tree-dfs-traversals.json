@@ -13,6 +13,9 @@
   "tree-bottom-up-return-values",
   "tree-top-down-parameters"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "orders",
@@ -39,5 +42,6 @@
    "body": "O(n) time (each node visited once), O(h) recursion stack, where h is the height (O(log n) balanced, O(n) skewed)."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

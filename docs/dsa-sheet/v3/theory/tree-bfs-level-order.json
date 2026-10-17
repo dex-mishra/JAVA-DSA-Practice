@@ -11,6 +11,9 @@
  "related": [
   "graph-bfs"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -43,5 +46,19 @@
    "body": "O(n) time, O(w) space where w is the maximum width (up to n/2 for a perfect tree)."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-input-shape",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "graph-bfs",
+   "from_section": "levels",
+   "kind": "link",
+   "section": "template"
+  }
+ ],
+ "notes_status": "pending"
 }

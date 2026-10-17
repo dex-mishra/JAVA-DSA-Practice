@@ -13,6 +13,9 @@
   "graph-multi-source-bfs",
   "mat-in-place-marking"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -51,5 +54,19 @@
    "body": "O(R·C) time — each cell is filled once. O(R·C) worst-case stack/queue."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-input-shape",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "graph-representations",
+   "from_section": "input-formats",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

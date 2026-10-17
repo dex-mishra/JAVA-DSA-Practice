@@ -13,6 +13,9 @@
   "hash-frequency-counting",
   "sort-counting-sort"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -51,5 +54,25 @@
    "body": "O(n log k) time, O(k) space. Quickselect gives O(n) average ([[heap-vs-quickselect]])."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "meta-bottleneck-method",
+   "from_section": "name-waste",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-question-words",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "hash-frequency-counting",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

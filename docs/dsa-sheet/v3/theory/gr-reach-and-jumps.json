@@ -10,6 +10,9 @@
  "related": [
   "graph-bfs"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "reach",
@@ -30,5 +33,6 @@
    "body": "Both O(n) time, O(1) space. A DP solution (min jumps to reach each index) is O(n²) — the greedy is the expected answer."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

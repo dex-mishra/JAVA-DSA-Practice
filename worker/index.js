@@ -20,9 +20,10 @@ import { curriculum, ratedTopics, rankFor } from "./curriculum.js";
 import {
   DOC, readDoc, writeDoc, mutateDoc,
   readDsaProgress, patchDsaProgress, DSA_DEFAULTS,
-  readDsaLedgers, patchSibling, patchDrill, patchDay, rowToProgress, saveDrillCheck
+  readDsaLedgers, patchSibling, patchDrill, patchDay, rowToProgress, saveDrillCheck,
+  readV31, patchPageNote, answerRecall, patchCoreDay, patchReading
 } from "./store.js";
-import { drillItem, checkDrill, AiError } from "./ai.js";
+import { drillItem, checkDrill, AiError, coreDay, gradeExplain } from "./ai.js";
 import { istDate, afterResolve } from "../shared/dsa-core.mjs";
 import {
   emptyCustom, readCustom, allItems, cleanTags, refusal, sameTag,
@@ -34,7 +35,7 @@ import {
 } from "./oa.js";
 import { runnerStatus, LANGS } from "./runner.js";
 import { scheduledMock, mockStatus, allStatuses, attemptKind, linkScoredAttempt } from "./schedule.js";
-import { tick } from "./notify.js";
+import { tick, sendEmail } from "./notify.js";
 
 // A tick is an id and a boolean. Tens of thousands still fit well inside
 // this; anything larger is a bug or someone poking at the endpoint.
@@ -488,8 +489,8 @@ route("GET", /^\/api\/overview$/, async (_m, _r, env) => {
    ledgers (siblings, drill, per-day). The page boots from this in one round
    trip instead of four. */
 route("GET", /^\/api\/dsa\/progress$/, async (_m, request, env) => {
-  const [progress, ledgers] = await Promise.all([readDsaProgress(env.DB), readDsaLedgers(env.DB)]);
-  return json({ ...progress, ...ledgers, today: istDate(clock(env, request)), ai: !!env.GROQ_API_KEY });
+  const [progress, ledgers, v31] = await Promise.all([readDsaProgress(env.DB), readDsaLedgers(env.DB), readV31(env.DB)]);
+  return json({ ...progress, ...ledgers, ...v31, today: istDate(clock(env, request)), ai: !!env.GROQ_API_KEY });
 });
 
 route("PATCH", /^\/api\/dsa\/progress\/([^/]+)$/, async (match, request, env) => {
@@ -634,6 +635,117 @@ route("POST", /^\/api\/dsa\/drill\/([^/]+)\/check$/, async (match, request, env)
     const check = await checkDrill(env, item, guess);
     const drill = await saveDrillCheck(env.DB, id, item.day, guess, check, { now });
     return json({ id, drill, check });
+  } catch (e) {
+    if (!(e instanceof AiError)) throw e;
+    const status = e.kind === "config" ? 503 : e.kind === "rate" ? 429 : 502;
+    return json({ error: e.message, kind: e.kind, retry_after: e.retryAfter }, status);
+  }
+});
+
+// -- DSA v3.1: reader, notes, recall, CS core (PRD-v3.1 §13.2) -------------
+
+const MAX_READER_BYTES = 32 * 1024;
+const PAGE_ID = /^[a-z0-9-]{1,80}$/;
+const PATH_KEY = /^(day-\d{1,2}|before-[a-z0-9-]{1,80}|page-[a-z0-9-]{1,80}|core-\d{1,2})$/;
+
+/* The reader doc: return stack, current path and the last anchor per page.
+   Written whole (debounced on the page); size-capped because it is free
+   text from the browser. */
+route("GET", /^\/api\/dsa\/reader$/, async (_m, _r, env) => json((await readDoc(env.DB, "dsa_reader", null)).data));
+route("PUT", /^\/api\/dsa\/reader$/, async (_m, request, env) => {
+  const text = await request.text();
+  if (text.length > MAX_READER_BYTES) return bad("reader state is too large", 413);
+  let doc;
+  try { doc = JSON.parse(text); } catch { return bad("reader state must be JSON"); }
+  if (!doc || typeof doc !== "object" || Array.isArray(doc)) return bad("reader state must be an object");
+  if (Array.isArray(doc.stack) && doc.stack.length > 3) return bad("the return stack holds at most 3 entries");
+  await writeDoc(env.DB, "dsa_reader", doc);
+  return json({ ok: true });
+});
+
+route("PUT", /^\/api\/dsa\/(onboarding|ui)$/, async (match, request, env) => {
+  const payload = await body(request);
+  if (!payload || typeof payload !== "object" || JSON.stringify(payload).length > 8192) return bad("must be a small object");
+  await writeDoc(env.DB, `dsa_${match[1]}`, payload);
+  return json({ ok: true });
+});
+
+route("PATCH", /^\/api\/dsa\/page-note\/([^/]+)$/, async (match, request, env) => {
+  const id = decodeURIComponent(match[1]);
+  if (!PAGE_ID.test(id)) return bad("not a page id");
+  const payload = await body(request);
+  const patch = {};
+  if ("noted" in payload) patch.noted = !!payload.noted;
+  if ("goodnotes_ref" in payload) patch.goodnotes_ref = String(payload.goodnotes_ref).trim().slice(0, MAX_GOODNOTES);
+  if (!Object.keys(patch).length) return bad("nothing to update");
+  return json({ id, note: await patchPageNote(env.DB, id, patch, { now: clock(env, request) }) });
+});
+
+route("GET", /^\/api\/dsa\/recall\/due$/, async (_m, request, env) => {
+  const today = istDate(clock(env, request));
+  const { results } = await env.DB.prepare("SELECT * FROM dsa_recall WHERE due_on IS NOT NULL AND due_on <= ? ORDER BY due_on")
+    .bind(today).all();
+  return json({ today, due: results || [] });
+});
+
+route("PATCH", /^\/api\/dsa\/recall\/([^/]+)$/, async (match, request, env) => {
+  const id = decodeURIComponent(match[1]);
+  if (!/^([a-z0-9-]+#r\d{1,2}|mcq:[a-z0-9-]{1,40}|[a-z0-9-]+#q\d{1,2})$/.test(id)) return bad("not a recall item id");
+  const payload = await body(request);
+  if (payload.result !== 0 && payload.result !== 1) return bad("result must be 1 (got it) or 0 (missed)");
+  const source = String(payload.source || id.split("#")[0]).slice(0, 80);
+  return json({ id, recall: await answerRecall(env.DB, id, source, payload.result === 1, { now: clock(env, request) }) });
+});
+
+route("PATCH", /^\/api\/dsa\/core-day\/(\d+)$/, async (match, request, env) => {
+  const day = Number(match[1]);
+  if (day < 1 || day > 30) return bad("day must be 1..30");
+  const payload = await body(request);
+  const patch = {};
+  if ("topics_done" in payload) {
+    if (!Array.isArray(payload.topics_done)) return bad("topics_done must be an array");
+    patch.topics_done = payload.topics_done.map((t) => String(t).slice(0, 80)).slice(0, 10);
+  }
+  if ("mcq_answers" in payload) {
+    if (!payload.mcq_answers || typeof payload.mcq_answers !== "object") return bad("mcq_answers must be an object");
+    patch.mcq_answers = Object.fromEntries(Object.entries(payload.mcq_answers).slice(0, 20).map(([k, v]) => [String(k).slice(0, 40), String(v).slice(0, 2)]));
+  }
+  for (const k of ["mcq_score", "mcq_total"]) {
+    if (k in payload) patch[k] = payload[k] === null ? null : Math.max(0, Math.min(50, Number(payload[k]) | 0));
+  }
+  if ("explain_text" in payload) patch.explain_text = String(payload.explain_text).slice(0, 4000);
+  if ("done" in payload) patch.done = !!payload.done;
+  if (!Object.keys(patch).length) return bad("nothing to update");
+  return json({ day, core: await patchCoreDay(env.DB, day, patch, { now: clock(env, request) }) });
+});
+
+route("PATCH", /^\/api\/dsa\/reading\/([^/]+)$/, async (match, request, env) => {
+  const key = decodeURIComponent(match[1]);
+  if (!PATH_KEY.test(key)) return bad("not a reading path key");
+  const payload = await body(request);
+  const patch = {};
+  if ("step" in payload) patch.step = Math.max(0, Math.min(50, Number(payload.step) | 0));
+  if ("done" in payload) patch.done = !!payload.done;
+  if (!Object.keys(patch).length) return bad("nothing to update");
+  return json({ key, reading: await patchReading(env.DB, key, patch, { now: clock(env, request) }) });
+});
+
+/* Groq for the DSA tab (PRD §12 / v3.1 §7). P1 implements explain_grade,
+   for the CS core explanation; the other modes arrive with the v3 phase. */
+route("POST", /^\/api\/dsa\/ask$/, async (_m, request, env) => {
+  const payload = await body(request);
+  if (payload.mode !== "explain_grade") return bad(`mode '${payload.mode}' is not available yet`, 400);
+  const ctx = payload.context || {};
+  const day = Number(ctx.day);
+  const core = coreDay(day);
+  if (!core) return bad("no CS core content for that day", 404);
+  const text = String(ctx.text || "").trim().slice(0, 4000);
+  if (text.length < 20) return bad("write a few sentences first");
+  const now = clock(env, request);
+  try {
+    const grade = await gradeExplain(env, core, text);
+    const saved = await patchCoreDay(env.DB, day, { explain_text: text, explain_feedback: grade }, { now });
+    return json({ reply: grade, core: saved });
   } catch (e) {
     if (!(e instanceof AiError)) throw e;
     const status = e.kind === "config" ? 503 : e.kind === "rate" ? 429 : 502;
@@ -1156,6 +1268,18 @@ route("PATCH", /^\/api\/oa\/attempt\/(\d+)\/notes$/, async (match, request, env)
   const notes = String(payload.notes || "").slice(0, MAX_NOTES);
   await env.DB.prepare("UPDATE oa_attempt SET notes = ? WHERE id = ?").bind(notes, found.id).run();
   return json({ attempt_id: found.id, notes });
+});
+
+/* One plain test email to NOTIFY_TO, to confirm the Resend setup without
+   waiting for a nudge. Not de-duplicated: it is only ever pressed by hand. */
+route("POST", /^\/api\/notify\/test$/, async (_m, _r, env) => {
+  if (!env.RESEND_API_KEY || !env.NOTIFY_TO) return bad("RESEND_API_KEY or NOTIFY_TO is not set", 503);
+  const result = await sendEmail(env, {
+    subject: "Launch Console · test email",
+    html: "<p>This is a test from your Launch Console. If you can read it, the DSA reminders will reach you.</p>" +
+      "<p>The first real one is the 09:00 nudge on Day 1.</p>"
+  });
+  return result.ok ? json({ sent: true }) : bad(`Resend refused it (${result.status || "unknown"})`, 502);
 });
 
 /* Run the cron now. What it sends is still de-duplicated by notify_log, so

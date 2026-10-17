@@ -11,6 +11,9 @@
  "related": [
   "tree-lca"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "lca",
@@ -25,5 +28,13 @@
    "body": "✍️ Range sum of BST (LeetCode 938): if node < low, only the right subtree can contain values in range; if node > high, only the left. Skip the other side entirely.\n- Trim a BST, count nodes in range, closest value: same pruning by comparison."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "tree-lca",
+   "from_section": "complexity",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

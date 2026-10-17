@@ -11,6 +11,9 @@
   "tree-dfs-traversals",
   "heap-binary-heap-internals"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "node",
@@ -37,5 +40,6 @@
    "body": "✍️ `[3,9,20,null,null,15,7]` is level order with `null` for missing children. Draw the tree from it before solving — reading the array directly causes mistakes."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

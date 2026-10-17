@@ -10,6 +10,9 @@
  "related": [
   "stq-stack-basics-and-matching"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "rpn",
@@ -30,5 +33,6 @@
    "body": "✍️ \"-3\" is a number, not an operator: check whole-token equality, not the first character.\n- Intermediate products can exceed int; use `long long`."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

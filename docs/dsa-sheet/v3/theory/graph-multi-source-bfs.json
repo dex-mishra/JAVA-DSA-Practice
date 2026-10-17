@@ -11,6 +11,9 @@
  "related": [
   "graph-bfs"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -37,5 +40,6 @@
    "body": "01 Matrix (distance to nearest 0: sources = all zeros), walls and gates, as far from land as possible (LeetCode 1162)."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

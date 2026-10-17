@@ -8,21 +8,27 @@
      "at": "Recomputing k elements when only 2 changed",
      "page": "sw-fixed-window",
      "section": "think",
-     "why": "The bottleneck behind every fixed window."
+     "why": "The bottleneck behind every fixed window.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "pseudocode",
      "at": "Add, remove, record — in that order",
      "page": "sw-fixed-window",
      "section": "template",
-     "why": "The three-line skeleton."
+     "why": "The three-line skeleton.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "edges",
      "at": "Compare sums, divide once",
      "page": "sw-fixed-window",
      "section": "pitfalls",
-     "why": "Avoiding floating-point issues."
+     "why": "Avoiding floating-point issues.",
+     "when": "while",
+     "need": "optional"
     }
    ],
    "stuck_refs": {
@@ -39,6 +45,7 @@
      "section": "template"
     }
    },
+   "note": null,
    "stages": [
     {
      "id": "understand",
@@ -113,6 +120,7 @@
       "difficulty": "Medium"
      },
      "maps": "Same fixed window; the summary is a vowel count instead of a sum.",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -167,6 +175,7 @@
       "difficulty": "Medium"
      },
      "maps": "Window of size 2k+1 centred at i; the answer is written at the centre, not the right end.",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -221,6 +230,7 @@
       "difficulty": "Medium"
      },
      "maps": "Count fixed windows whose sum ≥ threshold × k.",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -278,35 +288,45 @@
      "at": "\"longest substring such that\"",
      "page": "sw-variable-window",
      "section": "recognise",
-     "why": "The trigger for a variable window."
+     "why": "The trigger for a variable window.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "brainstorm",
      "at": "If [l, r] is invalid, so is [l, r+1]",
      "page": "sw-variable-window",
      "section": "think",
-     "why": "Why l never needs to move back."
+     "why": "Why l never needs to move back.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "pseudocode",
      "at": "Shrink while invalid, record after",
      "page": "sw-variable-window",
      "section": "template-longest",
-     "why": "Longest-window skeleton."
+     "why": "Longest-window skeleton.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "solution",
      "at": "Counts of characters in the window",
      "page": "sw-frequency-map-window",
      "section": "idea",
-     "why": "The window's state."
+     "why": "The window's state.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "followups",
      "at": "Jump l with last-seen index",
      "page": "sw-variable-window",
      "section": "interview",
-     "why": "Removing the inner loop."
+     "why": "Removing the inner loop.",
+     "when": "while",
+     "need": "optional"
     }
    ],
    "stuck_refs": {
@@ -327,6 +347,7 @@
      "section": "idea"
     }
    },
+   "note": null,
    "stages": [
     {
      "id": "understand",
@@ -401,6 +422,7 @@
       "difficulty": "Medium"
      },
      "maps": "Longest window with at most 2 distinct values — the rule changes from \"no repeats\" to \"≤ 2 kinds\".",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -455,6 +477,7 @@
       "difficulty": "Hard"
      },
      "maps": "Shortest window that contains every character of t (with counts) — the \"shortest valid\" skeleton.",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -509,6 +532,7 @@
       "difficulty": "Medium"
      },
      "maps": "Shortest window with sum ≥ target; positive values make the sum monotone.",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -566,28 +590,36 @@
      "at": "Cost of a window = len − maxCount",
      "page": "sw-variable-window",
      "section": "budget",
-     "why": "Turning \"replace k\" into a budget."
+     "why": "Turning \"replace k\" into a budget.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "brainstorm",
      "at": "Window with a frequency table",
      "page": "sw-frequency-map-window",
      "section": "idea",
-     "why": "The state you maintain."
+     "why": "The state you maintain.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "solution",
      "at": "maxCount never decreases",
      "page": "sw-frequency-map-window",
      "section": "maxcount",
-     "why": "Why a stale maximum is safe."
+     "why": "Why a stale maximum is safe.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "carry",
      "at": "Budget windows",
      "page": "sw-variable-window",
      "section": "budget",
-     "why": "The family this belongs to."
+     "why": "The family this belongs to.",
+     "when": "while",
+     "need": "optional"
     }
    ],
    "stuck_refs": {
@@ -608,6 +640,7 @@
      "section": "template-longest"
     }
    },
+   "note": null,
    "stages": [
     {
      "id": "understand",
@@ -682,6 +715,7 @@
       "difficulty": "Medium"
      },
      "maps": "Two-letter version of character replacement: run a budget window for \"all T\" and for \"all F\".",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -736,6 +770,7 @@
       "difficulty": "Medium"
      },
      "maps": "Sort, then a window is valid if raising everyone to the window's max costs ≤ k.",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -790,6 +825,7 @@
       "difficulty": "Medium"
      },
      "maps": "Cost per position = |s[i] − t[i]|; longest window whose total cost ≤ maxCost.",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -847,28 +883,36 @@
      "at": "Flips = a budget of zeros",
      "page": "sw-variable-window",
      "section": "budget",
-     "why": "Reframing the statement as a window rule."
+     "why": "Reframing the statement as a window rule.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "brainstorm",
      "at": "Day 1's streak with k allowed breaks",
      "page": "arr-single-pass-running-state",
      "section": "variations",
-     "why": "The link back to Max Consecutive Ones."
+     "why": "The link back to Max Consecutive Ones.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "pseudocode",
      "at": "Shrink while zeros > k",
      "page": "sw-variable-window",
      "section": "template-longest",
-     "why": "The longest-window skeleton."
+     "why": "The longest-window skeleton.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "edges",
      "at": "Why O(n)",
      "page": "cx-amortised-analysis",
      "section": "counting-trick",
-     "why": "l moves at most n times overall."
+     "why": "l moves at most n times overall.",
+     "when": "while",
+     "need": "optional"
     }
    ],
    "stuck_refs": {
@@ -885,6 +929,7 @@
      "section": "template-longest"
     }
    },
+   "note": null,
    "stages": [
     {
      "id": "understand",
@@ -959,6 +1004,7 @@
       "difficulty": "Medium"
      },
      "maps": "Window with at most one zero; the answer is window length − 1 because one element must be deleted.",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -1013,6 +1059,7 @@
       "difficulty": "Medium"
      },
      "maps": "Window state is the OR of its elements; valid when the new element shares no bit with it.",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -1067,6 +1114,7 @@
       "difficulty": "Medium"
      },
      "maps": "Count windows instead of measuring them: every valid window ending at r contributes r − l + 1 subarrays.",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -1229,6 +1277,8 @@
    }
   ]
  },
+ "core": null,
+ "reading_path": [],
  "day": 5,
  "micro": {
   "title": "Sliding window — add one, remove one, keep the rule",

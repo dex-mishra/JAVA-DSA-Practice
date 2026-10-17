@@ -8,35 +8,45 @@
      "at": "\"sorted\", \"constant extra space\"",
      "page": "tp-opposite-ends",
      "section": "recognise",
-     "why": "The two trigger words for opposite-end pointers."
+     "why": "The two trigger words for opposite-end pointers.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "brainstorm",
      "at": "Binary search per element → one combined walk",
      "page": "tp-opposite-ends",
      "section": "think",
-     "why": "Why r only ever moves left."
+     "why": "Why r only ever moves left.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "algorithm",
      "at": "Move l when the sum is too small",
      "page": "tp-why-discarding-is-safe",
      "section": "argument",
-     "why": "The proof that no answer is skipped."
+     "why": "The proof that no answer is skipped.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "pseudocode",
      "at": "`while (l < r)`",
      "page": "tp-opposite-ends",
      "section": "pitfalls",
-     "why": "Distinct indices."
+     "why": "Distinct indices.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "carry",
      "at": "Hash map vs two pointers",
      "page": "hash-complement-lookup",
      "section": "interview",
-     "why": "When each tool is right."
+     "why": "When each tool is right.",
+     "when": "while",
+     "need": "optional"
     }
    ],
    "stuck_refs": {
@@ -57,6 +67,7 @@
      "section": "template"
     }
    },
+   "note": null,
    "stages": [
     {
      "id": "understand",
@@ -131,6 +142,7 @@
       "difficulty": "Easy"
      },
      "maps": "The biggest square is always at one of the two ends — two pointers fill the output from the back.",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -185,6 +197,7 @@
       "difficulty": "Easy"
      },
      "maps": "The simplest opposite-ends loop: swap and move both pointers.",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -239,6 +252,7 @@
       "difficulty": "Easy"
      },
      "maps": "Sort first (indices don't matter for a count), then count r − l pairs at once.",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -296,21 +310,27 @@
      "at": "Clean-copy vs in-place pointers",
      "page": "tp-opposite-ends",
      "section": "palindrome",
-     "why": "The symmetric two-pointer check."
+     "why": "The symmetric two-pointer check.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "pseudocode",
      "at": "Inner skip loops also check l < r",
      "page": "str-palindrome-checks",
      "section": "skipping",
-     "why": "The bounds bug in skipping."
+     "why": "The bounds bug in skipping.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "solution",
      "at": "`isalnum`, `tolower`",
      "page": "cpp-string",
      "section": "basics",
-     "why": "Character class functions."
+     "why": "Character class functions.",
+     "when": "while",
+     "need": "optional"
     }
    ],
    "stuck_refs": {
@@ -327,6 +347,7 @@
      "section": "skipping"
     }
    },
+   "note": null,
    "stages": [
     {
      "id": "understand",
@@ -401,6 +422,7 @@
       "difficulty": "Easy"
      },
      "maps": "At the first mismatch you get one deletion: try skipping the left char or the right char.",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -455,6 +477,7 @@
       "difficulty": "Easy"
      },
      "maps": "Opposite ends that only stop on vowels — same skip-loop structure as Valid Palindrome.",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -509,6 +532,7 @@
       "difficulty": "Easy"
      },
      "maps": "Identical shape with `isalpha` as the filter.",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -566,35 +590,45 @@
      "at": "Fix one, the rest is sorted two-sum",
      "page": "tp-fix-one-k-sum",
      "section": "think",
-     "why": "How O(n³) becomes O(n²)."
+     "why": "How O(n³) becomes O(n²).",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "pseudocode",
      "at": "Three dedup points",
      "page": "tp-skip-duplicates",
      "section": "idioms",
-     "why": "Where to skip and why compare with the previous element."
+     "why": "Where to skip and why compare with the previous element.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "solution",
      "at": "`if (a[i] > 0) break`",
      "page": "tp-fix-one-k-sum",
      "section": "template",
-     "why": "Early exit on sorted data."
+     "why": "Early exit on sorted data.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "edges",
      "at": "Compare with a[i−1], not a[i+1]",
      "page": "tp-fix-one-k-sum",
      "section": "pitfalls",
-     "why": "The bug that loses [−1, −1, 2]."
+     "why": "The bug that loses [−1, −1, 2].",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "understand",
      "at": "Sorting cost",
      "page": "cpp-sort-and-comparators",
      "section": "basics",
-     "why": "`std::sort` is O(n log n)."
+     "why": "`std::sort` is O(n log n).",
+     "when": "while",
+     "need": "optional"
     }
    ],
    "stuck_refs": {
@@ -615,6 +649,7 @@
      "section": "idioms"
     }
    },
+   "note": null,
    "stages": [
     {
      "id": "understand",
@@ -689,6 +724,7 @@
       "difficulty": "Medium"
      },
      "maps": "Same sorted scan, but instead of an exact hit you track the sum nearest the target.",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -743,6 +779,7 @@
       "difficulty": "Medium"
      },
      "maps": "One more fixed loop; dedup at both fixed levels; `long long` sums.",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -797,6 +834,7 @@
       "difficulty": "Medium"
      },
      "maps": "Fix the largest side; on the rest, two pointers count a block of valid pairs at once.",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -854,28 +892,36 @@
      "at": "Area = min height × width",
      "page": "tp-why-discarding-is-safe",
      "section": "container",
-     "why": "The formula the proof is built on."
+     "why": "The formula the proof is built on.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "brainstorm",
      "at": "Moving the taller wall never helps",
      "page": "tp-why-discarding-is-safe",
      "section": "container",
-     "why": "The exchange argument."
+     "why": "The exchange argument.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "followups",
      "at": "How to say it",
      "page": "tp-why-discarding-is-safe",
      "section": "how-to-say",
-     "why": "Interview phrasing."
+     "why": "Interview phrasing.",
+     "when": "while",
+     "need": "optional"
     },
     {
      "stage": "carry",
      "at": "Exchange arguments",
      "page": "gr-what-greedy-is-and-proofs",
      "section": "exchange",
-     "why": "The same proof style justifies greedy algorithms."
+     "why": "The same proof style justifies greedy algorithms.",
+     "when": "while",
+     "need": "optional"
     }
    ],
    "stuck_refs": {
@@ -892,6 +938,7 @@
      "section": "container"
     }
    },
+   "note": null,
    "stages": [
     {
      "id": "understand",
@@ -966,6 +1013,7 @@
       "difficulty": "Medium"
      },
      "maps": "Opposite ends after sorting: the heaviest person boards now; take the lightest along if they fit.",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -1020,6 +1068,7 @@
       "difficulty": "Hard"
      },
      "maps": "Water above bar i = min(maxLeft, maxRight) − h[i]; two pointers process the side with the smaller max.",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -1074,6 +1123,7 @@
       "difficulty": "Medium"
      },
      "maps": "Sort + opposite ends; each exact hit removes both elements (moves both pointers).",
+     "note": null,
      "stages": [
       {
        "id": "analyse",
@@ -1236,6 +1286,8 @@
    }
   ]
  },
+ "core": null,
+ "reading_path": [],
  "day": 3,
  "micro": {
   "title": "Two pointers — let sorted order tell you which way to move",

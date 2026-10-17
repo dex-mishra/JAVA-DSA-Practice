@@ -14,6 +14,9 @@
   "bt-pruning",
   "bt-dedup-sorted-skip"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -52,5 +55,25 @@
    "body": "O(n·2ⁿ) time (2ⁿ leaves, each copied in O(n)), O(n) recursion depth plus the output."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-constraint",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "cpp-pass-by-reference-and-copies",
+   "from_section": "recursion",
+   "kind": "link",
+   "section": "undo"
+  },
+  {
+   "from_page": "bits-common-tricks",
+   "from_section": "subsets",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

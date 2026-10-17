@@ -11,6 +11,9 @@
   "bs-lower-upper-bound",
   "cpp-sort-and-comparators"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "list",
@@ -37,5 +40,6 @@
    "body": "✍️ `accumulate(a.begin(), a.end(), 0)` sums in `int` because the initial value is `int` — it overflows on large inputs. Write `0LL`."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

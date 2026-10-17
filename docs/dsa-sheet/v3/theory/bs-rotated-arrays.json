@@ -10,6 +10,9 @@
  "related": [
   "bs-off-by-one-templates"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -36,5 +39,6 @@
    "body": "✍️ `a[lo] <= a[mid]` needs `<=`: when lo == mid (two elements left), the left \"half\" is a single element and is sorted.\n- With duplicates (LeetCode 81), `a[lo] == a[mid] == a[hi]` gives no information; shrink with `lo++, hi--`. Worst case becomes O(n)."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

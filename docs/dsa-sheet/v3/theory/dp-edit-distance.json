@@ -10,6 +10,9 @@
  "related": [
   "dp-lcs-two-strings"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -36,5 +39,6 @@
    "body": "O(n·m) time and space."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

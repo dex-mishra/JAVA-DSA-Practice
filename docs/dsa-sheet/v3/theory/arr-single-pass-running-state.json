@@ -13,6 +13,29 @@
   "kad-min-so-far",
   "ps-prefix-sum-basics"
  ],
+ "note": "1. Idea\n   • Walk once left → right, keeping a few variables that **summarise the past**\n   • Summary examples: total so far, current streak, best so far, min so far\n   • Each element read once → O(n) time, O(1) space\n2. Recognise\n   • Words: running, cumulative, so far, streak, consecutive\n   • Brute force has an inner loop going **backwards** to recompute something\n3. Why it works\n   • Answer at i = answer at i−1 + one change → keep it in a variable\n4. Two templates\n   • Running total: `run += a[i]; out[i] = run;`\n   • Streak: `cur = ok ? cur + 1 : 0; best = max(best, cur);`\n5. Pitfalls\n   • Update `best` **every** step (a streak can run to the end)\n   • Reset value: \"count of matches\" → 0; \"length of a run that includes me\" → 1\n6. Leads to\n   • Prefix sums (Day 4), Kadane (Day 4), sliding window (Day 5)\n✎ In my words: ______________________________________________",
+ "recall": [
+  {
+   "q": "What is \"running state\"?",
+   "a": "A few variables summarising everything seen so far, updated in O(1) per element."
+  },
+  {
+   "q": "Which brute-force shape tells you to use it?",
+   "a": "An inner loop that walks backwards to recompute something about the prefix."
+  },
+  {
+   "q": "Why update best every iteration?",
+   "a": "Otherwise a streak that lasts until the end of the array is never recorded."
+  },
+  {
+   "q": "Reset to 0 or 1 for \"longest increasing run\"?",
+   "a": "1 — the current element alone is a run."
+  }
+ ],
+ "shot": {
+  "title": "Two templates",
+  "body": "```cpp\n// running total\nint run = 0;\nfor (int i = 0; i < n; i++) { run += a[i]; out[i] = run; }\n\n// streak that resets\nint cur = 0, best = 0;\nfor (int x : a) {\n    cur = (x == target) ? cur + 1 : 0;\n    best = max(best, cur);          // every step\n}\n```"
+ },
  "sections": [
   {
    "id": "idea",
@@ -30,7 +53,7 @@
    "id": "think",
    "title": "Brute force → running state",
    "note": "mixed",
-   "body": "Brute force: at each i, loop back over 0..i to compute the sum / count / max. O(n²).\n✍️ Bottleneck: the backward loop recomputes a summary that differs from the previous one by **one element**.\n✍️ Fix: keep the previous summary and update it with a[i] in O(1).\nThis is the simplest instance of the bottleneck method ([[meta-bottleneck-method#name-waste]]): \"recomputing something that only changed a little\"."
+   "body": "Brute force: at each i, loop back over 0..i to compute the sum / count / max. O(n²).\n✍️ Bottleneck: the backward loop recomputes a summary that differs from the previous one by **one element**.\n✍️ Fix: keep the previous summary and update it with a[i] in O(1).\nThis is the simplest instance of the bottleneck method ([[meta-bottleneck-method#name-waste]]): \"recomputing something that only changed a little\".\n>> detour meta-bottleneck-method#find-bottleneck | First time finding a bottleneck? This is the method every later problem uses | 4 min"
   },
   {
    "id": "template",
@@ -59,39 +82,131 @@
  ],
  "used_by": [
   {
-   "problem": "running-sum-of-1d-array",
+   "from_page": "kad-min-so-far",
+   "from_section": "think",
+   "kind": "link",
+   "section": ""
+  },
+  {
    "day": 1,
-   "section": "think",
-   "stage": "brainstorm",
-   "at": "Brute → better: the backward loop is the bottleneck"
+   "block": "reading_path",
+   "step": 6,
+   "kind": "path",
+   "why": "Pattern 1 of today: carry the past in a few variables. Used by problems 1 and 2.",
+   "section": "idea"
   },
   {
    "problem": "running-sum-of-1d-array",
    "day": 1,
-   "section": "template",
-   "stage": "pseudocode",
-   "at": "STATE `run` and UPDATE `run += a[i]`"
-  },
-  {
-   "problem": "max-consecutive-ones",
-   "day": 1,
-   "section": "template",
    "stage": "brainstorm",
-   "at": "Streak that resets"
+   "at": "↳ Bottleneck: the inner loop re-adds a[0..i−1]",
+   "why": "Shows exactly why re-adding the prefix is wasted work — the move this whole problem is about.",
+   "when": "before",
+   "need": "must",
+   "kind": "ref",
+   "section": "think"
+  },
+  {
+   "problem": "running-sum-of-1d-array",
+   "day": 1,
+   "stage": "pseudocode",
+   "at": "STATE `run`, UPDATE `run = run + a[i]`",
+   "why": "The running-total template your pseudocode follows line by line.",
+   "when": "while",
+   "need": "must",
+   "kind": "ref",
+   "section": "template"
+  },
+  {
+   "problem": "running-sum-of-1d-array",
+   "day": 1,
+   "kind": "stuck",
+   "minutes": "20",
+   "section": "idea"
+  },
+  {
+   "problem": "running-sum-of-1d-array",
+   "day": 1,
+   "kind": "stuck",
+   "minutes": "30",
+   "section": "template"
+  },
+  {
+   "problem": "max-consecutive-ones",
+   "sibling": "consecutive-characters",
+   "day": 1,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "pitfalls"
   },
   {
    "problem": "max-consecutive-ones",
    "day": 1,
-   "section": "pitfalls",
+   "stage": "brainstorm",
+   "at": "**2. Optimal.** One pass with `cur` and `best`",
+   "why": "The streak-that-resets template.",
+   "when": "while",
+   "need": "must",
+   "kind": "ref",
+   "section": "template"
+  },
+  {
+   "problem": "max-consecutive-ones",
+   "day": 1,
    "stage": "pseudocode",
-   "at": "Where `best` is updated"
+   "at": "`best = max(best, cur)` every step",
+   "why": "Why updating best only on a reset misses a streak that runs to the end.",
+   "when": "while",
+   "need": "must",
+   "kind": "ref",
+   "section": "pitfalls"
+  },
+  {
+   "problem": "max-consecutive-ones",
+   "day": 1,
+   "kind": "stuck",
+   "minutes": "20",
+   "section": "idea"
+  },
+  {
+   "problem": "max-consecutive-ones",
+   "day": 1,
+   "kind": "stuck",
+   "minutes": "30",
+   "section": "pitfalls"
+  },
+  {
+   "problem": "range-sum-query-immutable",
+   "day": 4,
+   "kind": "stuck",
+   "minutes": "10",
+   "section": "template"
+  },
+  {
+   "problem": "maximum-average-subarray-i",
+   "day": 5,
+   "kind": "stuck",
+   "minutes": "10",
+   "section": "template"
   },
   {
    "problem": "max-consecutive-ones-iii",
    "day": 5,
-   "section": "variations",
    "stage": "brainstorm",
-   "at": "Day 1's streak with k allowed breaks"
+   "at": "Day 1's streak with k allowed breaks",
+   "why": "The link back to Max Consecutive Ones.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "variations"
+  },
+  {
+   "problem": "max-consecutive-ones-iii",
+   "day": 5,
+   "kind": "stuck",
+   "minutes": "10",
+   "section": "template"
   }
- ]
+ ],
+ "notes_status": "ready"
 }

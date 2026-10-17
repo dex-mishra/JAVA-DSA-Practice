@@ -10,6 +10,9 @@
  "related": [
   "hash-load-factor-and-rehashing"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "unavoidable",
@@ -36,5 +39,13 @@
    "body": "| | Chaining | Open addressing |\n|---|---|---|\n| storage | bucket array + list nodes | one flat array |\n| load factor > 1 | still works | impossible |\n| cache behaviour | poorer (pointer chasing) | better |\n| deletion | simple | needs tombstones |"
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "hash-table-internals",
+   "from_section": "why-o1",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

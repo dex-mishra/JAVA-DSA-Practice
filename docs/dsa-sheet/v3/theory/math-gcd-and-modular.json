@@ -10,6 +10,9 @@
  "related": [
   "dp-counting-vs-optimising"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "gcd",
@@ -24,5 +27,6 @@
    "body": "✍️ `(a + b) % M = ((a % M) + (b % M)) % M`; `(a · b) % M = ((a % M) · (b % M)) % M` — multiply in `long long`.\n✍️ Subtraction: `((a − b) % M + M) % M` to stay non-negative.\n✍️ Division needs the modular inverse: `a / b ≡ a · b^(M−2) (mod M)` for prime M (fast power, [[rec-divide-and-conquer#fast-power]])."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

@@ -533,6 +533,7 @@ related: cpp-container-choice, hash-frequency-counting, hash-complement-lookup
 ✍️ `unordered_map<int,int> mp;` key → value. `unordered_set<int> st;` keys only.
 ✍️ Insert/update: `mp[key] = value;` or `mp[key]++;` (missing keys start at 0).
 ✍️ Membership: `mp.count(key)` returns 0 or 1. `st.count(x)`. C++20 also has `.contains()`, but `.count()` works everywhere.
+>> detour hash-table-internals#picture | How unordered_map finds a key without searching | 3 min
 ✍️ Lookup without inserting: `auto it = mp.find(key); if (it != mp.end()) use(it->second);`
 ✍️ Erase: `mp.erase(key);` Size: `mp.size()`.
 
@@ -837,6 +838,7 @@ Brute force: at each i, loop back over 0..i to compute the sum / count / max. O(
 ✍️ Bottleneck: the backward loop recomputes a summary that differs from the previous one by **one element**.
 ✍️ Fix: keep the previous summary and update it with a[i] in O(1).
 This is the simplest instance of the bottleneck method ([[meta-bottleneck-method#name-waste]]): "recomputing something that only changed a little".
+>> detour meta-bottleneck-method#find-bottleneck | First time finding a bottleneck? This is the method every later problem uses | 4 min
 
 --- template | Template | write
 ```cpp
@@ -878,6 +880,7 @@ related: tp-opposite-ends, tp-skip-duplicates
 ✍️ Two indices move left to right. `read` visits every element. `write` only advances when an element is **kept**.
 ✍️ Invariant: `a[0..write-1]` always holds exactly the kept elements seen so far, in their original order.
 ✍️ Because `write ≤ read` always, writing to `a[write]` never overwrites an element we have not read yet.
+>> detour cx-space-and-in-place#in-place | What "in-place" allows and forbids | 2 min
 
 --- recognise | Recognise it | write
 ✍️ "in-place", "O(1) extra memory", "remove / move / filter elements", "return the new length k, first k elements must be …".

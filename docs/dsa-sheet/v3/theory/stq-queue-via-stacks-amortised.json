@@ -11,6 +11,9 @@
  "related": [
   "cx-amortised-analysis"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -31,5 +34,6 @@
    "body": "✍️ Each element is pushed to `in` once, moved to `out` once, and popped from `out` once → 3 operations per element over its whole life. A single `pop` can cost O(n), but the total over n operations is O(n) ([[cx-amortised-analysis#counting-trick]])."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

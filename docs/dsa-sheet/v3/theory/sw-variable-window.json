@@ -13,6 +13,9 @@
   "sw-at-most-k-trick",
   "tp-opposite-ends"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -77,67 +80,220 @@
  ],
  "used_by": [
   {
+   "from_page": "meta-bottleneck-method",
+   "from_section": "name-waste",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-input-shape",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "arr-single-pass-running-state",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "str-anagram-window",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  },
+  {
    "problem": "max-consecutive-ones",
    "day": 1,
-   "section": "budget",
-   "stage": "carry",
-   "at": "Streak + budget of k breaks"
-  },
-  {
-   "problem": "longest-substring-without-repeating-characters",
-   "day": 5,
-   "section": "recognise",
-   "stage": "understand",
-   "at": "\"longest substring such that\""
-  },
-  {
-   "problem": "longest-substring-without-repeating-characters",
-   "day": 5,
-   "section": "think",
-   "stage": "brainstorm",
-   "at": "If [l, r] is invalid, so is [l, r+1]"
-  },
-  {
-   "problem": "longest-substring-without-repeating-characters",
-   "day": 5,
-   "section": "template-longest",
-   "stage": "pseudocode",
-   "at": "Shrink while invalid, record after"
-  },
-  {
-   "problem": "longest-substring-without-repeating-characters",
-   "day": 5,
-   "section": "interview",
    "stage": "followups",
-   "at": "Jump l with last-seen index"
+   "kind": "link",
+   "section": "budget"
   },
   {
-   "problem": "longest-repeating-character-replacement",
-   "day": 5,
-   "section": "budget",
-   "stage": "analyse",
-   "at": "Cost of a window = len − maxCount"
-  },
-  {
-   "problem": "longest-repeating-character-replacement",
-   "day": 5,
-   "section": "budget",
+   "problem": "max-consecutive-ones",
+   "day": 1,
    "stage": "carry",
-   "at": "Budget windows"
+   "at": "\"the streak becomes a sliding window\"",
+   "why": "Day 5 turns this exact problem into \"flip at most k zeros\".",
+   "when": "after",
+   "need": "optional",
+   "kind": "ref",
+   "section": "budget"
   },
   {
-   "problem": "max-consecutive-ones-iii",
    "day": 5,
-   "section": "budget",
-   "stage": "analyse",
-   "at": "Flips = a budget of zeros"
+   "block": "micro",
+   "kind": "link",
+   "section": "template-longest"
   },
   {
-   "problem": "max-consecutive-ones-iii",
    "day": 5,
-   "section": "template-longest",
+   "block": "micro",
+   "kind": "link",
+   "section": "budget"
+  },
+  {
+   "problem": "longest-substring-without-repeating-characters",
+   "sibling": "minimum-window-substring",
+   "day": 5,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "template-shortest"
+  },
+  {
+   "problem": "longest-substring-without-repeating-characters",
+   "day": 5,
+   "stage": "understand",
+   "at": "\"longest substring such that\"",
+   "why": "The trigger for a variable window.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "recognise"
+  },
+  {
+   "problem": "longest-substring-without-repeating-characters",
+   "day": 5,
+   "stage": "brainstorm",
+   "at": "If [l, r] is invalid, so is [l, r+1]",
+   "why": "Why l never needs to move back.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "think"
+  },
+  {
+   "problem": "longest-substring-without-repeating-characters",
+   "day": 5,
    "stage": "pseudocode",
-   "at": "Shrink while zeros > k"
+   "at": "Shrink while invalid, record after",
+   "why": "Longest-window skeleton.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "template-longest"
+  },
+  {
+   "problem": "longest-substring-without-repeating-characters",
+   "day": 5,
+   "stage": "followups",
+   "at": "Jump l with last-seen index",
+   "why": "Removing the inner loop.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "interview"
+  },
+  {
+   "problem": "longest-substring-without-repeating-characters",
+   "day": 5,
+   "kind": "stuck",
+   "minutes": "20",
+   "section": "idea"
+  },
+  {
+   "problem": "longest-substring-without-repeating-characters",
+   "day": 5,
+   "kind": "stuck",
+   "minutes": "30",
+   "section": "template-longest"
+  },
+  {
+   "problem": "longest-repeating-character-replacement",
+   "sibling": "maximize-the-confusion-of-an-exam",
+   "day": 5,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "budget"
+  },
+  {
+   "problem": "longest-repeating-character-replacement",
+   "day": 5,
+   "stage": "analyse",
+   "at": "Cost of a window = len − maxCount",
+   "why": "Turning \"replace k\" into a budget.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "budget"
+  },
+  {
+   "problem": "longest-repeating-character-replacement",
+   "day": 5,
+   "stage": "carry",
+   "at": "Budget windows",
+   "why": "The family this belongs to.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "budget"
+  },
+  {
+   "problem": "longest-repeating-character-replacement",
+   "day": 5,
+   "kind": "stuck",
+   "minutes": "10",
+   "section": "recognise"
+  },
+  {
+   "problem": "longest-repeating-character-replacement",
+   "day": 5,
+   "kind": "stuck",
+   "minutes": "20",
+   "section": "budget"
+  },
+  {
+   "problem": "longest-repeating-character-replacement",
+   "day": 5,
+   "kind": "stuck",
+   "minutes": "40",
+   "section": "template-longest"
+  },
+  {
+   "problem": "max-consecutive-ones-iii",
+   "sibling": "longest-subarray-of-1s-after-deleting-one-element",
+   "day": 5,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "budget"
+  },
+  {
+   "problem": "max-consecutive-ones-iii",
+   "day": 5,
+   "stage": "analyse",
+   "at": "Flips = a budget of zeros",
+   "why": "Reframing the statement as a window rule.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "budget"
+  },
+  {
+   "problem": "max-consecutive-ones-iii",
+   "day": 5,
+   "stage": "pseudocode",
+   "at": "Shrink while zeros > k",
+   "why": "The longest-window skeleton.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "template-longest"
+  },
+  {
+   "problem": "max-consecutive-ones-iii",
+   "day": 5,
+   "kind": "stuck",
+   "minutes": "20",
+   "section": "budget"
+  },
+  {
+   "problem": "max-consecutive-ones-iii",
+   "day": 5,
+   "kind": "stuck",
+   "minutes": "30",
+   "section": "template-longest"
   }
- ]
+ ],
+ "notes_status": "pending"
 }

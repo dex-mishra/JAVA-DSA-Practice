@@ -12,6 +12,9 @@
   "sort-merge-sort",
   "gr-interval-sort-and-merge"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "basics",
@@ -46,11 +49,30 @@
  ],
  "used_by": [
   {
+   "problem": "majority-element",
+   "sibling": "sort-array-by-increasing-frequency",
+   "day": 2,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "strict"
+  },
+  {
+   "day": 3,
+   "block": "micro",
+   "kind": "link",
+   "section": "basics"
+  },
+  {
    "problem": "3sum",
    "day": 3,
-   "section": "basics",
    "stage": "understand",
-   "at": "Sorting cost"
+   "at": "Sorting cost",
+   "why": "`std::sort` is O(n log n).",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "basics"
   }
- ]
+ ],
+ "notes_status": "pending"
 }

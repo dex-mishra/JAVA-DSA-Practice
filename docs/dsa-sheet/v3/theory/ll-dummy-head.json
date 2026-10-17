@@ -11,6 +11,9 @@
   "ll-merge-and-split",
   "ll-k-gap-pointers"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -43,5 +46,13 @@
    "body": "✍️ Returning `dummy` (or `&dummy`) instead of `dummy.next`.\n✍️ Forgetting `tail = tail->next` after attaching → every new node overwrites the same link."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "ll-node-and-pointers",
+   "from_section": "delete",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

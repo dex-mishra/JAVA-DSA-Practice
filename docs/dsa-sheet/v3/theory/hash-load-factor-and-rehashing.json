@@ -11,6 +11,9 @@
  "related": [
   "cpp-unordered-map-set"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "load-factor",
@@ -31,5 +34,13 @@
    "body": "✍️ `mp.reserve(n)` allocates enough buckets for n keys up front, so no rehash happens during the n inserts. Use it when you know the final size; it can make hash-heavy solutions noticeably faster.\n- Iterators are invalidated by a rehash: never hold an iterator across inserts."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "cpp-unordered-map-set",
+   "from_section": "performance",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

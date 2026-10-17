@@ -11,6 +11,9 @@
   "sw-variable-window",
   "ps-prefix-sum-hashmap"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "rule",
@@ -33,11 +36,61 @@
  ],
  "used_by": [
   {
+   "from_page": "cx-constraints-to-target",
+   "from_section": "values",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "ps-prefix-sum-hashmap",
+   "from_section": "recognise",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "sw-variable-window",
+   "from_section": "recognise",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "day": 4,
+   "block": "micro",
+   "kind": "link",
+   "section": "counterexample"
+  },
+  {
    "problem": "subarray-sum-equals-k",
    "day": 4,
-   "section": "counterexample",
    "stage": "analyse",
-   "at": "Negatives present"
+   "at": "Negatives present",
+   "why": "Why a window cannot work here.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "counterexample"
+  },
+  {
+   "problem": "subarray-sum-equals-k",
+   "day": 4,
+   "kind": "stuck",
+   "minutes": "10",
+   "section": "rule"
+  },
+  {
+   "day": 5,
+   "block": "micro",
+   "kind": "link",
+   "section": "decide"
+  },
+  {
+   "problem": "longest-substring-without-repeating-characters",
+   "sibling": "minimum-size-subarray-sum",
+   "day": 5,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "rule"
   }
- ]
+ ],
+ "notes_status": "pending"
 }

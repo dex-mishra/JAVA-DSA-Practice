@@ -11,6 +11,9 @@
  "related": [
   "sw-frequency-map-window"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -37,5 +40,20 @@
    "body": "- Permutation in string (LeetCode 567): return true on the first match.\n- Minimum window containing all of t (LeetCode 76): variable window, not fixed ([[sw-variable-window]])."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "sw-fixed-window",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "problem": "valid-anagram",
+   "day": 2,
+   "stage": "followups",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

@@ -12,6 +12,29 @@
   "hash-load-factor-and-rehashing",
   "cpp-unordered-map-set"
  ],
+ "note": "1. Structure\n   • Array of **buckets** + **hash function** h(key)\n   • bucket = h(key) % bucketCount → computed, not searched\n2. Why O(1)\n   • n keys over ~n buckets → ~1 key per bucket → O(1) **average**\n   • Many keys in one bucket (collisions) → O(n) **worst case**\n3. Collisions\n   • Unavoidable (more keys than buckets — pigeonhole)\n   • **Chaining**: each bucket = list of keys (C++ `unordered_map`)\n   • **Open addressing**: probe the next free slot (Python dict)\n4. Load factor and rehashing\n   • α = keys / buckets; when α > max (1.0), table doubles and reinserts all → O(n) once\n   • Doubling → O(1) **amortised** per insert\n   • `reserve(n)` avoids rehashing\n5. Hashing a string costs O(length)\n✎ In my words: ______________________________________________",
+ "recall": [
+  {
+   "q": "How does a hash table find a key without searching?",
+   "a": "It computes the bucket index from the key with a hash function."
+  },
+  {
+   "q": "Why is lookup O(1) only on average?",
+   "a": "Collisions can put many keys in one bucket; worst case O(n)."
+  },
+  {
+   "q": "Chaining vs open addressing?",
+   "a": "Chaining keeps a list per bucket; open addressing probes for the next free slot in the array."
+  },
+  {
+   "q": "What triggers rehashing and why is it still O(1) amortised?",
+   "a": "Load factor exceeding the maximum; the table doubles, so total rehash work over n inserts is under 2n."
+  }
+ ],
+ "shot": {
+  "title": "Hash table picture",
+  "body": "```\nkey ──h(key) % 8──► bucket\n \"cat\" → 3          [0] ∅\n \"dog\" → 5          [1] ∅\n \"ant\" → 3          [2] ∅\n                    [3] \"cat\" → \"ant\"     ← collision, chained\n                    [4] ∅\n                    [5] \"dog\"\nload factor = keys / buckets → > 1.0 ⇒ double buckets, reinsert all\n```"
+ },
  "sections": [
   {
    "id": "picture",
@@ -40,11 +63,46 @@
  ],
  "used_by": [
   {
+   "from_page": "cpp-unordered-map-set",
+   "from_section": "api",
+   "kind": "detour",
+   "why": "How unordered_map finds a key without searching",
+   "section": "picture"
+  },
+  {
+   "from_page": "hash-complement-lookup",
+   "from_section": "think",
+   "kind": "detour",
+   "why": "Why a hash-map lookup is O(1) — and when it is not",
+   "section": "why-o1"
+  },
+  {
+   "day": 2,
+   "block": "reading_path",
+   "step": 1,
+   "kind": "path",
+   "why": "Why a hash map can answer \"have I seen this?\" without searching.",
+   "section": "picture"
+  },
+  {
    "problem": "two-sum",
    "day": 2,
-   "section": "why-o1",
+   "stage": "brainstorm",
+   "kind": "detour",
+   "why": "Why the map lookup is O(1) — and when it is not",
+   "section": "why-o1"
+  },
+  {
+   "problem": "two-sum",
+   "day": 2,
    "stage": "edges",
-   "at": "O(1) average vs O(n) worst"
+   "at": "O(n) **average** time",
+   "why": "What \"O(1) lookup\" really means, and its worst case.",
+   "when": "after",
+   "need": "optional",
+   "kind": "ref",
+   "section": "why-o1"
   }
- ]
+ ],
+ "notes_status": "ready"
 }

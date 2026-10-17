@@ -10,6 +10,9 @@
  "related": [
   "arr-in-place-tricks"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -36,5 +39,6 @@
    "body": "O(n²) time (every cell moves), O(1) extra space."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

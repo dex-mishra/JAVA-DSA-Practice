@@ -11,6 +11,9 @@
   "tp-fix-one-k-sum",
   "bt-dedup-sorted-skip"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "why",
@@ -33,11 +36,43 @@
  ],
  "used_by": [
   {
+   "from_page": "hash-complement-lookup",
+   "from_section": "interview",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "day": 3,
+   "block": "micro",
+   "kind": "link",
+   "section": "idioms"
+  },
+  {
+   "problem": "3sum",
+   "sibling": "4sum",
+   "day": 3,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "pitfalls"
+  },
+  {
    "problem": "3sum",
    "day": 3,
-   "section": "idioms",
    "stage": "pseudocode",
-   "at": "Three dedup points"
+   "at": "Three dedup points",
+   "why": "Where to skip and why compare with the previous element.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "idioms"
+  },
+  {
+   "problem": "3sum",
+   "day": 3,
+   "kind": "stuck",
+   "minutes": "40",
+   "section": "idioms"
   }
- ]
+ ],
+ "notes_status": "pending"
 }

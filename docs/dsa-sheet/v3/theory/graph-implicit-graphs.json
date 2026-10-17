@@ -10,6 +10,9 @@
  "related": [
   "graph-multi-source-bfs"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -36,5 +39,6 @@
    "body": "O(states × neighbours per state × cost to build a neighbour)."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

@@ -10,6 +10,9 @@
  "related": [
   "tree-bottom-up-return-values"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -36,5 +39,6 @@
    "body": "✍️ Returning `L + R + node` to the parent — a parent cannot use a bent path (it would visit the node twice).\n✍️ Global variable not reset between test cases (LeetCode reuses the object) — reset it in the main function."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

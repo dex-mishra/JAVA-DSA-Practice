@@ -13,12 +13,35 @@
   "heap-top-k",
   "sw-frequency-map-window"
  ],
+ "note": "1. Idea\n   • One pass builds `count[value]`; every \"how many\" becomes O(1)\n   • Array for small dense values, map otherwise\n2. Recognise\n   • anagram, same characters, appears more than, most frequent, first unique, duplicate, can be built from\n   • Order doesn't matter — only the multiset\n3. Tricks\n   • Comparing two inputs → **one table**: ++ for the first, −− for the second, all must be 0\n   • Check **lengths first** for anagram-type questions\n   • Need the first unique in order? → count, then scan the input again\n4. Pitfalls\n   • `freq[x]` inserts missing keys → `freq.size()` stops meaning \"distinct\"\n5. Cost\n   • O(n) time; O(1) space for a fixed alphabet, O(n) otherwise\n✎ In my words: ______________________________________________",
+ "recall": [
+  {
+   "q": "How do you compare letter counts of two strings with one table?",
+   "a": "++ for the first string, −− for the second, then check all zero."
+  },
+  {
+   "q": "Why check lengths first?",
+   "a": "Different lengths can never be anagrams."
+  },
+  {
+   "q": "How do you get the first unique character in order?",
+   "a": "Count first, then scan the string again for the first count of 1."
+  },
+  {
+   "q": "Space for 26 counters?",
+   "a": "O(1)."
+  }
+ ],
+ "shot": {
+  "title": "Template",
+  "body": "```cpp\nif (s.size() != t.size()) return false;\nint cnt[26] = {0};\nfor (char c : s) cnt[c - 'a']++;\nfor (char c : t) cnt[c - 'a']--;\nfor (int k = 0; k < 26; k++) if (cnt[k]) return false;\nreturn true;\n```"
+ },
  "sections": [
   {
    "id": "idea",
    "title": "Idea",
    "note": "write",
-   "body": "✍️ One pass builds a table `count[value] = number of occurrences`. Every later question about \"how many times\" becomes an O(1) lookup instead of an O(n) scan.\n✍️ Use an array when values are small and dense (letters → `int cnt[26]`), a hash map otherwise."
+   "body": "✍️ One pass builds a table `count[value] = number of occurrences`. Every later question about \"how many times\" becomes an O(1) lookup instead of an O(n) scan.\n✍️ Use an array when values are small and dense (letters → `int cnt[26]`), a hash map otherwise.\n>> detour cpp-container-choice#rule | Array vs unordered_map vs map — the one-minute rule | 1 min"
   },
   {
    "id": "recognise",
@@ -59,25 +82,87 @@
  ],
  "used_by": [
   {
+   "from_page": "meta-bottleneck-method",
+   "from_section": "name-waste",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "heap-top-k",
+   "from_section": "frequent",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "day": 2,
+   "block": "reading_path",
+   "step": 5,
+   "kind": "path",
+   "why": "Pattern 2 of today — count once, answer every \"how many\" in O(1).",
+   "section": "idea"
+  },
+  {
+   "problem": "valid-anagram",
+   "sibling": "ransom-note",
+   "day": 2,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "variations"
+  },
+  {
    "problem": "valid-anagram",
    "day": 2,
-   "section": "think",
    "stage": "brainstorm",
-   "at": "Sort-and-compare vs counting"
+   "at": "**3. Optimal.** Count letters",
+   "why": "Why counting removes the need to sort.",
+   "when": "while",
+   "need": "must",
+   "kind": "ref",
+   "section": "think"
   },
   {
    "problem": "valid-anagram",
    "day": 2,
-   "section": "template",
    "stage": "pseudocode",
-   "at": "One table: ++ for s, −− for t"
+   "at": "`cnt[s[i]-'a']++ ; cnt[t[i]-'a']--`",
+   "why": "The one-table ++/−− template.",
+   "when": "while",
+   "need": "must",
+   "kind": "ref",
+   "section": "template"
   },
   {
    "problem": "valid-anagram",
    "day": 2,
-   "section": "pitfalls",
    "stage": "edges",
-   "at": "Length check first"
+   "at": "length check first",
+   "why": "Different lengths can never be anagrams.",
+   "when": "after",
+   "need": "optional",
+   "kind": "ref",
+   "section": "pitfalls"
+  },
+  {
+   "problem": "valid-anagram",
+   "day": 2,
+   "kind": "stuck",
+   "minutes": "20",
+   "section": "idea"
+  },
+  {
+   "problem": "valid-anagram",
+   "day": 2,
+   "kind": "stuck",
+   "minutes": "30",
+   "section": "template"
+  },
+  {
+   "problem": "majority-element",
+   "day": 2,
+   "kind": "stuck",
+   "minutes": "10",
+   "section": "template"
   }
- ]
+ ],
+ "notes_status": "ready"
 }

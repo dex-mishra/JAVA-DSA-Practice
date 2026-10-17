@@ -227,7 +227,7 @@ test("an unconfigured runner explains itself instead of throwing", () => {
   const status = runnerStatus({});
   assert.equal(status.ready, false);
   assert.equal(status.backend, "none");
-  assert.match(status.reason, /JUDGE0_KEY/);
+  assert.match(status.reason, /ONLINECOMPILER_KEY/);
 });
 
 test("a configured backend is reported as ready", () => {
@@ -235,6 +235,8 @@ test("a configured backend is reported as ready", () => {
   assert.equal(runnerStatus({ PISTON_URL: "https://piston.example/api/v2/piston" }).backend, "piston");
   // A self-hosted Piston wins, because setting it is the deliberate act.
   assert.equal(runnerStatus({ JUDGE0_KEY: "x", PISTON_URL: "https://p/api" }).backend, "piston");
+  // OnlineCompiler.io is the free default once its key exists.
+  assert.equal(runnerStatus({ ONLINECOMPILER_KEY: "k", JUDGE0_KEY: "x" }).backend, "onlinecompiler");
 });
 
 // ---------------------------------------------------------------- the CDN

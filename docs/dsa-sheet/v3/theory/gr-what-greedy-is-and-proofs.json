@@ -11,6 +11,9 @@
   "gr-interval-scheduling",
   "gr-reach-and-jumps"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -39,11 +42,42 @@
  ],
  "used_by": [
   {
+   "from_page": "tp-why-discarding-is-safe",
+   "from_section": "how-to-say",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "gr-interval-scheduling",
+   "from_section": "why-end",
+   "kind": "link",
+   "section": "exchange"
+  },
+  {
+   "from_page": "dp-what-dp-is",
+   "from_section": "recognise",
+   "kind": "link",
+   "section": "test"
+  },
+  {
+   "problem": "container-with-most-water",
+   "sibling": "boats-to-save-people",
+   "day": 3,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "exchange"
+  },
+  {
    "problem": "container-with-most-water",
    "day": 3,
-   "section": "exchange",
    "stage": "carry",
-   "at": "Exchange arguments"
+   "at": "Exchange arguments",
+   "why": "The same proof style justifies greedy algorithms.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "exchange"
   }
- ]
+ ],
+ "notes_status": "pending"
 }

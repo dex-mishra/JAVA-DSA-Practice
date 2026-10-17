@@ -1,7 +1,7 @@
 """Generates PLAN.json and MOCK-SCHEDULE.json for the v3 30-day beginner sheet."""
 import json, random, datetime, os, sys
 
-OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+OUT = sys.argv[1] if len(sys.argv) > 1 else "/mnt/user-data/outputs/v3"
 HERE = os.path.dirname(os.path.abspath(__file__))
 OLD = json.load(open(os.path.join(HERE, "old_index_by_slug.json")))
 OLD_SPEC = json.load(open(os.path.join(HERE, "old_spec.json")))

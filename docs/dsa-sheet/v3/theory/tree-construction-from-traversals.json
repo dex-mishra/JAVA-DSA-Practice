@@ -11,6 +11,9 @@
  "related": [
   "tree-serialize"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -37,5 +40,6 @@
    "body": "- Inorder + postorder: the root is the **last** postorder element; build **right before left** while walking postorder backwards.\n- Preorder alone is enough for a BST (bounds tell you where the left subtree ends)."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

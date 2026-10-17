@@ -10,6 +10,9 @@
  "related": [
   "dp-lcs-two-strings"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -30,5 +33,6 @@
    "body": "✍️ n ≤ ~500, the answer for a range depends on how it is split or which element is handled last; merging stones, minimum cost to cut a stick, matrix chain multiplication."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

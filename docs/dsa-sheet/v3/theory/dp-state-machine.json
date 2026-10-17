@@ -11,6 +11,9 @@
  "related": [
   "dp-space-optimisation"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -51,11 +54,43 @@
  ],
  "used_by": [
   {
+   "from_page": "kad-min-so-far",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "dp-state-design",
+   "from_section": "add-dimension",
+   "kind": "link",
+   "section": ""
+  },
+  {
    "problem": "best-time-to-buy-and-sell-stock",
    "day": 4,
-   "section": "family",
+   "stage": "followups",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "problem": "best-time-to-buy-and-sell-stock",
+   "sibling": "best-time-to-buy-and-sell-stock-ii",
+   "day": 4,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "family"
+  },
+  {
+   "problem": "best-time-to-buy-and-sell-stock",
+   "day": 4,
    "stage": "carry",
-   "at": "The stock family"
+   "at": "The stock family",
+   "why": "Day 29 extends this to cooldowns, fees and k transactions.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "family"
   }
- ]
+ ],
+ "notes_status": "pending"
 }

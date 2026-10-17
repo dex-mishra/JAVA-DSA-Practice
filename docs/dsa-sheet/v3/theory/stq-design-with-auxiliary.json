@@ -10,6 +10,9 @@
  "related": [
   "stq-queue-via-stacks-amortised"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -30,5 +33,6 @@
    "body": "✍️ Popping removes exactly the elements pushed after the current top, and the top's stored minimum was computed from the elements below it — which are all still there. So the stored minimum is still correct.\n- Space-saving variant: a second stack that only pushes when the new value is ≤ the current min (≤, not <, to handle duplicate minimums)."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

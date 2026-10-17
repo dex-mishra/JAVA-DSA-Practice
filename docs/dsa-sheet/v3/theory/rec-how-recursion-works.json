@@ -12,6 +12,9 @@
   "cx-recursion-complexity",
   "cpp-recursion-stack-limits"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "parts",
@@ -44,5 +47,19 @@
    "body": "✍️ Base case that is never reached (e.g. `n == 0` when n can go negative). Make the base case cover every way the input can become \"smallest\".\n✍️ Not making the input smaller in the recursive call → infinite recursion.\n✍️ Passing large containers by value → hidden O(n) copies per call ([[cpp-pass-by-reference-and-copies]])."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "meta-pseudocode-format",
+   "from_section": "recursive-slots",
+   "kind": "link",
+   "section": "leap-of-faith"
+  },
+  {
+   "from_page": "ll-reversal",
+   "from_section": "recursive",
+   "kind": "link",
+   "section": "leap-of-faith"
+  }
+ ],
+ "notes_status": "pending"
 }

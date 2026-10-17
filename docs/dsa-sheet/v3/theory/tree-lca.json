@@ -10,6 +10,9 @@
  "related": [
   "bst-lca-and-range"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -36,5 +39,6 @@
    "body": "O(n) time, O(h) stack. For a BST, use the values to go straight down in O(h) ([[bst-lca-and-range]])."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

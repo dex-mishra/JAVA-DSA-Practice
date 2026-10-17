@@ -11,6 +11,9 @@
  "related": [
   "bt-pick-or-skip"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -31,5 +34,13 @@
    "body": "✍️ n ≤ 20 (sometimes 16) **and** the order or the set of used items matters for the remaining decisions."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-constraint",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

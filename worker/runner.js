@@ -34,7 +34,19 @@
  * cannot run g++, which PRD §5 correctly calls a feature.
  */
 
+import { genSource } from "./oa-gen.js";
+
 const JUDGE0_HOST = "judge0-ce.p.rapidapi.com";
+
+/* OnlineCompiler.io (October 2026): free up to a million runs a month, no
+   card, one Google sign-in for a key. Judge0 CE on RapidAPI went
+   pay-per-use, so this is the default. Its two limits shape the code below:
+   stdin and source are each capped at 100 KB, and the synchronous endpoint
+   takes four requests at once. */
+const OC_URL = "https://api.onlinecompiler.io/api/run-code-sync/";
+const OC_COMPILER = { cpp: "g++-15", python: "python-3.14" };
+export const OC_INPUT_CAP = 95_000;   // a little under 100 KB, for the encoding
+const OC_PARALLEL = 3;
 const PISTON_DEFAULT = "https://emkc.org/api/v2/piston";
 
 // Judge0's language ids. C++ (GCC 9.2.0) is 54; Python 3.8.1 is 71.
@@ -59,6 +71,9 @@ export class RunnerError extends Error {
 /** Which backend is configured, and whether it can actually be called.
  *  The tab uses this to explain itself rather than failing at submit time. */
 export function runnerStatus(env) {
+  if (env.ONLINECOMPILER_KEY) {
+    return { backend: "onlinecompiler", ready: true, endpoint: OC_URL };
+  }
   if (env.PISTON_URL) {
     return { backend: "piston", ready: true, endpoint: env.PISTON_URL };
   }
@@ -70,9 +85,8 @@ export function runnerStatus(env) {
     ready: false,
     reason:
       "No code runner is configured, so problems can be written and saved but not run or graded. " +
-      "Judge0's free tier needs a RapidAPI key: subscribe to Judge0 CE (Basic, free), then set it " +
-      "with `npx wrangler secret put JUDGE0_KEY`. A self-hosted or whitelisted Piston instance " +
-      "works instead — set PISTON_URL to its /api/v2/piston base."
+      "Sign in at onlinecompiler.io (free, no card), create an API key, and set it with " +
+      "`bash tools/set-secrets.sh` (ONLINECOMPILER_KEY)."
   };
 }
 
@@ -95,8 +109,10 @@ async function postJson(url, payload, headers, timeoutMs) {
     let data = null;
     try { data = JSON.parse(text); } catch { /* handled below */ }
     if (!res.ok) {
-      const detail = (data && (data.message || data.error)) || text.slice(0, 300);
-      throw new RunnerError(`the code runner answered ${res.status}: ${detail}`);
+      const detail = (data && (data.message || data.error || data.detail)) || text.slice(0, 300);
+      const e = new RunnerError(`the code runner answered ${res.status}: ${detail}`);
+      e.status = res.status;
+      throw e;
     }
     if (data === null) throw new RunnerError("the code runner returned something that is not JSON");
     return data;
@@ -218,6 +234,83 @@ async function pistonBatch(env, cases, { source, lang, timeLimitMs }) {
   return out;
 }
 
+// ------------------------------------------------------------ onlinecompiler
+
+/* One request per case, three at a time (the sync endpoint allows four),
+   order preserved. The first case runs alone: if it does not compile, no
+   other case will either, and the remaining requests are not spent.
+
+   A case whose input is over the stdin cap runs with its generator
+   prepended instead (oa-gen.js GEN_SOURCES): the program builds its own
+   input before main(). Over the cap with no generator is refused outright --
+   silently truncating a test input would grade a correct solution as wrong. */
+
+/* g++ error lines look like `main.cpp:12:5: error: ...`. The service does not
+   flag compile failures separately, so this is how one is recognised. */
+const CPP_COMPILE = /^[^\s:]+:\d+:\d+: (fatal )?error:/m;
+
+function ocMap(data, lang, timeLimitMs) {
+  const out = String(data.output == null ? "" : data.output);
+  const err = String(data.error == null ? "" : data.error);
+  const exit = data.exit_code === undefined || data.exit_code === null ? (data.status === "success" ? 0 : 1) : Number(data.exit_code);
+  const t = Number(data.time);
+  const timeMs = Number.isFinite(t) ? Math.round(t < 100 ? t * 1000 : t) : null;
+  const compileError = lang === "cpp" && exit !== 0 && !out && CPP_COMPILE.test(err) ? err : null;
+  const killed = /SIGKILL|SIGXCPU/i.test(String(data.signal || "")) || /time ?limit|timed? ?out/i.test(String(data.status || "") + " " + err);
+  return {
+    stdout: out,
+    stderr: err,
+    exitCode: exit === 0 ? 0 : 1,
+    timeMs,
+    timedOut: killed || (timeMs !== null && timeMs > timeLimitMs),
+    compileError
+  };
+}
+
+function ocPayload(c, { source, lang }) {
+  const input = c.input || "";
+  // A generated test always builds in-program here: grading did not build
+  // its text (oa.js), so `input` is empty for it.
+  if (!c.genKey && input.length <= OC_INPUT_CAP) return { compiler: OC_COMPILER[lang], code: source, input };
+  const feed = c.genKey ? genSource(c.genKey, lang) : null;
+  if (!feed) {
+    throw new RunnerError(`a test input is ${Math.round(input.length / 1024)} KB, over the runner's 100 KB stdin limit, ` +
+      "and has no generator to build it inside the program", "input");
+  }
+  return { compiler: OC_COMPILER[lang], code: feed + source, input: "" };
+}
+
+async function ocRun(env, c, options) {
+  const payload = ocPayload(c, options);
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const data = await postJson(OC_URL, payload, { authorization: env.ONLINECOMPILER_KEY }, options.timeLimitMs + 35_000);
+      return ocMap(data, options.lang, options.timeLimitMs);
+    } catch (e) {
+      // 429 means all four slots are busy, not that the quota is gone.
+      if (e.status === 429 && attempt < 4) { await new Promise((r) => setTimeout(r, 800 * (attempt + 1))); continue; }
+      throw e;
+    }
+  }
+}
+
+async function onlineCompilerBatch(env, cases, options) {
+  if (!OC_COMPILER[options.lang]) throw new RunnerError(`unsupported language '${options.lang}'`, "input");
+  const out = new Array(cases.length);
+  out[0] = await ocRun(env, cases[0], options);
+  if (out[0].compileError) return out.fill(out[0]);
+
+  let next = 1;
+  const worker = async () => {
+    while (next < cases.length) {
+      const i = next++;
+      out[i] = await ocRun(env, cases[i], options);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(OC_PARALLEL, cases.length - 1) }, worker));
+  return out;
+}
+
 // ------------------------------------------------------------------ api
 
 /**
@@ -234,6 +327,7 @@ export async function runBatch(env, cases, opts) {
   if (!cases.length) return [];
 
   const options = { timeLimitMs: 5000, ...opts };
+  if (status.backend === "onlinecompiler") return onlineCompilerBatch(env, cases, options);
   if (status.backend === "piston") return pistonBatch(env, cases, options);
   return judge0Batch(env, cases, options);
 }

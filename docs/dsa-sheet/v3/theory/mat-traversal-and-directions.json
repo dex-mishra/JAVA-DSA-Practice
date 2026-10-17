@@ -11,6 +11,9 @@
   "graph-grid-as-graph",
   "mat-spiral-and-layers"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "basics",
@@ -37,5 +40,13 @@
    "body": "Cells on the same **main** diagonal share `r − c`; on the same **anti**-diagonal share `r + c`. Used in N-Queens and diagonal traversal problems."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "graph-dsu",
+   "from_section": "uses",
+   "kind": "link",
+   "section": "flatten"
+  }
+ ],
+ "notes_status": "pending"
 }

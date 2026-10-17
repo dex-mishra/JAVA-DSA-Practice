@@ -11,6 +11,9 @@
   "hash-frequency-counting",
   "cpp-container-choice"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "index",
@@ -37,5 +40,6 @@
    "body": "✍️ `a < b` compares lexicographically (dictionary order). \"apple\" < \"apply\" < \"b\". A prefix is smaller than the longer string: \"app\" < \"apple\".\n- Comparison cost is O(length of the common prefix + 1)."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

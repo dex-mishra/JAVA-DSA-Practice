@@ -12,6 +12,9 @@
   "stq-monotonic-stack",
   "cpp-vector"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -40,18 +43,72 @@
  ],
  "used_by": [
   {
+   "from_page": "hash-load-factor-and-rehashing",
+   "from_section": "rehash",
+   "kind": "link",
+   "section": "vector"
+  },
+  {
+   "from_page": "hash-set-runs",
+   "from_section": "think",
+   "kind": "detour",
+   "why": "Why a loop inside a loop can still be O(n)",
+   "section": "counting-trick"
+  },
+  {
+   "from_page": "sw-variable-window",
+   "from_section": "interview",
+   "kind": "link",
+   "section": "counting-trick"
+  },
+  {
+   "from_page": "stq-queue-via-stacks-amortised",
+   "from_section": "amortised",
+   "kind": "link",
+   "section": "counting-trick"
+  },
+  {
+   "from_page": "stq-monotonic-stack",
+   "from_section": "complexity",
+   "kind": "link",
+   "section": ""
+  },
+  {
    "problem": "longest-consecutive-sequence",
    "day": 2,
-   "section": "counting-trick",
    "stage": "edges",
-   "at": "Why the nested loop is O(n)"
+   "kind": "detour",
+   "why": "Why the inner while loop does not make this O(n²)",
+   "section": "counting-trick"
+  },
+  {
+   "problem": "longest-consecutive-sequence",
+   "day": 2,
+   "stage": "edges",
+   "at": "\"each value is visited by at most one walk\"",
+   "why": "Why a loop inside a loop can still be O(n).",
+   "when": "after",
+   "need": "optional",
+   "kind": "ref",
+   "section": "counting-trick"
+  },
+  {
+   "day": 5,
+   "block": "micro",
+   "kind": "link",
+   "section": "counting-trick"
   },
   {
    "problem": "max-consecutive-ones-iii",
    "day": 5,
-   "section": "counting-trick",
    "stage": "edges",
-   "at": "Why O(n)"
+   "at": "Why O(n)",
+   "why": "l moves at most n times overall.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "counting-trick"
   }
- ]
+ ],
+ "notes_status": "pending"
 }

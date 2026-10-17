@@ -11,6 +11,9 @@
   "cx-big-o",
   "bt-pick-or-skip"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "three",
@@ -31,5 +34,19 @@
    "body": "`[&]` captures everything by reference (no copies); `[=]` by value. A recursive lambda needs `function<void(int)> dfs = [&](int u) { ... dfs(v); ... };` — capture by reference so it can see itself and your arrays."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "cpp-vector",
+   "from_section": "passing",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "rec-how-recursion-works",
+   "from_section": "pitfalls",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

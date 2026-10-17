@@ -11,6 +11,9 @@
  "related": [
   "dp-lcs-two-strings"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -43,5 +46,15 @@
    "body": "O(n²) / O(n) for the DP; O(n log n) / O(n) for tails."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "problem": "max-consecutive-ones",
+   "sibling": "longest-continuous-increasing-subsequence",
+   "day": 1,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

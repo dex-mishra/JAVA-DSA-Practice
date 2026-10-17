@@ -10,6 +10,29 @@
  "related": [
   "hash-frequency-counting"
  ],
+ "note": "1. Problem shape\n   • Longest run of consecutive integers (v, v+1, …) in an **unsorted** array, in **O(n)**\n2. Idea\n   • Every run has exactly one **start**: a value v with **v−1 missing**\n   • Put all values in a set; walk upward **only from starts**\n3. Why O(n)\n   • Each value is inside exactly one walk (its run's start) → total work ≤ n\n   • Without the start check: 1..n is walked from every element → O(n²)\n4. Pitfalls\n   • Iterate over the **set**, not the array (duplicates would repeat walks)\n   • Empty input → 0\n5. Why not sort?\n   • Sorting works but is O(n log n) — the O(n) requirement is the hint\n✎ In my words: ______________________________________________",
+ "recall": [
+  {
+   "q": "What makes a value the start of a run?",
+   "a": "v − 1 is not in the set."
+  },
+  {
+   "q": "Why is the loop-in-a-loop still O(n)?",
+   "a": "Each value is visited by at most one upward walk."
+  },
+  {
+   "q": "Why iterate the set instead of the array?",
+   "a": "Duplicates in the array would restart the same walk."
+  },
+  {
+   "q": "What hint tells you not to sort?",
+   "a": "The O(n) time requirement."
+  }
+ ],
+ "shot": {
+  "title": "Template",
+  "body": "```cpp\nunordered_set<int> s(a.begin(), a.end());\nint best = 0;\nfor (int v : s) {\n    if (s.count(v - 1)) continue;     // not a start\n    int len = 1;\n    while (s.count(v + len)) len++;\n    best = max(best, len);\n}\n```"
+ },
  "sections": [
   {
    "id": "idea",
@@ -27,7 +50,7 @@
    "id": "think",
    "title": "Brute force → start-of-run",
    "note": "mixed",
-   "body": "Brute force: for every value, walk upward checking membership with a linear scan. O(n) per check → O(n³) worst, or O(n²) with a set.\nBetter: sort, then scan counting runs (skip duplicates). O(n log n).\n✍️ Bottleneck of the set version without the trick: a run of length L is re-walked from each of its L elements → O(n²) on input like 1..n.\n✍️ Fix: only walk from starts. A value with a predecessor is never a start, so it is never the beginning of a walk."
+   "body": "Brute force: for every value, walk upward checking membership with a linear scan. O(n) per check → O(n³) worst, or O(n²) with a set.\nBetter: sort, then scan counting runs (skip duplicates). O(n log n).\n✍️ Bottleneck of the set version without the trick: a run of length L is re-walked from each of its L elements → O(n²) on input like 1..n.\n✍️ Fix: only walk from starts. A value with a predecessor is never a start, so it is never the beginning of a walk.\n>> detour cx-amortised-analysis#counting-trick | Why a loop inside a loop can still be O(n) | 3 min"
   },
   {
    "id": "template",
@@ -51,31 +74,77 @@
  "used_by": [
   {
    "problem": "longest-consecutive-sequence",
+   "sibling": "longest-square-streak-in-an-array",
    "day": 2,
-   "section": "recognise",
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "idea"
+  },
+  {
+   "problem": "longest-consecutive-sequence",
+   "day": 2,
    "stage": "understand",
-   "at": "\"O(n)\" on unsorted input"
+   "at": "\"n ≤ 10⁵, must be O(n)\" on unsorted input",
+   "why": "The O(n) requirement is the hint that rules out sorting.",
+   "when": "stuck",
+   "need": "must",
+   "kind": "ref",
+   "section": "recognise"
   },
   {
    "problem": "longest-consecutive-sequence",
    "day": 2,
-   "section": "think",
    "stage": "brainstorm",
-   "at": "Re-walking each run from every element"
+   "at": "↳ Bottleneck: a run of length L is walked L times",
+   "why": "Why the naive set version is O(n²) and the start-of-run fix.",
+   "when": "stuck",
+   "need": "must",
+   "kind": "ref",
+   "section": "think"
   },
   {
    "problem": "longest-consecutive-sequence",
    "day": 2,
-   "section": "idea",
    "stage": "pseudocode",
-   "at": "`if v−1 in set: continue`"
+   "at": "CHECK `if (v − 1) in s: continue`",
+   "why": "The start-of-run rule.",
+   "when": "while",
+   "need": "must",
+   "kind": "ref",
+   "section": "idea"
   },
   {
    "problem": "longest-consecutive-sequence",
    "day": 2,
-   "section": "pitfalls",
    "stage": "solution",
-   "at": "Iterate the set, not the array"
+   "at": "`for (int v : s)` — the set, not the array",
+   "why": "Duplicates in the array would restart the same walk.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "pitfalls"
+  },
+  {
+   "problem": "longest-consecutive-sequence",
+   "day": 2,
+   "kind": "stuck",
+   "minutes": "20",
+   "section": "idea"
+  },
+  {
+   "problem": "longest-consecutive-sequence",
+   "day": 2,
+   "kind": "stuck",
+   "minutes": "30",
+   "section": "template"
+  },
+  {
+   "problem": "longest-consecutive-sequence",
+   "day": 2,
+   "kind": "stuck",
+   "minutes": "40",
+   "section": "pitfalls"
   }
- ]
+ ],
+ "notes_status": "ready"
 }

@@ -13,6 +13,9 @@
   "ps-prefix-suffix-passes",
   "ps-2d-prefix-sum"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -65,32 +68,97 @@
  ],
  "used_by": [
   {
+   "from_page": "meta-bottleneck-method",
+   "from_section": "name-waste",
+   "kind": "link",
+   "section": ""
+  },
+  {
    "problem": "running-sum-of-1d-array",
    "day": 1,
-   "section": "idea",
+   "stage": "followups",
+   "kind": "link",
+   "section": "template"
+  },
+  {
+   "problem": "running-sum-of-1d-array",
+   "sibling": "find-pivot-index",
+   "day": 1,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "variations"
+  },
+  {
+   "problem": "running-sum-of-1d-array",
+   "day": 1,
    "stage": "carry",
-   "at": "\"This is a prefix sum\""
+   "at": "\"This output array is called a prefix sum array\"",
+   "why": "The same array answers any range sum on Day 4 — read it then, or peek now.",
+   "when": "after",
+   "need": "optional",
+   "kind": "ref",
+   "section": "idea"
+  },
+  {
+   "day": 4,
+   "block": "micro",
+   "kind": "link",
+   "section": "index-convention"
   },
   {
    "problem": "range-sum-query-immutable",
    "day": 4,
-   "section": "think",
    "stage": "brainstorm",
-   "at": "Overlapping queries re-add the same elements"
+   "at": "Overlapping queries re-add the same elements",
+   "why": "Why per-query loops waste work.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "think"
   },
   {
    "problem": "range-sum-query-immutable",
    "day": 4,
-   "section": "index-convention",
    "stage": "pseudocode",
-   "at": "`pre` of size n+1 with pre[0] = 0"
+   "at": "`pre` of size n+1 with pre[0] = 0",
+   "why": "The boundary picture that kills off-by-ones.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "index-convention"
   },
   {
    "problem": "range-sum-query-immutable",
    "day": 4,
-   "section": "pitfalls",
    "stage": "carry",
-   "at": "Static only"
+   "at": "Static only",
+   "why": "Updates need a different structure.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "pitfalls"
+  },
+  {
+   "problem": "range-sum-query-immutable",
+   "day": 4,
+   "kind": "stuck",
+   "minutes": "20",
+   "section": "idea"
+  },
+  {
+   "problem": "range-sum-query-immutable",
+   "day": 4,
+   "kind": "stuck",
+   "minutes": "30",
+   "section": "index-convention"
+  },
+  {
+   "problem": "subarray-sum-equals-k",
+   "day": 4,
+   "kind": "stuck",
+   "minutes": "20",
+   "section": "idea"
   }
- ]
+ ],
+ "notes_status": "pending"
 }

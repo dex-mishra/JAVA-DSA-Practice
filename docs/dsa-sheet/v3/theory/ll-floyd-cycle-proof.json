@@ -10,6 +10,9 @@
  "related": [
   "ll-fast-slow"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "algorithm",
@@ -36,5 +39,13 @@
    "body": "✍️ Find the duplicate number (LeetCode 287): treat `i → a[i]` as a linked list; the duplicate is the cycle entry. O(n) time, O(1) space, without modifying the array."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "ll-fast-slow",
+   "from_section": "cycle",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

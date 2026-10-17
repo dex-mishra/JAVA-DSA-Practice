@@ -11,6 +11,9 @@
  "related": [
   "trie-structure-and-ops"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -37,5 +40,6 @@
    "body": "O(n · L · L) with substring hashing (L = max word length), O(n) space."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

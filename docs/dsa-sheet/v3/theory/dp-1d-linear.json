@@ -12,6 +12,9 @@
   "dp-state-design",
   "kad-kadane"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -58,11 +61,22 @@
  ],
  "used_by": [
   {
+   "from_page": "kad-kadane",
+   "from_section": "think",
+   "kind": "link",
+   "section": ""
+  },
+  {
    "problem": "maximum-subarray",
    "day": 4,
-   "section": "idea",
    "stage": "carry",
-   "at": "It is a 1D DP"
+   "at": "It is a 1D DP",
+   "why": "\"Best ending at i\" is a DP state you will see again on Day 25.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "idea"
   }
- ]
+ ],
+ "notes_status": "pending"
 }

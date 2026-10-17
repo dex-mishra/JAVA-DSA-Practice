@@ -11,6 +11,9 @@
  "related": [
   "graph-cycle-detection"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -37,5 +40,6 @@
    "body": "✍️ Only colouring from vertex 0 — a disconnected graph needs a start in every component."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

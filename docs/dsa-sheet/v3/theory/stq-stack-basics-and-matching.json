@@ -11,6 +11,9 @@
   "stq-expression-evaluation",
   "stq-monotonic-stack"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -43,5 +46,6 @@
    "body": "O(n) time, O(n) space for the stack."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

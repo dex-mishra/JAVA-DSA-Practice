@@ -11,6 +11,9 @@
   "kad-kadane",
   "dp-state-machine"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -57,18 +60,67 @@
  ],
  "used_by": [
   {
-   "problem": "best-time-to-buy-and-sell-stock",
+   "from_page": "kad-kadane",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "dp-state-machine",
+   "from_section": "family",
+   "kind": "link",
+   "section": ""
+  },
+  {
    "day": 4,
-   "section": "think",
-   "stage": "brainstorm",
-   "at": "For each sell day, the best buy is the minimum before it"
+   "block": "micro",
+   "kind": "link",
+   "section": "idea"
+  },
+  {
+   "problem": "best-time-to-buy-and-sell-stock",
+   "sibling": "best-sightseeing-pair",
+   "day": 4,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "variations"
   },
   {
    "problem": "best-time-to-buy-and-sell-stock",
    "day": 4,
-   "section": "pitfalls",
+   "stage": "brainstorm",
+   "at": "For each sell day, the best buy is the minimum before it",
+   "why": "The running-minimum idea.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "think"
+  },
+  {
+   "problem": "best-time-to-buy-and-sell-stock",
+   "day": 4,
    "stage": "pseudocode",
-   "at": "Profit first, then fold today into the minimum"
+   "at": "Profit first, then fold today into the minimum",
+   "why": "The order of the two updates.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "pitfalls"
+  },
+  {
+   "problem": "best-time-to-buy-and-sell-stock",
+   "day": 4,
+   "kind": "stuck",
+   "minutes": "20",
+   "section": "idea"
+  },
+  {
+   "problem": "best-time-to-buy-and-sell-stock",
+   "day": 4,
+   "kind": "stuck",
+   "minutes": "30",
+   "section": "template"
   }
- ]
+ ],
+ "notes_status": "pending"
 }

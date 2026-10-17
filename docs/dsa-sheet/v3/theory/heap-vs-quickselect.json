@@ -11,6 +11,9 @@
  "related": [
   "heap-top-k"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "compare",
@@ -25,5 +28,13 @@
    "body": "✍️ Start with sorting, then offer the heap (better when k ≪ n or data streams in), then quickselect for O(n) average, mentioning the worst case and the random pivot fix."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "heap-top-k",
+   "from_section": "complexity",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

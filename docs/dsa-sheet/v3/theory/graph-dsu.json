@@ -12,6 +12,9 @@
   "graph-cycle-detection",
   "graph-mst"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -50,5 +53,25 @@
    "body": "O(α(n)) amortised per operation, O(n) space."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-question-words",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "graph-connected-components",
+   "from_section": "dsu-alternative",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "graph-cycle-detection",
+   "from_section": "undirected",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

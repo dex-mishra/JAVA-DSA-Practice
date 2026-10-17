@@ -1,0 +1,108 @@
+{
+ "id": "oop-constructors-destructors",
+ "title": "Constructors and destructors",
+ "topic": "oop",
+ "kind": "core",
+ "summary": "How objects are initialised and cleaned up — constructor types, initialiser lists, initialisation order, copy constructor (shallow vs deep), destructors and RAII, and what the compiler generates for you.",
+ "prereqs": [
+  "oop-classes-objects-memory"
+ ],
+ "related": [
+  "oop-encapsulation-access",
+  "cpp-pass-by-reference-and-copies"
+ ],
+ "note": "1. Constructor\n   • Runs when an object is created; same name as class; **no return type**\n   • Types\n       ◦ **Default** — no arguments (generated if you write no constructor at all)\n       ◦ **Parameterised** — takes arguments\n       ◦ **Copy** — `A(const A& other)`; used for `A b = a;`, pass/return by value\n       ◦ (Move — `A(A&& other)`; steals resources; Day 5)\n2. Initialiser list `: x(v), y(w)`\n   • Constructs members directly (no default-construct then assign)\n   • **Required** for const members, reference members, members/bases without default constructors\n   • Members initialise in **declaration order**, not list order\n3. Order\n   • Construction: base → members → derived body\n   • Destruction: exact **reverse**\n4. Destructor `~A()`\n   • Runs when the object dies (end of scope / delete); no arguments, no overloads\n   • Releases resources the object owns (memory, files, locks)\n   • Base classes used polymorphically need a **virtual** destructor\n5. Shallow vs deep copy\n   • Default copy copies member values → two objects share one heap pointer → double delete\n   • Owning a raw pointer → write copy constructor + copy assignment + destructor (**rule of three**)\n6. RAII\n   • Acquire a resource in the constructor, release it in the destructor → no leaks, even with exceptions\n✎ In my words: ______________________________________________",
+ "recall": [
+  {
+   "q": "Name four kinds of constructors.",
+   "a": "Default, parameterised, copy, move."
+  },
+  {
+   "q": "When is the copy constructor called?",
+   "a": "Initialising from another object, passing by value, returning by value."
+  },
+  {
+   "q": "Which members must be initialised in the initialiser list?",
+   "a": "const members, references, and members or bases without a default constructor."
+  },
+  {
+   "q": "Members are initialised in which order?",
+   "a": "Declaration order in the class, regardless of the initialiser list order."
+  },
+  {
+   "q": "Order of constructors and destructors with inheritance?",
+   "a": "Base then derived on construction; derived then base on destruction."
+  },
+  {
+   "q": "Shallow vs deep copy?",
+   "a": "Shallow copies pointer values (shared memory, double delete risk); deep allocates new memory and copies the contents."
+  },
+  {
+   "q": "What is RAII?",
+   "a": "Tie a resource's lifetime to an object: acquire in the constructor, release in the destructor."
+  }
+ ],
+ "shot": {
+  "title": "Lifecycle and rule of three",
+  "body": "```\nDerived d;              ──►  Base()  →  member ctors  →  Derived()\n} // end of scope        ──►  ~Derived() →  ~members   →  ~Base()\n\nclass Buffer {                       // owns a raw pointer → rule of three\n    int* data; size_t n;\npublic:\n    Buffer(size_t n) : data(new int[n]), n(n) {}\n    Buffer(const Buffer& o) : data(new int[o.n]), n(o.n) { copy(o.data, o.data + n, data); } // deep copy\n    Buffer& operator=(const Buffer& o);   // also deep copy (copy-and-swap)\n    ~Buffer() { delete[] data; }\n};\n```"
+ },
+ "sections": [
+  {
+   "id": "what",
+   "title": "What a constructor does",
+   "note": "write",
+   "body": "✍️ A constructor runs automatically when an object is created and puts it into a valid starting state. It has the class's name and no return type (not even void).\n✍️ If you write **no** constructor, the compiler generates a default one. As soon as you write any constructor, the implicit default constructor disappears — `A a;` stops compiling unless you add `A() = default;`.\n- `explicit` on a one-argument constructor stops implicit conversions like `Account a = 100;`."
+  },
+  {
+   "id": "kinds",
+   "title": "Kinds of constructors",
+   "note": "mixed",
+   "body": "✍️ **Default**: `A()` — no arguments.\n✍️ **Parameterised**: `A(int x, string s)`.\n✍️ **Copy**: `A(const A& other)` — builds a new object as a copy of another. Called for `A b = a;`, `A b(a);`, passing by value and returning by value (often elided by the compiler).\n✍️ **Move** (C++11): `A(A&& other)` — takes over another object's resources instead of copying them; used for temporaries. Details on Day 5.\n- **Delegating** constructors call another constructor of the same class: `A() : A(0, \"\") {}`.\n- Why must the copy constructor take a **reference**? Taking `A other` by value would itself need a copy → infinite recursion."
+  },
+  {
+   "id": "init-list",
+   "title": "Initialiser lists and initialisation order",
+   "note": "write",
+   "body": "✍️ `A(int v) : x(v), y(2 * v) {}` constructs members directly with those values. Assigning in the body instead means default-construct first, then assign — wasteful, and impossible for some members.\n✍️ Must use the list for: **const** members, **reference** members, members of a type with no default constructor, and base classes that need arguments.\n✍️ Members are initialised in the order they are **declared** in the class, not the order written in the list. `class A { int y; int x; A(int v) : x(v), y(x) {} };` reads an uninitialised x."
+  },
+  {
+   "id": "order",
+   "title": "Construction and destruction order",
+   "note": "write",
+   "body": "✍️ Construction: base class constructors first (in inheritance order), then data members (in declaration order), then the constructor body.\n✍️ Destruction is the exact reverse: destructor body, then members (reverse order), then base classes.\n✍️ Stack objects in one scope are destroyed in reverse order of creation."
+  },
+  {
+   "id": "destructor",
+   "title": "Destructors",
+   "note": "mixed",
+   "body": "✍️ `~A()` runs when the object's lifetime ends: end of scope for stack objects, `delete` for heap objects, end of program for globals/statics.\n✍️ One per class, no parameters, no return type, cannot be overloaded.\n✍️ Its job: release what the object owns — heap memory, file handles, sockets, locks.\n- If a class is meant to be used through a base pointer (`Base* p = new Derived;`), the base destructor must be `virtual`, otherwise `delete p` skips `~Derived` (undefined behaviour). Explained with polymorphism.\n- Destructors should not throw exceptions."
+  },
+  {
+   "id": "copying",
+   "title": "Shallow vs deep copy and the rule of three",
+   "note": "write",
+   "body": "✍️ The compiler-generated copy constructor copies each member as is. For a raw pointer, both objects then point to the **same** heap memory → when both destructors run, the memory is freed twice (crash), and changes through one object show in the other.\n✍️ **Deep copy**: allocate new memory in the copy and copy the contents.\n✍️ **Rule of three**: if a class needs a custom destructor, copy constructor or copy assignment operator, it almost certainly needs all three. (Rule of five adds move constructor and move assignment.)\n- **Rule of zero** (best practice): don't own raw resources at all — use `vector`, `string`, `unique_ptr`, and the compiler-generated versions are correct."
+  },
+  {
+   "id": "raii",
+   "title": "RAII",
+   "note": "write",
+   "body": "✍️ **Resource Acquisition Is Initialisation**: acquire a resource in a constructor, release it in the destructor. Because destructors always run when an object leaves scope (even when an exception is thrown), the resource can never leak.\n✍️ Standard examples: `vector` (memory), `unique_ptr` (heap object), `lock_guard` (mutex), `fstream` (file)."
+  },
+  {
+   "id": "interview",
+   "title": "Interview questions",
+   "note": "mixed",
+   "body": "✍️ **Q: Can a constructor be virtual?** No — the object's dynamic type is being decided during construction; a vtable call is impossible. Destructors can and should be virtual in polymorphic bases.\n✍️ **Q: Can a constructor be private?** Yes — used for singletons and factory functions (the class creates its own instances).\n✍️ **Q: Why does the copy constructor take a const reference?** By value would recurse infinitely; const allows copying from const objects and temporaries.\n- **Q: What does the compiler generate by default?** Default constructor (only if no other constructor), copy constructor, copy assignment, destructor, and (C++11) move constructor/assignment when nothing user-declared suppresses them.\n- **Q: Calling a virtual function inside a constructor?** It calls the version of the class being constructed, not the derived override."
+  }
+ ],
+ "used_by": [
+  {
+   "day": 1,
+   "block": "core",
+   "kind": "core",
+   "section": ""
+  }
+ ],
+ "notes_status": "ready"
+}

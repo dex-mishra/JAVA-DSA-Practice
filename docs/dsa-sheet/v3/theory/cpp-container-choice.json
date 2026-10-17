@@ -11,6 +11,25 @@
  "related": [
   "hash-frequency-counting"
  ],
+ "note": "1. Decision rule\n   • Small dense integer keys (letters, values ≤ 10⁶) → **array**\n   • Arbitrary keys, order irrelevant → **unordered_map / set**\n   • Need sorted order, min/max, lower_bound → **map / set** (O(log n))\n   • Pair/vector keys without writing a hash → **map**\n2. Example: anagram check\n   • Lowercase letters → `int cnt[26]`\n   • Unicode → `unordered_map<char,int>`\n✎ In my words: ______________________________________________",
+ "recall": [
+  {
+   "q": "Keys are lowercase letters — which container?",
+   "a": "A plain array int cnt[26]."
+  },
+  {
+   "q": "When must you use map instead of unordered_map?",
+   "a": "When you need sorted order, min/max, lower_bound, or keys without a hash (pairs/vectors)."
+  },
+  {
+   "q": "Cost of map lookup?",
+   "a": "O(log n)."
+  }
+ ],
+ "shot": {
+  "title": "Container comparison",
+  "body": "| | array | unordered_map | map |\n|---|---|---|---|\n| lookup | O(1) | O(1) avg / O(n) worst | O(log n) |\n| ordered | by index | no | yes |\n| keys | small ints | hashable | comparable |\n| memory | size of range | ~3–5× entries | ~3× entries |"
+ },
  "sections": [
   {
    "id": "rule",
@@ -33,11 +52,53 @@
  ],
  "used_by": [
   {
+   "from_page": "cpp-unordered-map-set",
+   "from_section": "performance",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "hash-frequency-counting",
+   "from_section": "idea",
+   "kind": "detour",
+   "why": "Array vs unordered_map vs map — the one-minute rule",
+   "section": "rule"
+  },
+  {
+   "day": 2,
+   "block": "reading_path",
+   "step": 6,
+   "kind": "path",
+   "why": "Array, unordered_map or map? One rule.",
+   "section": "rule"
+  },
+  {
    "problem": "valid-anagram",
    "day": 2,
-   "section": "anagram-example",
+   "stage": "brainstorm",
+   "kind": "detour",
+   "why": "Array vs unordered_map vs map — the one-minute rule",
+   "section": "rule"
+  },
+  {
+   "problem": "valid-anagram",
+   "day": 2,
    "stage": "solution",
-   "at": "`int cnt[26]` instead of a map"
+   "at": "`int cnt[26]` instead of a map",
+   "why": "Why an array is the right container for lowercase letters.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "anagram-example"
+  },
+  {
+   "problem": "subarray-sum-equals-k",
+   "sibling": "binary-subarrays-with-sum",
+   "day": 4,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "rule"
   }
- ]
+ ],
+ "notes_status": "ready"
 }

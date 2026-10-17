@@ -11,6 +11,9 @@
  "related": [
   "bt-grid-backtracking"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -37,5 +40,6 @@
    "body": "Without dots O(L); each dot can branch 26 ways, so worst case O(26^dots · L)."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

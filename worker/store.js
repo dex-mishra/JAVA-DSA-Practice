@@ -6,7 +6,7 @@
  * because that is the one table written a problem at a time.
  */
 
-import { istDate, nextResolveOn } from "../shared/dsa-core.mjs";
+import { istDate, nextResolveOn, recallNext } from "../shared/dsa-core.mjs";
 
 export const DOC = {
   PROGRESS: "progress",
@@ -314,6 +314,96 @@ export async function patchDay(db, day, patch, { now = Date.now() } = {}) {
      ON CONFLICT(day) DO UPDATE SET kept = excluded.kept, micro_read = excluded.micro_read,
        cs_core_done = excluded.cs_core_done, note = excluded.note, updated_at = excluded.updated_at`
   ).bind(day, next.kept ? 1 : 0, next.micro_read ? 1 : 0, next.cs_core_done ? 1 : 0, next.note, now / 1000).run();
+  await writeDoc(db, DOC.DSA_META, { updated_ts: now / 1000 });
+  return next;
+}
+
+// ---------------------------------------------------------------- v3.1
+
+/* The reader, notes, recall and CS core state (PRD-v3.1 §13). Read whole at
+   boot with everything else -- tens of rows for one user. */
+
+const parseJson = (s, fallback) => { try { return JSON.parse(s); } catch { return fallback; } };
+
+export async function readV31(db) {
+  const [notes, recall, core, reading, reader, onboarding, ui] = await Promise.all([
+    db.prepare("SELECT * FROM dsa_page_note").all(),
+    db.prepare("SELECT * FROM dsa_recall").all(),
+    db.prepare("SELECT * FROM dsa_core_day").all(),
+    db.prepare("SELECT * FROM dsa_reading").all(),
+    readDoc(db, "dsa_reader", null),
+    readDoc(db, "dsa_onboarding", {}),
+    readDoc(db, "dsa_ui", {})
+  ]);
+  const out = { page_notes: {}, recall: {}, core_days: {}, reading: {}, reader: reader.data, onboarding: onboarding.data, ui: ui.data };
+  for (const r of notes.results || []) out.page_notes[r.page_id] = { noted: !!r.noted, goodnotes_ref: r.goodnotes_ref || "", noted_on: r.noted_on || null };
+  for (const r of recall.results || []) out.recall[r.item_id] = { source: r.source, stage: r.stage, due_on: r.due_on || null, last_result: r.last_result };
+  for (const r of core.results || []) out.core_days[r.day] = coreRow(r);
+  for (const r of reading.results || []) out.reading[r.path_key] = { step: r.step, done: !!r.done };
+  return out;
+}
+
+function coreRow(r) {
+  return {
+    topics_done: parseJson(r.topics_done || "[]", []), mcq_score: r.mcq_score, mcq_total: r.mcq_total,
+    mcq_answers: parseJson(r.mcq_answers || "{}", {}), explain_text: r.explain_text || "",
+    explain_feedback: parseJson(r.explain_feedback || "null", null) || (r.explain_feedback ? { feedback: r.explain_feedback } : null),
+    done: !!r.done
+  };
+}
+
+export async function patchPageNote(db, pageId, patch, { now = Date.now() } = {}) {
+  const row = await db.prepare("SELECT * FROM dsa_page_note WHERE page_id = ?").bind(pageId).first();
+  const cur = row ? { noted: !!row.noted, goodnotes_ref: row.goodnotes_ref || "", noted_on: row.noted_on || null }
+    : { noted: false, goodnotes_ref: "", noted_on: null };
+  const next = { ...cur, ...patch };
+  if (patch.noted === true && !cur.noted) next.noted_on = istDate(now);
+  if (patch.noted === false) next.noted_on = null;
+  await db.prepare(
+    `INSERT INTO dsa_page_note (page_id, noted, goodnotes_ref, noted_on, updated_at) VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(page_id) DO UPDATE SET noted = excluded.noted, goodnotes_ref = excluded.goodnotes_ref,
+       noted_on = excluded.noted_on, updated_at = excluded.updated_at`
+  ).bind(pageId, next.noted ? 1 : 0, next.goodnotes_ref, next.noted_on, now / 1000).run();
+  await writeDoc(db, DOC.DSA_META, { updated_ts: now / 1000 });
+  return next;
+}
+
+/** One self-marked recall answer: schedules the item (shared/dsa-core.mjs). */
+export async function answerRecall(db, itemId, source, result, { now = Date.now() } = {}) {
+  const row = await db.prepare("SELECT stage FROM dsa_recall WHERE item_id = ?").bind(itemId).first();
+  const next = recallNext(row ? row.stage : 0, result, istDate(now));
+  await db.prepare(
+    `INSERT INTO dsa_recall (item_id, source, stage, due_on, last_result, updated_at) VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT(item_id) DO UPDATE SET stage = excluded.stage, due_on = excluded.due_on,
+       last_result = excluded.last_result, updated_at = excluded.updated_at`
+  ).bind(itemId, source, next.stage, next.due_on, result ? 1 : 0, now / 1000).run();
+  await writeDoc(db, DOC.DSA_META, { updated_ts: now / 1000 });
+  return { source, stage: next.stage, due_on: next.due_on, last_result: result ? 1 : 0 };
+}
+
+export async function patchCoreDay(db, day, patch, { now = Date.now() } = {}) {
+  const row = await db.prepare("SELECT * FROM dsa_core_day WHERE day = ?").bind(day).first();
+  const cur = row ? coreRow(row) : { topics_done: [], mcq_score: null, mcq_total: null, mcq_answers: {}, explain_text: "", explain_feedback: null, done: false };
+  const next = { ...cur, ...patch };
+  await db.prepare(
+    `INSERT INTO dsa_core_day (day, topics_done, mcq_score, mcq_total, mcq_answers, explain_text, explain_feedback, done, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(day) DO UPDATE SET topics_done = excluded.topics_done, mcq_score = excluded.mcq_score,
+       mcq_total = excluded.mcq_total, mcq_answers = excluded.mcq_answers, explain_text = excluded.explain_text,
+       explain_feedback = excluded.explain_feedback, done = excluded.done, updated_at = excluded.updated_at`
+  ).bind(day, JSON.stringify(next.topics_done || []), next.mcq_score, next.mcq_total, JSON.stringify(next.mcq_answers || {}),
+    next.explain_text || "", next.explain_feedback ? JSON.stringify(next.explain_feedback) : "", next.done ? 1 : 0, now / 1000).run();
+  await writeDoc(db, DOC.DSA_META, { updated_ts: now / 1000 });
+  return next;
+}
+
+export async function patchReading(db, pathKey, patch, { now = Date.now() } = {}) {
+  const row = await db.prepare("SELECT * FROM dsa_reading WHERE path_key = ?").bind(pathKey).first();
+  const next = { step: row ? row.step : 0, done: row ? !!row.done : false, ...patch };
+  await db.prepare(
+    `INSERT INTO dsa_reading (path_key, step, done, updated_at) VALUES (?, ?, ?, ?)
+     ON CONFLICT(path_key) DO UPDATE SET step = excluded.step, done = excluded.done, updated_at = excluded.updated_at`
+  ).bind(pathKey, next.step, next.done ? 1 : 0, now / 1000).run();
   await writeDoc(db, DOC.DSA_META, { updated_ts: now / 1000 });
   return next;
 }

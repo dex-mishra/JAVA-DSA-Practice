@@ -10,6 +10,9 @@
  "related": [
   "str-rolling-hash"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "what",
@@ -36,5 +39,6 @@
    "body": "✍️ For campus OAs, `s.find(p)` or the naive O(n·m) check usually passes. Mention KMP as the optimisation if asked \"can you do better than O(n·m)?\"."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

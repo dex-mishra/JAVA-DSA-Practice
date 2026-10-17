@@ -11,6 +11,9 @@
  "related": [
   "gr-what-greedy-is-and-proofs"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -67,5 +70,19 @@
    "body": "- \"Why is feasibility monotone?\" — say it concretely: \"a faster speed never needs more hours\".\n- \"What is the search range and why?\" — justify both ends."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-constraint",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "bs-off-by-one-templates",
+   "from_section": "choose-ok",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

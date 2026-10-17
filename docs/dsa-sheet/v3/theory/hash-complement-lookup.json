@@ -12,6 +12,33 @@
   "tp-opposite-ends",
   "ps-prefix-sum-hashmap"
  ],
+ "note": "1. Idea\n   • For each x, the partner I need is **need = target − x**\n   • Ask a hash map \"has my partner appeared?\" → O(1) instead of scanning\n   • Reframe: walk once; ask each element \"has your partner already walked past?\"\n2. Recognise\n   • \"two numbers that add up to / differ by …\", \"pair with …\", \"exists i < j\"\n   • Input **unsorted** (sorted + O(1) space → two pointers instead)\n3. Steps\n   • need = target − x → **check map** → then **insert x**\n       ◦ check before insert → x never pairs with itself ([3,2,4], target 6)\n       ◦ duplicates still work ([3,3], target 6)\n4. What the map stores (depends on the question)\n   • indices → value → index · count pairs → value → count · distance → value → last index\n5. Cost\n   • O(n) time, O(n) space (vs O(n²) / O(1) brute force)\n✎ In my words: ______________________________________________",
+ "recall": [
+  {
+   "q": "What is the complement in Two Sum?",
+   "a": "target − x."
+  },
+  {
+   "q": "Why check before inserting?",
+   "a": "So an element can never pair with itself when target = 2x."
+  },
+  {
+   "q": "When is two pointers better than this?",
+   "a": "When the array is sorted and you need O(1) extra space."
+  },
+  {
+   "q": "What does the map store when counting pairs?",
+   "a": "value → count of earlier occurrences."
+  },
+  {
+   "q": "Time and space?",
+   "a": "O(n) time, O(n) space."
+  }
+ ],
+ "shot": {
+  "title": "Template",
+  "body": "```cpp\nunordered_map<int,int> seen;                 // value -> index\nfor (int i = 0; i < n; i++) {\n    int need = target - a[i];\n    auto it = seen.find(need);\n    if (it != seen.end()) return {it->second, i};\n    seen[a[i]] = i;                          // AFTER the check\n}\n```"
+ },
  "sections": [
   {
    "id": "idea",
@@ -29,7 +56,7 @@
    "id": "think",
    "title": "Brute force → complement lookup",
    "note": "mixed",
-   "body": "Brute force: for every i, for every j > i, check `a[i] + a[j] == target`. O(n²).\n✍️ Bottleneck: the inner loop. Its job: \"for this `a[i]`, search the rest of the array for the value `target − a[i]`\".\n✍️ Waste: it searches for one specific, known value. A known value can be looked up in O(1) if it has been stored in a hash map.\nBetter (two-pass): put every value → index in a map, then for each i look up `target − a[i]` (but make sure it is not i itself).\n✍️ Optimal (one-pass): look up first, insert after. Only earlier elements are in the map, so an element can never pair with itself, and the first pair found is returned immediately."
+   "body": "Brute force: for every i, for every j > i, check `a[i] + a[j] == target`. O(n²).\n✍️ Bottleneck: the inner loop. Its job: \"for this `a[i]`, search the rest of the array for the value `target − a[i]`\".\n✍️ Waste: it searches for one specific, known value. A known value can be looked up in O(1) if it has been stored in a hash map.\nBetter (two-pass): put every value → index in a map, then for each i look up `target − a[i]` (but make sure it is not i itself).\n✍️ Optimal (one-pass): look up first, insert after. Only earlier elements are in the map, so an element can never pair with itself, and the first pair found is returned immediately.\n>> detour hash-table-internals#why-o1 | Why a hash-map lookup is O(1) — and when it is not | 3 min"
   },
   {
    "id": "self-pairing",
@@ -70,32 +97,108 @@
  ],
  "used_by": [
   {
-   "problem": "two-sum",
+   "from_page": "meta-bottleneck-method",
+   "from_section": "name-waste",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-input-shape",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "ps-prefix-sum-hashmap",
+   "from_section": "idea",
+   "kind": "link",
+   "section": ""
+  },
+  {
    "day": 2,
-   "section": "think",
-   "stage": "brainstorm",
-   "at": "The inner loop searches for one known value"
+   "block": "reading_path",
+   "step": 4,
+   "kind": "path",
+   "why": "Pattern 1 of today — the idea behind Two Sum.",
+   "section": "idea"
+  },
+  {
+   "problem": "two-sum",
+   "sibling": "number-of-good-pairs",
+   "day": 2,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "variations"
   },
   {
    "problem": "two-sum",
    "day": 2,
-   "section": "self-pairing",
+   "stage": "brainstorm",
+   "at": "↳ Bottleneck: the inner loop searches for one known value",
+   "why": "The whole idea of this problem in three lines — read it before attempting.",
+   "when": "before",
+   "need": "must",
+   "kind": "ref",
+   "section": "idea"
+  },
+  {
+   "problem": "two-sum",
+   "day": 2,
+   "stage": "brainstorm",
+   "at": "↳ Unlock: \"Am I searching for something I could have remembered?\"",
+   "why": "The full brute → hash-map derivation, step by step.",
+   "when": "while",
+   "need": "must",
+   "kind": "ref",
+   "section": "think"
+  },
+  {
+   "problem": "two-sum",
+   "day": 2,
    "stage": "pseudocode",
-   "at": "CHECK before UPDATE"
+   "at": "UPDATE `seen[x] = i` comes after CHECK",
+   "why": "Why inserting first lets 3 pair with itself when the target is 6.",
+   "when": "while",
+   "need": "must",
+   "kind": "ref",
+   "section": "self-pairing"
+  },
+  {
+   "problem": "two-sum",
+   "day": 2,
+   "kind": "stuck",
+   "minutes": "30",
+   "section": "idea"
+  },
+  {
+   "problem": "two-sum",
+   "day": 2,
+   "kind": "stuck",
+   "minutes": "40",
+   "section": "self-pairing"
   },
   {
    "problem": "two-sum-ii-input-array-is-sorted",
    "day": 3,
-   "section": "interview",
    "stage": "carry",
-   "at": "Hash map vs two pointers"
+   "at": "Hash map vs two pointers",
+   "why": "When each tool is right.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "interview"
   },
   {
    "problem": "subarray-sum-equals-k",
    "day": 4,
-   "section": "idea",
    "stage": "brainstorm",
-   "at": "Same idea as Two Sum"
+   "at": "Same idea as Two Sum",
+   "why": "Complement lookup on prefix sums.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "idea"
   }
- ]
+ ],
+ "notes_status": "ready"
 }

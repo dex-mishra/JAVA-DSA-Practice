@@ -11,6 +11,9 @@
  "related": [
   "tree-iterative-traversals"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -37,5 +40,19 @@
    "body": "O(h + k) time, O(h) space."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "tree-dfs-traversals",
+   "from_section": "orders",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "bst-invariant-and-validation",
+   "from_section": "inorder-way",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

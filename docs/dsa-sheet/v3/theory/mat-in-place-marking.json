@@ -11,6 +11,9 @@
  "related": [
   "graph-grid-as-graph"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -31,5 +34,6 @@
    "body": "- Grid DFS often marks visited cells by overwriting them ('1' → '0' in Number of Islands, 'O' → '#' in Surrounded Regions) instead of a separate visited array. Ask whether modifying the input is allowed.\n- Game of Life: encode \"was alive, now dead\" as a third state (e.g. 2) so the old value can still be recovered in one pass."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

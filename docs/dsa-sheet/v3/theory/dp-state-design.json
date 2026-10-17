@@ -11,6 +11,9 @@
   "dp-state-machine",
   "dp-1d-linear"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "question",
@@ -31,5 +34,13 @@
    "body": "✍️ Stock with cooldown: knowing the profit by day i is not enough — you need to know whether you hold a stock. Add a mode dimension: `dp[i][holding]` ([[dp-state-machine]]).\n✍️ House robber II (circle): the first and last houses interact. Instead of adding state, split into two linear problems (exclude the first, or exclude the last).\n- More dimensions = more time and memory; add only what the transition actually needs."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "dp-what-dp-is",
+   "from_section": "substructure",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

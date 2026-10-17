@@ -10,6 +10,9 @@
  "related": [
   "meta-analyse-a-problem"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "what",
@@ -36,5 +39,13 @@
    "body": "✍️ Always before submitting a TWIST or DISGUISE problem.\n- After any wrong answer, before changing code: dry-run the failing case on paper first. Changing code without knowing why it failed usually creates a second bug."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "ll-node-and-pointers",
+   "from_section": "rewiring",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

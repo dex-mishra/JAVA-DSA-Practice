@@ -1,27 +1,32 @@
 === day: 1
-micro_title: One pass, a few variables — and writing in place
+micro_title: Day 1 — one pass, a few variables, and writing in place
 micro_theory: arr-single-pass-running-state, arr-read-write-pointer, cx-big-o, cpp-vector, meta-analyse-a-problem
---- micro | Micro-theory (10 minutes) | mixed
-Today has two ideas, and both are about **not looking back**.
+reading_path:
+- meta-analyse-a-problem#five-questions | Every problem in this plan starts with this box on paper. Read it once — you will fill it four times today. | 4
+- meta-bottleneck-method#idea | How a slow solution becomes a fast one. Today's problems are the gentlest examples of this method. | 3
+- meta-pseudocode-format#five-slots | The five-slot pseudocode you write on paper before any C++. | 3
+- cx-big-o#counting | Just enough Big-O to say "this is O(n)" and mean it. | 3
+- cpp-vector#basics | The container in every problem. Note the size() trap. | 2
+- arr-single-pass-running-state#idea | Pattern 1 of today: carry the past in a few variables. Used by problems 1 and 2. | 3
+- arr-read-write-pointer#idea | Pattern 2 of today: compacting an array in place. Used by problems 3 and 4. | 3
+--- micro | Today in one minute | mixed
+Day 1 is about **not looking back**. Two ideas, four easy problems, and the habits you will use for the next 29 days.
 
-✍️ **Running state.** Walk the array once, left to right, and carry a few variables that summarise everything you have already seen (a running total, the current streak, the best so far). Each element is touched once → O(n). Read [[arr-single-pass-running-state#idea]].
-✍️ **Read pointer / write pointer.** To remove or move elements *in place*, one index reads every element and a second index marks where the next kept element goes. Each element moves once → O(n) time, O(1) space. Read [[arr-read-write-pointer#idea]].
+✍️ **Running state** — walk once, keep a few variables that summarise the past.
+✍️ **Read/write pointer** — one index reads everything, another marks where the next kept element goes.
 
-Before you start, skim two foundation pages once — you will use them every day:
-- [[cx-big-o#counting]] — how to count the cost of a loop.
-- [[cpp-vector#basics]] — `vector`, `size()`, range-for with `&`.
-
-And the habit for the whole plan: fill the analysis box on paper before any idea ([[meta-analyse-a-problem#template]]).
+The reading path below takes about 20 minutes (longer than usual — it includes the foundations). Every page opens inside the path; when you finish a step you continue from here.
 --- card | Pattern card | write
 ✍️ RUNNING STATE — trigger: "so far / running / streak / consecutive". Keep: total, current, best. Update every step; reset when the condition breaks.
 ✍️ READ/WRITE POINTER — trigger: "in-place", "O(1) extra space", "remove/move, keep order". `if keep(a[read]) a[write++] = a[read]`. Return `write`.
 
 === problem: running-sum-of-1d-array
 theory_refs:
-- brainstorm | Brute → better: the backward loop is the bottleneck | arr-single-pass-running-state#think | Shows why re-adding the prefix is wasted work.
-- pseudocode | STATE `run` and UPDATE `run += a[i]` | arr-single-pass-running-state#template | The exact running-total template.
-- edges | Complexity line | cx-big-o#counting | How "one loop, O(1) inside" becomes O(n).
-- carry | "This is a prefix sum" | ps-prefix-sum-basics#idea | The same array is what Day 4's range sums are built on.
+- analyse | n ≤ 1000 → aim for O(n) anyway | cx-constraints-to-target#table | Turns n into a target complexity before you think of an idea. | before | optional
+- brainstorm | ↳ Bottleneck: the inner loop re-adds a[0..i−1] | arr-single-pass-running-state#think | Shows exactly why re-adding the prefix is wasted work — the move this whole problem is about. | before | must
+- pseudocode | STATE `run`, UPDATE `run = run + a[i]` | arr-single-pass-running-state#template | The running-total template your pseudocode follows line by line. | while | must
+- edges | Time O(n): one loop, O(1) work inside | cx-big-o#counting | How "one loop with O(1) inside" becomes O(n). | while | optional
+- carry | "This output array is called a prefix sum array" | ps-prefix-sum-basics#idea | The same array answers any range sum on Day 4 — read it then, or peek now. | after | optional
 stuck_refs:
 - 10 | cx-constraints-to-target#table
 - 20 | arr-single-pass-running-state#idea
@@ -38,6 +43,7 @@ stuck_refs:
 ✍️ **1. Brute.** For each i, loop j from 0 to i and add a[j]. O(n²) time, O(1) extra.
 ✍️ ↳ Bottleneck: the inner loop re-adds a[0..i−1], which the previous iteration already added.
 ✍️ ↳ Unlock question: "Am I recomputing something that only changed a little?" ([[meta-bottleneck-method#unlock-questions]]) — yes, by exactly one element.
+>> detour meta-bottleneck-method#unlock-questions | The seven unlock questions — you will reuse them all month | 2 min
 ✍️ **2. Optimal.** Keep the previous total and add a[i]. O(n) time.
 ✍️ (Bonus: write into `a` itself — `a[i] += a[i−1]` — for O(1) extra space.)
 --- algorithm | Algorithm in words | write
@@ -85,6 +91,21 @@ public:
 --- followups | Interview follow-ups | screenshot
 - *Can you do it in O(1) extra space?* Overwrite: `for i in 1..n−1: a[i] += a[i−1]`.
 - *Now answer many "sum from l to r" queries.* Build the prefix array once with a leading 0, answer `pre[r+1] − pre[l]` ([[ps-prefix-sum-basics#template]]).
+--- note | Note this | write
+1. Problem
+   • out[i] = a[0] + … + a[i]  (Running Sum, LC 1480)
+2. Pattern: running state
+   • Trigger: answer at i = answer at i−1 + one change
+3. Brute → optimal
+   • Brute: for each i, add a[0..i] again → O(n²)
+       ◦ Bottleneck: re-adding a prefix the last step already added
+   • Optimal: keep `run`, add a[i], write it → O(n)
+4. Pseudocode
+   • STATE run = 0 · LOOP i = 0..n−1 · UPDATE run += a[i]; out[i] = run · RETURN out
+5. Remember
+   • This output is a **prefix sum array** (Day 4 uses it for range sums)
+   • O(1) extra space: a[i] += a[i−1] in place
+✎ In my words: ______________________________________________
 --- tests | Tests | hidden
 ```cpp
 Solution s;
@@ -132,6 +153,10 @@ public:
 --- quick_theory | Quick theory | mixed
 ✍️ "Left part vs right part" problems = prefix sum + total. See [[ps-prefix-sum-basics#variations]].
 - Same CHECK-then-UPDATE ordering lesson as Two Sum tomorrow.
+--- note | Note this | write
+• Pivot: sum left of i == sum right of i
+• right = total − left − a[i] → one pass with running `left`
+• CHECK before adding a[i] to left · O(n), O(1)
 --- tests | Tests | hidden
 ```cpp
 Solution s;
@@ -222,9 +247,9 @@ CHECK(s.minStartValue(c) == 5);
 
 === problem: max-consecutive-ones
 theory_refs:
-- brainstorm | Streak that resets | arr-single-pass-running-state#template | The reset-on-break template.
-- pseudocode | Where `best` is updated | arr-single-pass-running-state#pitfalls | Updating only on a break misses a streak that runs to the end.
-- carry | Streak + budget of k breaks | sw-variable-window#budget | Day 5's Max Consecutive Ones III is this problem with k allowed flips.
+- brainstorm | **2. Optimal.** One pass with `cur` and `best` | arr-single-pass-running-state#template | The streak-that-resets template. | while | must
+- pseudocode | `best = max(best, cur)` every step | arr-single-pass-running-state#pitfalls | Why updating best only on a reset misses a streak that runs to the end. | while | must
+- carry | "the streak becomes a sliding window" | sw-variable-window#budget | Day 5 turns this exact problem into "flip at most k zeros". | after | optional
 stuck_refs:
 - 10 | cx-constraints-to-target#table
 - 20 | arr-single-pass-running-state#idea
@@ -290,6 +315,19 @@ public:
 - *You may flip at most one 0.* (LeetCode 487) Track the streak before and after the last zero, or a window with ≤ 1 zero.
 - *At most k flips.* Variable window with a zero budget ([[sw-variable-window#budget]]).
 - *Data arrives as a stream.* The same two variables work — nothing needs to be stored.
+--- note | Note this | write
+1. Problem
+   • Longest block of consecutive 1s (LC 485)
+2. Pattern: running state — streak that resets
+3. Brute → optimal
+   • Brute: count forward from every start → O(n²)
+       ◦ Bottleneck: a block is recounted from each of its positions
+   • Optimal: cur = (x == 1) ? cur + 1 : 0; best = max(best, cur) → O(n), O(1)
+4. Pitfalls
+   • Update best **every** step — a streak can end at the last element
+5. Leads to
+   • "Flip at most k zeros" = Day 5 sliding window (Max Consecutive Ones III)
+✎ In my words: ______________________________________________
 --- tests | Tests | hidden
 ```cpp
 Solution s;
@@ -334,6 +372,9 @@ public:
 ```
 --- quick_theory | Quick theory | mixed
 ✍️ Reset value depends on meaning: "count of matching elements" resets to 0; "length of a run that includes me" resets to 1 ([[arr-single-pass-running-state#pitfalls]]).
+--- note | Note this | write
+• Streak of equal neighbours: extend if s[i] == s[i−1]
+• Reset to **1** (the current char is a run) · O(n)
 --- tests | Tests | hidden
 ```cpp
 Solution s;
@@ -416,10 +457,10 @@ CHECK(s.longestContinuousSubstring("abcde") == 5);
 
 === problem: move-zeroes
 theory_refs:
-- understand | "in-place, keep relative order" | arr-read-write-pointer#recognise | The exact trigger words for the read/write pointer.
-- brainstorm | Brute B shifts elements repeatedly | arr-read-write-pointer#think | Why erase-and-shift is O(n²).
-- pseudocode | `swap(a[write], a[read])` | arr-read-write-pointer#swap-vs-copy | Why Move Zeroes needs swap (or a fill pass), not copy.
-- edges | O(1) extra space | cx-space-and-in-place#in-place | What in-place means.
+- understand | "in place", keep the order of non-zeros | arr-read-write-pointer#recognise | The trigger words that point to the read/write pointer. | before | must
+- brainstorm | ↳ Bottleneck of B: elements are shifted again and again | arr-read-write-pointer#think | Why erase-and-shift is O(n²) and how moving each element once fixes it. | before | must
+- pseudocode | `swap(a[write], a[read])` | arr-read-write-pointer#swap-vs-copy | Why this problem needs swap (or a fill pass) instead of a plain copy. | while | must
+- edges | O(1) extra space | cx-space-and-in-place#in-place | What "in place" allows and forbids. | while | optional
 stuck_refs:
 - 10 | cx-space-and-in-place#in-place
 - 20 | arr-read-write-pointer#idea
@@ -429,6 +470,7 @@ stuck_refs:
 ✍️ f(array, modified in place) → all non-zero elements first in their original order, then all zeros.
 - n ≤ 10⁴. Must not copy the array.
 - Example: [0,1,0,3,12] → [1,3,12,0,0].
+>> detour cx-space-and-in-place#in-place | What "in place" allows and forbids | 2 min
 --- analyse | Analyse | write
 ✍️ By hand: I look at each non-zero and slide it to "the next free spot at the front". The free spot starts at 0 and moves one step each time I place something.
 ✍️ Hard part: doing it without a second array, and without disturbing the order of non-zeros.
@@ -486,6 +528,21 @@ public:
 - *Minimise the number of writes.* Copy non-zeros forward, then fill the tail with zeros only where needed; or skip the swap when read == write.
 - *Move all zeros to the front instead.* Walk from the right with the write pointer at n−1.
 - *Partition evens before odds.* Same template with keep = "is even" (LeetCode 905).
+--- note | Note this | write
+1. Problem
+   • Move all 0s to the end, keep the order of the rest, in place (LC 283)
+2. Pattern: read / write pointer
+   • Trigger: "in-place", "keep relative order"
+3. Brute → optimal
+   • Brute A: new array → O(n) space ✗ · Brute B: erase + push_back → O(n²)
+       ◦ Bottleneck: the same elements get shifted again and again
+   • Optimal: move each non-zero once, to index `write` → O(n), O(1)
+4. Pseudocode
+   • write = 0 · for read: if a[read] ≠ 0 → swap(a[write], a[read]); write++
+5. Remember
+   • **Swap**, not copy — the zeros must survive at the back
+   • Invariant: a[0..write−1] = non-zeros in order
+✎ In my words: ______________________________________________
 --- tests | Tests | hidden
 ```cpp
 Solution s;
@@ -528,6 +585,9 @@ public:
 ```
 --- quick_theory | Quick theory | mixed
 ✍️ The same template as Move Zeroes; copy instead of swap because only a[0..k−1] is checked ([[arr-read-write-pointer#swap-vs-copy]]).
+--- note | Note this | write
+• Read/write with keep = a[read] ≠ val
+• Copy is enough (tail doesn't matter) · return write
 --- tests | Tests | hidden
 ```cpp
 Solution s;
@@ -617,9 +677,9 @@ CHECK((s.applyOperations(b) == vector<int>{1, 0}));
 
 === problem: remove-duplicates-from-sorted-array
 theory_refs:
-- analyse | "sorted" means duplicates are adjacent | arr-read-write-pointer#recognise | Sortedness turns "seen before?" into "same as the last kept?".
-- pseudocode | keep = `a[read] != a[write−1]` | arr-read-write-pointer#template | The keep-rule line for deduplication.
-- edges | compare with the written array | arr-read-write-pointer#pitfalls | Why `a[write−1]` generalises to "keep at most two".
+- analyse | "because it is sorted, a value is new when it differs from the last kept" | arr-read-write-pointer#recognise | Sortedness turns "seen before?" into a neighbour comparison. | while | optional
+- pseudocode | CHECK `a[read] != a[write−1]` | arr-read-write-pointer#template | The keep-rule table, including this exact rule. | while | must
+- edges | compare with the written array | arr-read-write-pointer#pitfalls | Why `a[write−k]` generalises to "keep at most k copies" (the must-study sibling). | after | optional
 stuck_refs:
 - 10 | cx-space-and-in-place#in-place
 - 20 | arr-read-write-pointer#idea
@@ -681,6 +741,20 @@ public:
 - *Allow each value at most twice* (LeetCode 80): keep if `write < 2 || a[read] != a[write−2]`.
 - *Unsorted input?* Then you need a hash set (O(n) space) or sorting first.
 - *Return the count of duplicates removed.* n − k.
+--- note | Note this | write
+1. Problem
+   • Sorted array → keep one copy of each value in front, return k (LC 26)
+2. Pattern: read / write pointer + sortedness
+   • Sorted ⇒ duplicates are adjacent ⇒ "new?" = differs from last kept
+3. Brute → optimal
+   • Brute: set of seen values → O(n) space
+       ◦ Waste: the set answers a question sortedness already answers
+   • Optimal: keep if a[read] ≠ a[write−1] → O(n), O(1)
+4. Pseudocode
+   • write = 1 · for read = 1..n−1: if a[read] ≠ a[write−1] → a[write++] = a[read] · return write
+5. Remember
+   • Compare with the **written** array: "at most k copies" → a[write−k]
+✎ In my words: ______________________________________________
 --- tests | Tests | hidden
 ```cpp
 Solution s;
@@ -723,6 +797,9 @@ public:
 ```
 --- quick_theory | Quick theory | mixed
 ✍️ "At most k copies" in a sorted array → keep if `write < k || a[read] != a[write−k]` ([[arr-read-write-pointer#variations]]).
+--- note | Note this | write
+• At most 2 copies: keep if write < 2 || a[read] ≠ a[write−2]
+• Compare with the **written** array, not the input
 --- tests | Tests | hidden
 ```cpp
 Solution s;
@@ -903,32 +980,67 @@ complexity: O(n)
 
 **Example:** `[1, 2, 10, 5, 7]` → `true`: remove 10 to get `[1, 2, 5, 7]`. `[2, 3, 1, 2]` → `false`. `[1, 1, 1]` → `false`.
 
-=== cs_core: oop-01-classes-objects
+=== core: 1
 subject: OOP
-title: Classes, objects, constructors and this
---- concept | Concept | write
-✍️ A **class** is a blueprint: data (member variables) + behaviour (member functions). An **object** is one instance built from it, with its own copy of the data.
-✍️ A **constructor** runs when an object is created and sets up its initial state. Same name as the class, no return type. A **destructor** (`~ClassName`) runs when the object is destroyed — used to release resources (memory, files).
-✍️ `this` is a pointer to the current object inside a member function. Useful when a parameter has the same name as a member: `this->name = name;`.
-✍️ In C++, `struct` and `class` are identical except the default access: `struct` members are public by default, `class` members are private.
---- code | C++ example | screenshot
-```cpp
-class BankAccount {
-    string owner;            // private by default
-    long long balance;
-public:
-    BankAccount(string owner, long long start) : owner(owner), balance(start) {}  // initialiser list
-    ~BankAccount() { /* release resources if any */ }
-    void deposit(long long amt) { this->balance += amt; }
-    long long getBalance() const { return balance; }   // const: does not modify the object
-};
-BankAccount a("Aryan", 100);   // object on the stack
-a.deposit(50);                 // a.getBalance() == 150
-```
-- Initialiser lists (`: owner(owner), balance(start)`) construct members directly; required for `const` members and references.
---- interview | Interview questions | mixed
-✍️ **Q: Class vs object?** A class is the definition; an object is a concrete instance occupying memory.
-✍️ **Q: What is a default / parameterised / copy constructor?** No arguments / takes arguments / `ClassName(const ClassName& other)` that builds a copy. The compiler generates a default and copy constructor if you do not write them.
-✍️ **Q: Shallow vs deep copy?** Shallow copies pointer values (both objects share the same memory → double delete). Deep copy allocates new memory and copies the contents. Needed when a class owns a raw pointer.
-- **Q: Can a constructor be virtual?** No — the object's type is not known yet while it is being constructed. Destructors can and should be virtual in base classes (Day 4).
-- **Q: What does `const` after a member function mean?** It promises not to modify the object; it can be called on const objects.
+unit: OOP & C++ internals
+title: Classes, objects and their memory · Constructors and destructors
+minutes: 45
+topics: oop-classes-objects-memory, oop-constructors-destructors
+explain: An interviewer asks: "What exactly happens in memory when you write `Account a(100);` and when `a` goes out of scope?" Answer in 2 minutes: object layout, constructor call, stack vs heap, destructor call.
+--- intro | Today | mixed
+OOP is the first CS subject because every LLD round and many C++ questions sit on top of it. Today: what an object actually is in memory, and how it is born and destroyed.
+✍️ Read topic 1 → write its note → answer its recall questions. Then topic 2. Then the MCQs and the 2-minute explanation.
++++ mcq: d1-q1
+q: In C++, what is the only difference between `struct` and `class`?
+a: struct cannot have member functions
+b: struct members and base classes are public by default; class ones are private
+c: struct objects live on the stack, class objects on the heap
+d: struct cannot be inherited from
+answer: b
+why: Both can have functions, constructors, inheritance and live anywhere. Only the default access differs.
+topic: oop-classes-objects-memory
++++ mcq: d1-q2
+q: `class A { char c; int x; };` — on a typical 64-bit compiler, `sizeof(A)` is most likely:
+a: 5
+b: 8
+c: 16
+d: 1
+answer: b
+why: 1 byte for c, 3 bytes of padding so the int is 4-byte aligned, 4 bytes for x → 8.
+topic: oop-classes-objects-memory
++++ mcq: d1-q3
+q: What does `sizeof` of a class with no data members return?
+a: 0
+b: 1
+c: 4
+d: It does not compile
+answer: b
+why: Every object must have a distinct address, so an empty class has size 1.
+topic: oop-classes-objects-memory
++++ mcq: d1-q4
+q: In which order are members initialised?
+a: The order they appear in the initialiser list
+b: Alphabetical order
+c: The order they are declared in the class
+d: Undefined
+answer: c
+why: Declaration order always wins; compilers warn (-Wreorder) when the initialiser list order differs.
+topic: oop-constructors-destructors
++++ mcq: d1-q5
+q: `Derived` inherits from `Base`. Creating and destroying a `Derived` object calls, in order:
+a: Derived(), Base(), ~Derived(), ~Base()
+b: Base(), Derived(), ~Derived(), ~Base()
+c: Base(), Derived(), ~Base(), ~Derived()
+d: Derived(), Base(), ~Base(), ~Derived()
+answer: b
+why: Construction goes base → derived; destruction is the exact reverse.
+topic: oop-constructors-destructors
++++ mcq: d1-q6
+q: Which members MUST be set in the constructor initialiser list (not in the body)?
+a: static members
+b: const members and reference members
+c: public members
+d: pointer members
+answer: b
+why: const and reference members cannot be assigned after construction, so they must be initialised in the list.
+topic: oop-constructors-destructors

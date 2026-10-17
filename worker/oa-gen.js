@@ -45,8 +45,110 @@ export const BUILDERS = {
     const a = new Array(n);
     for (let i = 0; i < n; i++) a[i] = (i % 7) - 3;
     return n + " 0\n" + a.join(" ");
+  },
+
+  /* mock-01-q2: 70000 zeros, k = 0. Every subarray sums to zero, so the
+     answer is n(n+1)/2 = 2450035000 -- past 2^31, like #7. Generated only
+     because 140 KB is over the runner's stdin cap. */
+  "mock-01-q2#5": function build() {
+    const n = 70000;
+    return n + " 0\n" + new Array(n).fill(0).join(" ");
+  },
+
+  /* mock-01-q3: 200000 letters from a 32-bit LCG (Numerical Recipes
+     constants), top byte mod 5 into "abcde". Chosen over Math.random-style
+     generators because it is reproducible bit for bit in C++ and Python. */
+  "mock-01-q3#6": function build() {
+    const n = 200000;
+    let x = 20261023;
+    let s = "";
+    for (let i = 0; i < n; i++) {
+      x = (Math.imul(x, 1664525) + 1013904223) >>> 0;
+      s += "abcde"[(x >>> 24) % 5];
+    }
+    return n + " 3\n" + s + "\n";
   }
 };
+
+/* The same generators as source code, for runners whose stdin is capped
+ * (OnlineCompiler.io: 100 KB). worker/runner.js prepends one of these to the
+ * submission, and it writes the input to a file and points stdin at it
+ * before main() runs -- so the program reads exactly what it would have read
+ * from stdin. worker/oa-gen.test.mjs compiles each one and checks it against
+ * the JS builder above byte for byte. */
+const CPP_FEED = (body) => `// ---- grader: generates this test's input (too large to send as stdin) ----
+#include <cstdio>
+#include <string>
+namespace lc_grader_ {
+static std::string build() {
+${body}
+}
+struct Feed {
+  Feed() {
+    const std::string s = build();
+    const char* paths[] = {"/tmp/lc_grader_in.txt", "lc_grader_in.txt"};
+    for (const char* p : paths) {
+      FILE* f = std::fopen(p, "wb");
+      if (!f) continue;
+      std::fwrite(s.data(), 1, s.size(), f);
+      std::fclose(f);
+      if (std::freopen(p, "rb", stdin)) return;
+    }
+  }
+};
+static Feed feed_;
+}
+#line 1
+`;
+
+const PY_FEED = (body) => `# ---- grader: generates this test's input (too large to send as stdin) ----
+import io as _lc_io, sys as _lc_sys
+def _lc_build():
+${body}
+_lc_sys.stdin = _lc_io.TextIOWrapper(_lc_io.BytesIO(_lc_build().encode()), encoding="utf-8")
+del _lc_io, _lc_sys, _lc_build
+`;
+
+export const GEN_SOURCES = {
+  "mock-01-q1#6": {
+    cpp: CPP_FEED(`  const int n = 499999; std::string s = std::to_string(n) + "\\n";
+  for (int i = 0; i < n; i++) { if (i) s += ' '; s += std::to_string(i % 2 == 0 ? 7 : (i % 5) + 1); }
+  return s;`),
+    python: PY_FEED(`    n = 499999
+    return str(n) + "\\n" + " ".join(str(7 if i % 2 == 0 else i % 5 + 1) for i in range(n))`)
+  },
+  "mock-01-q2#7": {
+    cpp: CPP_FEED(`  const int n = 200000; std::string s = std::to_string(n) + " 0\\n";
+  for (int i = 0; i < n; i++) { if (i) s += ' '; s += std::to_string((i % 7) - 3); }
+  return s;`),
+    python: PY_FEED(`    n = 200000
+    return str(n) + " 0\\n" + " ".join(str(i % 7 - 3) for i in range(n))`)
+  },
+  "mock-01-q2#5": {
+    cpp: CPP_FEED(`  const int n = 70000; std::string s = std::to_string(n) + " 0\\n";
+  for (int i = 0; i < n; i++) { if (i) s += ' '; s += '0'; }
+  return s;`),
+    python: PY_FEED(`    n = 70000
+    return str(n) + " 0\\n" + " ".join(["0"] * n)`)
+  },
+  "mock-01-q3#6": {
+    cpp: CPP_FEED(`  const int n = 200000; unsigned int x = 20261023u; std::string s = std::to_string(n) + " 3\\n";
+  for (int i = 0; i < n; i++) { x = x * 1664525u + 1013904223u; s += "abcde"[(x >> 24) % 5]; }
+  s += '\\n';
+  return s;`),
+    python: PY_FEED(`    n, x, out = 200000, 20261023, []
+    for _ in range(n):
+        x = (x * 1664525 + 1013904223) & 0xFFFFFFFF
+        out.append("abcde"[(x >> 24) % 5])
+    return str(n) + " 3\\n" + "".join(out) + "\\n"`)
+  }
+};
+
+/** Source to prepend so a submission builds its own input, or null. */
+export function genSource(key, lang) {
+  const g = GEN_SOURCES[key];
+  return (g && g[lang]) || null;
+}
 
 /** The input for a hidden test: literal when it has one, built when it does
  *  not. Built inputs are cached by the caller, per PRD §3.1 -- a generated

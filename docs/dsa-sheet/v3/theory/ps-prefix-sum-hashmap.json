@@ -12,6 +12,9 @@
   "sw-monotonicity-requirement",
   "ps-modular-prefix"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -64,25 +67,103 @@
  ],
  "used_by": [
   {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-input-shape",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "hash-complement-lookup",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "ps-prefix-sum-basics",
+   "from_section": "recognise",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "sw-variable-window",
+   "from_section": "pitfalls",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "tree-top-down-parameters",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "day": 4,
+   "block": "micro",
+   "kind": "link",
+   "section": "seed"
+  },
+  {
    "problem": "subarray-sum-equals-k",
    "day": 4,
-   "section": "think",
+   "stage": "followups",
+   "kind": "link",
+   "section": "variations"
+  },
+  {
+   "problem": "subarray-sum-equals-k",
+   "sibling": "contiguous-array",
+   "day": 4,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "variations"
+  },
+  {
+   "problem": "subarray-sum-equals-k",
+   "day": 4,
    "stage": "brainstorm",
-   "at": "\"Search earlier prefixes for run − k\""
+   "at": "\"Search earlier prefixes for run − k\"",
+   "why": "The bottleneck that becomes a lookup.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "think"
   },
   {
    "problem": "subarray-sum-equals-k",
    "day": 4,
-   "section": "seed",
    "stage": "pseudocode",
-   "at": "`cnt[0] = 1`"
+   "at": "`cnt[0] = 1`",
+   "why": "Subarrays starting at index 0.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "seed"
   },
   {
    "problem": "subarray-sum-equals-k",
    "day": 4,
-   "section": "pitfalls",
    "stage": "pseudocode",
-   "at": "Query, then record"
+   "at": "Query, then record",
+   "why": "Avoid counting empty subarrays when k = 0.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "pitfalls"
+  },
+  {
+   "problem": "subarray-sum-equals-k",
+   "day": 4,
+   "kind": "stuck",
+   "minutes": "30",
+   "section": "idea"
+  },
+  {
+   "problem": "subarray-sum-equals-k",
+   "day": 4,
+   "kind": "stuck",
+   "minutes": "40",
+   "section": "seed"
   }
- ]
+ ],
+ "notes_status": "pending"
 }

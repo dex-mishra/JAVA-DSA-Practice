@@ -10,6 +10,9 @@
  "related": [
   "hash-frequency-counting"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "properties",
@@ -42,5 +45,13 @@
    "body": "✍️ XOR only cancels **pairs**. \"Every element appears three times except one\" (LeetCode 137) needs per-bit counting mod 3."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-question-words",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

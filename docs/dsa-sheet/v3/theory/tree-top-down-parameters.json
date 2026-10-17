@@ -11,6 +11,9 @@
  "related": [
   "bst-invariant-and-validation"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -37,5 +40,13 @@
    "body": "- Path sum III (any downward path): prefix sums along the root path + hash map, with undo of the map count on the way back ([[ps-prefix-sum-hashmap]]).\n- Count good nodes: pass the maximum seen so far.\n- Sum root-to-leaf numbers: pass `cur * 10 + val`."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "tree-dfs-traversals",
+   "from_section": "which",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

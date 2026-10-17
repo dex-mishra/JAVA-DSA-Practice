@@ -12,6 +12,9 @@
   "dp-what-dp-is",
   "bt-pick-or-skip"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "draw",
@@ -32,5 +35,13 @@
    "body": "✍️ If the same arguments appear in several places in the tree, the recursion is doing repeated work → memoise (DP). If every node has different arguments (subsets, permutations), there is nothing to reuse — the output itself is exponential."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "cx-big-o",
+   "from_section": "pitfalls",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

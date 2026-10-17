@@ -11,6 +11,9 @@
   "bs-off-by-one-templates",
   "cpp-iterators-and-algorithms"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "definitions",
@@ -37,5 +40,6 @@
    "body": "✍️ lower_bound returns n when every element is smaller — check `idx < n` before reading `a[idx]`.\n- Searching for \"first occurrence\" with the exact-match template and then walking left is O(n) in the worst case (all equal). Use lower_bound."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

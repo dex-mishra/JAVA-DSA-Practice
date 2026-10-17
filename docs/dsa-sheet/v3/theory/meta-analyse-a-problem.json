@@ -12,6 +12,29 @@
   "meta-pseudocode-format",
   "meta-pattern-decision-tree"
  ],
+ "note": "1. Why analyse first\n   • Typing is slow and linear; thinking is fast → never invent the algorithm while typing\n   • Analysis = **what** is asked and what is allowed; brainstorm = **how**\n2. The five questions (on paper, 3–5 min)\n   • **Input → output** in one line, like a function: f(array, target) → two indices\n   • **Constraints** → target complexity (n ≤ 10⁵ → O(n log n) or better)\n       ◦ also note: negatives? zeros? values up to 10⁹? \"sorted\"? \"exactly one answer\"?\n   • **Tiny example by hand** (4–6 elements) → watch what your hands do = the algorithm\n   • **Hard part** in one sentence (\"checking every pair is too slow\")\n   • **Edge answers**: empty, one element, all same, all negative\n3. The tiny example\n   • Include one awkward feature: duplicate / negative / zero / answer at the edge\n   • Solve it the dumb way and **count the work** → that count is your brute force cost\n   • Ask: which of that work was wasted? → that is where the optimisation is\n✎ In my words: ______________________________________________",
+ "recall": [
+  {
+   "q": "What are the five analysis questions?",
+   "a": "Input→output line, constraints→target complexity, tiny example by hand, the hard part, edge-case answers."
+  },
+  {
+   "q": "Why solve a tiny example by hand?",
+   "a": "What your hands do is the algorithm; counting the work gives the brute force cost and shows the waste."
+  },
+  {
+   "q": "n ≤ 10⁵ → what complexity?",
+   "a": "O(n log n) or O(n); O(n²) is too slow."
+  },
+  {
+   "q": "Which edge inputs do you always write answers for?",
+   "a": "Empty, one element, all equal, all negative / extremes."
+  }
+ ],
+ "shot": {
+  "title": "The analysis box (paste at the top of every problem page)",
+  "body": "```\nUNDERSTAND   f(...) -> ...\nCONSTRAINTS  n ≤ ...  → target O(...)     values: ...     guarantees: ...\nBY HAND      example: ...   what I did: ...   work done: ...\nHARD PART    ...\nEDGES        empty → ...   one → ...   all same → ...\n```"
+ },
  "sections": [
   {
    "id": "why",
@@ -44,5 +67,15 @@
    "body": "✍️ Use the same box at the top of every problem page in GoodNotes:\n\n```\nUNDERSTAND   f(...) -> ...\nCONSTRAINTS  n ≤ ...  → target O(...)     values: ...     guarantees: ...\nBY HAND      example: ...   what I did: ...   work done: ...\nHARD PART    ...\nEDGES        empty → ...   one → ...   all same → ...\n```\n\nOnly after this box is filled do you move to [[meta-bottleneck-method]]."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "day": 1,
+   "block": "reading_path",
+   "step": 1,
+   "kind": "path",
+   "why": "Every problem in this plan starts with this box on paper. Read it once — you will fill it four times today.",
+   "section": "five-questions"
+  }
+ ],
+ "notes_status": "ready"
 }

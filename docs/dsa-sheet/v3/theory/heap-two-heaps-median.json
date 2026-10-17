@@ -10,6 +10,9 @@
  "related": [
   "heap-top-k"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -36,5 +39,6 @@
    "body": "addNum O(log n), findMedian O(1), O(n) space."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

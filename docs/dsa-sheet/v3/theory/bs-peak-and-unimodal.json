@@ -10,6 +10,9 @@
  "related": [
   "bs-rotated-arrays"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -30,5 +33,6 @@
    "body": "Find peak element (LeetCode 162), peak index in a mountain array (LeetCode 852), find in mountain array (LeetCode 1095: peak first, then two ordinary searches)."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

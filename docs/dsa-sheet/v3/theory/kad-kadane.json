@@ -12,6 +12,9 @@
   "kad-max-product-variant",
   "dp-1d-linear"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -64,39 +67,100 @@
  ],
  "used_by": [
   {
-   "problem": "maximum-subarray",
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-input-shape",
+   "kind": "link",
+   "section": ""
+  },
+  {
    "day": 4,
-   "section": "think",
-   "stage": "brainstorm",
-   "at": "For a fixed end, the best start comes from the previous end"
+   "block": "micro",
+   "kind": "link",
+   "section": "idea"
   },
   {
    "problem": "maximum-subarray",
    "day": 4,
-   "section": "template",
-   "stage": "pseudocode",
-   "at": "cur = max(x, cur + x)"
-  },
-  {
-   "problem": "maximum-subarray",
-   "day": 4,
-   "section": "pitfalls",
-   "stage": "solution",
-   "at": "Initialise with a[0], not 0"
-  },
-  {
-   "problem": "maximum-subarray",
-   "day": 4,
-   "section": "proof",
    "stage": "followups",
-   "at": "Proof by induction"
+   "kind": "link",
+   "section": "variations"
+  },
+  {
+   "problem": "maximum-subarray",
+   "day": 4,
+   "stage": "brainstorm",
+   "at": "For a fixed end, the best start comes from the previous end",
+   "why": "How Kadane falls out of the bottleneck method.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "think"
+  },
+  {
+   "problem": "maximum-subarray",
+   "day": 4,
+   "stage": "pseudocode",
+   "at": "cur = max(x, cur + x)",
+   "why": "Extend or restart.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "template"
+  },
+  {
+   "problem": "maximum-subarray",
+   "day": 4,
+   "stage": "solution",
+   "at": "Initialise with a[0], not 0",
+   "why": "The all-negative bug.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "pitfalls"
+  },
+  {
+   "problem": "maximum-subarray",
+   "day": 4,
+   "stage": "followups",
+   "at": "Proof by induction",
+   "why": "What to say when asked why it is correct.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "proof"
+  },
+  {
+   "problem": "maximum-subarray",
+   "day": 4,
+   "kind": "stuck",
+   "minutes": "20",
+   "section": "idea"
+  },
+  {
+   "problem": "maximum-subarray",
+   "day": 4,
+   "kind": "stuck",
+   "minutes": "30",
+   "section": "template"
+  },
+  {
+   "problem": "maximum-subarray",
+   "day": 4,
+   "kind": "stuck",
+   "minutes": "40",
+   "section": "pitfalls"
   },
   {
    "problem": "best-time-to-buy-and-sell-stock",
    "day": 4,
-   "section": "variations",
    "stage": "carry",
-   "at": "Connection to Kadane"
+   "at": "Connection to Kadane",
+   "why": "Kadane on daily differences gives the same answer.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "variations"
   }
- ]
+ ],
+ "notes_status": "pending"
 }

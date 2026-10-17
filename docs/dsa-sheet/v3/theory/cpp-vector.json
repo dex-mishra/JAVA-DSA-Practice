@@ -9,6 +9,29 @@
   "cx-amortised-analysis",
   "cpp-pass-by-reference-and-copies"
  ],
+ "note": "1. Declaring\n   • `vector<int> a(n, -1);` · 2D: `vector<vector<int>> g(R, vector<int>(C, 0));`\n   • `push_back` (amortised O(1)), `pop_back`, `back()`, `size()`\n2. Gotchas\n   • `size()` is **unsigned** → `a.size() - 1` on empty = huge. Store `int n = a.size();`\n   • Out-of-bounds `a[i]` doesn't throw → garbage / crash later\n   • Never `push_back` into a vector while range-for looping over it\n3. Costs\n   • `a[i]`, push/pop at back → O(1)\n   • insert / erase at front or middle → **O(n)** (shifts)\n   • `sort` O(n log n), `reverse` O(n), copy `b = a` O(n)\n4. Loops\n   • `for (int x : a)` → copy (read only) · `for (int &x : a)` → reference (modify)\n5. Passing to functions\n   • `const vector<int>& a` to read, `vector<int>& a` to modify — never by value in recursion\n✎ In my words: ______________________________________________",
+ "recall": [
+  {
+   "q": "Why store `int n = a.size()`?",
+   "a": "size() is unsigned; size()-1 on an empty vector wraps to a huge number."
+  },
+  {
+   "q": "Cost of erasing the first element of a vector?",
+   "a": "O(n) — everything shifts left."
+  },
+  {
+   "q": "Range-for that modifies elements?",
+   "a": "`for (int &x : a)` with a reference."
+  },
+  {
+   "q": "How should a function take a vector it only reads?",
+   "a": "`const vector<int>&` — no copy."
+  }
+ ],
+ "shot": {
+  "title": "Vector operations and costs",
+  "body": "| Operation | Cost |\n|---|---|\n| `a[i]`, `back()`, `push_back`, `pop_back` | O(1) (push amortised) |\n| `insert`/`erase` at position i | O(n − i) |\n| `erase(a.begin())` | O(n) |\n| `sort` | O(n log n) |\n| `reverse`, `find`, copy | O(n) |"
+ },
  "sections": [
   {
    "id": "basics",
@@ -41,5 +64,15 @@
    "body": "✍️ Out-of-bounds `a[i]` does not throw; it reads garbage or crashes later. Check `i >= 0 && i < n` before indexing neighbours (`a[i-1]`, `a[i+1]`).\n✍️ Modifying a vector while iterating it with a range-for (`push_back` inside) invalidates iterators — undefined behaviour.\n- `a.clear()` sets size to 0 but keeps capacity; it is O(n) for destructors, effectively O(1) for ints."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "day": 1,
+   "block": "reading_path",
+   "step": 5,
+   "kind": "path",
+   "why": "The container in every problem. Note the size() trap.",
+   "section": "basics"
+  }
+ ],
+ "notes_status": "ready"
 }

@@ -11,6 +11,9 @@
   "graph-topological-sort",
   "graph-dsu"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "undirected",
@@ -37,5 +40,13 @@
    "body": "Course schedule (can you finish all courses?), find eventual safe states (vertices not leading to a cycle = those that reach state 2), redundant connection, detect deadlock."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "graph-dfs",
+   "from_section": "uses",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

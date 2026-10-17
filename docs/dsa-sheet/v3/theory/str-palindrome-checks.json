@@ -11,6 +11,9 @@
  "related": [
   "str-expand-around-center"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "basic",
@@ -33,11 +36,44 @@
  ],
  "used_by": [
   {
+   "from_page": "tp-opposite-ends",
+   "from_section": "palindrome",
+   "kind": "link",
+   "section": ""
+  },
+  {
    "problem": "valid-palindrome",
    "day": 3,
-   "section": "skipping",
+   "stage": "followups",
+   "kind": "link",
+   "section": "one-deletion"
+  },
+  {
+   "problem": "valid-palindrome",
+   "sibling": "valid-palindrome-ii",
+   "day": 3,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "one-deletion"
+  },
+  {
+   "problem": "valid-palindrome",
+   "day": 3,
    "stage": "pseudocode",
-   "at": "Inner skip loops also check l < r"
+   "at": "Inner skip loops also check l < r",
+   "why": "The bounds bug in skipping.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "skipping"
+  },
+  {
+   "problem": "valid-palindrome",
+   "day": 3,
+   "kind": "stuck",
+   "minutes": "30",
+   "section": "skipping"
   }
- ]
+ ],
+ "notes_status": "pending"
 }

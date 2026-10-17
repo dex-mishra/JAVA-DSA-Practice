@@ -37,7 +37,7 @@ echo "Launch Console — secrets setup. Values are hidden as you paste."
 ask GROQ_API_KEY   "Groq key for the drill check. console.groq.com → API Keys → Create." "gsk_"
 ask RESEND_API_KEY "Resend key for the emails. resend.com/api-keys → Create (Sending access)." "re_"
 ask NOTIFY_TO      "The email address your Resend account is registered with (emails go here)." ""
-ask JUDGE0_KEY     "RapidAPI key for grading mocks. rapidapi.com → Judge0 CE → Basic (free) plan → X-RapidAPI-Key." ""
+ask ONLINECOMPILER_KEY "Code runner key for grading mocks. onlinecompiler.io → sign in with Google → API key." ""
 
 echo
 echo "Secrets now set on the Worker:"

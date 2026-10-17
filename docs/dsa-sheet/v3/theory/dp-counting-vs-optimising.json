@@ -12,6 +12,9 @@
   "dp-0-1-knapsack",
   "dp-1d-linear"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "differences",
@@ -32,5 +35,13 @@
    "body": "✍️ Apply `% MOD` after every addition; use `long long` for intermediate sums. With subtraction, add MOD before taking the modulo to stay non-negative."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "dp-unbounded-knapsack",
+   "from_section": "count-combinations",
+   "kind": "link",
+   "section": "order"
+  }
+ ],
+ "notes_status": "pending"
 }

@@ -11,6 +11,9 @@
  "related": [
   "stq-stack-basics-and-matching"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "gas",
@@ -31,5 +34,6 @@
    "body": "✍️ If you start at s and run dry at i, then every start between s and i also runs dry at or before i: they begin with an empty tank at a point where starting from s you had a non-negative surplus."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

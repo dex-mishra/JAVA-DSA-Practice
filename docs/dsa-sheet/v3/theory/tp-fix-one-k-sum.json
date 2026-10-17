@@ -12,6 +12,9 @@
  "related": [
   "hash-complement-lookup"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -58,25 +61,80 @@
  ],
  "used_by": [
   {
+   "from_page": "tp-opposite-ends",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "day": 3,
+   "block": "micro",
+   "kind": "link",
+   "section": "idea"
+  },
+  {
+   "problem": "two-sum-ii-input-array-is-sorted",
+   "sibling": "count-pairs-whose-sum-is-less-than-target",
+   "day": 3,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "variations"
+  },
+  {
+   "problem": "3sum",
+   "sibling": "3sum-closest",
+   "day": 3,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "variations"
+  },
+  {
    "problem": "3sum",
    "day": 3,
-   "section": "think",
    "stage": "brainstorm",
-   "at": "Fix one, the rest is sorted two-sum"
+   "at": "Fix one, the rest is sorted two-sum",
+   "why": "How O(n³) becomes O(n²).",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "think"
   },
   {
    "problem": "3sum",
    "day": 3,
-   "section": "template",
    "stage": "solution",
-   "at": "`if (a[i] > 0) break`"
+   "at": "`if (a[i] > 0) break`",
+   "why": "Early exit on sorted data.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "template"
   },
   {
    "problem": "3sum",
    "day": 3,
-   "section": "pitfalls",
    "stage": "edges",
-   "at": "Compare with a[i−1], not a[i+1]"
+   "at": "Compare with a[i−1], not a[i+1]",
+   "why": "The bug that loses [−1, −1, 2].",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "pitfalls"
+  },
+  {
+   "problem": "3sum",
+   "day": 3,
+   "kind": "stuck",
+   "minutes": "20",
+   "section": "idea"
+  },
+  {
+   "problem": "3sum",
+   "day": 3,
+   "kind": "stuck",
+   "minutes": "30",
+   "section": "template"
   }
- ]
+ ],
+ "notes_status": "pending"
 }

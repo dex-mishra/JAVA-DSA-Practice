@@ -11,6 +11,9 @@
   "sort-counting-sort",
   "cpp-sort-and-comparators"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "stability",
@@ -25,5 +28,6 @@
    "body": "✍️ Any sort that only compares elements needs Ω(n log n) comparisons in the worst case (there are n! possible orders and each comparison at best halves the possibilities: log₂(n!) ≈ n log n).\n- Non-comparison sorts (counting, radix, bucket) beat it by using the values themselves as indices, when the value range is small."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

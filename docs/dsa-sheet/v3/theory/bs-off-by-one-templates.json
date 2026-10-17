@@ -11,6 +11,9 @@
   "bs-on-answer",
   "bs-rotated-arrays"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "first-true",
@@ -31,5 +34,25 @@
    "body": "✍️ The skill is writing `ok` so it is monotone. Examples:\n- First ≥ x: `ok(i) = a[i] >= x`.\n- Minimum in rotated array: `ok(i) = a[i] <= a[n−1]` (every element of the right, smaller part satisfies it).\n- Peak element: `ok(i) = a[i] > a[i+1]` (true from the peak onward on any increasing-then-decreasing slope).\n- Smallest speed that finishes in time: `ok(s) = hoursNeeded(s) <= h` ([[bs-on-answer]])."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "bs-classic-and-invariants",
+   "from_section": "recognise",
+   "kind": "link",
+   "section": "first-true"
+  },
+  {
+   "from_page": "bs-classic-and-invariants",
+   "from_section": "why-terminates",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "bs-rotated-arrays",
+   "from_section": "find-min",
+   "kind": "link",
+   "section": "choose-ok"
+  }
+ ],
+ "notes_status": "pending"
 }

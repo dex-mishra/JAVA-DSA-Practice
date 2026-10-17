@@ -12,12 +12,35 @@
   "hash-frequency-counting",
   "hash-complement-lookup"
  ],
+ "note": "1. API\n   • `mp[k] = v;` `mp[k]++` (missing key starts at 0)\n   • Ask: `mp.count(k)` (0/1) or `auto it = mp.find(k); if (it != mp.end()) ...`\n   • `mp.erase(k)`, `mp.size()`; iterate `for (auto& [k, v] : mp)`\n2. The [] trap\n   • `mp[k]` **inserts** k with 0 if missing → changes `size()`\n   • Rule: `count/find` to ask, `[]` only to write\n3. Costs\n   • O(1) average, O(n) worst; iteration order arbitrary — never rely on it\n4. Keys\n   • ints, strings ✓ · `pair<int,int>` ✗ (no default hash) → use `map`, or encode as `long long`\n5. Speed\n   • `reserve(n)` before many inserts · small dense keys → plain array is faster\n✎ In my words: ______________________________________________",
+ "recall": [
+  {
+   "q": "What does `mp[k]` do if k is missing?",
+   "a": "Inserts k with value 0 (and increases size)."
+  },
+  {
+   "q": "Two safe ways to ask \"is k present?\"",
+   "a": "mp.count(k) or mp.find(k) != mp.end()."
+  },
+  {
+   "q": "Can pair<int,int> be an unordered_map key by default?",
+   "a": "No — use map, or encode the pair into a long long/string."
+  },
+  {
+   "q": "Can you rely on unordered_map iteration order?",
+   "a": "No — it is arbitrary and can change after rehashing."
+  }
+ ],
+ "shot": {
+  "title": "API card",
+  "body": "```cpp\nunordered_map<int,int> freq;\nfor (int x : a) freq[x]++;               // write with []\nif (freq.count(7)) { /* present */ }     // ask with count\nauto it = freq.find(7);                  // ask + read without inserting\nif (it != freq.end()) use(it->second);\nfor (auto& [val, c] : freq) { }          // iterate (arbitrary order)\nunordered_set<int> seen; seen.insert(x); seen.count(x);\n```"
+ },
  "sections": [
   {
    "id": "api",
    "title": "The API you need",
    "note": "write",
-   "body": "✍️ `unordered_map<int,int> mp;` key → value. `unordered_set<int> st;` keys only.\n✍️ Insert/update: `mp[key] = value;` or `mp[key]++;` (missing keys start at 0).\n✍️ Membership: `mp.count(key)` returns 0 or 1. `st.count(x)`. C++20 also has `.contains()`, but `.count()` works everywhere.\n✍️ Lookup without inserting: `auto it = mp.find(key); if (it != mp.end()) use(it->second);`\n✍️ Erase: `mp.erase(key);` Size: `mp.size()`.\n\n```cpp\nunordered_map<int,int> freq;\nfor (int x : a) freq[x]++;                 // frequency count\nif (freq.count(7)) cout << freq[7];        // safe read: key exists\nfor (auto& [val, c] : freq) { /* ... */ }  // iterate (order is arbitrary)\n```"
+   "body": "✍️ `unordered_map<int,int> mp;` key → value. `unordered_set<int> st;` keys only.\n✍️ Insert/update: `mp[key] = value;` or `mp[key]++;` (missing keys start at 0).\n✍️ Membership: `mp.count(key)` returns 0 or 1. `st.count(x)`. C++20 also has `.contains()`, but `.count()` works everywhere.\n>> detour hash-table-internals#picture | How unordered_map finds a key without searching | 3 min\n✍️ Lookup without inserting: `auto it = mp.find(key); if (it != mp.end()) use(it->second);`\n✍️ Erase: `mp.erase(key);` Size: `mp.size()`.\n\n```cpp\nunordered_map<int,int> freq;\nfor (int x : a) freq[x]++;                 // frequency count\nif (freq.count(7)) cout << freq[7];        // safe read: key exists\nfor (auto& [val, c] : freq) { /* ... */ }  // iterate (order is arbitrary)\n```"
   },
   {
    "id": "bracket-trap",
@@ -46,11 +69,52 @@
  ],
  "used_by": [
   {
+   "from_page": "hash-frequency-counting",
+   "from_section": "pitfalls",
+   "kind": "link",
+   "section": "bracket-trap"
+  },
+  {
+   "from_page": "sw-frequency-map-window",
+   "from_section": "distinct",
+   "kind": "link",
+   "section": "bracket-trap"
+  },
+  {
+   "day": 2,
+   "block": "reading_path",
+   "step": 2,
+   "kind": "path",
+   "why": "The five operations you will type today.",
+   "section": "api"
+  },
+  {
+   "day": 2,
+   "block": "reading_path",
+   "step": 3,
+   "kind": "path",
+   "why": "The one bug everybody makes with mp[k].",
+   "section": "bracket-trap"
+  },
+  {
+   "problem": "two-sum",
+   "sibling": "contains-duplicate",
+   "day": 2,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "api"
+  },
+  {
    "problem": "two-sum",
    "day": 2,
-   "section": "bracket-trap",
    "stage": "solution",
-   "at": "`seen.find(need)` instead of `seen[need]`"
+   "at": "`seen.find(need)` instead of `seen[need]`",
+   "why": "`[]` would insert the key while you are only asking.",
+   "when": "while",
+   "need": "must",
+   "kind": "ref",
+   "section": "bracket-trap"
   }
- ]
+ ],
+ "notes_status": "ready"
 }

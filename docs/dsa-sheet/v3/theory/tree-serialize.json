@@ -10,6 +10,9 @@
  "related": [
   "tree-construction-from-traversals"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -24,11 +27,12 @@
    "body": "```cpp\nvoid ser(TreeNode* n, string& s) {\n    if (!n) { s += \"#,\"; return; }\n    s += to_string(n->val) + \",\";\n    ser(n->left, s); ser(n->right, s);\n}\nTreeNode* des(stringstream& ss) {\n    string t; getline(ss, t, ',');\n    if (t == \"#\") return nullptr;\n    TreeNode* n = new TreeNode(stoi(t));\n    n->left = des(ss); n->right = des(ss);\n    return n;\n}\n```"
   },
   {
-   "id": "note",
+   "id": "remark",
    "title": "Note",
    "note": "mixed",
    "body": "✍️ BFS with nulls (LeetCode's own format) also works. Both are O(n)."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

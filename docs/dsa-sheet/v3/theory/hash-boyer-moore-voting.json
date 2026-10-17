@@ -10,6 +10,29 @@
  "related": [
   "hash-frequency-counting"
  ],
+ "note": "1. Problem\n   • Find the value appearing **more than n/2** times, in O(n) time and **O(1) space**\n2. Levels\n   • map of counts → O(n) space · sort and take a[n/2] → O(n log n) · **voting** → O(n), O(1)\n3. Algorithm\n   • Keep `cand`, `cnt`\n   • cnt == 0 → adopt x as cand (**before** comparing)\n   • x == cand → cnt++ · else → cnt−−\n4. Why it works\n   • Each cnt−− cancels one cand with one different value\n   • The majority has more copies than all others combined → can't be fully cancelled\n   • No guaranteed majority → **second pass** to verify\n5. Hint to remember\n   • \"O(1) space\" on a counting problem = the ban names the technique (voting / XOR / math)\n6. Variant\n   • > n/3 → **two** candidates, always verify\n✎ In my words: ______________________________________________",
+ "recall": [
+  {
+   "q": "Why does the majority survive voting?",
+   "a": "Each decrement cancels one copy against a different value; the majority has more copies than everything else together."
+  },
+  {
+   "q": "When do you need a verification pass?",
+   "a": "When a majority is not guaranteed."
+  },
+  {
+   "q": "How many candidates for \"more than n/3\"?",
+   "a": "Two."
+  },
+  {
+   "q": "Why does `a[n/2]` after sorting give the majority?",
+   "a": "A value filling more than half the positions must cover the middle index."
+  }
+ ],
+ "shot": {
+  "title": "Template + trace",
+  "body": "```cpp\nint cand = 0, cnt = 0;\nfor (int x : a) {\n    if (cnt == 0) cand = x;       // adopt first\n    cnt += (x == cand) ? 1 : -1;\n}\nreturn cand;\n```\n| x | 2 | 2 | 1 | 1 | 1 | 2 | 2 |\n|---|---|---|---|---|---|---|---|\n| cand | 2 | 2 | 2 | 2 | 1 | 1 | 2 |\n| cnt | 1 | 2 | 1 | 0 | 1 | 0 | 1 |"
+ },
  "sections": [
   {
    "id": "idea",
@@ -27,7 +50,7 @@
    "id": "think",
    "title": "Brute force → voting",
    "note": "mixed",
-   "body": "Brute force: for each value count its occurrences with a scan. O(n²).\nBetter: frequency map, return the value with count > n/2. O(n) time, O(n) space.\nAlso valid: sort, return the middle element `a[n/2]` (the majority must cover the middle). O(n log n), O(1).\n✍️ To reach O(n) time *and* O(1) space you need to avoid storing counts for every value. Observation: you only care about **one** value, the one that survives cancellation."
+   "body": "Brute force: for each value count its occurrences with a scan. O(n²).\nBetter: frequency map, return the value with count > n/2. O(n) time, O(n) space.\n>> detour cx-space-and-in-place#aux | What counts as \"extra space\" — and why a map is O(n) | 2 min\nAlso valid: sort, return the middle element `a[n/2]` (the majority must cover the middle). O(n log n), O(1).\n✍️ To reach O(n) time *and* O(1) space you need to avoid storing counts for every value. Observation: you only care about **one** value, the one that survives cancellation."
   },
   {
    "id": "why-it-works",
@@ -62,32 +85,90 @@
  ],
  "used_by": [
   {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-question-words",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "bits-xor-tricks",
+   "from_section": "single",
+   "kind": "link",
+   "section": "recognise"
+  },
+  {
    "problem": "majority-element",
+   "sibling": "majority-element-ii",
    "day": 2,
-   "section": "think",
-   "stage": "brainstorm",
-   "at": "Map → sort → voting"
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "variations"
   },
   {
    "problem": "majority-element",
    "day": 2,
-   "section": "recognise",
    "stage": "brainstorm",
-   "at": "O(1) space is the hint"
+   "at": "↳ Unlock: \"a forbidden data structure is a hint\"",
+   "why": "How the O(1)-space requirement names the technique.",
+   "when": "stuck",
+   "need": "must",
+   "kind": "ref",
+   "section": "recognise"
   },
   {
    "problem": "majority-element",
    "day": 2,
-   "section": "pitfalls",
+   "stage": "brainstorm",
+   "at": "**4. Optimal (Boyer–Moore).**",
+   "why": "The map → sort → voting ladder in full.",
+   "when": "stuck",
+   "need": "must",
+   "kind": "ref",
+   "section": "think"
+  },
+  {
+   "problem": "majority-element",
+   "day": 2,
    "stage": "pseudocode",
-   "at": "Adopt before comparing"
+   "at": "`if cnt == 0: cand = x` comes first",
+   "why": "The order of the two lines inside the loop.",
+   "when": "while",
+   "need": "must",
+   "kind": "ref",
+   "section": "pitfalls"
   },
   {
    "problem": "majority-element",
    "day": 2,
-   "section": "why-it-works",
    "stage": "edges",
-   "at": "Why the survivor is the majority"
+   "at": "\"guaranteed only because a majority is guaranteed\"",
+   "why": "The cancellation argument you say in an interview.",
+   "when": "after",
+   "need": "must",
+   "kind": "ref",
+   "section": "why-it-works"
+  },
+  {
+   "problem": "majority-element",
+   "day": 2,
+   "kind": "stuck",
+   "minutes": "20",
+   "section": "idea"
+  },
+  {
+   "problem": "majority-element",
+   "day": 2,
+   "kind": "stuck",
+   "minutes": "30",
+   "section": "template"
+  },
+  {
+   "problem": "majority-element",
+   "day": 2,
+   "kind": "stuck",
+   "minutes": "40",
+   "section": "why-it-works"
   }
- ]
+ ],
+ "notes_status": "ready"
 }

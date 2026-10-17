@@ -11,6 +11,9 @@
  "related": [
   "str-anagram-window"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -39,25 +42,73 @@
  ],
  "used_by": [
   {
+   "from_page": "hash-frequency-counting",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  },
+  {
    "problem": "longest-substring-without-repeating-characters",
    "day": 5,
-   "section": "idea",
+   "stage": "followups",
+   "kind": "link",
+   "section": "distinct"
+  },
+  {
+   "problem": "longest-substring-without-repeating-characters",
+   "sibling": "fruit-into-baskets",
+   "day": 5,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "distinct"
+  },
+  {
+   "problem": "longest-substring-without-repeating-characters",
+   "day": 5,
    "stage": "solution",
-   "at": "Counts of characters in the window"
+   "at": "Counts of characters in the window",
+   "why": "The window's state.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "idea"
+  },
+  {
+   "problem": "longest-substring-without-repeating-characters",
+   "day": 5,
+   "kind": "stuck",
+   "minutes": "40",
+   "section": "idea"
   },
   {
    "problem": "longest-repeating-character-replacement",
    "day": 5,
-   "section": "idea",
    "stage": "brainstorm",
-   "at": "Window with a frequency table"
+   "at": "Window with a frequency table",
+   "why": "The state you maintain.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "idea"
   },
   {
    "problem": "longest-repeating-character-replacement",
    "day": 5,
-   "section": "maxcount",
    "stage": "solution",
-   "at": "maxCount never decreases"
+   "at": "maxCount never decreases",
+   "why": "Why a stale maximum is safe.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "maxcount"
+  },
+  {
+   "problem": "longest-repeating-character-replacement",
+   "day": 5,
+   "kind": "stuck",
+   "minutes": "30",
+   "section": "maxcount"
   }
- ]
+ ],
+ "notes_status": "pending"
 }

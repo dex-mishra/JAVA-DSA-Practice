@@ -11,6 +11,9 @@
   "bits-counting-bits-dp",
   "dp-bitmask"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "clear-lowest",
@@ -31,5 +34,13 @@
    "body": "- Lowest set bit value: `n & (−n)`.\n- Reverse bits / number of 1 bits: loop over 32 positions with `unsigned`.\n- `x >> 1` = x / 2 and `x & 1` = x % 2 for non-negative x."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "bt-pick-or-skip",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

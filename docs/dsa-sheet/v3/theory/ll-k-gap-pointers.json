@@ -10,6 +10,9 @@
  "related": [
   "ll-fast-slow"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -30,5 +33,6 @@
    "body": "✍️ Without the dummy, removing the head (n = length) crashes or needs a special case.\n✍️ Off-by-one in the gap: draw a 3-node list and n = 1 and check where slow stops.\n- Two-pass alternative: count length L, then delete the (L − n)-th from the start. Correct and acceptable; the one-pass version is the follow-up."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

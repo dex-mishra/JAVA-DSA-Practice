@@ -9,6 +9,9 @@
   "bits-xor-tricks",
   "bits-common-tricks"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "binary",
@@ -35,5 +38,15 @@
    "body": "✍️ `x & 1 == 0` parses as `x & (1 == 0)`. Always parenthesise: `(x & 1) == 0`."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "problem": "max-consecutive-ones-iii",
+   "sibling": "longest-nice-subarray",
+   "day": 5,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "operators"
+  }
+ ],
+ "notes_status": "pending"
 }

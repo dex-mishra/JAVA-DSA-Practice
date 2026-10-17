@@ -11,6 +11,9 @@
   "cx-space-and-in-place",
   "tree-iterative-traversals"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "limits",
@@ -25,5 +28,25 @@
    "body": "✍️ DFS on a linked-list-shaped tree, a path graph, or a grid of 10⁶ cells → depth can equal n.\n✍️ Fix: use an explicit `stack` (iterative DFS) or BFS. See [[tree-iterative-traversals]] and [[graph-dfs#iterative]]."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "cx-space-and-in-place",
+   "from_section": "recursion-space",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "tree-iterative-traversals",
+   "from_section": "why",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "graph-dfs",
+   "from_section": "iterative",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

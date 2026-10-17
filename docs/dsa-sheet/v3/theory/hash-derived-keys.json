@@ -11,6 +11,25 @@
  "related": [
   "hash-frequency-counting"
  ],
+ "note": "1. Idea\n   • Items belong together ⇔ their **canonical form** is equal → use it as a map key\n   • `groups[key].push_back(item)`\n2. Recognise\n   • group, bucket, classify, \"equivalent under …\", isomorphic, same pattern\n3. Choosing the key\n   • Sorted string → O(L log L)\n   • 26-count signature → O(L)\n   • Pattern key → index of first appearance per character (\"egg\" → 0,1,1)\n4. Cost\n   • O(n × cost of one key); space O(total characters)\n✎ In my words: ______________________________________________",
+ "recall": [
+  {
+   "q": "Canonical key for anagram groups?",
+   "a": "The sorted word (or its 26-count signature)."
+  },
+  {
+   "q": "Pattern key for \"egg\" and \"add\"?",
+   "a": "[0,1,1] for both — index of each character's first appearance."
+  },
+  {
+   "q": "Complexity with sorted-string keys?",
+   "a": "O(n · L log L)."
+  }
+ ],
+ "shot": {
+  "title": "Template",
+  "body": "```cpp\nunordered_map<string, vector<string>> groups;\nfor (auto& w : words) {\n    string key = w; sort(key.begin(), key.end());\n    groups[key].push_back(w);\n}\n```"
+ },
  "sections": [
   {
    "id": "idea",
@@ -43,5 +62,36 @@
    "body": "O(n · cost of computing one key). With sorted keys: O(n · L log L). Space O(n · L) to store the groups."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "hash-frequency-counting",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "problem": "valid-anagram",
+   "day": 2,
+   "stage": "followups",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "problem": "valid-anagram",
+   "sibling": "group-anagrams",
+   "day": 2,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "idea"
+  },
+  {
+   "problem": "valid-anagram",
+   "sibling": "group-anagrams",
+   "day": 2,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "key-choice"
+  }
+ ],
+ "notes_status": "ready"
 }

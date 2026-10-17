@@ -354,7 +354,7 @@ TreeNode* des(stringstream& ss) {
 }
 ```
 
---- note | Note | mixed
+--- remark | Note | mixed
 ✍️ BFS with nulls (LeetCode's own format) also works. Both are O(n).
 
 === page: tree-as-graph-parent-map

@@ -12,6 +12,9 @@
   "tree-global-answer-pattern",
   "tree-top-down-parameters"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -44,5 +47,19 @@
    "body": "O(n) time, O(h) stack."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-input-shape",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "tree-dfs-traversals",
+   "from_section": "which",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

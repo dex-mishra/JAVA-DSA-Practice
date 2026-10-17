@@ -11,6 +11,9 @@
  "related": [
   "bt-permutations-used-array"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -37,5 +40,19 @@
    "body": "✍️ Forgetting to sort first — the skip only works when duplicates are adjacent.\n- Using a `set<vector<int>>` to dedup at the end is correct but slower and hides the reasoning."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "tp-skip-duplicates",
+   "from_section": "idioms",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "bt-pick-or-skip",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

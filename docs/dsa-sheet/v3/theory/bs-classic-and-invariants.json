@@ -13,6 +13,9 @@
   "bs-off-by-one-templates",
   "bs-on-answer"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -51,5 +54,19 @@
    "body": "O(log n) time, O(1) space (iterative)."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "meta-bottleneck-method",
+   "from_section": "name-waste",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-input-shape",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

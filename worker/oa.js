@@ -12,7 +12,7 @@
 
 import OA_CONTENT from "./oa-content.json" with { type: "json" };
 import { buildInput } from "./oa-gen.js";
-import { runBatch, RunnerError } from "./runner.js";
+import { runBatch, RunnerError, runnerStatus } from "./runner.js";
 
 const MOCKS = new Map((OA_CONTENT.mocks || []).map((m) => [m.id, m]));
 
@@ -145,11 +145,16 @@ function inputsFor(hidden) {
  */
 export async function gradeProblem(env, problem, { source, lang }) {
   const hidden = problem.hidden || [];
-  const inputs = inputsFor(hidden);
+  /* A runner that builds generated inputs inside the submission
+     (OnlineCompiler.io) gets only the key; the others get the text, built
+     once here. Building a megabyte of digits costs more Worker CPU than the
+     free plan's budget, so it is only done when something will read it. */
+  const inProgram = runnerStatus(env).backend === "onlinecompiler";
+  const inputs = inProgram ? hidden.map((t) => (typeof t.input === "string" ? t.input : "")) : inputsFor(hidden);
 
   let rows;
   try {
-    rows = await runBatch(env, inputs.map((input) => ({ input })), { source, lang });
+    rows = await runBatch(env, inputs.map((input, i) => ({ input, genKey: hidden[i].gen_key || null })), { source, lang });
   } catch (err) {
     if (err instanceof RunnerError) {
       return {

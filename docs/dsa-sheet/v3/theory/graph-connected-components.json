@@ -11,6 +11,9 @@
   "graph-dsu",
   "graph-grid-as-graph"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -37,5 +40,19 @@
    "body": "O(n + m) with an adjacency list, O(n²) with a matrix."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "graph-dfs",
+   "from_section": "uses",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "graph-grid-as-graph",
+   "from_section": "template",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

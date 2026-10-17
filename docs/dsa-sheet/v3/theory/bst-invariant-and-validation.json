@@ -11,6 +11,9 @@
   "bst-inorder-sorted-property",
   "bst-search-insert-delete"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "invariant",
@@ -31,5 +34,6 @@
    "body": "✍️ A tree is a BST iff its inorder traversal is **strictly increasing**. Keep the previous value seen and compare ([[bst-inorder-sorted-property]])."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

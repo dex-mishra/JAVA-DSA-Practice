@@ -10,6 +10,9 @@
  "related": [
   "bt-dedup-sorted-skip"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -42,5 +45,13 @@
    "body": "O(n·n!) time, O(n) recursion depth."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-constraint",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

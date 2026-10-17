@@ -12,6 +12,9 @@
   "tp-fix-one-k-sum",
   "hash-complement-lookup"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -70,39 +73,161 @@
  ],
  "used_by": [
   {
+   "from_page": "meta-bottleneck-method",
+   "from_section": "name-waste",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-input-shape",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "hash-complement-lookup",
+   "from_section": "recognise",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "hash-complement-lookup",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "str-palindrome-checks",
+   "from_section": "basic",
+   "kind": "link",
+   "section": "palindrome"
+  },
+  {
    "problem": "two-sum",
    "day": 2,
-   "section": "pitfalls",
-   "stage": "analyse",
-   "at": "\"unsorted\" + \"return indices\""
+   "stage": "followups",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "problem": "two-sum",
+   "day": 2,
+   "stage": "followups",
+   "at": "\"The array is sorted; O(1) space?\"",
+   "why": "Tomorrow's pattern — the answer to this follow-up.",
+   "when": "after",
+   "need": "optional",
+   "kind": "ref",
+   "section": "idea"
+  },
+  {
+   "day": 3,
+   "block": "micro",
+   "kind": "link",
+   "section": "idea"
   },
   {
    "problem": "two-sum-ii-input-array-is-sorted",
    "day": 3,
-   "section": "recognise",
+   "stage": "followups",
+   "kind": "link",
+   "section": "variations"
+  },
+  {
+   "problem": "two-sum-ii-input-array-is-sorted",
+   "sibling": "squares-of-a-sorted-array",
+   "day": 3,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "variations"
+  },
+  {
+   "problem": "two-sum-ii-input-array-is-sorted",
+   "sibling": "reverse-string",
+   "day": 3,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "palindrome"
+  },
+  {
+   "problem": "two-sum-ii-input-array-is-sorted",
+   "day": 3,
    "stage": "understand",
-   "at": "\"sorted\", \"constant extra space\""
+   "at": "\"sorted\", \"constant extra space\"",
+   "why": "The two trigger words for opposite-end pointers.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "recognise"
   },
   {
    "problem": "two-sum-ii-input-array-is-sorted",
    "day": 3,
-   "section": "think",
    "stage": "brainstorm",
-   "at": "Binary search per element → one combined walk"
+   "at": "Binary search per element → one combined walk",
+   "why": "Why r only ever moves left.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "think"
   },
   {
    "problem": "two-sum-ii-input-array-is-sorted",
    "day": 3,
-   "section": "pitfalls",
    "stage": "pseudocode",
-   "at": "`while (l < r)`"
+   "at": "`while (l < r)`",
+   "why": "Distinct indices.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "pitfalls"
+  },
+  {
+   "problem": "two-sum-ii-input-array-is-sorted",
+   "day": 3,
+   "kind": "stuck",
+   "minutes": "10",
+   "section": "recognise"
+  },
+  {
+   "problem": "two-sum-ii-input-array-is-sorted",
+   "day": 3,
+   "kind": "stuck",
+   "minutes": "20",
+   "section": "idea"
+  },
+  {
+   "problem": "two-sum-ii-input-array-is-sorted",
+   "day": 3,
+   "kind": "stuck",
+   "minutes": "40",
+   "section": "template"
   },
   {
    "problem": "valid-palindrome",
    "day": 3,
-   "section": "palindrome",
    "stage": "brainstorm",
-   "at": "Clean-copy vs in-place pointers"
+   "at": "Clean-copy vs in-place pointers",
+   "why": "The symmetric two-pointer check.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "palindrome"
+  },
+  {
+   "problem": "valid-palindrome",
+   "day": 3,
+   "kind": "stuck",
+   "minutes": "20",
+   "section": "palindrome"
+  },
+  {
+   "problem": "container-with-most-water",
+   "day": 3,
+   "kind": "stuck",
+   "minutes": "20",
+   "section": "idea"
   }
- ]
+ ],
+ "notes_status": "pending"
 }

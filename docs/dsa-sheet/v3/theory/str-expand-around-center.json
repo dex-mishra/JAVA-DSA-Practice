@@ -10,6 +10,9 @@
  "related": [
   "dp-lcs-two-strings"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -48,5 +51,6 @@
    "body": "O(n²) time worst case (e.g. \"aaaa…\"), O(1) extra space. Manacher's algorithm achieves O(n) but is not expected in interviews."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

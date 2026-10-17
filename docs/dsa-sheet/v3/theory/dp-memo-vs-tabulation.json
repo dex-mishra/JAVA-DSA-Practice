@@ -10,6 +10,9 @@
  "related": [
   "dp-space-optimisation"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "memo",
@@ -30,5 +33,13 @@
    "body": "✍️ In interviews: describe the recursion first (it shows the thinking), memoise it, then offer the bottom-up version.\n- When the order of states is awkward (intervals, trees, DAGs) top-down is often easier to get right."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "cx-recursion-complexity",
+   "from_section": "memo-effect",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

@@ -13,6 +13,9 @@
   "heap-top-k",
   "graph-dijkstra"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "api",
@@ -33,5 +36,6 @@
    "body": "✍️ Negate values to turn a max-heap into a min-heap: push `-x`, read `-pq.top()`.\n- There is no decrease-key. Dijkstra pushes a new entry and skips stale ones when popped ([[graph-dijkstra#lazy-deletion]]).\n- Building from a vector: `priority_queue<int> pq(a.begin(), a.end());` is O(n), faster than n pushes."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

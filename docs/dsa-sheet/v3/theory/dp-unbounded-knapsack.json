@@ -11,6 +11,9 @@
   "dp-counting-vs-optimising",
   "bt-for-loop-choice"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -43,5 +46,19 @@
    "body": "O(amount × number of coins) time, O(amount) space."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "gr-what-greedy-is-and-proofs",
+   "from_section": "test",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "dp-space-optimisation",
+   "from_section": "direction",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

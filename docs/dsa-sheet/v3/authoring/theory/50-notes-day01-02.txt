@@ -1,0 +1,630 @@
+=== notes: meta-analyse-a-problem
+--- note | Note this | write
+1. Why analyse first
+   • Typing is slow and linear; thinking is fast → never invent the algorithm while typing
+   • Analysis = **what** is asked and what is allowed; brainstorm = **how**
+2. The five questions (on paper, 3–5 min)
+   • **Input → output** in one line, like a function: f(array, target) → two indices
+   • **Constraints** → target complexity (n ≤ 10⁵ → O(n log n) or better)
+       ◦ also note: negatives? zeros? values up to 10⁹? "sorted"? "exactly one answer"?
+   • **Tiny example by hand** (4–6 elements) → watch what your hands do = the algorithm
+   • **Hard part** in one sentence ("checking every pair is too slow")
+   • **Edge answers**: empty, one element, all same, all negative
+3. The tiny example
+   • Include one awkward feature: duplicate / negative / zero / answer at the edge
+   • Solve it the dumb way and **count the work** → that count is your brute force cost
+   • Ask: which of that work was wasted? → that is where the optimisation is
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- What are the five analysis questions? :: Input→output line, constraints→target complexity, tiny example by hand, the hard part, edge-case answers.
+- Why solve a tiny example by hand? :: What your hands do is the algorithm; counting the work gives the brute force cost and shows the waste.
+- n ≤ 10⁵ → what complexity? :: O(n log n) or O(n); O(n²) is too slow.
+- Which edge inputs do you always write answers for? :: Empty, one element, all equal, all negative / extremes.
+--- shot | The analysis box (paste at the top of every problem page) | screenshot
+```
+UNDERSTAND   f(...) -> ...
+CONSTRAINTS  n ≤ ...  → target O(...)     values: ...     guarantees: ...
+BY HAND      example: ...   what I did: ...   work done: ...
+HARD PART    ...
+EDGES        empty → ...   one → ...   all same → ...
+```
+
+=== notes: meta-bottleneck-method
+--- note | Note this | write
+1. The idea
+   • Optimal solutions are **derived**, not invented: brute force → remove waste → repeat
+   • Each step asks: **what is the bottleneck, and why is that work wasted?**
+2. Steps
+   • **Write the brute force** — correct by trying everything; gives the baseline cost
+       ◦ shapes: all pairs O(n²), all subarrays O(n²–n³), all subsets O(2ⁿ), all orders O(n!)
+   • **Point at the bottleneck** — the innermost / most repeated work
+   • **Describe its job in words** — "for each x, it searches the array for one value"
+   • **Name the waste → pick the tool**
+3. Waste → tool
+   • searching for a value already seen → **hash map**
+   • recounting the same elements → **frequency count**
+   • re-summing overlapping ranges → **prefix sum**
+   • recomputing a window that moved by one → **sliding window**
+   • checking candidates in sorted order → **binary search / two pointers**
+   • solving the same subproblem again → **DP**
+4. Unlock questions (ask in order when stuck)
+   • Am I searching for something I could have **remembered**?
+   • Am I **recomputing** something that changed a little?
+   • Would **sorting** make it trivial?
+   • Is the answer **monotone**? → binary search the answer
+5. When to stop
+   • When the complexity meets the target from the constraints
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- What question do you ask at every optimisation step? :: What is the bottleneck, and why is that work wasted?
+- Why always write the brute force? :: Proves understanding, gives the baseline, earns partial marks in OAs and points in interviews.
+- Waste "searching for a value I already saw" → tool? :: Hash map / set.
+- Waste "re-summing overlapping ranges" → tool? :: Prefix sums.
+- When do you stop optimising? :: When the complexity matches what the constraints require.
+--- shot | Waste → tool table | screenshot
+| The inner loop keeps… | Tool |
+|---|---|
+| searching for a value I already saw | hash map / set |
+| recounting the same elements | frequency array / map |
+| re-summing overlapping ranges | prefix sum |
+| recomputing a window that moved by one | sliding window |
+| checking candidates in sorted order | binary search / two pointers |
+| recomputing the same subproblem | memoisation / DP |
+| scanning for max/min of a changing set | heap / monotonic deque |
+| scanning ahead for the next bigger element | monotonic stack |
+
+=== notes: meta-pseudocode-format
+--- note | Note this | write
+1. Two steps after brainstorming
+   • **Algorithm in words** — 3–7 numbered English sentences → catches logic gaps
+   • **Pseudocode** — the 5 slots → catches mechanics gaps (initial values, bounds, order)
+   • Can't write the words version? → the idea isn't finished, go back to brainstorming
+2. The five slots (loops)
+   • **STATE** — what I keep between steps + initial values
+   • **LOOP** — what I walk over, in what order
+   • **CHECK** — the question asked at each step
+   • **UPDATE** — how the state changes
+   • **RETURN** — the output (and what if nothing was found)
+   • Most common bug = **order of CHECK and UPDATE** → decide it on purpose
+3. Recursive version
+   • FUNCTION (one sentence: what it returns) → BASE → CHOICES → RECURSE → COMBINE / UNDO
+4. Style
+   • 1 pseudocode line ≈ 1–2 C++ lines; real variable names; no C++ syntax on paper
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- Name the five slots. :: STATE, LOOP, CHECK, UPDATE, RETURN.
+- Which two slots cause the most bugs when swapped? :: CHECK and UPDATE.
+- What do you do if you can't write the algorithm in words? :: The idea is unfinished — go back to brainstorming, not forward to code.
+- What does the FUNCTION line of a recursive pseudocode say? :: One sentence stating exactly what the function returns.
+--- shot | Five-slot template + Two Sum example | screenshot
+```
+STATE   seen = map value → index (empty)
+LOOP    for i in 0..n-1, x = a[i]
+CHECK     need = target - x ; if need in seen → return [seen[need], i]
+UPDATE    seen[x] = i              ← AFTER the check
+RETURN  []   (unreachable: an answer is guaranteed)
+```
+
+=== notes: cx-big-o
+--- note | Note this | write
+1. What Big-O means
+   • How running time **grows** as n grows; ignores constants and small terms
+   • Doubling n: O(n) → 2× time, O(n²) → 4×, O(log n) → +1 step
+2. Counting from code
+   • One loop over n with O(1) inside → **O(n)**
+   • Two nested loops over n → **O(n²)** (even if the inner runs i times: n(n+1)/2)
+   • Halving / doubling a variable → **O(log n)**
+   • Sequential blocks **add** (keep the biggest); nested blocks **multiply**
+   • Library calls count: `sort` O(n log n), `unordered_map` O(1) avg, `map` O(log n), `substr(i, len)` O(len)
+3. Ranking
+   • 1 < log n < √n < n < n log n < n² < n³ < 2ⁿ < n!
+4. Rules
+   • Drop constants and lower terms: 3n² + 5n → O(n²)
+   • Different inputs stay separate: two strings → O(n·m)
+5. Hidden costs
+   • Passing a vector **by value** copies it → O(n) per call
+   • `s = s + c` in a loop → O(n²); use `s += c`
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- Nested loop where the inner loop runs i times — complexity? :: Still O(n²): 1 + 2 + … + n = n(n+1)/2.
+- Do sequential blocks add or multiply? Nested blocks? :: Sequential add (keep the biggest); nested multiply.
+- Cost of unordered_map lookup vs map lookup? :: O(1) average vs O(log n).
+- Why is `s = s + c` inside a loop dangerous? :: It builds a new string every time → O(n²) total.
+- Two strings of lengths n and m compared fully — complexity? :: O(n·m), not O(n²).
+--- shot | Growth table | screenshot
+| n | log n | n log n | n² | 2ⁿ |
+|---|---|---|---|---|
+| 10 | 3 | 33 | 100 | 1,024 |
+| 1,000 | 10 | 10⁴ | 10⁶ | huge |
+| 10⁵ | 17 | 1.7·10⁶ | 10¹⁰ ✗ | — |
+
+=== notes: cx-constraints-to-target
+--- note | Note this | write
+1. The 10⁸ rule
+   • A judge does ~**10⁸ simple operations / second** in C++ (limits are 1–2 s)
+   • Put n into your complexity: ≤ ~10⁸ passes, 10¹⁰ does not
+2. n → target (memorise)
+   • n ≤ 12 → O(n!) permutations
+   • n ≤ 20–25 → O(2ⁿ) subsets / bitmask
+   • n ≤ 500 → O(n³)
+   • n ≤ 5000 → O(n²)
+   • n ≤ 10⁵–10⁶ → **O(n log n) or O(n)**
+   • n ~ 10⁹ → O(log n) or O(1)
+3. Value constraints are hints too
+   • values to 10⁹ and you add them → `long long`
+   • small value range (letters, 0–100) → counting array
+   • negatives present → sliding windows on sums break
+4. In an OA
+   • Write `target: O(...)` before coding; if out of ideas, code brute force for partial marks
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- How many operations per second should you assume? :: About 10⁸.
+- n ≤ 5000 allows? :: O(n²).
+- n ≤ 20 suggests? :: Exponential — subsets, bitmask, backtracking.
+- Values up to 10⁹ and you sum them — what type? :: long long.
+--- shot | Constraint table | screenshot
+| n up to | Target | Typical techniques |
+|---|---|---|
+| 10–12 | O(n!) | permutations |
+| 20–25 | O(2ⁿ) | subsets, bitmask, backtracking |
+| 500 | O(n³) | triple loops, interval DP |
+| 5,000 | O(n²) | 2D DP, all pairs |
+| 10⁵–10⁶ | O(n log n) / O(n) | sort, heap, binary search, hashing, windows, prefix sums |
+| 10⁹+ | O(log n) / O(1) | binary search on value, math |
+
+=== notes: cx-space-and-in-place
+--- note | Note this | write
+1. Auxiliary vs total space
+   • "Space complexity" in interviews = **auxiliary**: extra memory you allocate, not the input
+   • Output array usually doesn't count
+   • Map of up to n keys → O(n); fixed `int cnt[26]` → **O(1)**
+2. In-place
+   • Modify the input using O(1) extra variables instead of building a new array
+   • Tools: write pointer, swap, reverse segments, sign/value markers
+   • Only when asked — it destroys the input
+3. Recursion uses space
+   • Space = max recursion **depth** × frame size
+   • Balanced tree → O(log n); chain / list → O(n)
+4. Time–space trade
+   • Hash map: O(n) space buys O(n²) → O(n) time
+   • "Do it in O(1) space" → think sortedness, voting, XOR/arithmetic, in-place marking
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- Is a 26-entry count array O(1) or O(n) space? :: O(1) — it doesn't grow with n.
+- What does "in-place" mean? :: Modify the input with O(1) extra variables instead of building a new array.
+- Space of recursion on a linked-list-shaped tree? :: O(n) — the depth equals n.
+- Four typical answers to "O(1) space please"? :: Sortedness (two pointers), voting (Boyer–Moore), XOR/arithmetic, in-place marking.
+--- shot | Space cheat-sheet | screenshot
+| Structure | Extra space |
+|---|---|
+| a few variables | O(1) |
+| `int cnt[26]` / `cnt[256]` | O(1) |
+| hash map / set of n items | O(n) |
+| copy of the array | O(n) |
+| recursion depth d | O(d) |
+
+=== notes: cpp-vector
+--- note | Note this | write
+1. Declaring
+   • `vector<int> a(n, -1);` · 2D: `vector<vector<int>> g(R, vector<int>(C, 0));`
+   • `push_back` (amortised O(1)), `pop_back`, `back()`, `size()`
+2. Gotchas
+   • `size()` is **unsigned** → `a.size() - 1` on empty = huge. Store `int n = a.size();`
+   • Out-of-bounds `a[i]` doesn't throw → garbage / crash later
+   • Never `push_back` into a vector while range-for looping over it
+3. Costs
+   • `a[i]`, push/pop at back → O(1)
+   • insert / erase at front or middle → **O(n)** (shifts)
+   • `sort` O(n log n), `reverse` O(n), copy `b = a` O(n)
+4. Loops
+   • `for (int x : a)` → copy (read only) · `for (int &x : a)` → reference (modify)
+5. Passing to functions
+   • `const vector<int>& a` to read, `vector<int>& a` to modify — never by value in recursion
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- Why store `int n = a.size()`? :: size() is unsigned; size()-1 on an empty vector wraps to a huge number.
+- Cost of erasing the first element of a vector? :: O(n) — everything shifts left.
+- Range-for that modifies elements? :: `for (int &x : a)` with a reference.
+- How should a function take a vector it only reads? :: `const vector<int>&` — no copy.
+--- shot | Vector operations and costs | screenshot
+| Operation | Cost |
+|---|---|
+| `a[i]`, `back()`, `push_back`, `pop_back` | O(1) (push amortised) |
+| `insert`/`erase` at position i | O(n − i) |
+| `erase(a.begin())` | O(n) |
+| `sort` | O(n log n) |
+| `reverse`, `find`, copy | O(n) |
+
+=== notes: cpp-string
+--- note | Note this | write
+1. Basics
+   • Behaves like `vector<char>`: `s[i]`, `size()`, `push_back`, `back()`
+   • Characters are numbers: `'a'`=97, `'A'`=65, `'0'`=48
+   • `c - 'a'` → 0..25 · `c - '0'` → 0..9
+2. Helpers
+   • `tolower`, `toupper`, `isalpha`, `isdigit`, `isalnum`, `isspace`
+   • Ignore case → `tolower` everything before comparing
+3. Building strings
+   • `s += c` / `push_back` → O(1) amortised
+   • `s = s + c` → O(n) each time → O(n²) in a loop ✗
+   • Build backwards with push_back then `reverse`
+4. Costs
+   • `substr(pos, len)` → O(len) · `a == b` → O(length) · hashing a string → O(length)
+5. Conversions
+   • `to_string(123)`, `stoi("123")`, `stoll`, `string(n, 'x')`
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- Map a lowercase letter to 0..25? :: `c - 'a'`.
+- Why avoid `s = s + c` in a loop? :: It copies the string each time → O(n²).
+- Cost of `s.substr(i, len)`? :: O(len) — it builds a new string.
+- How do you compare two strings ignoring case? :: Apply tolower to each character before comparing.
+--- shot | Character arithmetic | screenshot
+```cpp
+int cnt[26] = {0};
+for (char c : s) cnt[c - 'a']++;          // letter frequency
+int d = ch - '0';                         // digit value
+bool ok = isalnum(c);                     // letter or digit
+char low = tolower(c);                    // case-insensitive compare
+```
+
+=== notes: cpp-integer-overflow
+--- note | Note this | write
+1. Ranges
+   • `int` ≈ ±**2.147·10⁹** · `long long` ≈ ±9.22·10¹⁸
+   • Two values up to 10⁹ fit (2·10⁹) — just; three don't
+2. Where it happens
+   • Prefix sums / totals of many values
+   • `mid = (lo + hi) / 2` → use `lo + (hi - lo) / 2`
+   • `a * b` of two ints overflows **before** being stored → `(long long)a * b`
+   • `accumulate(..., 0)` sums in int → use `0LL`
+3. Spotting it
+   • Wrong only on large tests, or negative results that should be positive
+   • Default to `long long` for sums, products and pair counts
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- Approximate limit of int? :: About 2.147 × 10⁹.
+- Safe midpoint formula? :: lo + (hi − lo) / 2.
+- Why does `long long x = a * b;` still overflow for ints a, b? :: The multiplication happens in int before conversion; cast first.
+- How do you make accumulate sum in long long? :: Pass 0LL as the initial value.
+--- shot | Overflow checklist | screenshot
+| Pattern | Fix |
+|---|---|
+| sum of many values | `long long` accumulator |
+| `(lo + hi) / 2` | `lo + (hi - lo) / 2` |
+| `a * b` with ints | `(long long)a * b` |
+| `accumulate(b, e, 0)` | `accumulate(b, e, 0LL)` |
+| counting pairs (n²) | `long long` count |
+
+=== notes: arr-single-pass-running-state
+--- note | Note this | write
+1. Idea
+   • Walk once left → right, keeping a few variables that **summarise the past**
+   • Summary examples: total so far, current streak, best so far, min so far
+   • Each element read once → O(n) time, O(1) space
+2. Recognise
+   • Words: running, cumulative, so far, streak, consecutive
+   • Brute force has an inner loop going **backwards** to recompute something
+3. Why it works
+   • Answer at i = answer at i−1 + one change → keep it in a variable
+4. Two templates
+   • Running total: `run += a[i]; out[i] = run;`
+   • Streak: `cur = ok ? cur + 1 : 0; best = max(best, cur);`
+5. Pitfalls
+   • Update `best` **every** step (a streak can run to the end)
+   • Reset value: "count of matches" → 0; "length of a run that includes me" → 1
+6. Leads to
+   • Prefix sums (Day 4), Kadane (Day 4), sliding window (Day 5)
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- What is "running state"? :: A few variables summarising everything seen so far, updated in O(1) per element.
+- Which brute-force shape tells you to use it? :: An inner loop that walks backwards to recompute something about the prefix.
+- Why update best every iteration? :: Otherwise a streak that lasts until the end of the array is never recorded.
+- Reset to 0 or 1 for "longest increasing run"? :: 1 — the current element alone is a run.
+--- shot | Two templates | screenshot
+```cpp
+// running total
+int run = 0;
+for (int i = 0; i < n; i++) { run += a[i]; out[i] = run; }
+
+// streak that resets
+int cur = 0, best = 0;
+for (int x : a) {
+    cur = (x == target) ? cur + 1 : 0;
+    best = max(best, cur);          // every step
+}
+```
+
+=== notes: arr-read-write-pointer
+--- note | Note this | write
+1. Idea
+   • `read` visits every element; `write` marks where the next **kept** element goes
+   • Invariant: `a[0..write-1]` = kept elements so far, in order
+   • `write ≤ read` → never overwrite something unread
+2. Recognise
+   • "in-place", "O(1) extra space", "remove / move / filter", "return k"
+   • Relative order must be kept
+3. Template
+   • `if (keep(a[read])) a[write++] = a[read];` → return `write`
+   • keep for Move Zeroes: `a[read] != 0`
+   • keep for Remove Element: `a[read] != val`
+   • keep for sorted dedup: `write == 0 || a[read] != a[write-1]`
+4. Copy or swap?
+   • Copy when the tail doesn't matter
+   • **Swap** when removed elements must stay (Move Zeroes)
+5. Pitfalls
+   • Compare with the **written** array (`a[write-k]`) for "at most k copies"
+   • Return `write` (a count), not `write - 1`
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- What is the invariant of the write pointer? :: a[0..write−1] holds exactly the kept elements so far, in their original order.
+- Why can writing never destroy unread data? :: write ≤ read always.
+- When swap instead of copy? :: When the removed elements must still be present at the end (e.g. zeros at the back).
+- keep-rule for "at most two copies" in a sorted array? :: write < 2 || a[read] != a[write−2].
+--- shot | Template and keep rules | screenshot
+```cpp
+int write = 0;
+for (int read = 0; read < n; read++)
+    if (keep(a[read])) a[write++] = a[read];   // or swap(a[write++], a[read])
+return write;
+```
+| Problem | keep(a[read]) |
+|---|---|
+| Move Zeroes | `a[read] != 0` (swap) |
+| Remove Element | `a[read] != val` |
+| Remove Duplicates (sorted) | `write == 0 \|\| a[read] != a[write-1]` |
+| At most 2 copies | `write < 2 \|\| a[read] != a[write-2]` |
+
+=== notes: hash-table-internals
+--- note | Note this | write
+1. Structure
+   • Array of **buckets** + **hash function** h(key)
+   • bucket = h(key) % bucketCount → computed, not searched
+2. Why O(1)
+   • n keys over ~n buckets → ~1 key per bucket → O(1) **average**
+   • Many keys in one bucket (collisions) → O(n) **worst case**
+3. Collisions
+   • Unavoidable (more keys than buckets — pigeonhole)
+   • **Chaining**: each bucket = list of keys (C++ `unordered_map`)
+   • **Open addressing**: probe the next free slot (Python dict)
+4. Load factor and rehashing
+   • α = keys / buckets; when α > max (1.0), table doubles and reinserts all → O(n) once
+   • Doubling → O(1) **amortised** per insert
+   • `reserve(n)` avoids rehashing
+5. Hashing a string costs O(length)
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- How does a hash table find a key without searching? :: It computes the bucket index from the key with a hash function.
+- Why is lookup O(1) only on average? :: Collisions can put many keys in one bucket; worst case O(n).
+- Chaining vs open addressing? :: Chaining keeps a list per bucket; open addressing probes for the next free slot in the array.
+- What triggers rehashing and why is it still O(1) amortised? :: Load factor exceeding the maximum; the table doubles, so total rehash work over n inserts is under 2n.
+--- shot | Hash table picture | screenshot
+```
+key ──h(key) % 8──► bucket
+ "cat" → 3          [0] ∅
+ "dog" → 5          [1] ∅
+ "ant" → 3          [2] ∅
+                    [3] "cat" → "ant"     ← collision, chained
+                    [4] ∅
+                    [5] "dog"
+load factor = keys / buckets → > 1.0 ⇒ double buckets, reinsert all
+```
+
+=== notes: cpp-unordered-map-set
+--- note | Note this | write
+1. API
+   • `mp[k] = v;` `mp[k]++` (missing key starts at 0)
+   • Ask: `mp.count(k)` (0/1) or `auto it = mp.find(k); if (it != mp.end()) ...`
+   • `mp.erase(k)`, `mp.size()`; iterate `for (auto& [k, v] : mp)`
+2. The [] trap
+   • `mp[k]` **inserts** k with 0 if missing → changes `size()`
+   • Rule: `count/find` to ask, `[]` only to write
+3. Costs
+   • O(1) average, O(n) worst; iteration order arbitrary — never rely on it
+4. Keys
+   • ints, strings ✓ · `pair<int,int>` ✗ (no default hash) → use `map`, or encode as `long long`
+5. Speed
+   • `reserve(n)` before many inserts · small dense keys → plain array is faster
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- What does `mp[k]` do if k is missing? :: Inserts k with value 0 (and increases size).
+- Two safe ways to ask "is k present?" :: mp.count(k) or mp.find(k) != mp.end().
+- Can pair<int,int> be an unordered_map key by default? :: No — use map, or encode the pair into a long long/string.
+- Can you rely on unordered_map iteration order? :: No — it is arbitrary and can change after rehashing.
+--- shot | API card | screenshot
+```cpp
+unordered_map<int,int> freq;
+for (int x : a) freq[x]++;               // write with []
+if (freq.count(7)) { /* present */ }     // ask with count
+auto it = freq.find(7);                  // ask + read without inserting
+if (it != freq.end()) use(it->second);
+for (auto& [val, c] : freq) { }          // iterate (arbitrary order)
+unordered_set<int> seen; seen.insert(x); seen.count(x);
+```
+
+=== notes: cpp-container-choice
+--- note | Note this | write
+1. Decision rule
+   • Small dense integer keys (letters, values ≤ 10⁶) → **array**
+   • Arbitrary keys, order irrelevant → **unordered_map / set**
+   • Need sorted order, min/max, lower_bound → **map / set** (O(log n))
+   • Pair/vector keys without writing a hash → **map**
+2. Example: anagram check
+   • Lowercase letters → `int cnt[26]`
+   • Unicode → `unordered_map<char,int>`
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- Keys are lowercase letters — which container? :: A plain array int cnt[26].
+- When must you use map instead of unordered_map? :: When you need sorted order, min/max, lower_bound, or keys without a hash (pairs/vectors).
+- Cost of map lookup? :: O(log n).
+--- shot | Container comparison | screenshot
+| | array | unordered_map | map |
+|---|---|---|---|
+| lookup | O(1) | O(1) avg / O(n) worst | O(log n) |
+| ordered | by index | no | yes |
+| keys | small ints | hashable | comparable |
+| memory | size of range | ~3–5× entries | ~3× entries |
+
+=== notes: hash-complement-lookup
+--- note | Note this | write
+1. Idea
+   • For each x, the partner I need is **need = target − x**
+   • Ask a hash map "has my partner appeared?" → O(1) instead of scanning
+   • Reframe: walk once; ask each element "has your partner already walked past?"
+2. Recognise
+   • "two numbers that add up to / differ by …", "pair with …", "exists i < j"
+   • Input **unsorted** (sorted + O(1) space → two pointers instead)
+3. Steps
+   • need = target − x → **check map** → then **insert x**
+       ◦ check before insert → x never pairs with itself ([3,2,4], target 6)
+       ◦ duplicates still work ([3,3], target 6)
+4. What the map stores (depends on the question)
+   • indices → value → index · count pairs → value → count · distance → value → last index
+5. Cost
+   • O(n) time, O(n) space (vs O(n²) / O(1) brute force)
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- What is the complement in Two Sum? :: target − x.
+- Why check before inserting? :: So an element can never pair with itself when target = 2x.
+- When is two pointers better than this? :: When the array is sorted and you need O(1) extra space.
+- What does the map store when counting pairs? :: value → count of earlier occurrences.
+- Time and space? :: O(n) time, O(n) space.
+--- shot | Template | screenshot
+```cpp
+unordered_map<int,int> seen;                 // value -> index
+for (int i = 0; i < n; i++) {
+    int need = target - a[i];
+    auto it = seen.find(need);
+    if (it != seen.end()) return {it->second, i};
+    seen[a[i]] = i;                          // AFTER the check
+}
+```
+
+=== notes: hash-frequency-counting
+--- note | Note this | write
+1. Idea
+   • One pass builds `count[value]`; every "how many" becomes O(1)
+   • Array for small dense values, map otherwise
+2. Recognise
+   • anagram, same characters, appears more than, most frequent, first unique, duplicate, can be built from
+   • Order doesn't matter — only the multiset
+3. Tricks
+   • Comparing two inputs → **one table**: ++ for the first, −− for the second, all must be 0
+   • Check **lengths first** for anagram-type questions
+   • Need the first unique in order? → count, then scan the input again
+4. Pitfalls
+   • `freq[x]` inserts missing keys → `freq.size()` stops meaning "distinct"
+5. Cost
+   • O(n) time; O(1) space for a fixed alphabet, O(n) otherwise
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- How do you compare letter counts of two strings with one table? :: ++ for the first string, −− for the second, then check all zero.
+- Why check lengths first? :: Different lengths can never be anagrams.
+- How do you get the first unique character in order? :: Count first, then scan the string again for the first count of 1.
+- Space for 26 counters? :: O(1).
+--- shot | Template | screenshot
+```cpp
+if (s.size() != t.size()) return false;
+int cnt[26] = {0};
+for (char c : s) cnt[c - 'a']++;
+for (char c : t) cnt[c - 'a']--;
+for (int k = 0; k < 26; k++) if (cnt[k]) return false;
+return true;
+```
+
+=== notes: hash-boyer-moore-voting
+--- note | Note this | write
+1. Problem
+   • Find the value appearing **more than n/2** times, in O(n) time and **O(1) space**
+2. Levels
+   • map of counts → O(n) space · sort and take a[n/2] → O(n log n) · **voting** → O(n), O(1)
+3. Algorithm
+   • Keep `cand`, `cnt`
+   • cnt == 0 → adopt x as cand (**before** comparing)
+   • x == cand → cnt++ · else → cnt−−
+4. Why it works
+   • Each cnt−− cancels one cand with one different value
+   • The majority has more copies than all others combined → can't be fully cancelled
+   • No guaranteed majority → **second pass** to verify
+5. Hint to remember
+   • "O(1) space" on a counting problem = the ban names the technique (voting / XOR / math)
+6. Variant
+   • > n/3 → **two** candidates, always verify
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- Why does the majority survive voting? :: Each decrement cancels one copy against a different value; the majority has more copies than everything else together.
+- When do you need a verification pass? :: When a majority is not guaranteed.
+- How many candidates for "more than n/3"? :: Two.
+- Why does `a[n/2]` after sorting give the majority? :: A value filling more than half the positions must cover the middle index.
+--- shot | Template + trace | screenshot
+```cpp
+int cand = 0, cnt = 0;
+for (int x : a) {
+    if (cnt == 0) cand = x;       // adopt first
+    cnt += (x == cand) ? 1 : -1;
+}
+return cand;
+```
+| x | 2 | 2 | 1 | 1 | 1 | 2 | 2 |
+|---|---|---|---|---|---|---|---|
+| cand | 2 | 2 | 2 | 2 | 1 | 1 | 2 |
+| cnt | 1 | 2 | 1 | 0 | 1 | 0 | 1 |
+
+=== notes: hash-set-runs
+--- note | Note this | write
+1. Problem shape
+   • Longest run of consecutive integers (v, v+1, …) in an **unsorted** array, in **O(n)**
+2. Idea
+   • Every run has exactly one **start**: a value v with **v−1 missing**
+   • Put all values in a set; walk upward **only from starts**
+3. Why O(n)
+   • Each value is inside exactly one walk (its run's start) → total work ≤ n
+   • Without the start check: 1..n is walked from every element → O(n²)
+4. Pitfalls
+   • Iterate over the **set**, not the array (duplicates would repeat walks)
+   • Empty input → 0
+5. Why not sort?
+   • Sorting works but is O(n log n) — the O(n) requirement is the hint
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- What makes a value the start of a run? :: v − 1 is not in the set.
+- Why is the loop-in-a-loop still O(n)? :: Each value is visited by at most one upward walk.
+- Why iterate the set instead of the array? :: Duplicates in the array would restart the same walk.
+- What hint tells you not to sort? :: The O(n) time requirement.
+--- shot | Template | screenshot
+```cpp
+unordered_set<int> s(a.begin(), a.end());
+int best = 0;
+for (int v : s) {
+    if (s.count(v - 1)) continue;     // not a start
+    int len = 1;
+    while (s.count(v + len)) len++;
+    best = max(best, len);
+}
+```
+
+=== notes: hash-derived-keys
+--- note | Note this | write
+1. Idea
+   • Items belong together ⇔ their **canonical form** is equal → use it as a map key
+   • `groups[key].push_back(item)`
+2. Recognise
+   • group, bucket, classify, "equivalent under …", isomorphic, same pattern
+3. Choosing the key
+   • Sorted string → O(L log L)
+   • 26-count signature → O(L)
+   • Pattern key → index of first appearance per character ("egg" → 0,1,1)
+4. Cost
+   • O(n × cost of one key); space O(total characters)
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- Canonical key for anagram groups? :: The sorted word (or its 26-count signature).
+- Pattern key for "egg" and "add"? :: [0,1,1] for both — index of each character's first appearance.
+- Complexity with sorted-string keys? :: O(n · L log L).
+--- shot | Template | screenshot
+```cpp
+unordered_map<string, vector<string>> groups;
+for (auto& w : words) {
+    string key = w; sort(key.begin(), key.end());
+    groups[key].push_back(w);
+}
+```

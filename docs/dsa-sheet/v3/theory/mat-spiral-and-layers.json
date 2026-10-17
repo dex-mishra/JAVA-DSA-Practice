@@ -10,6 +10,9 @@
  "related": [
   "mat-rotate-transpose"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -36,5 +39,6 @@
    "body": "O(R·C) time, O(1) extra space besides the output."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

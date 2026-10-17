@@ -11,6 +11,9 @@
  "related": [
   "graph-grid-as-graph"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -37,5 +40,6 @@
    "body": "O(R·C·3^L) worst case: each start, then up to 3 new directions per step (not going back). Pruning by character match makes it far smaller in practice."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

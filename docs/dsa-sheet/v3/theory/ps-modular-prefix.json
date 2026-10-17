@@ -10,6 +10,9 @@
  "related": [
   "ps-prefix-sum-basics"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -30,5 +33,36 @@
    "body": "Subarray sums divisible by K (LeetCode 974), continuous subarray sum (LeetCode 523: needs length ≥ 2 → store first index, not count)."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "ps-prefix-sum-hashmap",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "problem": "subarray-sum-equals-k",
+   "day": 4,
+   "stage": "followups",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "problem": "subarray-sum-equals-k",
+   "sibling": "subarray-sums-divisible-by-k",
+   "day": 4,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "idea"
+  },
+  {
+   "problem": "subarray-sum-equals-k",
+   "sibling": "subarray-sums-divisible-by-k",
+   "day": 4,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "negative-mod"
+  }
+ ],
+ "notes_status": "pending"
 }

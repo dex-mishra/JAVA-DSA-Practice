@@ -11,6 +11,9 @@
   "heap-top-k",
   "sort-stability-and-bounds"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -25,5 +28,13 @@
    "body": "✍️ Top k frequent elements in O(n): frequencies are between 1 and n, so make `bucket[f]` = list of values with frequency f, then walk f from n down to 1 collecting values until you have k."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "heap-top-k",
+   "from_section": "frequent",
+   "kind": "link",
+   "section": "buckets"
+  }
+ ],
+ "notes_status": "pending"
 }

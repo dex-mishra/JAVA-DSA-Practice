@@ -12,6 +12,9 @@
   "dp-unbounded-knapsack",
   "dp-counting-vs-optimising"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -50,5 +53,6 @@
    "body": "O(n·C) time, O(C) space. \"Pseudo-polynomial\": fine when C ≤ ~10⁴–10⁵."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

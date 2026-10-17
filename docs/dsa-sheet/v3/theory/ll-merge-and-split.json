@@ -13,6 +13,9 @@
   "sort-merge-sort",
   "heap-k-way-merge"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "merge",
@@ -39,5 +42,19 @@
    "body": "Split at the middle, sort both halves recursively, merge with `mergeTwoLists`. O(n log n) time, O(log n) stack (LeetCode 148). This is the standard answer to \"sort a linked list\"."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "sort-merge-sort",
+   "from_section": "interview",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "ll-reversal",
+   "from_section": "variations",
+   "kind": "link",
+   "section": "palindrome"
+  }
+ ],
+ "notes_status": "pending"
 }

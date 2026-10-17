@@ -11,6 +11,9 @@
   "bt-for-loop-choice",
   "bt-grid-backtracking"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -31,5 +34,13 @@
    "body": "Place one queen per row. For row r, try each column c not attacked (three marker arrays), mark, recurse to r+1, unmark. n = 8 → 92 solutions; the pruning keeps it tiny compared with 8⁸ placements."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "bt-pick-or-skip",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

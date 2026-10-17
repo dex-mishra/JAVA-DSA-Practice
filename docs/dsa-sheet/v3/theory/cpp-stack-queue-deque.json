@@ -12,6 +12,9 @@
   "graph-bfs",
   "stq-monotonic-deque"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "api",
@@ -26,5 +29,6 @@
    "body": "✍️ LIFO (last in, first out: undo, brackets, DFS) → `stack`.\n✍️ FIFO (first in, first out: BFS, processing order) → `queue`.\n✍️ Need both ends (sliding window max, 0-1 BFS) → `deque`.\n- A `vector` with `push_back`/`back`/`pop_back` works as a stack and lets you iterate it; many solutions use it instead of `stack`."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

@@ -11,6 +11,9 @@
   "cpp-container-choice",
   "bs-lower-upper-bound"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "what",
@@ -31,5 +34,13 @@
    "body": "✍️ Sliding window that needs the min and max of the window with deletions → `multiset` (or a monotonic deque, [[stq-monotonic-deque]]).\n✍️ \"Find the closest value to x seen so far\" → `set` + `lower_bound`.\n- Counting with sorted output → `map<int,int>`."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "cpp-unordered-map-set",
+   "from_section": "costs",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

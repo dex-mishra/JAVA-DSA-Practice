@@ -1,0 +1,939 @@
+=== day: 2
+micro_title: Hashing — remember what you have seen
+micro_theory: hash-table-internals, cpp-unordered-map-set, hash-complement-lookup, hash-frequency-counting, cpp-container-choice
+--- micro | Micro-theory (10 minutes) | mixed
+Yesterday you kept a few variables about the past. Today you keep **everything** about the past — in a hash map — so any question "have I seen X?" costs O(1).
+
+✍️ A hash table computes where a key lives instead of searching for it, so insert and lookup are O(1) on average ([[hash-table-internals#picture]]).
+✍️ `unordered_map<key, value>`: `mp[k]++` to count, `mp.count(k)` / `mp.find(k)` to ask. **`mp[k]` inserts a missing key** — never use it just to ask ([[cpp-unordered-map-set#bracket-trap]]).
+✍️ Small dense keys (letters) → a plain array `int cnt[26]` beats any map ([[cpp-container-choice#rule]]).
+
+Two patterns today:
+- **Complement lookup** — for each x, ask whether its partner (target − x) has already appeared ([[hash-complement-lookup#idea]]).
+- **Frequency counting** — count once, answer every "how many" in O(1) ([[hash-frequency-counting#idea]]).
+--- card | Pattern card | write
+✍️ COMPLEMENT LOOKUP — trigger: "pair that sums/differs to …", unsorted. need = target − x; check map; THEN insert x.
+✍️ FREQUENCY COUNT — trigger: "anagram, same characters, appears more than, most frequent, duplicate". One table, ++ for one input, −− for the other.
+✍️ START OF RUN — trigger: "longest consecutive", O(n), unsorted. Only walk from v where v−1 is missing.
+
+=== problem: two-sum
+theory_refs:
+- analyse | "unsorted" + "return indices" | tp-opposite-ends#pitfalls | Why two pointers (which needs sorting) is the wrong tool here.
+- brainstorm | The inner loop searches for one known value | hash-complement-lookup#think | The bottleneck-to-hash-map step.
+- pseudocode | CHECK before UPDATE | hash-complement-lookup#self-pairing | Why inserting first pairs an element with itself.
+- solution | `seen.find(need)` instead of `seen[need]` | cpp-unordered-map-set#bracket-trap | Asking without inserting.
+- edges | O(1) average vs O(n) worst | hash-table-internals#why-o1 | What "O(1)" really means for a hash map.
+stuck_refs:
+- 10 | cx-constraints-to-target#table
+- 20 | meta-bottleneck-method#name-waste
+- 30 | hash-complement-lookup#idea
+- 40 | hash-complement-lookup#self-pairing
+--- understand | Understand | mixed
+✍️ f(unsorted array a, target) → indices [i, j], i ≠ j, with a[i] + a[j] = target. Exactly one answer exists.
+- n ≤ 10⁴ (so O(n²) actually passes — but the follow-up asks for better than O(n²), and interviews always do).
+- Values up to ±10⁹.
+--- analyse | Analyse | write
+✍️ Target complexity: O(n) or O(n log n).
+✍️ By hand on [2, 7, 11, 15], target 9: at 2 I think "I need a 7" and my eyes scan for 7. That scan is the expensive part.
+✍️ Hard part: finding the partner without scanning, while still returning **original indices** (so sorting is awkward).
+✍️ Edges: [3, 3] target 6 (equal values); [3, 2, 4] target 6 (3 must not pair with itself).
+--- brainstorm | Brainstorm: brute → optimal | write
+✍️ **1. Brute.** All pairs i < j. O(n²) time, O(1) space.
+✍️ ↳ Bottleneck: the inner loop. Its job: "search the array for the value target − a[i]".
+✍️ ↳ Unlock: "Am I searching for something I could have remembered?" — yes, a specific known value.
+✍️ **2. Better (sort + two pointers).** O(n log n), but sorting loses the original indices; you must sort (value, index) pairs. Workable, more code.
+✍️ **3. Better (two-pass hash).** Put every value → index in a map, then look up target − a[i] for each i, making sure the index found is not i. O(n).
+✍️ **4. Optimal (one-pass hash).** Look up first, insert after. Only earlier elements are in the map → no self-pairing check needed, and you stop at the first hit. O(n) time, O(n) space.
+--- algorithm | Algorithm in words | write
+✍️ 1. Create an empty map from value to index.
+✍️ 2. Walk the array. For element x at index i, compute need = target − x.
+✍️ 3. If need is in the map, return [map[need], i].
+✍️ 4. Otherwise store x → i and continue.
+--- pseudocode | Pseudocode | write
+```
+STATE   seen = map value → index (empty)
+LOOP    for i in 0..n-1, x = a[i]
+CHECK     need = target - x
+          if need in seen: return [seen[need], i]
+UPDATE    seen[x] = i                  ← after the check
+RETURN  []                             (unreachable: an answer is guaranteed)
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    vector<int> twoSum(vector<int>& a, int target) {
+        unordered_map<int, int> seen;            // value -> index
+        for (int i = 0; i < (int)a.size(); i++) {
+            int need = target - a[i];
+            auto it = seen.find(need);
+            if (it != seen.end()) return {it->second, i};
+            seen[a[i]] = i;
+        }
+        return {};
+    }
+};
+```
+--- dry_run | Dry run | screenshot
+Input [3, 2, 4], target 6:
+| i | x | need | in seen? | seen after |
+|---|---|---|---|---|
+| start | | | | {} |
+| 0 | 3 | 3 | no (3 is not inserted yet) | {3:0} |
+| 1 | 2 | 4 | no | {3:0, 2:1} |
+| 2 | 4 | 2 | yes → return [1, 2] | |
+If we had inserted before checking, i = 0 would have found 3 and returned [0, 0].
+--- edges | Edge cases and complexity | mixed
+✍️ O(n) average time, O(n) space. Brute force is the classic O(n²) time / O(1) space trade-off.
+✍️ Duplicates [3, 3]: at i = 1, need 3 is already in the map from i = 0 → [0, 1]. Correct because we check before inserting.
+- Overflow check: values and target are within ±10⁹, so `target − a[i]` is within ±2·10⁹ — just inside int's limit of ≈ 2.147·10⁹. Fine here, but in variants with larger values use `long long need` ([[cpp-integer-overflow#ranges]]).
+--- carry | Carry forward | write
+✍️ Pair search on **unsorted** data → store what you have seen, look up what you need.
+✍️ Always **check, then insert** when an element must not pair with itself.
+✍️ The map's value is whatever the question asks for: index here, count when counting pairs, last index when distance matters.
+--- followups | Interview follow-ups | screenshot
+- *The array is sorted; O(1) space?* Two pointers from both ends (tomorrow, [[tp-opposite-ends]]).
+- *Return all pairs / count pairs.* Store counts; add count[need] at each step.
+- *Three numbers summing to target?* Sort + fix one + two pointers (tomorrow's 3Sum).
+- *What if the input does not fit in memory?* Sort externally and two-pointer, or hash-partition the data into chunks by value.
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {2, 7, 11, 15};
+CHECK((s.twoSum(a, 9) == vector<int>{0, 1}));
+vector<int> b = {3, 2, 4};
+CHECK((s.twoSum(b, 6) == vector<int>{1, 2}));
+vector<int> c = {3, 3};
+CHECK((s.twoSum(c, 6) == vector<int>{0, 1}));
+vector<int> d = {-1, -2, -3, -4, -5};
+CHECK((s.twoSum(d, -8) == vector<int>{2, 4}));
+```
++++ sibling: 217 | contains-duplicate | Contains Duplicate | Easy | must
+maps: The complement of x is x itself — so a set (no index needed) answers "seen before?".
+--- analyse | Analyse | write
+✍️ Return true if any value appears at least twice.
+✍️ Brute: all pairs O(n²). Sort and compare neighbours: O(n log n), O(1) extra.
+--- brainstorm | Brainstorm | write
+✍️ The question at each element is "have I seen this exact value?" → hash set. Check, then insert. O(n) time, O(n) space.
+--- algorithm | Algorithm in words | write
+✍️ Walk the array; if the value is already in the set, return true; otherwise insert it. Return false at the end.
+--- pseudocode | Pseudocode | write
+```
+seen = empty set
+for x in a:
+    if x in seen: return true
+    seen.insert(x)
+return false
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    bool containsDuplicate(vector<int>& a) {
+        unordered_set<int> seen;
+        for (int x : a) {
+            if (seen.count(x)) return true;
+            seen.insert(x);
+        }
+        return false;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ Set = map without values; use it when you only need membership ([[cpp-unordered-map-set#api]]).
+- Trade-off talk: sorting gives O(1) extra space at O(n log n) time.
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {1, 2, 3, 1};
+CHECK(s.containsDuplicate(a) == true);
+vector<int> b = {1, 2, 3, 4};
+CHECK(s.containsDuplicate(b) == false);
+```
++++ sibling: 1512 | number-of-good-pairs | Number of Good Pairs | Easy | optional
+maps: Count pairs instead of finding one: the map stores counts and every earlier equal value forms a pair.
+--- analyse | Analyse | write
+✍️ Count pairs i < j with a[i] == a[j].
+--- brainstorm | Brainstorm | write
+✍️ Brute O(n²). Complement = x itself; when x arrives, it pairs with every earlier x → add cnt[x], then cnt[x]++.
+--- algorithm | Algorithm in words | write
+✍️ For each x: answer += count of x seen so far; then increment the count.
+--- pseudocode | Pseudocode | write
+```
+cnt = map; ans = 0
+for x in a: ans += cnt[x]; cnt[x] += 1
+return ans
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int numIdenticalPairs(vector<int>& a) {
+        unordered_map<int, int> cnt;
+        int ans = 0;
+        for (int x : a) ans += cnt[x]++;    // add pairs with earlier copies, then count this one
+        return ans;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ Counting pairs → map value is a **count**; still query before recording ([[hash-complement-lookup#variations]]).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {1, 2, 3, 1, 1, 3};
+CHECK(s.numIdenticalPairs(a) == 4);
+vector<int> b = {1, 1, 1, 1};
+CHECK(s.numIdenticalPairs(b) == 6);
+vector<int> c = {1, 2, 3};
+CHECK(s.numIdenticalPairs(c) == 0);
+```
++++ sibling: 219 | contains-duplicate-ii | Contains Duplicate II | Easy | optional
+maps: Store the last index of each value; a duplicate counts only if it is within distance k.
+--- analyse | Analyse | write
+✍️ True if some value appears at indices i ≠ j with |i − j| ≤ k.
+--- brainstorm | Brainstorm | write
+✍️ For each x, the best earlier partner is its **most recent** occurrence (closest). Map value → last index. O(n). (Window alternative: a set of the last k elements.)
+--- algorithm | Algorithm in words | write
+✍️ For each i: if x was seen and i − last[x] ≤ k → true. Update last[x] = i.
+--- pseudocode | Pseudocode | write
+```
+last = map
+for i, x in a:
+    if x in last and i - last[x] <= k: return true
+    last[x] = i
+return false
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    bool containsNearbyDuplicate(vector<int>& a, int k) {
+        unordered_map<int, int> last;
+        for (int i = 0; i < (int)a.size(); i++) {
+            auto it = last.find(a[i]);
+            if (it != last.end() && i - it->second <= k) return true;
+            last[a[i]] = i;
+        }
+        return false;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ The map value is chosen by what the check needs: here the **latest** index.
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {1, 2, 3, 1};
+CHECK(s.containsNearbyDuplicate(a, 3) == true);
+vector<int> b = {1, 0, 1, 1};
+CHECK(s.containsNearbyDuplicate(b, 1) == true);
+vector<int> c = {1, 2, 3, 1, 2, 3};
+CHECK(s.containsNearbyDuplicate(c, 2) == false);
+```
+
+=== problem: valid-anagram
+theory_refs:
+- brainstorm | Sort-and-compare vs counting | hash-frequency-counting#think | Why counting removes the sort.
+- pseudocode | One table: ++ for s, −− for t | hash-frequency-counting#template | The cancel-out trick.
+- solution | `int cnt[26]` instead of a map | cpp-container-choice#anagram-example | Why an array is the right container for lowercase letters.
+- edges | Length check first | hash-frequency-counting#pitfalls | Different lengths can never be anagrams.
+stuck_refs:
+- 10 | cpp-string#basics
+- 20 | hash-frequency-counting#idea
+- 30 | hash-frequency-counting#template
+--- understand | Understand | mixed
+✍️ f(s, t) → true if t is a rearrangement of s (same letters, same counts).
+- Lowercase English letters, length ≤ 5·10⁴.
+- "anagram", "nagaram" → true; "rat", "car" → false.
+--- analyse | Analyse | write
+✍️ Order does not matter; only how many of each letter. That is a frequency question.
+✍️ Hard part: none conceptually — the decision is which container to use.
+✍️ Edges: different lengths → false immediately; one character.
+--- brainstorm | Brainstorm: brute → optimal | write
+✍️ **1. Brute.** For each character of s, find and remove one copy from t. O(n²).
+✍️ ↳ Bottleneck: searching t for each character.
+✍️ **2. Better.** Sort both strings and compare. O(n log n).
+✍️ ↳ Bottleneck: sorting establishes a full order, but we only need equal counts.
+✍️ **3. Optimal.** Count letters: +1 for s, −1 for t; all 26 must end at 0. O(n) time, O(1) space (26 is a constant).
+--- algorithm | Algorithm in words | write
+✍️ 1. If the lengths differ, return false.
+✍️ 2. Make an array of 26 zeros.
+✍️ 3. For each position, add 1 for s's letter and subtract 1 for t's letter.
+✍️ 4. Return true iff every entry is 0.
+--- pseudocode | Pseudocode | write
+```
+STATE   if len(s) != len(t): return false
+        cnt[26] = 0
+LOOP    for i in 0..n-1
+UPDATE    cnt[s[i]-'a']++ ; cnt[t[i]-'a']--
+CHECK   for k in 0..25: if cnt[k] != 0: return false
+RETURN  true
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    bool isAnagram(string s, string t) {
+        if (s.size() != t.size()) return false;
+        int cnt[26] = {0};
+        for (int i = 0; i < (int)s.size(); i++) {
+            cnt[s[i] - 'a']++;
+            cnt[t[i] - 'a']--;
+        }
+        for (int k = 0; k < 26; k++) if (cnt[k] != 0) return false;
+        return true;
+    }
+};
+```
+--- dry_run | Dry run | screenshot
+s = "rat", t = "car":
+| i | s[i] | t[i] | changed counts |
+|---|---|---|---|
+| 0 | r | c | r:+1, c:−1 |
+| 1 | a | a | a: 0 |
+| 2 | t | r | t:+1, r:0 |
+Final non-zeros: c = −1, t = +1 → false.
+--- edges | Edge cases and complexity | mixed
+✍️ O(n) time, O(1) space (fixed 26 counters).
+- Unicode follow-up: the alphabet is no longer small → `unordered_map<char32_t,int>` or a map over code points.
+--- carry | Carry forward | write
+✍️ "Same multiset of items" → count, don't sort.
+✍️ Two inputs to compare → one table with + and −; check all zero.
+✍️ Letters only → `int cnt[26]` with `c − 'a'`.
+--- followups | Interview follow-ups | screenshot
+- *What if inputs contain Unicode?* Hash map keyed by character.
+- *Group many words into anagram groups.* The sorted word (or count signature) becomes a key ([[hash-derived-keys]]).
+- *Find all anagrams of p inside s.* Fixed window of counts (Day 8, [[str-anagram-window]]).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+CHECK(s.isAnagram("anagram", "nagaram") == true);
+CHECK(s.isAnagram("rat", "car") == false);
+CHECK(s.isAnagram("a", "ab") == false);
+CHECK(s.isAnagram("aacc", "ccac") == false);
+```
++++ sibling: 49 | group-anagrams | Group Anagrams | Medium | must
+maps: Instead of comparing two words, compute each word's canonical key and group words with equal keys.
+--- analyse | Analyse | write
+✍️ Group the words that are anagrams of each other; any order.
+✍️ Brute: compare every pair with Valid Anagram → O(n² · L).
+--- brainstorm | Brainstorm | write
+✍️ Bottleneck: pairwise comparison. Fix: two words are anagrams iff their sorted forms are equal → use the sorted form as a hash-map key → O(n · L log L).
+✍️ (Count signature key gives O(n · L).)
+--- algorithm | Algorithm in words | write
+✍️ For each word, sort a copy to get its key; append the word to groups[key]. Output all groups.
+--- pseudocode | Pseudocode | write
+```
+groups = map key → list
+for w in words: key = sorted(w); groups[key].append(w)
+return all lists in groups
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    vector<vector<string>> groupAnagrams(vector<string>& words) {
+        unordered_map<string, vector<string>> groups;
+        for (auto& w : words) {
+            string key = w;
+            sort(key.begin(), key.end());
+            groups[key].push_back(w);
+        }
+        vector<vector<string>> out;
+        for (auto& [k, g] : groups) out.push_back(g);
+        return out;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ "Group items that are equivalent" → canonical key + map of lists ([[hash-derived-keys#idea]]).
+✍️ Key choice trade-off: sorted string vs count signature ([[hash-derived-keys#key-choice]]).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<string> w = {"eat", "tea", "tan", "ate", "nat", "bat"};
+auto g = s.groupAnagrams(w);
+for (auto& x : g) sort(x.begin(), x.end());
+sort(g.begin(), g.end());
+CHECK((g == vector<vector<string>>{{"ate", "eat", "tea"}, {"bat"}, {"nat", "tan"}}));
+vector<string> e = {""};
+CHECK(s.groupAnagrams(e).size() == 1);
+```
++++ sibling: 383 | ransom-note | Ransom Note | Easy | optional
+maps: Count the magazine's letters, then spend them on the note — a count may never go negative.
+--- analyse | Analyse | write
+✍️ Can the note be built using each magazine letter at most once?
+--- brainstorm | Brainstorm | write
+✍️ Count magazine letters; for each note letter decrement; if any count drops below 0 → false. O(n + m).
+--- algorithm | Algorithm in words | write
+✍️ Count the supply, consume the demand, fail on a shortage.
+--- pseudocode | Pseudocode | write
+```
+cnt[26] from magazine
+for c in note: cnt[c]--; if cnt[c] < 0: return false
+return true
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    bool canConstruct(string note, string mag) {
+        int cnt[26] = {0};
+        for (char c : mag) cnt[c - 'a']++;
+        for (char c : note) if (--cnt[c - 'a'] < 0) return false;
+        return true;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ Supply/demand counting: the same ++/−− table, with an early exit on a shortage ([[hash-frequency-counting#variations]]).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+CHECK(s.canConstruct("a", "b") == false);
+CHECK(s.canConstruct("aa", "ab") == false);
+CHECK(s.canConstruct("aa", "aab") == true);
+```
++++ sibling: 387 | first-unique-character-in-a-string | First Unique Character in a String | Easy | optional
+maps: Count in pass 1; pass 2 restores the original order and returns the first count of 1.
+--- analyse | Analyse | write
+✍️ Index of the first character that appears exactly once, or −1.
+--- brainstorm | Brainstorm | write
+✍️ For each character scan the whole string → O(n²). Two passes with counts → O(n).
+--- algorithm | Algorithm in words | write
+✍️ Count all letters; walk the string again and return the first index whose letter count is 1.
+--- pseudocode | Pseudocode | write
+```
+cnt[26] from s
+for i in 0..n-1: if cnt[s[i]] == 1: return i
+return -1
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int firstUniqChar(string s) {
+        int cnt[26] = {0};
+        for (char c : s) cnt[c - 'a']++;
+        for (int i = 0; i < (int)s.size(); i++) if (cnt[s[i] - 'a'] == 1) return i;
+        return -1;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ Counting loses order; a second pass over the input gets it back.
+--- tests | Tests | hidden
+```cpp
+Solution s;
+CHECK(s.firstUniqChar("leetcode") == 0);
+CHECK(s.firstUniqChar("loveleetcode") == 2);
+CHECK(s.firstUniqChar("aabb") == -1);
+```
+
+=== problem: majority-element
+theory_refs:
+- brainstorm | Map → sort → voting | hash-boyer-moore-voting#think | The three levels and what each costs.
+- brainstorm | O(1) space is the hint | hash-boyer-moore-voting#recognise | A banned data structure names the technique.
+- pseudocode | Adopt before comparing | hash-boyer-moore-voting#pitfalls | The order of the two lines in the loop.
+- edges | Why the survivor is the majority | hash-boyer-moore-voting#why-it-works | The cancellation argument for interviews.
+stuck_refs:
+- 10 | hash-frequency-counting#template
+- 20 | hash-boyer-moore-voting#idea
+- 30 | hash-boyer-moore-voting#template
+- 40 | hash-boyer-moore-voting#why-it-works
+--- understand | Understand | mixed
+✍️ f(array) → the value that appears more than ⌊n/2⌋ times (guaranteed to exist).
+- n ≤ 5·10⁴. Follow-up: O(n) time and O(1) space.
+--- analyse | Analyse | write
+✍️ First solve it with what you know today (a frequency map). Then the follow-up removes the map — that is the TWIST.
+✍️ By hand on [2,2,1,1,1,2,2]: imagine pairing each 1 with a 2 and throwing both away. 2s are left over. The majority always survives this.
+✍️ Edges: n = 1; majority at the very end.
+--- brainstorm | Brainstorm: brute → optimal | write
+✍️ **1. Brute.** For each value count it with a scan. O(n²).
+✍️ **2. Better (frequency map).** Count all, return the one with count > n/2. O(n) time, O(n) space.
+✍️ **3. Better (sort).** The majority must cover the middle index → return a[n/2]. O(n log n), O(1).
+✍️ ↳ Bottleneck for O(1) space: storing a count for **every** value, when only one value matters.
+✍️ ↳ Unlock: "a forbidden data structure is a hint" — no map means a counting/cancelling argument.
+✍️ **4. Optimal (Boyer–Moore).** One candidate + one counter; equal → +1, different → −1, counter 0 → adopt the new value. O(n), O(1).
+--- algorithm | Algorithm in words | write
+✍️ 1. Start with no candidate and count 0.
+✍️ 2. For each value: if the count is 0, make this value the candidate.
+✍️ 3. If the value equals the candidate, increase the count; otherwise decrease it.
+✍️ 4. The candidate at the end is the majority.
+--- pseudocode | Pseudocode | write
+```
+STATE   cand = none; cnt = 0
+LOOP    for x in a
+UPDATE    if cnt == 0: cand = x          (adopt FIRST)
+          cnt += (x == cand) ? +1 : -1
+RETURN  cand
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int majorityElement(vector<int>& a) {
+        int cand = 0, cnt = 0;
+        for (int x : a) {
+            if (cnt == 0) cand = x;
+            cnt += (x == cand) ? 1 : -1;
+        }
+        return cand;
+    }
+};
+```
+--- dry_run | Dry run | screenshot
+[2, 2, 1, 1, 1, 2, 2]:
+| x | cand (after) | cnt (after) |
+|---|---|---|
+| 2 | 2 | 1 |
+| 2 | 2 | 2 |
+| 1 | 2 | 1 |
+| 1 | 2 | 0 |
+| 1 | 1 | 1 |
+| 2 | 1 | 0 |
+| 2 | 2 | 1 |
+Answer 2.
+--- edges | Edge cases and complexity | mixed
+✍️ O(n) time, O(1) space.
+✍️ The result is guaranteed only because a majority is guaranteed. Without the guarantee, verify with a second counting pass.
+--- carry | Carry forward | write
+✍️ Always solve it the "known" way first (frequency map), then remove the expensive part.
+✍️ "O(1) extra space" on a counting problem → think cancellation (Boyer–Moore), XOR, or arithmetic — never a smarter map.
+✍️ Majority > n/k → at most k−1 candidates.
+--- followups | Interview follow-ups | screenshot
+- *Elements appearing more than n/3 times* (LeetCode 229): two candidates, two counters, verify at the end.
+- *No majority guaranteed?* Second pass to count the candidate.
+- *Why does sorting work?* A value covering more than half the positions must cover index n/2.
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {3, 2, 3};
+CHECK(s.majorityElement(a) == 3);
+vector<int> b = {2, 2, 1, 1, 1, 2, 2};
+CHECK(s.majorityElement(b) == 2);
+vector<int> c = {7};
+CHECK(s.majorityElement(c) == 7);
+vector<int> d = {1, 3, 3, 1, 3};
+CHECK(s.majorityElement(d) == 3);
+```
++++ sibling: 229 | majority-element-ii | Majority Element II | Medium | must
+maps: More than n/3 → at most two survivors; keep two candidates and two counters, then verify.
+--- analyse | Analyse | write
+✍️ Return all values appearing more than ⌊n/3⌋ times; O(1) space follow-up.
+✍️ At most two such values can exist (three would need more than n elements).
+--- brainstorm | Brainstorm | write
+✍️ Map → O(n) space. Voting with two candidates: a value different from **both** cancels one copy of each. Survivors are only candidates → count them again to verify.
+--- algorithm | Algorithm in words | write
+✍️ 1. Pass 1: if x matches a candidate, increment its count; else if a count is 0, adopt x there; else decrement both. 2. Pass 2: count both candidates; keep those > n/3.
+--- pseudocode | Pseudocode | write
+```
+c1, c2 = none; n1 = n2 = 0
+for x in a:
+    if x == c1: n1++
+    elif x == c2: n2++
+    elif n1 == 0: c1 = x; n1 = 1
+    elif n2 == 0: c2 = x; n2 = 1
+    else: n1--; n2--
+verify counts of c1, c2 > n/3
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    vector<int> majorityElement(vector<int>& a) {
+        int c1 = 0, c2 = 1, n1 = 0, n2 = 0;          // different initial candidates
+        for (int x : a) {
+            if (x == c1) n1++;
+            else if (x == c2) n2++;
+            else if (n1 == 0) { c1 = x; n1 = 1; }
+            else if (n2 == 0) { c2 = x; n2 = 1; }
+            else { n1--; n2--; }
+        }
+        n1 = n2 = 0;
+        for (int x : a) { if (x == c1) n1++; else if (x == c2) n2++; }
+        vector<int> out;
+        int n = a.size();
+        if (n1 > n / 3) out.push_back(c1);
+        if (n2 > n / 3) out.push_back(c2);
+        return out;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ Check "matches a candidate" **before** "a count is 0", or the same value can occupy both slots ([[hash-boyer-moore-voting#variations]]).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {3, 2, 3};
+CHECK((s.majorityElement(a) == vector<int>{3}));
+vector<int> b = {1};
+CHECK((s.majorityElement(b) == vector<int>{1}));
+vector<int> c = {1, 2};
+auto r = s.majorityElement(c); sort(r.begin(), r.end());
+CHECK((r == vector<int>{1, 2}));
+vector<int> d = {2, 2, 1, 3, 1, 1};
+CHECK((s.majorityElement(d) == vector<int>{1}));
+```
++++ sibling: 448 | find-all-numbers-disappeared-in-an-array | Find All Numbers Disappeared in an Array | Easy | optional
+maps: Values are 1..n, so the array itself can be the "seen" table — mark index v−1 negative.
+--- analyse | Analyse | write
+✍️ Array of n values in [1, n]; return the values in [1, n] that never appear. Follow-up: no extra space.
+--- brainstorm | Brainstorm | write
+✍️ Set of seen values → O(n) space. In place: for each value v, make a[|v|−1] negative. Indices still positive at the end were never marked.
+--- algorithm | Algorithm in words | write
+✍️ Mark; then collect i+1 for every positive a[i].
+--- pseudocode | Pseudocode | write
+```
+for x in a: i = |x| - 1; a[i] = -|a[i]|
+for i in 0..n-1: if a[i] > 0: output i+1
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    vector<int> findDisappearedNumbers(vector<int>& a) {
+        for (int x : a) { int i = abs(x) - 1; a[i] = -abs(a[i]); }
+        vector<int> out;
+        for (int i = 0; i < (int)a.size(); i++) if (a[i] > 0) out.push_back(i + 1);
+        return out;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ Values in 1..n → index-as-key marking ([[arr-in-place-tricks#index-as-key]]). Use `abs` because earlier marks made some values negative.
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {4, 3, 2, 7, 8, 2, 3, 1};
+CHECK((s.findDisappearedNumbers(a) == vector<int>{5, 6}));
+vector<int> b = {1, 1};
+CHECK((s.findDisappearedNumbers(b) == vector<int>{2}));
+```
++++ sibling: 1636 | sort-array-by-increasing-frequency | Sort Array by Increasing Frequency | Easy | optional
+maps: Count frequencies, then sort with a comparator that reads the counts.
+--- analyse | Analyse | write
+✍️ Sort by frequency ascending; ties by value descending.
+--- brainstorm | Brainstorm | write
+✍️ Frequency map, then `sort` with a two-key comparator. O(n log n).
+--- algorithm | Algorithm in words | write
+✍️ Count; sort with (freq ascending, value descending).
+--- pseudocode | Pseudocode | write
+```
+cnt = frequency map
+sort a by (cnt[x] asc, x desc)
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    vector<int> frequencySort(vector<int>& a) {
+        unordered_map<int, int> cnt;
+        for (int x : a) cnt[x]++;
+        sort(a.begin(), a.end(), [&](int x, int y) {
+            if (cnt[x] != cnt[y]) return cnt[x] < cnt[y];
+            return x > y;
+        });
+        return a;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ Two-key comparators: compare the first key, fall back to the second; never use `<=` ([[cpp-sort-and-comparators#strict]]).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {1, 1, 2, 2, 2, 3};
+CHECK((s.frequencySort(a) == vector<int>{3, 1, 1, 2, 2, 2}));
+vector<int> b = {2, 3, 1, 3, 2};
+CHECK((s.frequencySort(b) == vector<int>{1, 3, 3, 2, 2}));
+```
+
+=== problem: longest-consecutive-sequence
+theory_refs:
+- understand | "O(n)" on unsorted input | hash-set-runs#recognise | The constraint that rules out sorting.
+- brainstorm | Re-walking each run from every element | hash-set-runs#think | Why the naive set version is O(n²).
+- pseudocode | `if v−1 in set: continue` | hash-set-runs#idea | The start-of-run rule.
+- solution | Iterate the set, not the array | hash-set-runs#pitfalls | Duplicates would re-walk runs.
+- edges | Why the nested loop is O(n) | cx-amortised-analysis#counting-trick | Charge each value to one walk.
+stuck_refs:
+- 10 | cx-constraints-to-target#table
+- 20 | hash-set-runs#idea
+- 30 | hash-set-runs#template
+- 40 | hash-set-runs#pitfalls
+--- understand | Understand | mixed
+✍️ f(unsorted array) → length of the longest set of values that form consecutive integers v, v+1, …, v+L−1 (positions do not matter).
+- n ≤ 10⁵, must be O(n).
+- [100, 4, 200, 1, 3, 2] → 4 (1, 2, 3, 4).
+--- analyse | Analyse | write
+✍️ This is a DISGUISE: nothing says "hash set", but the O(n) requirement on unsorted data does.
+✍️ By hand: I look at 4 and ask "is 5 there? is 3 there?". If I always start counting from the smallest number of a run, I count each run once.
+✍️ Hard part: avoiding counting the same run many times.
+✍️ Edges: empty array → 0; duplicates [1, 2, 0, 1] → 3; negatives.
+--- brainstorm | Brainstorm: brute → optimal | write
+✍️ **1. Brute.** For each value v, check v+1, v+2, … by scanning the array each time. O(n³) worst.
+✍️ **2. Better.** Sort, then scan counting runs and skipping duplicates. O(n log n) — fails the O(n) requirement.
+✍️ **3. Better.** Put values in a set; for each value walk upward with O(1) lookups. O(n²) on input like 1..n (each run walked from every element).
+✍️ ↳ Bottleneck: a run of length L is walked L times.
+✍️ ↳ Unlock: every run has exactly one start — the value whose predecessor is missing. Walk only from starts.
+✍️ **4. Optimal.** Set + start-of-run. Each value is part of exactly one walk → O(n).
+--- algorithm | Algorithm in words | write
+✍️ 1. Insert all values into a hash set.
+✍️ 2. For each value v in the set: if v − 1 is also in the set, skip it (not a start).
+✍️ 3. Otherwise walk v+1, v+2, … while present, counting the length.
+✍️ 4. Keep the maximum length.
+--- pseudocode | Pseudocode | write
+```
+STATE   s = set(a); best = 0
+LOOP    for v in s                       (the set, so duplicates are gone)
+CHECK     if (v - 1) in s: continue      (not the start of a run)
+UPDATE    len = 1
+          while (v + len) in s: len++
+          best = max(best, len)
+RETURN  best
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int longestConsecutive(vector<int>& a) {
+        unordered_set<int> s(a.begin(), a.end());
+        int best = 0;
+        for (int v : s) {
+            if (s.count(v - 1)) continue;
+            int len = 1;
+            while (s.count(v + len)) len++;
+            best = max(best, len);
+        }
+        return best;
+    }
+};
+```
+--- dry_run | Dry run | screenshot
+s = {100, 4, 200, 1, 3, 2}:
+| v | v−1 present? | walk | best |
+|---|---|---|---|
+| 100 | no (99) | 100 → len 1 | 1 |
+| 4 | yes (3) | skip | 1 |
+| 200 | no | len 1 | 1 |
+| 1 | no (0) | 1,2,3,4 → len 4 | 4 |
+| 3 | yes | skip | 4 |
+| 2 | yes | skip | 4 |
+--- edges | Edge cases and complexity | mixed
+✍️ O(n) average time: n inserts; each value is checked once as a possible start and visited at most once by a walk. O(n) space.
+✍️ Empty input → the loop never runs → 0.
+- `v + len` with v near INT_MAX could overflow in theory; LeetCode's range is ±10⁹, so it is safe.
+--- carry | Carry forward | write
+✍️ O(n) required + unsorted + "consecutive / sequence" → hash set, not sorting.
+✍️ To count each group once, start only from its canonical first member.
+✍️ A loop inside a loop can still be O(n) if each element is charged to one inner walk.
+--- followups | Interview follow-ups | screenshot
+- *Return the sequence itself.* Remember the start of the best run.
+- *Streaming input?* Union-find or a map of run boundaries (value → length of run ending/starting here), updating neighbours on insert.
+- *Why not sort?* O(n log n) violates the requirement; mention it as the simpler fallback.
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {100, 4, 200, 1, 3, 2};
+CHECK(s.longestConsecutive(a) == 4);
+vector<int> b = {0, 3, 7, 2, 5, 8, 4, 6, 0, 1};
+CHECK(s.longestConsecutive(b) == 9);
+vector<int> c = {};
+CHECK(s.longestConsecutive(c) == 0);
+vector<int> d = {1, 2, 0, 1};
+CHECK(s.longestConsecutive(d) == 3);
+```
++++ sibling: 2501 | longest-square-streak-in-an-array | Longest Square Streak in an Array | Medium | must
+maps: "Next element" is v² instead of v+1; same set lookups, walking from each value.
+--- analyse | Analyse | write
+✍️ Longest subsequence that, after sorting, has each element equal to the square of the previous; length ≥ 2, else −1.
+--- brainstorm | Brainstorm | write
+✍️ Put values in a set. From each v, walk v → v² → v⁴ while present. Values ≤ 10⁵ so a chain has at most ~5 steps → O(n · 5). (Start-of-run trick optional here because chains are tiny.)
+--- algorithm | Algorithm in words | write
+✍️ For each value, follow squares through the set counting the chain; track the max; return −1 if < 2.
+--- pseudocode | Pseudocode | write
+```
+s = set(a); best = 0
+for v in s:
+    len = 0; x = v
+    while x in s: len++; x = x*x   (long long, stop if x > 1e5)
+    best = max(best, len)
+return best >= 2 ? best : -1
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int longestSquareStreak(vector<int>& a) {
+        unordered_set<long long> s(a.begin(), a.end());
+        int best = 0;
+        for (long long v : s) {
+            int len = 0;
+            long long x = v;
+            while (x <= 100000 && s.count(x)) { len++; x = x * x; }
+            best = max(best, len);
+        }
+        return best >= 2 ? best : -1;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ The "successor" can be any function (v+1, v², 2v); set membership makes each step O(1) ([[hash-set-runs#idea]]).
+✍️ Squaring overflows int fast → `long long` and a bound check ([[cpp-integer-overflow#where]]).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {4, 3, 6, 16, 8, 2};
+CHECK(s.longestSquareStreak(a) == 3);
+vector<int> b = {2, 3, 5, 6, 7};
+CHECK(s.longestSquareStreak(b) == -1);
+```
++++ sibling: 349 | intersection-of-two-arrays | Intersection of Two Arrays | Easy | optional
+maps: Set membership across two inputs; a second set removes duplicates from the answer.
+--- analyse | Analyse | write
+✍️ Distinct values present in both arrays.
+--- brainstorm | Brainstorm | write
+✍️ Set of the first array; for each value of the second that is in the set, output it once (erase it from the set after use).
+--- algorithm | Algorithm in words | write
+✍️ Build a set from a; scan b; output and erase on a hit.
+--- pseudocode | Pseudocode | write
+```
+s = set(a); out = []
+for x in b: if x in s: out.append(x); s.erase(x)
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    vector<int> intersection(vector<int>& a, vector<int>& b) {
+        unordered_set<int> s(a.begin(), a.end());
+        vector<int> out;
+        for (int x : b) if (s.erase(x)) out.push_back(x);   // erase returns 1 if it was there
+        return out;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ `erase(key)` returns how many were removed — a neat "was it there?" check.
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {1, 2, 2, 1}, b = {2, 2};
+CHECK((s.intersection(a, b) == vector<int>{2}));
+vector<int> c = {4, 9, 5}, d = {9, 4, 9, 8, 4};
+auto r = s.intersection(c, d); sort(r.begin(), r.end());
+CHECK((r == vector<int>{4, 9}));
+```
++++ sibling: 41 | first-missing-positive | First Missing Positive | Hard | optional
+maps: A set solves it in O(n) space; the O(1)-space version places each value v at index v−1 (cyclic placement).
+--- analyse | Analyse | write
+✍️ Smallest positive integer not in the array; O(n) time, O(1) extra space.
+✍️ The answer is in 1..n+1, so only values in [1, n] matter.
+--- brainstorm | Brainstorm | write
+✍️ Set of values, then test 1, 2, 3, … → O(n) time, O(n) space. For O(1): swap each value v ∈ [1, n] into position v−1 until positions are stable; then the first i with a[i] ≠ i+1 gives i+1.
+--- algorithm | Algorithm in words | write
+✍️ Cyclic placement, then scan for the first misplaced index.
+--- pseudocode | Pseudocode | write
+```
+for i in 0..n-1:
+    while 1 <= a[i] <= n and a[a[i]-1] != a[i]: swap(a[i], a[a[i]-1])
+for i: if a[i] != i+1: return i+1
+return n+1
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int firstMissingPositive(vector<int>& a) {
+        int n = a.size();
+        for (int i = 0; i < n; i++)
+            while (a[i] >= 1 && a[i] <= n && a[a[i] - 1] != a[i]) swap(a[i], a[a[i] - 1]);
+        for (int i = 0; i < n; i++) if (a[i] != i + 1) return i + 1;
+        return n + 1;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ Each swap puts one value in its final place → O(n) total ([[arr-in-place-tricks#cyclic]]).
+✍️ The guard `a[a[i]−1] != a[i]` stops infinite swapping on duplicates.
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {1, 2, 0};
+CHECK(s.firstMissingPositive(a) == 3);
+vector<int> b = {3, 4, -1, 1};
+CHECK(s.firstMissingPositive(b) == 2);
+vector<int> c = {7, 8, 9, 11, 12};
+CHECK(s.firstMissingPositive(c) == 1);
+vector<int> d = {1, 1};
+CHECK(s.firstMissingPositive(d) == 2);
+```
+
+=== drill
++++ item: 1832 | check-if-the-sentence-is-pangram | Check if the Sentence Is Pangram | Easy
+statement: Decide whether a lowercase sentence uses every letter of the alphabet at least once.
+pattern: hash-frequency-counting
+pattern_name: Presence counting with a 26-array
+approach: Mark each letter seen in a bool[26] (or set); true iff all 26 marked.
+trigger: "every letter / all characters" over a fixed alphabet.
+complexity: O(n)
++++ item: 205 | isomorphic-strings | Isomorphic Strings | Easy
+statement: Two strings of equal length; decide whether the characters of the first can be replaced one-to-one to produce the second.
+pattern: hash-derived-keys
+pattern_name: Two-way character mapping
+approach: Keep two maps s→t and t→s; at each position both must agree with earlier mappings (or both be new). Equivalent: compare the "first occurrence index" patterns of both strings.
+trigger: "one-to-one mapping / same pattern" between two sequences.
+complexity: O(n)
++++ item: 290 | word-pattern | Word Pattern | Easy
+statement: Given a pattern like "abba" and a sentence of words, decide whether the words follow the pattern with a one-to-one letter↔word mapping.
+pattern: hash-derived-keys
+pattern_name: Bijection with two maps
+approach: Split the sentence; lengths must match; maintain char→word and word→char maps and reject any conflict.
+trigger: "follows the same pattern" → bijection check with two hash maps.
+complexity: O(n + total word length)
++++ item: 1207 | unique-number-of-occurrences | Unique Number of Occurrences | Easy
+statement: Return true if no two distinct values in the array occur the same number of times.
+pattern: hash-frequency-counting
+pattern_name: Count, then check the counts are distinct
+approach: Frequency map; insert every count into a set; true iff the set size equals the number of distinct values.
+trigger: question is about the counts themselves → count first, then reason about counts.
+complexity: O(n)
++++ item: 1365 | how-many-numbers-are-smaller-than-the-current-number | How Many Numbers Are Smaller Than the Current Number | Easy
+statement: For each element, report how many other elements are strictly smaller. Values are between 0 and 100.
+pattern: hash-frequency-counting
+pattern_name: Counting array + prefix of counts
+approach: Values are small → count each value, take a running prefix of counts; answer for x is the total count of values < x.
+trigger: small value range (0..100) → counting array instead of sorting or nested loops.
+complexity: O(n + 101)
+
+=== cs_core: oop-02-encapsulation
+subject: OOP
+title: Encapsulation and access specifiers
+--- concept | Concept | write
+✍️ **Encapsulation** = bundling data with the functions that operate on it, and **hiding** the data so it can only be changed through those functions.
+✍️ Why: the class can enforce its own rules (an account balance never goes negative), and the internal representation can change without breaking code that uses the class.
+✍️ C++ access specifiers: `private` (only the class itself and friends), `protected` (also derived classes), `public` (everyone).
+✍️ Getters/setters expose controlled access; a setter can validate before changing state.
+--- code | C++ example | screenshot
+```cpp
+class Account {
+private:
+    long long balance = 0;               // hidden state
+public:
+    bool withdraw(long long amt) {       // the only way to reduce balance
+        if (amt <= 0 || amt > balance) return false;   // rule enforced in one place
+        balance -= amt;
+        return true;
+    }
+    void deposit(long long amt) { if (amt > 0) balance += amt; }
+    long long getBalance() const { return balance; }
+};
+```
+- `friend` functions/classes can access private members; use sparingly (it weakens encapsulation).
+--- interview | Interview questions | mixed
+✍️ **Q: Encapsulation vs abstraction?** Encapsulation hides *data* behind an interface (how the class protects its state). Abstraction hides *complexity* — exposing what an object does, not how (Day 5).
+✍️ **Q: Difference between private and protected?** Protected members are also accessible inside derived classes; private ones are not.
+✍️ **Q: Is a class with public data members encapsulated?** No — anyone can put the object into an invalid state.
+- **Q: What is data hiding?** The mechanism (private members) that achieves encapsulation.
+- **Q: Default access in class vs struct?** class → private, struct → public.

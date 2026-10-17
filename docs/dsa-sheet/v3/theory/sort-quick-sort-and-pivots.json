@@ -12,6 +12,9 @@
   "heap-vs-quickselect",
   "sort-dutch-national-flag"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "partition",
@@ -38,5 +41,6 @@
    "body": "| | merge sort | quick sort |\n|---|---|---|\n| time | O(n log n) always | O(n log n) avg, O(n²) worst |\n| extra space | O(n) | O(log n) stack |\n| stable | yes | no |\n| in practice on arrays | slower (copying) | faster (cache-friendly) |"
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

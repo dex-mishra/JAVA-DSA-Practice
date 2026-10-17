@@ -12,6 +12,9 @@
   "bt-dedup-sorted-skip",
   "dp-unbounded-knapsack"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -50,5 +53,6 @@
    "body": "Exponential in the worst case; for Combination Sum roughly O(n^(T/m)) where T is the target and m the smallest candidate. Pruning matters more than the formula."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

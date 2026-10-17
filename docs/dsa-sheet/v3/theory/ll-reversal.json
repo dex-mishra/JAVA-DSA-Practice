@@ -11,6 +11,9 @@
   "ll-fast-slow",
   "ll-merge-and-split"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -43,5 +46,6 @@
    "body": "O(n) time, O(1) space (iterative), O(n) stack (recursive)."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

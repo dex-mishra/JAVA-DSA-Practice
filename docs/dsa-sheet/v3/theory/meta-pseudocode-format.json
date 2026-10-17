@@ -11,6 +11,29 @@
   "meta-dry-run",
   "meta-analyse-a-problem"
  ],
+ "note": "1. Two steps after brainstorming\n   • **Algorithm in words** — 3–7 numbered English sentences → catches logic gaps\n   • **Pseudocode** — the 5 slots → catches mechanics gaps (initial values, bounds, order)\n   • Can't write the words version? → the idea isn't finished, go back to brainstorming\n2. The five slots (loops)\n   • **STATE** — what I keep between steps + initial values\n   • **LOOP** — what I walk over, in what order\n   • **CHECK** — the question asked at each step\n   • **UPDATE** — how the state changes\n   • **RETURN** — the output (and what if nothing was found)\n   • Most common bug = **order of CHECK and UPDATE** → decide it on purpose\n3. Recursive version\n   • FUNCTION (one sentence: what it returns) → BASE → CHOICES → RECURSE → COMBINE / UNDO\n4. Style\n   • 1 pseudocode line ≈ 1–2 C++ lines; real variable names; no C++ syntax on paper\n✎ In my words: ______________________________________________",
+ "recall": [
+  {
+   "q": "Name the five slots.",
+   "a": "STATE, LOOP, CHECK, UPDATE, RETURN."
+  },
+  {
+   "q": "Which two slots cause the most bugs when swapped?",
+   "a": "CHECK and UPDATE."
+  },
+  {
+   "q": "What do you do if you can't write the algorithm in words?",
+   "a": "The idea is unfinished — go back to brainstorming, not forward to code."
+  },
+  {
+   "q": "What does the FUNCTION line of a recursive pseudocode say?",
+   "a": "One sentence stating exactly what the function returns."
+  }
+ ],
+ "shot": {
+  "title": "Five-slot template + Two Sum example",
+  "body": "```\nSTATE   seen = map value → index (empty)\nLOOP    for i in 0..n-1, x = a[i]\nCHECK     need = target - x ; if need in seen → return [seen[need], i]\nUPDATE    seen[x] = i              ← AFTER the check\nRETURN  []   (unreachable: an answer is guaranteed)\n```"
+ },
  "sections": [
   {
    "id": "why",
@@ -43,5 +66,15 @@
    "body": "```\nSTATE   seen = map  value → index      (empty)\nLOOP    for i from 0 to n-1, x = a[i]\nCHECK     need = target - x\n          if need is in seen → return [seen[need], i]\nUPDATE    seen[x] = i                   (AFTER the check, so x never pairs with itself)\nRETURN  (problem guarantees an answer) → return []\n```\n\nTranslation to C++ is now mechanical: one `unordered_map<int,int>`, one `for`, one `if (seen.count(need))`, one assignment."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "day": 1,
+   "block": "reading_path",
+   "step": 3,
+   "kind": "path",
+   "why": "The five-slot pseudocode you write on paper before any C++.",
+   "section": "five-slots"
+  }
+ ],
+ "notes_status": "ready"
 }

@@ -12,6 +12,9 @@
   "sort-merge-sort",
   "sort-quick-sort-and-pivots"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -38,5 +41,13 @@
    "body": "✍️ Pow(x, n): n = INT_MIN cannot be negated in `int`; use `long long`.\n✍️ Repeating the same recursive call instead of storing its result."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "math-gcd-and-modular",
+   "from_section": "modular",
+   "kind": "link",
+   "section": "fast-power"
+  }
+ ],
+ "notes_status": "pending"
 }

@@ -11,6 +11,9 @@
  "related": [
   "meta-bottleneck-method"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "by-constraint",
@@ -37,5 +40,6 @@
    "body": "✍️ Write the brute force, then run the unlock questions in [[meta-bottleneck-method#unlock-questions]].\n- Look for a hidden sorted order: can you sort without breaking the problem? (Intervals, meetings, pairs.)\n- Look for a hidden graph: are there \"things\" and \"relations between things\"?\n- Look for a hidden prefix: does \"something about the first i elements\" help answer about element i?"
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

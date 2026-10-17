@@ -11,6 +11,9 @@
   "trie-wildcard-search-dfs",
   "dp-string-partition"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -43,5 +46,13 @@
    "body": "Insert/search O(L). Space O(total characters × 26 pointers) worst case; a `map<char, Node*>` per node saves memory for large alphabets."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-input-shape",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

@@ -11,6 +11,9 @@
  "related": [
   "bits-common-tricks"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -31,5 +34,6 @@
    "body": "O(n) time, versus O(n log n) for counting each number separately."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

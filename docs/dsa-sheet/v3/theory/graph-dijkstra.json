@@ -11,6 +11,9 @@
  "related": [
   "graph-bellman-ford-and-k-stops"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -49,5 +52,25 @@
    "body": "O((n + m) log n) with a binary heap. O(n + m) space."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-question-words",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "cpp-priority-queue",
+   "from_section": "tricks",
+   "kind": "link",
+   "section": "lazy-deletion"
+  },
+  {
+   "from_page": "graph-bfs",
+   "from_section": "recognise",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

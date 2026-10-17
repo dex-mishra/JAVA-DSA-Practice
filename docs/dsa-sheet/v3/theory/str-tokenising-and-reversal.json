@@ -10,6 +10,9 @@
  "related": [
   "arr-in-place-tricks"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "split",
@@ -30,5 +33,13 @@
    "body": "✍️ Leading, trailing and multiple spaces are the whole point of LeetCode 151 — test `\"  a  b  \"`.\n- Joining with `res += w + \" \"` then trimming the final space is fine; `res = res + w` in a loop is O(n²) ([[cpp-string#building]])."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "cpp-string",
+   "from_section": "conversions",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

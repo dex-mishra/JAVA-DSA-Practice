@@ -11,6 +11,9 @@
   "cpp-sort-and-comparators",
   "cpp-priority-queue"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "pair",
@@ -31,5 +34,6 @@
    "body": "`tuple<int,int,int> t = {d, r, c}; auto [d, r, c] = t;` — useful for (distance, row, col) in Dijkstra on grids. Tuples also compare lexicographically."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

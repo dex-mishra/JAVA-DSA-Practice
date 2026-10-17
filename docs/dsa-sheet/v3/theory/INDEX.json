@@ -1,6 +1,6 @@
 {
  "version": 3,
- "count": 161,
+ "count": 165,
  "topics": {
   "arrays": [
    "arr-in-place-tricks",
@@ -150,6 +150,12 @@
    "meta-pattern-decision-tree",
    "meta-pseudocode-format"
   ],
+  "oop": [
+   "oop-abstraction-interfaces",
+   "oop-classes-objects-memory",
+   "oop-constructors-destructors",
+   "oop-encapsulation-access"
+  ],
   "prefix-sum": [
    "ps-2d-prefix-sum",
    "ps-modular-prefix",
@@ -242,6 +248,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "arr-read-write-pointer"
    ],
@@ -298,6 +305,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "ready",
    "prereqs": [
     "arr-single-pass-running-state",
     "cx-space-and-in-place"
@@ -350,6 +358,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "ready",
    "prereqs": [
     "cx-big-o",
     "cpp-vector"
@@ -388,6 +397,7 @@
      "note": "write"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [],
    "related": [
     "bits-xor-tricks",
@@ -417,6 +427,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "bits-binary-and-operators"
    ],
@@ -448,6 +459,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "bits-common-tricks",
     "dp-1d-linear"
@@ -489,6 +501,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "bits-binary-and-operators"
    ],
@@ -534,6 +547,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cx-big-o",
     "cpp-integer-overflow"
@@ -572,6 +586,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "bs-classic-and-invariants"
    ],
@@ -603,6 +618,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "bs-lower-upper-bound"
    ],
@@ -664,6 +680,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "bs-off-by-one-templates",
     "cpp-integer-overflow"
@@ -695,6 +712,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "bs-off-by-one-templates"
    ],
@@ -730,6 +748,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "bs-classic-and-invariants"
    ],
@@ -765,6 +784,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "tree-dfs-traversals",
     "bst-invariant-and-validation"
@@ -796,6 +816,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "tree-top-down-parameters"
    ],
@@ -822,6 +843,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "bst-invariant-and-validation",
     "tree-lca"
@@ -853,6 +875,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "bst-invariant-and-validation"
    ],
@@ -888,6 +911,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "bt-for-loop-choice",
     "tp-skip-duplicates"
@@ -934,6 +958,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "bt-pick-or-skip"
    ],
@@ -971,6 +996,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "bt-pick-or-skip",
     "mat-traversal-and-directions"
@@ -1012,6 +1038,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "bt-pick-or-skip"
    ],
@@ -1057,6 +1084,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "rec-how-recursion-works",
     "rec-recursion-tree-and-cost",
@@ -1091,6 +1119,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "bt-pick-or-skip"
    ],
@@ -1122,6 +1151,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "ready",
    "prereqs": [
     "cpp-unordered-map-set",
     "cpp-map-set-ordered"
@@ -1153,6 +1183,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "ready",
    "prereqs": [],
    "related": [
     "ps-prefix-sum-basics",
@@ -1187,6 +1218,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cpp-vector"
    ],
@@ -1218,6 +1250,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cpp-unordered-map-set"
    ],
@@ -1249,6 +1282,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cpp-vector"
    ],
@@ -1280,6 +1314,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cpp-vector"
    ],
@@ -1311,6 +1346,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cpp-vector",
     "cpp-pair-and-tuple"
@@ -1339,6 +1375,7 @@
      "note": "write"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "rec-how-recursion-works"
    ],
@@ -1380,6 +1417,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cpp-vector",
     "cpp-pair-and-tuple"
@@ -1407,6 +1445,7 @@
      "note": "write"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cpp-vector"
    ],
@@ -1449,6 +1488,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "ready",
    "prereqs": [
     "cpp-vector"
    ],
@@ -1490,6 +1530,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "ready",
    "prereqs": [
     "hash-table-internals"
    ],
@@ -1532,6 +1573,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "ready",
    "prereqs": [],
    "related": [
     "cx-amortised-analysis",
@@ -1566,6 +1608,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cx-big-o"
    ],
@@ -1613,6 +1656,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "ready",
    "prereqs": [],
    "related": [
     "cx-constraints-to-target",
@@ -1648,6 +1692,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "ready",
    "prereqs": [
     "cx-big-o"
    ],
@@ -1679,6 +1724,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cx-big-o",
     "rec-how-recursion-works"
@@ -1716,6 +1762,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "ready",
    "prereqs": [
     "cx-big-o"
    ],
@@ -1762,6 +1809,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "dp-what-dp-is",
     "dp-space-optimisation"
@@ -1814,6 +1862,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "dp-what-dp-is",
     "dp-memo-vs-tabulation"
@@ -1846,6 +1895,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "bits-common-tricks",
     "dp-state-design"
@@ -1877,6 +1927,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "dp-what-dp-is"
    ],
@@ -1914,6 +1965,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "dp-lcs-two-strings"
    ],
@@ -1959,6 +2011,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "dp-what-dp-is",
     "mat-traversal-and-directions"
@@ -1991,6 +2044,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "dp-state-design"
    ],
@@ -2036,6 +2090,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "dp-state-design"
    ],
@@ -2077,6 +2132,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "dp-state-design",
     "bs-lower-upper-bound"
@@ -2108,6 +2164,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "dp-what-dp-is"
    ],
@@ -2143,6 +2200,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "dp-memo-vs-tabulation"
    ],
@@ -2174,6 +2232,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "dp-what-dp-is"
    ],
@@ -2220,6 +2279,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "dp-state-design",
     "kad-min-so-far"
@@ -2256,6 +2316,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "dp-1d-linear",
     "cpp-unordered-map-set"
@@ -2297,6 +2358,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "dp-0-1-knapsack"
    ],
@@ -2338,6 +2400,7 @@
      "note": "write"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "rec-how-recursion-works",
     "rec-recursion-tree-and-cost"
@@ -2371,6 +2434,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "gr-what-greedy-is-and-proofs",
     "arr-single-pass-running-state"
@@ -2407,6 +2471,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "gr-interval-sort-and-merge",
     "gr-what-greedy-is-and-proofs"
@@ -2448,6 +2513,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cpp-sort-and-comparators"
    ],
@@ -2478,6 +2544,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "gr-what-greedy-is-and-proofs"
    ],
@@ -2513,6 +2580,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "tp-why-discarding-is-safe"
    ],
@@ -2549,6 +2617,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "graph-dijkstra"
    ],
@@ -2589,6 +2658,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "graph-representations",
     "cpp-stack-queue-deque"
@@ -2627,6 +2697,7 @@
      "note": "write"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "graph-bfs",
     "graph-connected-components"
@@ -2663,6 +2734,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "graph-dfs"
    ],
@@ -2699,6 +2771,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "graph-dfs"
    ],
@@ -2740,6 +2813,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "graph-representations",
     "rec-how-recursion-works"
@@ -2788,6 +2862,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "graph-bfs",
     "cpp-priority-queue"
@@ -2834,6 +2909,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "graph-representations"
    ],
@@ -2861,6 +2937,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "graph-dijkstra"
    ],
@@ -2906,6 +2983,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "graph-dfs",
     "mat-traversal-and-directions"
@@ -2944,6 +3022,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "graph-bfs"
    ],
@@ -2974,6 +3053,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "graph-dsu",
     "graph-dijkstra"
@@ -3010,6 +3090,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "graph-bfs",
     "graph-grid-as-graph"
@@ -3046,6 +3127,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cpp-vector"
    ],
@@ -3078,6 +3160,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "graph-dfs"
    ],
@@ -3118,6 +3201,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "graph-representations",
     "graph-bfs",
@@ -3175,6 +3259,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "ready",
    "prereqs": [
     "hash-frequency-counting"
    ],
@@ -3210,6 +3295,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "hash-table-internals"
    ],
@@ -3270,6 +3356,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "ready",
    "prereqs": [
     "cpp-unordered-map-set",
     "meta-bottleneck-method"
@@ -3312,6 +3399,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "ready",
    "prereqs": [
     "hash-frequency-counting",
     "cpp-unordered-map-set"
@@ -3363,6 +3451,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "ready",
    "prereqs": [
     "cpp-unordered-map-set",
     "cpp-container-choice"
@@ -3396,6 +3485,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "hash-table-internals",
     "cx-amortised-analysis"
@@ -3442,6 +3532,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "ready",
    "prereqs": [
     "cpp-unordered-map-set"
    ],
@@ -3477,6 +3568,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "ready",
    "prereqs": [
     "cx-big-o"
    ],
@@ -3514,6 +3606,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cx-big-o"
    ],
@@ -3550,6 +3643,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "heap-top-k",
     "ll-merge-and-split"
@@ -3596,6 +3690,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "heap-binary-heap-internals",
     "cpp-priority-queue"
@@ -3634,6 +3729,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "heap-top-k"
    ],
@@ -3659,6 +3755,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "heap-top-k",
     "sort-quick-sort-and-pivots"
@@ -3715,6 +3812,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "arr-single-pass-running-state"
    ],
@@ -3747,6 +3845,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "kad-kadane"
    ],
@@ -3797,6 +3896,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "arr-single-pass-running-state"
    ],
@@ -3838,6 +3938,7 @@
      "note": "write"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "ll-node-and-pointers"
    ],
@@ -3879,6 +3980,7 @@
      "note": "write"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "ll-node-and-pointers"
    ],
@@ -3915,6 +4017,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "ll-fast-slow"
    ],
@@ -3945,6 +4048,7 @@
      "note": "write"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "ll-dummy-head"
    ],
@@ -3980,6 +4084,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "ll-dummy-head",
     "ll-fast-slow",
@@ -4018,6 +4123,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cpp-vector"
    ],
@@ -4059,6 +4165,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "ll-node-and-pointers"
    ],
@@ -4090,6 +4197,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "mat-traversal-and-directions",
     "arr-in-place-tricks"
@@ -4126,6 +4234,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "mat-traversal-and-directions"
    ],
@@ -4161,6 +4270,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "mat-traversal-and-directions"
    ],
@@ -4196,6 +4306,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cpp-vector"
    ],
@@ -4222,6 +4333,7 @@
      "note": "write"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cpp-integer-overflow"
    ],
@@ -4252,6 +4364,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cx-big-o"
    ],
@@ -4292,6 +4405,7 @@
      "note": "write"
     }
    ],
+   "notes_status": "ready",
    "prereqs": [
     "cx-constraints-to-target"
    ],
@@ -4344,6 +4458,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "ready",
    "prereqs": [
     "meta-analyse-a-problem",
     "cx-big-o"
@@ -4381,6 +4496,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "meta-pseudocode-format"
    ],
@@ -4416,6 +4532,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "meta-analyse-a-problem",
     "cx-constraints-to-target"
@@ -4457,12 +4574,214 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "ready",
    "prereqs": [
     "meta-bottleneck-method"
    ],
    "related": [
     "meta-dry-run",
     "meta-analyse-a-problem"
+   ]
+  },
+  {
+   "id": "oop-abstraction-interfaces",
+   "title": "Abstraction, abstract classes and interfaces",
+   "topic": "oop",
+   "kind": "core",
+   "summary": "Expose what an object does and hide how it does it. Pure virtual functions, abstract classes, C++-style interfaces, how they differ, and how abstraction lets you swap implementations.",
+   "sections": [
+    {
+     "id": "what",
+     "title": "What abstraction is",
+     "note": "write"
+    },
+    {
+     "id": "pure-virtual",
+     "title": "Pure virtual functions and abstract classes",
+     "note": "mixed"
+    },
+    {
+     "id": "interfaces",
+     "title": "Interfaces in C++",
+     "note": "write"
+    },
+    {
+     "id": "compare",
+     "title": "Abstraction vs encapsulation",
+     "note": "write"
+    },
+    {
+     "id": "why",
+     "title": "Why it matters (and the link to LLD)",
+     "note": "mixed"
+    },
+    {
+     "id": "interview",
+     "title": "Interview questions",
+     "note": "mixed"
+    }
+   ],
+   "notes_status": "ready",
+   "prereqs": [
+    "oop-encapsulation-access"
+   ],
+   "related": [
+    "oop-constructors-destructors"
+   ]
+  },
+  {
+   "id": "oop-classes-objects-memory",
+   "title": "Classes, objects and what they look like in memory",
+   "topic": "oop",
+   "kind": "core",
+   "summary": "A class is a blueprint, an object is one instance in memory. Know struct vs class, object layout and padding, where member functions and static members live, the this pointer, and stack vs heap objects.",
+   "sections": [
+    {
+     "id": "what",
+     "title": "Class and object",
+     "note": "write"
+    },
+    {
+     "id": "struct-vs-class",
+     "title": "struct vs class in C++",
+     "note": "write"
+    },
+    {
+     "id": "layout",
+     "title": "Object layout, padding and sizeof",
+     "note": "mixed"
+    },
+    {
+     "id": "functions-static",
+     "title": "Member functions and static members",
+     "note": "write"
+    },
+    {
+     "id": "this-pointer",
+     "title": "The this pointer",
+     "note": "write"
+    },
+    {
+     "id": "stack-heap",
+     "title": "Stack objects vs heap objects",
+     "note": "mixed"
+    },
+    {
+     "id": "interview",
+     "title": "Interview questions",
+     "note": "mixed"
+    }
+   ],
+   "notes_status": "ready",
+   "prereqs": [],
+   "related": [
+    "oop-constructors-destructors",
+    "oop-encapsulation-access",
+    "cpp-pass-by-reference-and-copies"
+   ]
+  },
+  {
+   "id": "oop-constructors-destructors",
+   "title": "Constructors and destructors",
+   "topic": "oop",
+   "kind": "core",
+   "summary": "How objects are initialised and cleaned up — constructor types, initialiser lists, initialisation order, copy constructor (shallow vs deep), destructors and RAII, and what the compiler generates for you.",
+   "sections": [
+    {
+     "id": "what",
+     "title": "What a constructor does",
+     "note": "write"
+    },
+    {
+     "id": "kinds",
+     "title": "Kinds of constructors",
+     "note": "mixed"
+    },
+    {
+     "id": "init-list",
+     "title": "Initialiser lists and initialisation order",
+     "note": "write"
+    },
+    {
+     "id": "order",
+     "title": "Construction and destruction order",
+     "note": "write"
+    },
+    {
+     "id": "destructor",
+     "title": "Destructors",
+     "note": "mixed"
+    },
+    {
+     "id": "copying",
+     "title": "Shallow vs deep copy and the rule of three",
+     "note": "write"
+    },
+    {
+     "id": "raii",
+     "title": "RAII",
+     "note": "write"
+    },
+    {
+     "id": "interview",
+     "title": "Interview questions",
+     "note": "mixed"
+    }
+   ],
+   "notes_status": "ready",
+   "prereqs": [
+    "oop-classes-objects-memory"
+   ],
+   "related": [
+    "oop-encapsulation-access",
+    "cpp-pass-by-reference-and-copies"
+   ]
+  },
+  {
+   "id": "oop-encapsulation-access",
+   "title": "Encapsulation and access control",
+   "topic": "oop",
+   "kind": "core",
+   "summary": "Bundle data with the functions that guard it, and hide the data so every change goes through those functions. Access specifiers, getters/setters that protect invariants, friend, and why encapsulation matters.",
+   "sections": [
+    {
+     "id": "what",
+     "title": "What encapsulation is",
+     "note": "write"
+    },
+    {
+     "id": "why",
+     "title": "Why it matters",
+     "note": "write"
+    },
+    {
+     "id": "specifiers",
+     "title": "Access specifiers",
+     "note": "mixed"
+    },
+    {
+     "id": "getters-setters",
+     "title": "Getters, setters and real encapsulation",
+     "note": "write"
+    },
+    {
+     "id": "friend",
+     "title": "friend functions and classes",
+     "note": "mixed"
+    },
+    {
+     "id": "interview",
+     "title": "Interview questions",
+     "note": "mixed"
+    }
+   ],
+   "notes_status": "ready",
+   "prereqs": [
+    "oop-classes-objects-memory"
+   ],
+   "related": [
+    "oop-abstraction-interfaces",
+    "oop-constructors-destructors"
    ]
   },
   {
@@ -4488,6 +4807,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "ps-prefix-sum-basics"
    ],
@@ -4518,6 +4838,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "ps-prefix-sum-hashmap"
    ],
@@ -4558,6 +4879,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "ps-prefix-sum-basics"
    ],
@@ -4613,6 +4935,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "arr-single-pass-running-state",
     "cpp-integer-overflow"
@@ -4671,6 +4994,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "ps-prefix-sum-basics",
     "hash-complement-lookup"
@@ -4708,6 +5032,7 @@
      "note": "write"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "rec-how-recursion-works",
     "cx-recursion-complexity"
@@ -4750,6 +5075,7 @@
      "note": "write"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cx-big-o"
    ],
@@ -4782,6 +5108,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "rec-how-recursion-works",
     "cx-recursion-complexity"
@@ -4809,6 +5136,7 @@
      "note": "write"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "hash-frequency-counting"
    ],
@@ -4845,6 +5173,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "arr-read-write-pointer",
     "tp-opposite-ends"
@@ -4886,6 +5215,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "rec-divide-and-conquer",
     "tp-opposite-ends"
@@ -4924,6 +5254,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "sort-merge-sort",
     "arr-read-write-pointer"
@@ -4951,6 +5282,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "sort-merge-sort"
    ],
@@ -4982,6 +5314,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "stq-stack-basics-and-matching"
    ],
@@ -5012,6 +5345,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "stq-stack-basics-and-matching"
    ],
@@ -5047,6 +5381,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "stq-monotonic-stack"
    ],
@@ -5082,6 +5417,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "stq-monotonic-stack",
     "sw-fixed-window",
@@ -5134,6 +5470,7 @@
      "note": "write"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "stq-stack-basics-and-matching",
     "cx-amortised-analysis"
@@ -5166,6 +5503,7 @@
      "note": "write"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "stq-stack-basics-and-matching",
     "cx-amortised-analysis"
@@ -5207,6 +5545,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cpp-stack-queue-deque"
    ],
@@ -5243,6 +5582,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "sw-fixed-window",
     "hash-frequency-counting"
@@ -5279,6 +5619,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cpp-string"
    ],
@@ -5325,6 +5666,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "str-palindrome-checks"
    ],
@@ -5360,6 +5702,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cpp-string"
    ],
@@ -5390,6 +5733,7 @@
      "note": "write"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "tp-opposite-ends",
     "cpp-string"
@@ -5416,6 +5760,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "sw-fixed-window"
    ],
@@ -5446,6 +5791,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cpp-string"
    ],
@@ -5476,6 +5822,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "sw-variable-window"
    ],
@@ -5526,6 +5873,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "arr-single-pass-running-state"
    ],
@@ -5563,6 +5911,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "sw-variable-window",
     "hash-frequency-counting"
@@ -5594,6 +5943,7 @@
      "note": "write"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "sw-fixed-window"
    ],
@@ -5660,6 +6010,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "sw-fixed-window",
     "sw-monotonicity-requirement"
@@ -5713,6 +6064,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "tp-opposite-ends",
     "tp-skip-duplicates",
@@ -5775,6 +6127,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "cx-big-o"
    ],
@@ -5807,6 +6160,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "tp-opposite-ends"
    ],
@@ -5838,6 +6192,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "tp-opposite-ends"
    ],
@@ -5868,6 +6223,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "tree-bfs-level-order",
     "graph-bfs"
@@ -5909,6 +6265,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "tree-terminology-and-representation",
     "cpp-stack-queue-deque"
@@ -5950,6 +6307,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "tree-dfs-traversals",
     "rec-how-recursion-works"
@@ -5987,6 +6345,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "tree-dfs-traversals",
     "hash-complement-lookup"
@@ -6023,6 +6382,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "tree-terminology-and-representation",
     "rec-how-recursion-works"
@@ -6061,6 +6421,7 @@
      "note": "write"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "tree-bottom-up-return-values"
    ],
@@ -6096,6 +6457,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "tree-dfs-traversals",
     "cpp-stack-queue-deque"
@@ -6132,6 +6494,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "tree-bottom-up-return-values"
    ],
@@ -6157,11 +6520,12 @@
      "note": "screenshot"
     },
     {
-     "id": "note",
+     "id": "remark",
      "title": "Note",
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "tree-dfs-traversals"
    ],
@@ -6197,6 +6561,7 @@
      "note": "mixed"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "rec-how-recursion-works"
    ],
@@ -6233,6 +6598,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "tree-dfs-traversals",
     "bt-pick-or-skip"
@@ -6274,6 +6640,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "tree-terminology-and-representation"
    ],
@@ -6310,6 +6677,7 @@
      "note": "screenshot"
     }
    ],
+   "notes_status": "pending",
    "prereqs": [
     "trie-structure-and-ops",
     "graph-dfs"

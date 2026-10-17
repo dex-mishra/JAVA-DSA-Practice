@@ -1,0 +1,355 @@
+=== page: oop-classes-objects-memory
+title: Classes, objects and what they look like in memory
+topic: oop
+kind: core
+summary: A class is a blueprint, an object is one instance in memory. Know struct vs class, object layout and padding, where member functions and static members live, the this pointer, and stack vs heap objects.
+prereqs:
+related: oop-constructors-destructors, oop-encapsulation-access, cpp-pass-by-reference-and-copies
+--- note | Note this | write
+1. Class vs object
+   • **Class** = blueprint: data members + member functions
+   • **Object** = one instance in memory with its own copy of the data members
+2. struct vs class (C++)
+   • Identical except **default access**: struct → public, class → private
+   • Same for default inheritance: struct → public, class → private
+3. What an object contains
+   • Only **non-static data members** (+ padding, + a hidden vptr if the class has virtual functions)
+   • Member functions are **not** stored per object — one copy in the code segment
+   • **static** members: one copy for the whole class, not inside objects
+   • Empty class → `sizeof` = **1** (every object needs a unique address)
+4. Padding and alignment
+   • Members are aligned to their size → compiler inserts padding
+       ◦ `{char c; int x;}` → 1 + 3 padding + 4 = **8**
+   • Order members large → small to reduce padding
+5. this
+   • Hidden pointer parameter to every non-static member function = address of the calling object
+   • Used for: name clashes (`this->x = x`), returning `*this` for chaining
+   • static member functions have **no** this
+6. Where objects live
+   • `A a;` → stack, destroyed automatically at end of scope
+   • `A* p = new A;` → heap, lives until `delete p` (forget it → memory leak)
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- Only difference between struct and class in C++? :: Default access (and default inheritance): public for struct, private for class.
+- What is stored inside each object? :: Its non-static data members, padding, and a vptr if the class has virtual functions.
+- Where do member functions live? :: Once in the code segment, shared by all objects — not inside each object.
+- sizeof an empty class and why? :: 1 — every object must have a distinct address.
+- sizeof `{char c; int x;}` and why? :: 8 — 3 bytes of padding align the int to 4 bytes.
+- What is `this` and which functions lack it? :: A hidden pointer to the calling object; static member functions have no this.
+- Stack object vs `new` object lifetime? :: Stack: destroyed at end of scope automatically; heap: lives until delete.
+--- shot | Object layout | screenshot
+```
+class Account {               Account a;   (on the stack)
+  char  type;    // 1          ┌──────┬─────────┬──────────┬──────────┐
+  int   id;      // 4          │ type │ pad (3) │ id (4)   │ bal (8)  │  sizeof = 16
+  double bal;    // 8          └──────┴─────────┴──────────┴──────────┘
+  static int count;   → stored ONCE, outside every object
+  void deposit();     → code segment, shared; called as deposit(&a) ← "this"
+};
+```
+--- what | Class and object | write
+✍️ A **class** describes a type: what data each instance holds (data members) and what it can do (member functions).
+✍️ An **object** is one instance created from it, occupying memory, with its own copy of every non-static data member.
+- Analogy: a class is the form for an account; each filled-in form is an object.
+--- struct-vs-class | struct vs class in C++ | write
+✍️ They are the same feature with one difference: **default access**. Members of a `struct` are public unless stated otherwise; members of a `class` are private.
+✍️ Default inheritance follows the same rule: `struct D : B` is public inheritance, `class D : B` is private inheritance.
+- Convention: `struct` for plain data bundles (a Point, a Node), `class` when the type protects invariants.
+- Interview trap: "Can a struct have constructors / virtual functions / inherit?" — yes to all, in C++. (In C, a struct is data only.)
+--- layout | Object layout, padding and sizeof | mixed
+✍️ An object stores only its **non-static data members**, laid out in declaration order, plus padding.
+✍️ **Alignment**: a 4-byte int usually must start at an address divisible by 4, an 8-byte double at a multiple of 8. The compiler inserts padding bytes to satisfy this, and pads the end so arrays of the object stay aligned.
+```cpp
+struct A { char c; int x; };            // 1 + 3 pad + 4        = 8
+struct B { char c; double d; char e; }; // 1 + 7 + 8 + 1 + 7    = 24
+struct C { double d; char c; char e; }; // 8 + 1 + 1 + 6        = 16  (same members, reordered)
+struct E { };                           // 1
+```
+✍️ Reordering members from largest to smallest reduces padding.
+- If the class has virtual functions, each object also holds a hidden **vptr** (8 bytes on 64-bit) pointing to the class's vtable — covered with polymorphism.
+- Exact sizes are implementation-defined; say "on a typical 64-bit compiler" in interviews.
+--- functions-static | Member functions and static members | write
+✍️ Member functions are compiled **once** and shared by all objects. Calling `a.deposit(5)` is effectively `Account::deposit(&a, 5)` — the object's address is passed as the hidden `this` parameter.
+✍️ A **static data member** belongs to the class, not to any object: one copy shared by all objects, stored outside them (so it does not count in `sizeof`). It must be defined once outside the class (or declared `inline static` in C++17).
+✍️ A **static member function** has no `this`, so it can only touch static members. Call it as `Account::count()`.
+```cpp
+class Account {
+    static int created;               // one copy for the class
+public:
+    Account() { created++; }
+    static int count() { return created; }   // no this
+};
+int Account::created = 0;             // definition
+```
+--- this-pointer | The this pointer | write
+✍️ Inside a non-static member function, `this` is a pointer to the object the function was called on.
+✍️ Uses: resolve name clashes (`this->balance = balance;`), return the object for chaining (`return *this;`), pass the object to other functions.
+- In a `const` member function, `this` is a pointer to const, which is why such functions cannot modify members.
+--- stack-heap | Stack objects vs heap objects | mixed
+✍️ **Stack** (`Account a(100);`): memory is reserved when the scope starts; the destructor runs automatically when the scope ends. Fast, no leaks.
+✍️ **Heap** (`Account* p = new Account(100);`): memory comes from the free store; the object lives until `delete p;`. Forgetting `delete` leaks memory; deleting twice is undefined behaviour.
+✍️ Modern C++ avoids raw `new`/`delete`: use `std::unique_ptr` / `std::make_unique`, which delete automatically (RAII — Day 5).
+- `new` = allocate + call constructor; `delete` = call destructor + free. `malloc`/`free` do **not** call constructors or destructors.
+--- interview | Interview questions | mixed
+✍️ **Q: Does an object store its member functions?** No. One copy of each function exists in the code segment; objects store data only.
+✍️ **Q: Why is sizeof an empty class 1?** So two distinct objects never share an address.
+✍️ **Q: new vs malloc?** new calls the constructor and is type-safe; malloc just returns raw bytes. delete calls the destructor; free does not.
+- **Q: Can a static member function be virtual or const?** No — both need `this`.
+- **Q: How would you reduce the size of a struct?** Reorder members from largest to smallest alignment.
+
+=== page: oop-constructors-destructors
+title: Constructors and destructors
+topic: oop
+kind: core
+summary: How objects are initialised and cleaned up — constructor types, initialiser lists, initialisation order, copy constructor (shallow vs deep), destructors and RAII, and what the compiler generates for you.
+prereqs: oop-classes-objects-memory
+related: oop-encapsulation-access, cpp-pass-by-reference-and-copies
+--- note | Note this | write
+1. Constructor
+   • Runs when an object is created; same name as class; **no return type**
+   • Types
+       ◦ **Default** — no arguments (generated if you write no constructor at all)
+       ◦ **Parameterised** — takes arguments
+       ◦ **Copy** — `A(const A& other)`; used for `A b = a;`, pass/return by value
+       ◦ (Move — `A(A&& other)`; steals resources; Day 5)
+2. Initialiser list `: x(v), y(w)`
+   • Constructs members directly (no default-construct then assign)
+   • **Required** for const members, reference members, members/bases without default constructors
+   • Members initialise in **declaration order**, not list order
+3. Order
+   • Construction: base → members → derived body
+   • Destruction: exact **reverse**
+4. Destructor `~A()`
+   • Runs when the object dies (end of scope / delete); no arguments, no overloads
+   • Releases resources the object owns (memory, files, locks)
+   • Base classes used polymorphically need a **virtual** destructor
+5. Shallow vs deep copy
+   • Default copy copies member values → two objects share one heap pointer → double delete
+   • Owning a raw pointer → write copy constructor + copy assignment + destructor (**rule of three**)
+6. RAII
+   • Acquire a resource in the constructor, release it in the destructor → no leaks, even with exceptions
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- Name four kinds of constructors. :: Default, parameterised, copy, move.
+- When is the copy constructor called? :: Initialising from another object, passing by value, returning by value.
+- Which members must be initialised in the initialiser list? :: const members, references, and members or bases without a default constructor.
+- Members are initialised in which order? :: Declaration order in the class, regardless of the initialiser list order.
+- Order of constructors and destructors with inheritance? :: Base then derived on construction; derived then base on destruction.
+- Shallow vs deep copy? :: Shallow copies pointer values (shared memory, double delete risk); deep allocates new memory and copies the contents.
+- What is RAII? :: Tie a resource's lifetime to an object: acquire in the constructor, release in the destructor.
+--- shot | Lifecycle and rule of three | screenshot
+```
+Derived d;              ──►  Base()  →  member ctors  →  Derived()
+} // end of scope        ──►  ~Derived() →  ~members   →  ~Base()
+
+class Buffer {                       // owns a raw pointer → rule of three
+    int* data; size_t n;
+public:
+    Buffer(size_t n) : data(new int[n]), n(n) {}
+    Buffer(const Buffer& o) : data(new int[o.n]), n(o.n) { copy(o.data, o.data + n, data); } // deep copy
+    Buffer& operator=(const Buffer& o);   // also deep copy (copy-and-swap)
+    ~Buffer() { delete[] data; }
+};
+```
+--- what | What a constructor does | write
+✍️ A constructor runs automatically when an object is created and puts it into a valid starting state. It has the class's name and no return type (not even void).
+✍️ If you write **no** constructor, the compiler generates a default one. As soon as you write any constructor, the implicit default constructor disappears — `A a;` stops compiling unless you add `A() = default;`.
+- `explicit` on a one-argument constructor stops implicit conversions like `Account a = 100;`.
+--- kinds | Kinds of constructors | mixed
+✍️ **Default**: `A()` — no arguments.
+✍️ **Parameterised**: `A(int x, string s)`.
+✍️ **Copy**: `A(const A& other)` — builds a new object as a copy of another. Called for `A b = a;`, `A b(a);`, passing by value and returning by value (often elided by the compiler).
+✍️ **Move** (C++11): `A(A&& other)` — takes over another object's resources instead of copying them; used for temporaries. Details on Day 5.
+- **Delegating** constructors call another constructor of the same class: `A() : A(0, "") {}`.
+- Why must the copy constructor take a **reference**? Taking `A other` by value would itself need a copy → infinite recursion.
+--- init-list | Initialiser lists and initialisation order | write
+✍️ `A(int v) : x(v), y(2 * v) {}` constructs members directly with those values. Assigning in the body instead means default-construct first, then assign — wasteful, and impossible for some members.
+✍️ Must use the list for: **const** members, **reference** members, members of a type with no default constructor, and base classes that need arguments.
+✍️ Members are initialised in the order they are **declared** in the class, not the order written in the list. `class A { int y; int x; A(int v) : x(v), y(x) {} };` reads an uninitialised x.
+--- order | Construction and destruction order | write
+✍️ Construction: base class constructors first (in inheritance order), then data members (in declaration order), then the constructor body.
+✍️ Destruction is the exact reverse: destructor body, then members (reverse order), then base classes.
+✍️ Stack objects in one scope are destroyed in reverse order of creation.
+--- destructor | Destructors | mixed
+✍️ `~A()` runs when the object's lifetime ends: end of scope for stack objects, `delete` for heap objects, end of program for globals/statics.
+✍️ One per class, no parameters, no return type, cannot be overloaded.
+✍️ Its job: release what the object owns — heap memory, file handles, sockets, locks.
+- If a class is meant to be used through a base pointer (`Base* p = new Derived;`), the base destructor must be `virtual`, otherwise `delete p` skips `~Derived` (undefined behaviour). Explained with polymorphism.
+- Destructors should not throw exceptions.
+--- copying | Shallow vs deep copy and the rule of three | write
+✍️ The compiler-generated copy constructor copies each member as is. For a raw pointer, both objects then point to the **same** heap memory → when both destructors run, the memory is freed twice (crash), and changes through one object show in the other.
+✍️ **Deep copy**: allocate new memory in the copy and copy the contents.
+✍️ **Rule of three**: if a class needs a custom destructor, copy constructor or copy assignment operator, it almost certainly needs all three. (Rule of five adds move constructor and move assignment.)
+- **Rule of zero** (best practice): don't own raw resources at all — use `vector`, `string`, `unique_ptr`, and the compiler-generated versions are correct.
+--- raii | RAII | write
+✍️ **Resource Acquisition Is Initialisation**: acquire a resource in a constructor, release it in the destructor. Because destructors always run when an object leaves scope (even when an exception is thrown), the resource can never leak.
+✍️ Standard examples: `vector` (memory), `unique_ptr` (heap object), `lock_guard` (mutex), `fstream` (file).
+--- interview | Interview questions | mixed
+✍️ **Q: Can a constructor be virtual?** No — the object's dynamic type is being decided during construction; a vtable call is impossible. Destructors can and should be virtual in polymorphic bases.
+✍️ **Q: Can a constructor be private?** Yes — used for singletons and factory functions (the class creates its own instances).
+✍️ **Q: Why does the copy constructor take a const reference?** By value would recurse infinitely; const allows copying from const objects and temporaries.
+- **Q: What does the compiler generate by default?** Default constructor (only if no other constructor), copy constructor, copy assignment, destructor, and (C++11) move constructor/assignment when nothing user-declared suppresses them.
+- **Q: Calling a virtual function inside a constructor?** It calls the version of the class being constructed, not the derived override.
+
+=== page: oop-encapsulation-access
+title: Encapsulation and access control
+topic: oop
+kind: core
+summary: Bundle data with the functions that guard it, and hide the data so every change goes through those functions. Access specifiers, getters/setters that protect invariants, friend, and why encapsulation matters.
+prereqs: oop-classes-objects-memory
+related: oop-abstraction-interfaces, oop-constructors-destructors
+--- note | Note this | write
+1. Encapsulation
+   • Bundle data + the functions that operate on it into one unit (the class)
+   • **Hide** the data; allow changes only through member functions
+2. Why
+   • Class can enforce **invariants** (balance never negative) in one place
+   • Internal representation can change without breaking callers
+   • Fewer places to debug when data goes wrong
+3. Access specifiers
+   • **private** — only the class itself (and friends)
+   • **protected** — class + derived classes
+   • **public** — everyone
+   • Default: class → private, struct → public
+4. Getters / setters
+   • Controlled access; setters **validate** before changing state
+   • A setter for every field = no real encapsulation
+5. friend
+   • Grants a function/class access to private members
+   • Not inherited, not transitive, not mutual → use sparingly (e.g. `operator<<`)
+6. Inheritance access modes
+   • public inheritance keeps public/protected as is; protected/private inheritance narrows them
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- Define encapsulation in one line. :: Bundling data with the methods that operate on it and hiding the data so it changes only through those methods.
+- Three benefits of encapsulation? :: Invariants enforced in one place, internals can change without breaking callers, easier debugging.
+- private vs protected? :: protected is also visible to derived classes; private is not.
+- Is friendship inherited? :: No — and it is not transitive or mutual either.
+- Is a class with a getter and setter for every field well encapsulated? :: Not really — any caller can still put it into any state; setters should validate or not exist.
+--- shot | Access table | screenshot
+| Accessible from | private | protected | public |
+|---|---|---|---|
+| same class | ✓ | ✓ | ✓ |
+| derived class | ✗ | ✓ | ✓ |
+| outside code | ✗ | ✗ | ✓ |
+| friend | ✓ | ✓ | ✓ |
+```cpp
+class Account {
+    long long balance = 0;                         // hidden
+public:
+    bool withdraw(long long a) {                   // the only way down
+        if (a <= 0 || a > balance) return false;   // invariant: balance >= 0
+        balance -= a; return true;
+    }
+    long long getBalance() const { return balance; }
+};
+```
+--- what | What encapsulation is | write
+✍️ **Encapsulation** = bundling data and the functions that operate on it into one unit, and **restricting direct access** to the data.
+✍️ The class becomes the only code allowed to change its state, so it can guarantee its own rules (**invariants**): an account balance never goes negative, a date is always valid, a size always matches the stored elements.
+- **Data hiding** (private members) is the mechanism; encapsulation is the design principle.
+--- why | Why it matters | write
+✍️ **Correctness**: invalid states cannot be created from outside — every change passes through checks.
+✍️ **Freedom to change**: you can switch the internal representation (e.g. store balance in paise instead of rupees) without changing any calling code.
+✍️ **Debugging**: if the data is wrong, only the class's own methods could have changed it.
+--- specifiers | Access specifiers | mixed
+✍️ `private`: accessible only inside the class (and its friends).
+✍️ `protected`: also accessible inside derived classes.
+✍️ `public`: accessible everywhere.
+- Access is checked at compile time per **class**, not per object: a member function can read the private members of *another* object of the same class (that is how copy constructors work).
+- Inheritance mode narrows access: `class D : protected B` makes B's public members protected inside D.
+--- getters-setters | Getters, setters and real encapsulation | write
+✍️ A getter exposes a value read-only; mark it `const`.
+✍️ A setter is only useful if it **validates** or keeps related fields consistent. Blind setters for every field are public data with extra steps.
+✍️ Better: expose **behaviour**, not fields — `withdraw(amount)` instead of `setBalance(x)`.
+--- friend | friend functions and classes | mixed
+✍️ `friend` grants a specific function or class access to private and protected members.
+✍️ Friendship is **not inherited, not transitive, not mutual**.
+- Legitimate uses: `operator<<` for printing, two tightly coupled classes (an iterator and its container). Overuse breaks encapsulation.
+--- interview | Interview questions | mixed
+✍️ **Q: Encapsulation vs abstraction?** Encapsulation protects an object's data behind its methods (how the class guards its state). Abstraction exposes only what an object does and hides how (what callers depend on).
+✍️ **Q: Can private members of one object be accessed by another object of the same class?** Yes — access control is per class, not per object.
+- **Q: What is `mutable`?** A member that can change even inside a const member function (e.g. a cache or a mutex).
+- **Q: Does friend violate encapsulation?** It widens it deliberately for a named function/class; used sparingly it is part of the class's design.
+
+=== page: oop-abstraction-interfaces
+title: Abstraction, abstract classes and interfaces
+topic: oop
+kind: core
+summary: Expose what an object does and hide how it does it. Pure virtual functions, abstract classes, C++-style interfaces, how they differ, and how abstraction lets you swap implementations.
+prereqs: oop-encapsulation-access
+related: oop-constructors-destructors
+--- note | Note this | write
+1. Abstraction
+   • Show **what** an object does, hide **how**
+   • Callers depend on an interface, not on an implementation
+2. Pure virtual function
+   • `virtual void pay(int amt) = 0;` → no implementation required in the base
+3. Abstract class
+   • Has ≥ 1 pure virtual function → **cannot be instantiated**
+   • Can still have data members, constructors and implemented functions
+   • Derived class must override all pure virtuals, else it is abstract too
+4. Interface (C++ convention)
+   • Abstract class with **only** pure virtual functions + virtual destructor, no data
+   • A class can implement many interfaces (multiple inheritance)
+5. Abstract class vs interface
+   • Abstract class → shared base code/state for related classes
+   • Interface → a capability unrelated classes can share
+6. Abstraction vs encapsulation
+   • Abstraction = hide complexity (design level) · Encapsulation = hide data (implementation level)
+7. Why it matters
+   • Swap implementations without touching callers (UPI ↔ card)
+   • Basis of the Dependency Inversion principle (SOLID, LLD)
+✎ In my words: ______________________________________________
+--- recall | Recall | write
+- Define abstraction in one line. :: Exposing what an object does while hiding how it does it.
+- What makes a class abstract in C++? :: At least one pure virtual function (= 0).
+- Can an abstract class have a constructor and data members? :: Yes; its constructor runs when a derived object is created.
+- Abstract class vs interface? :: Abstract classes can hold state and shared code for related classes; interfaces declare only pure virtual methods for a capability many classes share.
+- Abstraction vs encapsulation? :: Abstraction hides complexity behind an interface (what callers see); encapsulation hides data behind methods (how the class protects state).
+- What happens if a derived class leaves a pure virtual unimplemented? :: It is abstract too and cannot be instantiated.
+--- shot | Interface in action | screenshot
+```cpp
+class PaymentMethod {                         // interface
+public:
+    virtual bool pay(long long amount) = 0;   // what, not how
+    virtual ~PaymentMethod() = default;
+};
+class Upi  : public PaymentMethod { public: bool pay(long long a) override { /* UPI */  return true; } };
+class Card : public PaymentMethod { public: bool pay(long long a) override { /* card */ return true; } };
+
+void checkout(PaymentMethod& m, long long total) { m.pay(total); }   // never changes
+```
+| | Abstract class | Interface |
+|---|---|---|
+| data members | yes | no |
+| implemented methods | yes | no (only pure virtual) |
+| purpose | shared base for related classes | capability for unrelated classes |
+| how many per class | usually one base | many |
+--- what | What abstraction is | write
+✍️ **Abstraction** means showing only the essential behaviour of something and hiding the details of how it works.
+✍️ You drive a car through a steering wheel and pedals without knowing how fuel injection works; code calls `pay(amount)` without knowing whether it is UPI or a card.
+✍️ In code, abstraction is achieved through **interfaces / abstract classes** (and also simply through well-designed functions and classes).
+--- pure-virtual | Pure virtual functions and abstract classes | mixed
+✍️ `virtual double area() const = 0;` declares a function every concrete derived class must provide.
+✍️ A class with at least one pure virtual function is **abstract**: you cannot create objects of it, but you can have pointers and references to it.
+✍️ An abstract class can still have constructors, data members and normal implemented functions — it is a partial blueprint.
+- A pure virtual function may even have a body (defined outside the class) that derived classes can call explicitly; rare, but a known trick question.
+- Abstract base classes should have a virtual destructor.
+--- interfaces | Interfaces in C++ | write
+✍️ C++ has no `interface` keyword. The convention: a class with **only** pure virtual functions and a virtual destructor, and no data members.
+✍️ A class can inherit from several interfaces, gaining several capabilities (`class File : public Readable, public Writable`).
+- Java/C# have a separate `interface` construct; Java classes extend one class but implement many interfaces — a common comparison question.
+--- compare | Abstraction vs encapsulation | write
+✍️ Abstraction answers **what** a caller can do (design level: the interface).
+✍️ Encapsulation answers **how** an object protects its state (implementation level: private data + methods).
+✍️ They work together: an interface (abstraction) is implemented by classes that keep their state private (encapsulation).
+--- why | Why it matters (and the link to LLD) | mixed
+✍️ Code that depends on an interface does not change when a new implementation is added — add `Wallet : PaymentMethod` and `checkout` stays the same.
+✍️ This is the **Dependency Inversion** principle (the D in SOLID): depend on abstractions, not on concrete classes. It is the foundation of most LLD designs.
+- It also makes testing easy: pass a fake implementation of the interface.
+--- interview | Interview questions | mixed
+✍️ **Q: Can you create an object of an abstract class?** No; but you can use pointers/references to it, which point to derived objects.
+✍️ **Q: Can an abstract class have a constructor?** Yes, to initialise its own part of a derived object.
+✍️ **Q: When would you choose an abstract class over an interface?** When related classes share state or code; interfaces when unrelated classes share only a capability.
+- **Q: Give a real example of abstraction.** A payment gateway, a logger with file/console back-ends, a database driver.

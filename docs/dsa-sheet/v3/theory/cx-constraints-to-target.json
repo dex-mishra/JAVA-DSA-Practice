@@ -11,6 +11,29 @@
   "meta-analyse-a-problem",
   "meta-pattern-decision-tree"
  ],
+ "note": "1. The 10⁸ rule\n   • A judge does ~**10⁸ simple operations / second** in C++ (limits are 1–2 s)\n   • Put n into your complexity: ≤ ~10⁸ passes, 10¹⁰ does not\n2. n → target (memorise)\n   • n ≤ 12 → O(n!) permutations\n   • n ≤ 20–25 → O(2ⁿ) subsets / bitmask\n   • n ≤ 500 → O(n³)\n   • n ≤ 5000 → O(n²)\n   • n ≤ 10⁵–10⁶ → **O(n log n) or O(n)**\n   • n ~ 10⁹ → O(log n) or O(1)\n3. Value constraints are hints too\n   • values to 10⁹ and you add them → `long long`\n   • small value range (letters, 0–100) → counting array\n   • negatives present → sliding windows on sums break\n4. In an OA\n   • Write `target: O(...)` before coding; if out of ideas, code brute force for partial marks\n✎ In my words: ______________________________________________",
+ "recall": [
+  {
+   "q": "How many operations per second should you assume?",
+   "a": "About 10⁸."
+  },
+  {
+   "q": "n ≤ 5000 allows?",
+   "a": "O(n²)."
+  },
+  {
+   "q": "n ≤ 20 suggests?",
+   "a": "Exponential — subsets, bitmask, backtracking."
+  },
+  {
+   "q": "Values up to 10⁹ and you sum them — what type?",
+   "a": "long long."
+  }
+ ],
+ "shot": {
+  "title": "Constraint table",
+  "body": "| n up to | Target | Typical techniques |\n|---|---|---|\n| 10–12 | O(n!) | permutations |\n| 20–25 | O(2ⁿ) | subsets, bitmask, backtracking |\n| 500 | O(n³) | triple loops, interval DP |\n| 5,000 | O(n²) | 2D DP, all pairs |\n| 10⁵–10⁶ | O(n log n) / O(n) | sort, heap, binary search, hashing, windows, prefix sums |\n| 10⁹+ | O(log n) / O(1) | binary search on value, math |"
+ },
  "sections": [
   {
    "id": "rule",
@@ -37,5 +60,93 @@
    "body": "✍️ Before coding, write `target: O(...)` at the top of your paper. If your idea is slower, do not code it yet — unless you are out of ideas, in which case code the brute force for partial marks and keep thinking."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "meta-analyse-a-problem",
+   "from_section": "five-questions",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "meta-bottleneck-method",
+   "from_section": "stop",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "problem": "running-sum-of-1d-array",
+   "day": 1,
+   "stage": "analyse",
+   "at": "n ≤ 1000 → aim for O(n) anyway",
+   "why": "Turns n into a target complexity before you think of an idea.",
+   "when": "before",
+   "need": "optional",
+   "kind": "ref",
+   "section": "table"
+  },
+  {
+   "problem": "running-sum-of-1d-array",
+   "day": 1,
+   "kind": "stuck",
+   "minutes": "10",
+   "section": "table"
+  },
+  {
+   "problem": "max-consecutive-ones",
+   "day": 1,
+   "kind": "stuck",
+   "minutes": "10",
+   "section": "table"
+  },
+  {
+   "problem": "two-sum",
+   "day": 2,
+   "kind": "stuck",
+   "minutes": "10",
+   "section": "table"
+  },
+  {
+   "problem": "longest-consecutive-sequence",
+   "day": 2,
+   "kind": "stuck",
+   "minutes": "10",
+   "section": "table"
+  },
+  {
+   "problem": "3sum",
+   "day": 3,
+   "kind": "stuck",
+   "minutes": "10",
+   "section": "table"
+  },
+  {
+   "problem": "container-with-most-water",
+   "day": 3,
+   "kind": "stuck",
+   "minutes": "10",
+   "section": "table"
+  },
+  {
+   "problem": "maximum-subarray",
+   "day": 4,
+   "kind": "stuck",
+   "minutes": "10",
+   "section": "table"
+  },
+  {
+   "problem": "best-time-to-buy-and-sell-stock",
+   "day": 4,
+   "kind": "stuck",
+   "minutes": "10",
+   "section": "table"
+  },
+  {
+   "problem": "longest-substring-without-repeating-characters",
+   "day": 5,
+   "kind": "stuck",
+   "minutes": "10",
+   "section": "table"
+  }
+ ],
+ "notes_status": "ready"
 }

@@ -11,6 +11,9 @@
  "related": [
   "gr-what-greedy-is-and-proofs"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "kruskal",
@@ -31,5 +34,6 @@
    "body": "✍️ Cut property: for any split of the vertices into two sides, the cheapest edge crossing the split belongs to some MST. Both algorithms only ever take such edges."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

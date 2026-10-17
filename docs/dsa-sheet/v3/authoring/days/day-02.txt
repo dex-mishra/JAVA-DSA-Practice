@@ -1,16 +1,20 @@
 === day: 2
-micro_title: Hashing — remember what you have seen
+micro_title: Day 2 — hashing: remember what you have seen
 micro_theory: hash-table-internals, cpp-unordered-map-set, hash-complement-lookup, hash-frequency-counting, cpp-container-choice
---- micro | Micro-theory (10 minutes) | mixed
-Yesterday you kept a few variables about the past. Today you keep **everything** about the past — in a hash map — so any question "have I seen X?" costs O(1).
+reading_path:
+- hash-table-internals#picture | Why a hash map can answer "have I seen this?" without searching. | 3
+- cpp-unordered-map-set#api | The five operations you will type today. | 2
+- cpp-unordered-map-set#bracket-trap | The one bug everybody makes with mp[k]. | 2
+- hash-complement-lookup#idea | Pattern 1 of today — the idea behind Two Sum. | 3
+- hash-frequency-counting#idea | Pattern 2 of today — count once, answer every "how many" in O(1). | 2
+- cpp-container-choice#rule | Array, unordered_map or map? One rule. | 1
+--- micro | Today in one minute | mixed
+Yesterday you remembered a few numbers about the past. Today you remember **everything** about the past — in a hash map — so "have I seen X?" costs O(1).
 
-✍️ A hash table computes where a key lives instead of searching for it, so insert and lookup are O(1) on average ([[hash-table-internals#picture]]).
-✍️ `unordered_map<key, value>`: `mp[k]++` to count, `mp.count(k)` / `mp.find(k)` to ask. **`mp[k]` inserts a missing key** — never use it just to ask ([[cpp-unordered-map-set#bracket-trap]]).
-✍️ Small dense keys (letters) → a plain array `int cnt[26]` beats any map ([[cpp-container-choice#rule]]).
+✍️ **Complement lookup** — for each x, ask whether its partner (target − x) has already appeared.
+✍️ **Frequency counting** — count once, then every "how many" is a lookup.
 
-Two patterns today:
-- **Complement lookup** — for each x, ask whether its partner (target − x) has already appeared ([[hash-complement-lookup#idea]]).
-- **Frequency counting** — count once, answer every "how many" in O(1) ([[hash-frequency-counting#idea]]).
+Problems 3 and 4 have no reading in the path on purpose: try them first. Their theory opens from inside the problem when you need it.
 --- card | Pattern card | write
 ✍️ COMPLEMENT LOOKUP — trigger: "pair that sums/differs to …", unsorted. need = target − x; check map; THEN insert x.
 ✍️ FREQUENCY COUNT — trigger: "anagram, same characters, appears more than, most frequent, duplicate". One table, ++ for one input, −− for the other.
@@ -18,11 +22,12 @@ Two patterns today:
 
 === problem: two-sum
 theory_refs:
-- analyse | "unsorted" + "return indices" | tp-opposite-ends#pitfalls | Why two pointers (which needs sorting) is the wrong tool here.
-- brainstorm | The inner loop searches for one known value | hash-complement-lookup#think | The bottleneck-to-hash-map step.
-- pseudocode | CHECK before UPDATE | hash-complement-lookup#self-pairing | Why inserting first pairs an element with itself.
-- solution | `seen.find(need)` instead of `seen[need]` | cpp-unordered-map-set#bracket-trap | Asking without inserting.
-- edges | O(1) average vs O(n) worst | hash-table-internals#why-o1 | What "O(1)" really means for a hash map.
+- brainstorm | ↳ Bottleneck: the inner loop searches for one known value | hash-complement-lookup#idea | The whole idea of this problem in three lines — read it before attempting. | before | must
+- brainstorm | ↳ Unlock: "Am I searching for something I could have remembered?" | hash-complement-lookup#think | The full brute → hash-map derivation, step by step. | while | must
+- pseudocode | UPDATE `seen[x] = i` comes after CHECK | hash-complement-lookup#self-pairing | Why inserting first lets 3 pair with itself when the target is 6. | while | must
+- solution | `seen.find(need)` instead of `seen[need]` | cpp-unordered-map-set#bracket-trap | `[]` would insert the key while you are only asking. | while | must
+- edges | O(n) **average** time | hash-table-internals#why-o1 | What "O(1) lookup" really means, and its worst case. | after | optional
+- followups | "The array is sorted; O(1) space?" | tp-opposite-ends#idea | Tomorrow's pattern — the answer to this follow-up. | after | optional
 stuck_refs:
 - 10 | cx-constraints-to-target#table
 - 20 | meta-bottleneck-method#name-waste
@@ -44,6 +49,7 @@ stuck_refs:
 ✍️ **2. Better (sort + two pointers).** O(n log n), but sorting loses the original indices; you must sort (value, index) pairs. Workable, more code.
 ✍️ **3. Better (two-pass hash).** Put every value → index in a map, then look up target − a[i] for each i, making sure the index found is not i. O(n).
 ✍️ **4. Optimal (one-pass hash).** Look up first, insert after. Only earlier elements are in the map → no self-pairing check needed, and you stop at the first hit. O(n) time, O(n) space.
+>> detour hash-table-internals#why-o1 | Why the map lookup is O(1) — and when it is not | 3 min
 --- algorithm | Algorithm in words | write
 ✍️ 1. Create an empty map from value to index.
 ✍️ 2. Walk the array. For element x at index i, compute need = target − x.
@@ -96,6 +102,24 @@ If we had inserted before checking, i = 0 would have found 3 and returned [0, 0]
 - *Return all pairs / count pairs.* Store counts; add count[need] at each step.
 - *Three numbers summing to target?* Sort + fix one + two pointers (tomorrow's 3Sum).
 - *What if the input does not fit in memory?* Sort externally and two-pointer, or hash-partition the data into chunks by value.
+--- note | Note this | write
+1. Problem
+   • Unsorted array, return indices i ≠ j with a[i] + a[j] = target (LC 1)
+2. Pattern: complement lookup
+   • Trigger: pair with a sum/difference, input **unsorted**, indices needed
+3. Brute → optimal
+   • Brute: all pairs → O(n²)
+       ◦ Bottleneck: inner loop searches for one known value (target − a[i])
+       ◦ Unlock: "searching for something I could have remembered"
+   • Optimal: map value → index; one pass → O(n) time, O(n) space
+4. Pseudocode
+   • need = target − x → if need in seen → return · **then** seen[x] = i
+5. Pitfalls
+   • Insert first → x pairs with itself ([3,2,4], target 6)
+   • Ask with find/count, not [] (inserts)
+6. Follow-up
+   • Sorted + O(1) space → two pointers (Day 3)
+✎ In my words: ______________________________________________
 --- tests | Tests | hidden
 ```cpp
 Solution s;
@@ -142,6 +166,9 @@ public:
 --- quick_theory | Quick theory | mixed
 ✍️ Set = map without values; use it when you only need membership ([[cpp-unordered-map-set#api]]).
 - Trade-off talk: sorting gives O(1) extra space at O(n log n) time.
+--- note | Note this | write
+• Complement of x is x itself → hash **set**
+• check, then insert · O(n) time, O(n) space (sort: O(n log n), O(1))
 --- tests | Tests | hidden
 ```cpp
 Solution s;
@@ -234,10 +261,10 @@ CHECK(s.containsNearbyDuplicate(c, 2) == false);
 
 === problem: valid-anagram
 theory_refs:
-- brainstorm | Sort-and-compare vs counting | hash-frequency-counting#think | Why counting removes the sort.
-- pseudocode | One table: ++ for s, −− for t | hash-frequency-counting#template | The cancel-out trick.
-- solution | `int cnt[26]` instead of a map | cpp-container-choice#anagram-example | Why an array is the right container for lowercase letters.
-- edges | Length check first | hash-frequency-counting#pitfalls | Different lengths can never be anagrams.
+- brainstorm | **3. Optimal.** Count letters | hash-frequency-counting#think | Why counting removes the need to sort. | while | must
+- pseudocode | `cnt[s[i]-'a']++ ; cnt[t[i]-'a']--` | hash-frequency-counting#template | The one-table ++/−− template. | while | must
+- solution | `int cnt[26]` instead of a map | cpp-container-choice#anagram-example | Why an array is the right container for lowercase letters. | while | optional
+- edges | length check first | hash-frequency-counting#pitfalls | Different lengths can never be anagrams. | after | optional
 stuck_refs:
 - 10 | cpp-string#basics
 - 20 | hash-frequency-counting#idea
@@ -256,6 +283,7 @@ stuck_refs:
 ✍️ **2. Better.** Sort both strings and compare. O(n log n).
 ✍️ ↳ Bottleneck: sorting establishes a full order, but we only need equal counts.
 ✍️ **3. Optimal.** Count letters: +1 for s, −1 for t; all 26 must end at 0. O(n) time, O(1) space (26 is a constant).
+>> detour cpp-container-choice#rule | Array vs unordered_map vs map — the one-minute rule | 1 min
 --- algorithm | Algorithm in words | write
 ✍️ 1. If the lengths differ, return false.
 ✍️ 2. Make an array of 26 zeros.
@@ -305,6 +333,19 @@ Final non-zeros: c = −1, t = +1 → false.
 - *What if inputs contain Unicode?* Hash map keyed by character.
 - *Group many words into anagram groups.* The sorted word (or count signature) becomes a key ([[hash-derived-keys]]).
 - *Find all anagrams of p inside s.* Fixed window of counts (Day 8, [[str-anagram-window]]).
+--- note | Note this | write
+1. Problem
+   • Is t a rearrangement of s? (LC 242)
+2. Pattern: frequency counting
+   • Trigger: "anagram / same characters" → order doesn't matter, counts do
+3. Brute → optimal
+   • Brute: find-and-remove each char → O(n²) · sort both → O(n log n)
+       ◦ Waste: full order when only counts matter
+   • Optimal: one int cnt[26], ++ for s, −− for t, all zero → O(n), O(1)
+4. Pitfalls
+   • Check lengths first
+   • Unicode follow-up → unordered_map instead of [26]
+✎ In my words: ______________________________________________
 --- tests | Tests | hidden
 ```cpp
 Solution s;
@@ -349,6 +390,9 @@ public:
 --- quick_theory | Quick theory | mixed
 ✍️ "Group items that are equivalent" → canonical key + map of lists ([[hash-derived-keys#idea]]).
 ✍️ Key choice trade-off: sorted string vs count signature ([[hash-derived-keys#key-choice]]).
+--- note | Note this | write
+• Canonical key = sorted word (or 26-count signature)
+• groups[key].push_back(word) · O(n · L log L)
 --- tests | Tests | hidden
 ```cpp
 Solution s;
@@ -433,10 +477,10 @@ CHECK(s.firstUniqChar("aabb") == -1);
 
 === problem: majority-element
 theory_refs:
-- brainstorm | Map → sort → voting | hash-boyer-moore-voting#think | The three levels and what each costs.
-- brainstorm | O(1) space is the hint | hash-boyer-moore-voting#recognise | A banned data structure names the technique.
-- pseudocode | Adopt before comparing | hash-boyer-moore-voting#pitfalls | The order of the two lines in the loop.
-- edges | Why the survivor is the majority | hash-boyer-moore-voting#why-it-works | The cancellation argument for interviews.
+- brainstorm | ↳ Unlock: "a forbidden data structure is a hint" | hash-boyer-moore-voting#recognise | How the O(1)-space requirement names the technique. | stuck | must
+- brainstorm | **4. Optimal (Boyer–Moore).** | hash-boyer-moore-voting#think | The map → sort → voting ladder in full. | stuck | must
+- pseudocode | `if cnt == 0: cand = x` comes first | hash-boyer-moore-voting#pitfalls | The order of the two lines inside the loop. | while | must
+- edges | "guaranteed only because a majority is guaranteed" | hash-boyer-moore-voting#why-it-works | The cancellation argument you say in an interview. | after | must
 stuck_refs:
 - 10 | hash-frequency-counting#template
 - 20 | hash-boyer-moore-voting#idea
@@ -452,6 +496,7 @@ stuck_refs:
 --- brainstorm | Brainstorm: brute → optimal | write
 ✍️ **1. Brute.** For each value count it with a scan. O(n²).
 ✍️ **2. Better (frequency map).** Count all, return the one with count > n/2. O(n) time, O(n) space.
+>> detour cx-space-and-in-place#aux | What counts as extra space — and why the map is O(n) | 2 min
 ✍️ **3. Better (sort).** The majority must cover the middle index → return a[n/2]. O(n log n), O(1).
 ✍️ ↳ Bottleneck for O(1) space: storing a count for **every** value, when only one value matters.
 ✍️ ↳ Unlock: "a forbidden data structure is a hint" — no map means a counting/cancelling argument.
@@ -506,6 +551,20 @@ Answer 2.
 - *Elements appearing more than n/3 times* (LeetCode 229): two candidates, two counters, verify at the end.
 - *No majority guaranteed?* Second pass to count the candidate.
 - *Why does sorting work?* A value covering more than half the positions must cover index n/2.
+--- note | Note this | write
+1. Problem
+   • Value appearing > n/2 times; follow-up O(1) space (LC 169)
+2. Pattern: Boyer–Moore voting
+   • Trigger: "majority / more than n/2" + "O(1) space"
+3. Ladder
+   • count map → O(n) space · sort → a[n/2] → O(n log n) · voting → O(n), O(1)
+4. Algorithm
+   • cnt == 0 → cand = x (first) · x == cand → cnt++ · else cnt−−
+5. Why it works
+   • each −1 cancels one cand against a different value; majority can't be cancelled out
+6. Remember
+   • No guarantee → verify with a second pass · > n/3 → two candidates
+✎ In my words: ______________________________________________
 --- tests | Tests | hidden
 ```cpp
 Solution s;
@@ -563,6 +622,9 @@ public:
 ```
 --- quick_theory | Quick theory | mixed
 ✍️ Check "matches a candidate" **before** "a count is 0", or the same value can occupy both slots ([[hash-boyer-moore-voting#variations]]).
+--- note | Note this | write
+• > n/3 → at most two values → two candidates + two counters
+• different from both → decrement both · always verify in a 2nd pass
 --- tests | Tests | hidden
 ```cpp
 Solution s;
@@ -652,11 +714,11 @@ CHECK((s.frequencySort(b) == vector<int>{1, 3, 3, 2, 2}));
 
 === problem: longest-consecutive-sequence
 theory_refs:
-- understand | "O(n)" on unsorted input | hash-set-runs#recognise | The constraint that rules out sorting.
-- brainstorm | Re-walking each run from every element | hash-set-runs#think | Why the naive set version is O(n²).
-- pseudocode | `if v−1 in set: continue` | hash-set-runs#idea | The start-of-run rule.
-- solution | Iterate the set, not the array | hash-set-runs#pitfalls | Duplicates would re-walk runs.
-- edges | Why the nested loop is O(n) | cx-amortised-analysis#counting-trick | Charge each value to one walk.
+- understand | "n ≤ 10⁵, must be O(n)" on unsorted input | hash-set-runs#recognise | The O(n) requirement is the hint that rules out sorting. | stuck | must
+- brainstorm | ↳ Bottleneck: a run of length L is walked L times | hash-set-runs#think | Why the naive set version is O(n²) and the start-of-run fix. | stuck | must
+- pseudocode | CHECK `if (v − 1) in s: continue` | hash-set-runs#idea | The start-of-run rule. | while | must
+- solution | `for (int v : s)` — the set, not the array | hash-set-runs#pitfalls | Duplicates in the array would restart the same walk. | while | optional
+- edges | "each value is visited by at most one walk" | cx-amortised-analysis#counting-trick | Why a loop inside a loop can still be O(n). | after | optional
 stuck_refs:
 - 10 | cx-constraints-to-target#table
 - 20 | hash-set-runs#idea
@@ -722,6 +784,7 @@ s = {100, 4, 200, 1, 3, 2}:
 | 2 | yes | skip | 4 |
 --- edges | Edge cases and complexity | mixed
 ✍️ O(n) average time: n inserts; each value is checked once as a possible start and visited at most once by a walk. O(n) space.
+>> detour cx-amortised-analysis#counting-trick | Why the inner while loop does not make this O(n²) | 3 min
 ✍️ Empty input → the loop never runs → 0.
 - `v + len` with v near INT_MAX could overflow in theory; LeetCode's range is ±10⁹, so it is safe.
 --- carry | Carry forward | write
@@ -732,6 +795,21 @@ s = {100, 4, 200, 1, 3, 2}:
 - *Return the sequence itself.* Remember the start of the best run.
 - *Streaming input?* Union-find or a map of run boundaries (value → length of run ending/starting here), updating neighbours on insert.
 - *Why not sort?* O(n log n) violates the requirement; mention it as the simpler fallback.
+--- note | Note this | write
+1. Problem
+   • Longest run of consecutive integers in an unsorted array, O(n) (LC 128)
+2. Pattern: set + start of run
+   • Trigger: "consecutive", unsorted, **O(n)** (rules out sorting)
+3. Brute → optimal
+   • Sort + scan → O(n log n) ✗
+   • Set + walk from every value → O(n²) on 1..n
+       ◦ Bottleneck: a run of length L is walked L times
+   • Walk only from starts (v−1 missing) → O(n)
+4. Pitfalls
+   • Iterate the **set**, not the array (duplicates)
+5. Remember
+   • A loop inside a loop can be O(n) if each element is charged to one walk
+✎ In my words: ______________________________________________
 --- tests | Tests | hidden
 ```cpp
 Solution s;
@@ -781,6 +859,9 @@ public:
 --- quick_theory | Quick theory | mixed
 ✍️ The "successor" can be any function (v+1, v², 2v); set membership makes each step O(1) ([[hash-set-runs#idea]]).
 ✍️ Squaring overflows int fast → `long long` and a bound check ([[cpp-integer-overflow#where]]).
+--- note | Note this | write
+• Successor is v² instead of v+1 → set lookups again
+• long long + stop above 10⁵ · answer −1 if < 2
 --- tests | Tests | hidden
 ```cpp
 Solution s;
@@ -947,33 +1028,67 @@ complexity: O(n + 101)
 
 **Example:** `[8, 1, 2, 2, 3]` → `[4, 0, 1, 1, 3]`. Four values are below 8; none are below 1; one (the 1) is below each 2.
 
-=== cs_core: oop-02-encapsulation
+=== core: 2
 subject: OOP
-title: Encapsulation and access specifiers
---- concept | Concept | write
-✍️ **Encapsulation** = bundling data with the functions that operate on it, and **hiding** the data so it can only be changed through those functions.
-✍️ Why: the class can enforce its own rules (an account balance never goes negative), and the internal representation can change without breaking code that uses the class.
-✍️ C++ access specifiers: `private` (only the class itself and friends), `protected` (also derived classes), `public` (everyone).
-✍️ Getters/setters expose controlled access; a setter can validate before changing state.
---- code | C++ example | screenshot
-```cpp
-class Account {
-private:
-    long long balance = 0;               // hidden state
-public:
-    bool withdraw(long long amt) {       // the only way to reduce balance
-        if (amt <= 0 || amt > balance) return false;   // rule enforced in one place
-        balance -= amt;
-        return true;
-    }
-    void deposit(long long amt) { if (amt > 0) balance += amt; }
-    long long getBalance() const { return balance; }
-};
-```
-- `friend` functions/classes can access private members; use sparingly (it weakens encapsulation).
---- interview | Interview questions | mixed
-✍️ **Q: Encapsulation vs abstraction?** Encapsulation hides *data* behind an interface (how the class protects its state). Abstraction hides *complexity* — exposing what an object does, not how (Day 5).
-✍️ **Q: Difference between private and protected?** Protected members are also accessible inside derived classes; private ones are not.
-✍️ **Q: Is a class with public data members encapsulated?** No — anyone can put the object into an invalid state.
-- **Q: What is data hiding?** The mechanism (private members) that achieves encapsulation.
-- **Q: Default access in class vs struct?** class → private, struct → public.
+unit: OOP & C++ internals
+title: Encapsulation and access control · Abstraction, abstract classes and interfaces
+minutes: 45
+topics: oop-encapsulation-access, oop-abstraction-interfaces
+explain: An interviewer asks: "What is the difference between encapsulation and abstraction? Give one example of each from a payment system." Answer in 2 minutes.
+--- intro | Today | mixed
+Two pillars that are always asked together — and always confused. Encapsulation protects an object's data; abstraction hides how something works behind an interface.
+✍️ Topic 1 → note → recall. Topic 2 → note → recall. Then MCQs and the 2-minute explanation.
++++ mcq: d2-q1
+q: Which access specifier lets a derived class use a member but hides it from all other code?
+a: private
+b: protected
+c: public
+d: friend
+answer: b
+why: protected = visible to the class and its derived classes only.
+topic: oop-encapsulation-access
++++ mcq: d2-q2
+q: A `friend` function of class A can:
+a: only access public members of A
+b: access private and protected members of A, without being a member of A
+c: be called only from inside A
+d: be inherited by classes derived from A
+answer: b
+why: Friendship grants access to private/protected members; it is not inherited and not transitive.
+topic: oop-encapsulation-access
++++ mcq: d2-q3
+q: A class with at least one pure virtual function:
+a: can be instantiated if all other functions are defined
+b: cannot be instantiated
+c: cannot have a constructor
+d: cannot have data members
+answer: b
+why: It is abstract. It can still have constructors, data members and implemented functions.
+topic: oop-abstraction-interfaces
++++ mcq: d2-q4
+q: In C++, an "interface" is usually written as:
+a: a class with the `interface` keyword
+b: a struct with only static functions
+c: a class with only pure virtual functions and a virtual destructor
+d: a template class
+answer: c
+why: C++ has no interface keyword; the convention is an abstract class with only pure virtual methods.
+topic: oop-abstraction-interfaces
++++ mcq: d2-q5
+q: Which statement is about abstraction rather than encapsulation?
+a: Balance can only change through deposit() and withdraw()
+b: checkout() calls pay() on a PaymentMethod without knowing if it is UPI or a card
+c: Member variables are private
+d: A setter validates input before storing it
+answer: b
+why: Hiding *how* (which payment implementation) behind an interface is abstraction; the others protect data = encapsulation.
+topic: oop-abstraction-interfaces
++++ mcq: d2-q6
+q: A derived class does not override one inherited pure virtual function. The derived class is:
+a: concrete, the base version is used
+b: abstract too, and cannot be instantiated
+c: a compile error at the class definition
+d: concrete, the function returns a default value
+answer: b
+why: An unimplemented pure virtual function keeps the derived class abstract.
+topic: oop-abstraction-interfaces

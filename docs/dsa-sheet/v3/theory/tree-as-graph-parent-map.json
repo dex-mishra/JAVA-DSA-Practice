@@ -11,6 +11,9 @@
  "related": [
   "graph-bfs"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -31,5 +34,6 @@
    "body": "Burning tree / time to infect the whole tree (LeetCode 2385), nodes at distance k, closest leaf."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

@@ -11,6 +11,9 @@
  "related": [
   "sort-quick-sort-and-pivots"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -37,5 +40,27 @@
    "body": "O(n) time, one pass, O(1) space."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "arr-read-write-pointer",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "sort-quick-sort-and-pivots",
+   "from_section": "worst-case",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "problem": "move-zeroes",
+   "sibling": "sort-array-by-parity",
+   "day": 1,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

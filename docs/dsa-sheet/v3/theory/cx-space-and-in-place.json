@@ -11,6 +11,29 @@
   "arr-read-write-pointer",
   "rec-recursion-tree-and-cost"
  ],
+ "note": "1. Auxiliary vs total space\n   • \"Space complexity\" in interviews = **auxiliary**: extra memory you allocate, not the input\n   • Output array usually doesn't count\n   • Map of up to n keys → O(n); fixed `int cnt[26]` → **O(1)**\n2. In-place\n   • Modify the input using O(1) extra variables instead of building a new array\n   • Tools: write pointer, swap, reverse segments, sign/value markers\n   • Only when asked — it destroys the input\n3. Recursion uses space\n   • Space = max recursion **depth** × frame size\n   • Balanced tree → O(log n); chain / list → O(n)\n4. Time–space trade\n   • Hash map: O(n) space buys O(n²) → O(n) time\n   • \"Do it in O(1) space\" → think sortedness, voting, XOR/arithmetic, in-place marking\n✎ In my words: ______________________________________________",
+ "recall": [
+  {
+   "q": "Is a 26-entry count array O(1) or O(n) space?",
+   "a": "O(1) — it doesn't grow with n."
+  },
+  {
+   "q": "What does \"in-place\" mean?",
+   "a": "Modify the input with O(1) extra variables instead of building a new array."
+  },
+  {
+   "q": "Space of recursion on a linked-list-shaped tree?",
+   "a": "O(n) — the depth equals n."
+  },
+  {
+   "q": "Four typical answers to \"O(1) space please\"?",
+   "a": "Sortedness (two pointers), voting (Boyer–Moore), XOR/arithmetic, in-place marking."
+  }
+ ],
+ "shot": {
+  "title": "Space cheat-sheet",
+  "body": "| Structure | Extra space |\n|---|---|\n| a few variables | O(1) |\n| `int cnt[26]` / `cnt[256]` | O(1) |\n| hash map / set of n items | O(n) |\n| copy of the array | O(n) |\n| recursion depth d | O(d) |"
+ },
  "sections": [
   {
    "id": "aux",
@@ -39,11 +62,66 @@
  ],
  "used_by": [
   {
+   "from_page": "arr-read-write-pointer",
+   "from_section": "idea",
+   "kind": "detour",
+   "why": "What \"in-place\" allows and forbids",
+   "section": "in-place"
+  },
+  {
+   "from_page": "hash-boyer-moore-voting",
+   "from_section": "think",
+   "kind": "detour",
+   "why": "What counts as \"extra space\" — and why a map is O(n)",
+   "section": "aux"
+  },
+  {
+   "from_page": "rec-how-recursion-works",
+   "from_section": "call-stack",
+   "kind": "link",
+   "section": "recursion-space"
+  },
+  {
    "problem": "move-zeroes",
    "day": 1,
-   "section": "in-place",
+   "stage": "understand",
+   "kind": "detour",
+   "why": "What \"in place\" allows and forbids",
+   "section": "in-place"
+  },
+  {
+   "problem": "move-zeroes",
+   "day": 1,
    "stage": "edges",
-   "at": "O(1) extra space"
+   "at": "O(1) extra space",
+   "why": "What \"in place\" allows and forbids.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "in-place"
+  },
+  {
+   "problem": "move-zeroes",
+   "day": 1,
+   "kind": "stuck",
+   "minutes": "10",
+   "section": "in-place"
+  },
+  {
+   "problem": "remove-duplicates-from-sorted-array",
+   "day": 1,
+   "kind": "stuck",
+   "minutes": "10",
+   "section": "in-place"
+  },
+  {
+   "problem": "majority-element",
+   "day": 2,
+   "stage": "brainstorm",
+   "kind": "detour",
+   "why": "What counts as extra space — and why the map is O(n)",
+   "section": "aux"
   }
- ]
+ ],
+ "notes_status": "ready"
 }

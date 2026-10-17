@@ -10,6 +10,9 @@
  "related": [
   "bst-inorder-sorted-property"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "search-insert",
@@ -30,5 +33,6 @@
    "body": "O(h): O(log n) balanced, O(n) for a skewed BST. Self-balancing trees (AVL, red-black — what `std::map` uses) keep h = O(log n)."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

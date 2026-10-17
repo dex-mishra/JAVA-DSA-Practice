@@ -12,6 +12,33 @@
   "meta-pattern-decision-tree",
   "meta-pseudocode-format"
  ],
+ "note": "1. The idea\n   • Optimal solutions are **derived**, not invented: brute force → remove waste → repeat\n   • Each step asks: **what is the bottleneck, and why is that work wasted?**\n2. Steps\n   • **Write the brute force** — correct by trying everything; gives the baseline cost\n       ◦ shapes: all pairs O(n²), all subarrays O(n²–n³), all subsets O(2ⁿ), all orders O(n!)\n   • **Point at the bottleneck** — the innermost / most repeated work\n   • **Describe its job in words** — \"for each x, it searches the array for one value\"\n   • **Name the waste → pick the tool**\n3. Waste → tool\n   • searching for a value already seen → **hash map**\n   • recounting the same elements → **frequency count**\n   • re-summing overlapping ranges → **prefix sum**\n   • recomputing a window that moved by one → **sliding window**\n   • checking candidates in sorted order → **binary search / two pointers**\n   • solving the same subproblem again → **DP**\n4. Unlock questions (ask in order when stuck)\n   • Am I searching for something I could have **remembered**?\n   • Am I **recomputing** something that changed a little?\n   • Would **sorting** make it trivial?\n   • Is the answer **monotone**? → binary search the answer\n5. When to stop\n   • When the complexity meets the target from the constraints\n✎ In my words: ______________________________________________",
+ "recall": [
+  {
+   "q": "What question do you ask at every optimisation step?",
+   "a": "What is the bottleneck, and why is that work wasted?"
+  },
+  {
+   "q": "Why always write the brute force?",
+   "a": "Proves understanding, gives the baseline, earns partial marks in OAs and points in interviews."
+  },
+  {
+   "q": "Waste \"searching for a value I already saw\" → tool?",
+   "a": "Hash map / set."
+  },
+  {
+   "q": "Waste \"re-summing overlapping ranges\" → tool?",
+   "a": "Prefix sums."
+  },
+  {
+   "q": "When do you stop optimising?",
+   "a": "When the complexity matches what the constraints require."
+  }
+ ],
+ "shot": {
+  "title": "Waste → tool table",
+  "body": "| The inner loop keeps… | Tool |\n|---|---|\n| searching for a value I already saw | hash map / set |\n| recounting the same elements | frequency array / map |\n| re-summing overlapping ranges | prefix sum |\n| recomputing a window that moved by one | sliding window |\n| checking candidates in sorted order | binary search / two pointers |\n| recomputing the same subproblem | memoisation / DP |\n| scanning for max/min of a changing set | heap / monotonic deque |\n| scanning ahead for the next bigger element | monotonic stack |"
+ },
  "sections": [
   {
    "id": "idea",
@@ -56,5 +83,68 @@
    "body": "✍️ Stop when the complexity matches what the constraints require ([[cx-constraints-to-target]]). Beyond that, extra cleverness only adds bugs.\n- If the target is O(n log n) and you have O(n log n), code it.\n- If you have reached O(n) time, the next question is usually space: can the map be replaced by two pointers or a few variables? Only ask it if the problem says \"O(1) extra space\" or the interviewer asks."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "meta-analyse-a-problem",
+   "from_section": "tiny-example",
+   "kind": "link",
+   "section": "find-bottleneck"
+  },
+  {
+   "from_page": "meta-analyse-a-problem",
+   "from_section": "template",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "if-nothing-matches",
+   "kind": "link",
+   "section": "unlock-questions"
+  },
+  {
+   "from_page": "arr-single-pass-running-state",
+   "from_section": "think",
+   "kind": "link",
+   "section": "name-waste"
+  },
+  {
+   "from_page": "arr-single-pass-running-state",
+   "from_section": "think",
+   "kind": "detour",
+   "why": "First time finding a bottleneck? This is the method every later problem uses",
+   "section": "find-bottleneck"
+  },
+  {
+   "day": 1,
+   "block": "reading_path",
+   "step": 2,
+   "kind": "path",
+   "why": "How a slow solution becomes a fast one. Today's problems are the gentlest examples of this method.",
+   "section": "idea"
+  },
+  {
+   "problem": "running-sum-of-1d-array",
+   "day": 1,
+   "stage": "brainstorm",
+   "kind": "link",
+   "section": "unlock-questions"
+  },
+  {
+   "problem": "running-sum-of-1d-array",
+   "day": 1,
+   "stage": "brainstorm",
+   "kind": "detour",
+   "why": "The seven unlock questions — you will reuse them all month",
+   "section": "unlock-questions"
+  },
+  {
+   "problem": "two-sum",
+   "day": 2,
+   "kind": "stuck",
+   "minutes": "20",
+   "section": "name-waste"
+  }
+ ],
+ "notes_status": "ready"
 }

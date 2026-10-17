@@ -10,6 +10,9 @@
  "related": [
   "math-gcd-and-modular"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "trial",
@@ -30,5 +33,6 @@
    "body": "Count primes (LeetCode 204), prime factorisation of many numbers (store the smallest prime factor), closest prime pairs in a range."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

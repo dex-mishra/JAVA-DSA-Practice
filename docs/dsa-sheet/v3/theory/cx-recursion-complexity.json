@@ -12,6 +12,9 @@
   "rec-recursion-tree-and-cost",
   "rec-divide-and-conquer"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "rule",
@@ -32,5 +35,13 @@
    "body": "✍️ With memoisation, each distinct state is computed once. Time becomes (number of distinct states) × (work per state). Fibonacci drops from O(2ⁿ) to O(n). See [[dp-memo-vs-tabulation]]."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "sort-merge-sort",
+   "from_section": "complexity",
+   "kind": "link",
+   "section": "three-results"
+  }
+ ],
+ "notes_status": "pending"
 }

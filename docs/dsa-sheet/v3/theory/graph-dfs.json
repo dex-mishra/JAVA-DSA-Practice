@@ -13,6 +13,9 @@
   "graph-connected-components",
   "graph-cycle-detection"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -45,5 +48,13 @@
    "body": "O(n + m) time: each vertex visited once, each edge examined once (twice if undirected). O(n) space."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "cpp-recursion-stack-limits",
+   "from_section": "when-risky",
+   "kind": "link",
+   "section": "iterative"
+  }
+ ],
+ "notes_status": "pending"
 }

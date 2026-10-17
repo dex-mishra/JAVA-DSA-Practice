@@ -12,6 +12,9 @@
   "sw-frequency-map-window",
   "stq-monotonic-deque"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -58,25 +61,66 @@
  ],
  "used_by": [
   {
+   "day": 5,
+   "block": "micro",
+   "kind": "link",
+   "section": "template"
+  },
+  {
+   "problem": "maximum-average-subarray-i",
+   "sibling": "maximum-number-of-vowels-in-a-substring-of-given-length",
+   "day": 5,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "variations"
+  },
+  {
    "problem": "maximum-average-subarray-i",
    "day": 5,
-   "section": "think",
    "stage": "brainstorm",
-   "at": "Recomputing k elements when only 2 changed"
+   "at": "Recomputing k elements when only 2 changed",
+   "why": "The bottleneck behind every fixed window.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "think"
   },
   {
    "problem": "maximum-average-subarray-i",
    "day": 5,
-   "section": "template",
    "stage": "pseudocode",
-   "at": "Add, remove, record — in that order"
+   "at": "Add, remove, record — in that order",
+   "why": "The three-line skeleton.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "template"
   },
   {
    "problem": "maximum-average-subarray-i",
    "day": 5,
-   "section": "pitfalls",
    "stage": "edges",
-   "at": "Compare sums, divide once"
+   "at": "Compare sums, divide once",
+   "why": "Avoiding floating-point issues.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "pitfalls"
+  },
+  {
+   "problem": "maximum-average-subarray-i",
+   "day": 5,
+   "kind": "stuck",
+   "minutes": "20",
+   "section": "idea"
+  },
+  {
+   "problem": "maximum-average-subarray-i",
+   "day": 5,
+   "kind": "stuck",
+   "minutes": "30",
+   "section": "template"
   }
- ]
+ ],
+ "notes_status": "pending"
 }

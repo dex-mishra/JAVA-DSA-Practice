@@ -1,0 +1,894 @@
+=== day: 1
+micro_title: One pass, a few variables — and writing in place
+micro_theory: arr-single-pass-running-state, arr-read-write-pointer, cx-big-o, cpp-vector, meta-analyse-a-problem
+--- micro | Micro-theory (10 minutes) | mixed
+Today has two ideas, and both are about **not looking back**.
+
+✍️ **Running state.** Walk the array once, left to right, and carry a few variables that summarise everything you have already seen (a running total, the current streak, the best so far). Each element is touched once → O(n). Read [[arr-single-pass-running-state#idea]].
+✍️ **Read pointer / write pointer.** To remove or move elements *in place*, one index reads every element and a second index marks where the next kept element goes. Each element moves once → O(n) time, O(1) space. Read [[arr-read-write-pointer#idea]].
+
+Before you start, skim two foundation pages once — you will use them every day:
+- [[cx-big-o#counting]] — how to count the cost of a loop.
+- [[cpp-vector#basics]] — `vector`, `size()`, range-for with `&`.
+
+And the habit for the whole plan: fill the analysis box on paper before any idea ([[meta-analyse-a-problem#template]]).
+--- card | Pattern card | write
+✍️ RUNNING STATE — trigger: "so far / running / streak / consecutive". Keep: total, current, best. Update every step; reset when the condition breaks.
+✍️ READ/WRITE POINTER — trigger: "in-place", "O(1) extra space", "remove/move, keep order". `if keep(a[read]) a[write++] = a[read]`. Return `write`.
+
+=== problem: running-sum-of-1d-array
+theory_refs:
+- brainstorm | Brute → better: the backward loop is the bottleneck | arr-single-pass-running-state#think | Shows why re-adding the prefix is wasted work.
+- pseudocode | STATE `run` and UPDATE `run += a[i]` | arr-single-pass-running-state#template | The exact running-total template.
+- edges | Complexity line | cx-big-o#counting | How "one loop, O(1) inside" becomes O(n).
+- carry | "This is a prefix sum" | ps-prefix-sum-basics#idea | The same array is what Day 4's range sums are built on.
+stuck_refs:
+- 10 | cx-constraints-to-target#table
+- 20 | arr-single-pass-running-state#idea
+- 30 | arr-single-pass-running-state#template
+--- understand | Understand | mixed
+✍️ f(array a of n ints) → array out where out[i] = a[0] + a[1] + … + a[i].
+- Constraints: n ≤ 1000, values between −10⁶ and 10⁶. Even O(n²) passes, but the point is to see the O(n) idea.
+- Example: [1, 2, 3, 4] → [1, 3, 6, 10].
+--- analyse | Analyse | write
+✍️ By hand on [3, 1, 2]: out[0] = 3. For out[1] I wrote 3 + 1 — but I did not re-add 3, I took out[0] and added 1. For out[2] I took out[1] = 4 and added 2 → 6.
+✍️ Hard part: none really — the trap is writing two loops because the definition "sum of a[0..i]" sounds like a loop.
+✍️ Edges: one element → itself. Negatives are fine.
+--- brainstorm | Brainstorm: brute → optimal | write
+✍️ **1. Brute.** For each i, loop j from 0 to i and add a[j]. O(n²) time, O(1) extra.
+✍️ ↳ Bottleneck: the inner loop re-adds a[0..i−1], which the previous iteration already added.
+✍️ ↳ Unlock question: "Am I recomputing something that only changed a little?" ([[meta-bottleneck-method#unlock-questions]]) — yes, by exactly one element.
+✍️ **2. Optimal.** Keep the previous total and add a[i]. O(n) time.
+✍️ (Bonus: write into `a` itself — `a[i] += a[i−1]` — for O(1) extra space.)
+--- algorithm | Algorithm in words | write
+✍️ 1. Start a running total at 0.
+✍️ 2. For each element from left to right, add it to the running total.
+✍️ 3. Write the running total into the output at that position.
+✍️ 4. Return the output.
+--- pseudocode | Pseudocode | write
+```
+STATE   run = 0;  out = array of size n
+LOOP    for i in 0..n-1
+UPDATE    run = run + a[i]
+          out[i] = run
+RETURN  out
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    vector<int> runningSum(vector<int>& a) {
+        vector<int> out(a.size());
+        int run = 0;
+        for (int i = 0; i < (int)a.size(); i++) {
+            run += a[i];
+            out[i] = run;
+        }
+        return out;
+    }
+};
+```
+--- dry_run | Dry run | screenshot
+| i | a[i] | run (after) | out |
+|---|---|---|---|
+| start | – | 0 | [_, _, _] |
+| 0 | 3 | 3 | [3, _, _] |
+| 1 | 1 | 4 | [3, 4, _] |
+| 2 | 2 | 6 | [3, 4, 6] |
+--- edges | Edge cases and complexity | mixed
+✍️ Time O(n): one loop, O(1) work inside. Space O(n) for the output (O(1) extra if you overwrite the input).
+- Overflow: 1000 × 10⁶ = 10⁹ fits in int. In general prefix sums need `long long` ([[cpp-integer-overflow#where]]).
+- One element → [a[0]].
+--- carry | Carry forward | write
+✍️ "Answer at i depends on the answer at i−1" → keep it in a variable, do not loop back.
+✍️ This output array is called a **prefix sum array**. On Day 4 it answers any range sum in O(1).
+--- followups | Interview follow-ups | screenshot
+- *Can you do it in O(1) extra space?* Overwrite: `for i in 1..n−1: a[i] += a[i−1]`.
+- *Now answer many "sum from l to r" queries.* Build the prefix array once with a leading 0, answer `pre[r+1] − pre[l]` ([[ps-prefix-sum-basics#template]]).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {1, 2, 3, 4};
+CHECK((s.runningSum(a) == vector<int>{1, 3, 6, 10}));
+vector<int> b = {3, 1, 2, 10, 1};
+CHECK((s.runningSum(b) == vector<int>{3, 4, 6, 16, 17}));
+vector<int> c = {-5};
+CHECK((s.runningSum(c) == vector<int>{-5}));
+```
++++ sibling: 724 | find-pivot-index | Find Pivot Index | Easy | must
+maps: Same running total, but now you compare "sum to my left" with "sum to my right" = total − left − a[i].
+--- analyse | Analyse | write
+✍️ Find the leftmost index i where (sum of elements left of i) equals (sum of elements right of i); −1 if none.
+✍️ Brute force: for every i, add up both sides → O(n²).
+--- brainstorm | Brainstorm | write
+✍️ Bottleneck: re-adding both sides for every i.
+✍️ Fix: the total is fixed. Keep `left` as running state; then right = total − left − a[i] in O(1). → O(n).
+--- algorithm | Algorithm in words | write
+✍️ 1. Compute the total sum. 2. Walk i from left to right with `left = 0`. 3. If left == total − left − a[i], return i. 4. Add a[i] to left. 5. Return −1.
+--- pseudocode | Pseudocode | write
+```
+STATE   total = sum(a); left = 0
+LOOP    for i in 0..n-1
+CHECK     if left == total - left - a[i]: return i
+UPDATE    left += a[i]          (after the check: a[i] is not on its own left)
+RETURN  -1
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int pivotIndex(vector<int>& a) {
+        int total = 0;
+        for (int x : a) total += x;
+        int left = 0;
+        for (int i = 0; i < (int)a.size(); i++) {
+            if (left == total - left - a[i]) return i;
+            left += a[i];
+        }
+        return -1;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ "Left part vs right part" problems = prefix sum + total. See [[ps-prefix-sum-basics#variations]].
+- Same CHECK-then-UPDATE ordering lesson as Two Sum tomorrow.
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {1, 7, 3, 6, 5, 6};
+CHECK(s.pivotIndex(a) == 3);
+vector<int> b = {1, 2, 3};
+CHECK(s.pivotIndex(b) == -1);
+vector<int> c = {2, 1, -1};
+CHECK(s.pivotIndex(c) == 0);
+```
++++ sibling: 2574 | left-and-right-sum-differences | Left and Right Sum Differences | Easy | optional
+maps: Output |leftSum − rightSum| at every index — the pivot-index idea, but recorded everywhere.
+--- analyse | Analyse | write
+✍️ out[i] = |sum(a[0..i−1]) − sum(a[i+1..n−1])|.
+--- brainstorm | Brainstorm | write
+✍️ Brute O(n²) → running `left` + total → O(n).
+--- algorithm | Algorithm in words | write
+✍️ Total first; walk with left; right = total − left − a[i]; store the absolute difference; add a[i] to left.
+--- pseudocode | Pseudocode | write
+```
+total = sum(a); left = 0
+for i in 0..n-1: out[i] = |left - (total - left - a[i])|; left += a[i]
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    vector<int> leftRightDifference(vector<int>& a) {
+        int total = 0; for (int x : a) total += x;
+        vector<int> out(a.size());
+        int left = 0;
+        for (int i = 0; i < (int)a.size(); i++) {
+            out[i] = abs(left - (total - left - a[i]));
+            left += a[i];
+        }
+        return out;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ Any "left vs right of i" quantity = one running prefix + one total.
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {10, 4, 8, 3};
+CHECK((s.leftRightDifference(a) == vector<int>{15, 1, 11, 22}));
+vector<int> b = {1};
+CHECK((s.leftRightDifference(b) == vector<int>{0}));
+```
++++ sibling: 1413 | minimum-value-to-get-positive-step-by-step-sum | Minimum Value to Get Positive Step by Step Sum | Easy | optional
+maps: Running sum again; the answer depends on the lowest point the running sum ever reaches.
+--- analyse | Analyse | write
+✍️ Choose the smallest positive start value so that start + running sum is ≥ 1 at every step.
+--- brainstorm | Brainstorm | write
+✍️ Brute: try start = 1, 2, 3, … and simulate → O(n · answer).
+✍️ Observation: only the **minimum** prefix sum matters. Need start + minPrefix ≥ 1 → start = max(1, 1 − minPrefix). O(n).
+--- algorithm | Algorithm in words | write
+✍️ Track the running sum and its minimum; answer = max(1, 1 − minimum).
+--- pseudocode | Pseudocode | write
+```
+run = 0; low = 0
+for x in a: run += x; low = min(low, run)
+return 1 - low          (low ≤ 0, so this is ≥ 1)
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int minStartValue(vector<int>& a) {
+        int run = 0, low = 0;
+        for (int x : a) { run += x; low = min(low, run); }
+        return 1 - low;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ "Must stay positive / never drop below" → track the minimum of the running sum, not every step.
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {-3, 2, -3, 4, 2};
+CHECK(s.minStartValue(a) == 5);
+vector<int> b = {1, 2};
+CHECK(s.minStartValue(b) == 1);
+vector<int> c = {1, -2, -3};
+CHECK(s.minStartValue(c) == 5);
+```
+
+=== problem: max-consecutive-ones
+theory_refs:
+- brainstorm | Streak that resets | arr-single-pass-running-state#template | The reset-on-break template.
+- pseudocode | Where `best` is updated | arr-single-pass-running-state#pitfalls | Updating only on a break misses a streak that runs to the end.
+- carry | Streak + budget of k breaks | sw-variable-window#budget | Day 5's Max Consecutive Ones III is this problem with k allowed flips.
+stuck_refs:
+- 10 | cx-constraints-to-target#table
+- 20 | arr-single-pass-running-state#idea
+- 30 | arr-single-pass-running-state#pitfalls
+--- understand | Understand | mixed
+✍️ f(binary array) → length of the longest block of consecutive 1s.
+- n ≤ 10⁵ → need O(n) (or O(n log n)).
+- Example: [1,1,0,1,1,1] → 3.
+--- analyse | Analyse | write
+✍️ By hand: I count 1, 2 — hit a 0, reset to 0 — then 1, 2, 3. The answer is the biggest count I said.
+✍️ Hard part: remembering the best while the current count keeps resetting.
+✍️ Edges: all zeros → 0; all ones → n; the longest block at the very end.
+--- brainstorm | Brainstorm: brute → optimal | write
+✍️ **1. Brute.** From every start i, count forward while 1s continue. O(n²) on an all-ones array.
+✍️ ↳ Bottleneck: a block of length L is re-counted from each of its L positions.
+✍️ ↳ Unlock: "recomputing something that only changed a little" — the streak ending at i is (streak ending at i−1) + 1, or 0.
+✍️ **2. Optimal.** One pass with `cur` (streak ending here) and `best`. O(n), O(1).
+--- algorithm | Algorithm in words | write
+✍️ 1. Keep a current streak and a best streak, both 0.
+✍️ 2. For each element: if it is 1, extend the current streak; otherwise reset it to 0.
+✍️ 3. After each element, update best with the current streak.
+✍️ 4. Return best.
+--- pseudocode | Pseudocode | write
+```
+STATE   cur = 0; best = 0
+LOOP    for x in a
+UPDATE    if x == 1: cur = cur + 1  else: cur = 0
+          best = max(best, cur)          (every step, not only on a reset)
+RETURN  best
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int findMaxConsecutiveOnes(vector<int>& a) {
+        int cur = 0, best = 0;
+        for (int x : a) {
+            cur = (x == 1) ? cur + 1 : 0;
+            best = max(best, cur);
+        }
+        return best;
+    }
+};
+```
+--- dry_run | Dry run | screenshot
+| x | cur | best |
+|---|---|---|
+| start | 0 | 0 |
+| 1 | 1 | 1 |
+| 1 | 2 | 2 |
+| 0 | 0 | 2 |
+| 1 | 1 | 2 |
+| 1 | 2 | 2 |
+| 1 | 3 | 3 |
+--- edges | Edge cases and complexity | mixed
+✍️ O(n) time, O(1) space.
+✍️ If `best` were updated only when a 0 appears, [1,1,1] would return 0. Update every step.
+- All zeros → best stays 0.
+--- carry | Carry forward | write
+✍️ "Streak / consecutive" → current + best; reset on break; update best every iteration.
+✍️ When the problem lets you break the rule up to k times, the streak becomes a **sliding window** (Day 5).
+--- followups | Interview follow-ups | screenshot
+- *You may flip at most one 0.* (LeetCode 487) Track the streak before and after the last zero, or a window with ≤ 1 zero.
+- *At most k flips.* Variable window with a zero budget ([[sw-variable-window#budget]]).
+- *Data arrives as a stream.* The same two variables work — nothing needs to be stored.
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {1, 1, 0, 1, 1, 1};
+CHECK(s.findMaxConsecutiveOnes(a) == 3);
+vector<int> b = {1, 0, 1, 1, 0, 1};
+CHECK(s.findMaxConsecutiveOnes(b) == 2);
+vector<int> c = {0, 0};
+CHECK(s.findMaxConsecutiveOnes(c) == 0);
+vector<int> d = {1, 1, 1};
+CHECK(s.findMaxConsecutiveOnes(d) == 3);
+```
++++ sibling: 1446 | consecutive-characters | Consecutive Characters | Easy | must
+maps: Same streak, but "matching" means "equal to the previous character" instead of "equal to 1".
+--- analyse | Analyse | write
+✍️ Longest substring made of one repeated character. "abbcccddddeeeeedcba" → 5.
+--- brainstorm | Brainstorm | write
+✍️ Brute: from each start count equal characters → O(n²). Optimal: streak that extends when s[i] == s[i−1], resets to **1** (not 0) otherwise — the current character alone is a run.
+--- algorithm | Algorithm in words | write
+✍️ cur = best = 1; for i from 1: extend if equal to previous else cur = 1; best = max.
+--- pseudocode | Pseudocode | write
+```
+cur = 1; best = 1
+for i in 1..n-1:
+    cur = (s[i] == s[i-1]) ? cur + 1 : 1
+    best = max(best, cur)
+return best
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int maxPower(string s) {
+        int cur = 1, best = 1;
+        for (int i = 1; i < (int)s.size(); i++) {
+            cur = (s[i] == s[i - 1]) ? cur + 1 : 1;
+            best = max(best, cur);
+        }
+        return best;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ Reset value depends on meaning: "count of matching elements" resets to 0; "length of a run that includes me" resets to 1 ([[arr-single-pass-running-state#pitfalls]]).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+CHECK(s.maxPower("leetcode") == 2);
+CHECK(s.maxPower("abbcccddddeeeeedcba") == 5);
+CHECK(s.maxPower("a") == 1);
+```
++++ sibling: 674 | longest-continuous-increasing-subsequence | Longest Continuous Increasing Subsequence | Easy | optional
+maps: Streak condition becomes "a[i] > a[i−1]".
+--- analyse | Analyse | write
+✍️ Longest strictly increasing **contiguous** run.
+--- brainstorm | Brainstorm | write
+✍️ Same streak; extend when a[i] > a[i−1], else reset to 1. (Non-contiguous version is LIS, Day 28.)
+--- algorithm | Algorithm in words | write
+✍️ cur = best = 1; extend or reset; track best.
+--- pseudocode | Pseudocode | write
+```
+cur = best = 1
+for i in 1..n-1: cur = a[i] > a[i-1] ? cur+1 : 1; best = max(best, cur)
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int findLengthOfLCIS(vector<int>& a) {
+        int cur = 1, best = 1;
+        for (int i = 1; i < (int)a.size(); i++) {
+            cur = (a[i] > a[i - 1]) ? cur + 1 : 1;
+            best = max(best, cur);
+        }
+        return best;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ "Continuous" = contiguous = streak. "Subsequence" without "continuous" = DP ([[dp-lis]]).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {1, 3, 5, 4, 7};
+CHECK(s.findLengthOfLCIS(a) == 3);
+vector<int> b = {2, 2, 2};
+CHECK(s.findLengthOfLCIS(b) == 1);
+```
++++ sibling: 2414 | length-of-the-longest-alphabetical-continuous-substring | Length of the Longest Alphabetical Continuous Substring | Medium | optional
+maps: Streak condition "s[i] is exactly the next letter after s[i−1]".
+--- analyse | Analyse | write
+✍️ Longest substring like "abc", "xyz" where each letter is the next in the alphabet.
+--- brainstorm | Brainstorm | write
+✍️ Same streak with condition `s[i] − s[i−1] == 1`. O(n).
+--- algorithm | Algorithm in words | write
+✍️ Extend when consecutive letters, else reset to 1; track the best.
+--- pseudocode | Pseudocode | write
+```
+cur = best = 1
+for i in 1..n-1: cur = (s[i]-s[i-1] == 1) ? cur+1 : 1; best = max(best, cur)
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int longestContinuousSubstring(string s) {
+        int cur = 1, best = 1;
+        for (int i = 1; i < (int)s.size(); i++) {
+            cur = (s[i] - s[i - 1] == 1) ? cur + 1 : 1;
+            best = max(best, cur);
+        }
+        return best;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ Character arithmetic `s[i] − s[i−1]` ([[cpp-string#basics]]).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+CHECK(s.longestContinuousSubstring("abacaba") == 2);
+CHECK(s.longestContinuousSubstring("abcde") == 5);
+```
+
+=== problem: move-zeroes
+theory_refs:
+- understand | "in-place, keep relative order" | arr-read-write-pointer#recognise | The exact trigger words for the read/write pointer.
+- brainstorm | Brute B shifts elements repeatedly | arr-read-write-pointer#think | Why erase-and-shift is O(n²).
+- pseudocode | `swap(a[write], a[read])` | arr-read-write-pointer#swap-vs-copy | Why Move Zeroes needs swap (or a fill pass), not copy.
+- edges | O(1) extra space | cx-space-and-in-place#in-place | What in-place means.
+stuck_refs:
+- 10 | cx-space-and-in-place#in-place
+- 20 | arr-read-write-pointer#idea
+- 30 | arr-read-write-pointer#template
+- 40 | arr-read-write-pointer#swap-vs-copy
+--- understand | Understand | mixed
+✍️ f(array, modified in place) → all non-zero elements first in their original order, then all zeros.
+- n ≤ 10⁴. Must not copy the array.
+- Example: [0,1,0,3,12] → [1,3,12,0,0].
+--- analyse | Analyse | write
+✍️ By hand: I look at each non-zero and slide it to "the next free spot at the front". The free spot starts at 0 and moves one step each time I place something.
+✍️ Hard part: doing it without a second array, and without disturbing the order of non-zeros.
+✍️ Edges: no zeros (nothing moves), all zeros, a single element.
+--- brainstorm | Brainstorm: brute → optimal | write
+✍️ **1. Brute A.** Copy non-zeros into a new array, pad with zeros, copy back. O(n) time but O(n) space — breaks "in place".
+✍️ **1. Brute B.** When you see a 0, erase it and push a 0 at the end. Erase shifts the whole tail → O(n) per zero → O(n²).
+✍️ ↳ Bottleneck of B: the same elements are shifted again and again.
+✍️ ↳ Unlock: each kept element has a known final position = number of kept elements before it. Move it there **once**.
+✍️ **2. Optimal.** Read pointer visits everything; write pointer = next free spot. Swap a non-zero into the write spot. O(n), O(1).
+--- algorithm | Algorithm in words | write
+✍️ 1. Set the write position to 0.
+✍️ 2. For each read position from left to right: if the element is non-zero, swap it with the element at the write position and advance the write position.
+✍️ 3. Zeros end up behind, because every swap pushes a zero (or the same element) backwards.
+--- pseudocode | Pseudocode | write
+```
+STATE   write = 0
+LOOP    for read in 0..n-1
+CHECK     if a[read] != 0
+UPDATE      swap(a[write], a[read]); write = write + 1
+RETURN  (array modified in place)
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    void moveZeroes(vector<int>& a) {
+        int write = 0;
+        for (int read = 0; read < (int)a.size(); read++) {
+            if (a[read] != 0) {
+                swap(a[write], a[read]);
+                write++;
+            }
+        }
+    }
+};
+```
+--- dry_run | Dry run | screenshot
+| read | a[read] | action | array after | write |
+|---|---|---|---|---|
+| start | | | [0,1,0,3,12] | 0 |
+| 0 | 0 | skip | [0,1,0,3,12] | 0 |
+| 1 | 1 | swap(0,1) | [1,0,0,3,12] | 1 |
+| 2 | 0 | skip | [1,0,0,3,12] | 1 |
+| 3 | 3 | swap(1,3) | [1,3,0,0,12] | 2 |
+| 4 | 12 | swap(2,4) | [1,3,12,0,0] | 3 |
+--- edges | Edge cases and complexity | mixed
+✍️ O(n) time (one pass), O(1) extra space.
+✍️ Invariant: a[0..write−1] holds the non-zeros seen so far in order; a[write..read−1] are all zeros.
+- When there are no zeros, `write == read` and every swap is with itself — harmless.
+--- carry | Carry forward | write
+✍️ "In place, keep order, remove/move some elements" → read/write pointer. The only problem-specific line is `keep(a[read])`.
+✍️ Use **swap** when the removed elements must still be in the array; **copy** when what is left after `write` does not matter.
+--- followups | Interview follow-ups | screenshot
+- *Minimise the number of writes.* Copy non-zeros forward, then fill the tail with zeros only where needed; or skip the swap when read == write.
+- *Move all zeros to the front instead.* Walk from the right with the write pointer at n−1.
+- *Partition evens before odds.* Same template with keep = "is even" (LeetCode 905).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {0, 1, 0, 3, 12};
+s.moveZeroes(a);
+CHECK((a == vector<int>{1, 3, 12, 0, 0}));
+vector<int> b = {0};
+s.moveZeroes(b);
+CHECK((b == vector<int>{0}));
+vector<int> c = {4, 2, 0, 0, 5};
+s.moveZeroes(c);
+CHECK((c == vector<int>{4, 2, 5, 0, 0}));
+```
++++ sibling: 27 | remove-element | Remove Element | Easy | must
+maps: keep = "a[read] != val", and copy is enough because the tail does not matter.
+--- analyse | Analyse | write
+✍️ Remove every occurrence of `val` in place; return k = number of remaining elements, which must be in a[0..k−1].
+--- brainstorm | Brainstorm | write
+✍️ Brute: erase each match → O(n²). Optimal: read/write pointer with copy → O(n), O(1).
+--- algorithm | Algorithm in words | write
+✍️ write = 0; for each element not equal to val, copy it to a[write] and advance write; return write.
+--- pseudocode | Pseudocode | write
+```
+write = 0
+for read in 0..n-1:
+    if a[read] != val: a[write] = a[read]; write++
+return write
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int removeElement(vector<int>& a, int val) {
+        int write = 0;
+        for (int read = 0; read < (int)a.size(); read++)
+            if (a[read] != val) a[write++] = a[read];
+        return write;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ The same template as Move Zeroes; copy instead of swap because only a[0..k−1] is checked ([[arr-read-write-pointer#swap-vs-copy]]).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {3, 2, 2, 3};
+int k = s.removeElement(a, 3);
+CHECK(k == 2);
+CHECK((vector<int>(a.begin(), a.begin() + k) == vector<int>{2, 2}));
+vector<int> b = {0, 1, 2, 2, 3, 0, 4, 2};
+k = s.removeElement(b, 2);
+CHECK(k == 5);
+CHECK((vector<int>(b.begin(), b.begin() + k) == vector<int>{0, 1, 3, 0, 4}));
+```
++++ sibling: 905 | sort-array-by-parity | Sort Array By Parity | Easy | optional
+maps: keep = "is even", with swap so the odds survive at the back.
+--- analyse | Analyse | write
+✍️ Return the array with all evens before all odds (any order within each group).
+--- brainstorm | Brainstorm | write
+✍️ Two new arrays → O(n) space. In place: read/write pointer with swap, keep = even. (Two pointers from both ends also works.)
+--- algorithm | Algorithm in words | write
+✍️ For each element that is even, swap it into a[write] and advance write.
+--- pseudocode | Pseudocode | write
+```
+write = 0
+for read in 0..n-1: if a[read] % 2 == 0: swap(a[write], a[read]); write++
+return a
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    vector<int> sortArrayByParity(vector<int>& a) {
+        int write = 0;
+        for (int read = 0; read < (int)a.size(); read++)
+            if (a[read] % 2 == 0) swap(a[write++], a[read]);
+        return a;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ Two-group partition = read/write + swap. Three groups = Dutch flag ([[sort-dutch-national-flag]]).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {3, 1, 2, 4};
+vector<int> r = s.sortArrayByParity(a);
+CHECK(r.size() == 4);
+CHECK(r[0] % 2 == 0 && r[1] % 2 == 0 && r[2] % 2 == 1 && r[3] % 2 == 1);
+```
++++ sibling: 2460 | apply-operations-to-an-array | Apply Operations to an Array | Easy | optional
+maps: A simulation pass, then exactly Move Zeroes.
+--- analyse | Analyse | write
+✍️ For i = 0..n−2: if a[i] == a[i+1], double a[i] and set a[i+1] = 0. Then shift all zeros to the end.
+--- brainstorm | Brainstorm | write
+✍️ Two passes: the simulation (O(n)), then the read/write pointer (O(n)).
+--- algorithm | Algorithm in words | write
+✍️ Run the merge rule left to right; then move non-zeros to the front keeping order.
+--- pseudocode | Pseudocode | write
+```
+for i in 0..n-2: if a[i] == a[i+1]: a[i] *= 2; a[i+1] = 0
+write = 0; for read: if a[read] != 0: swap(a[write++], a[read])
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    vector<int> applyOperations(vector<int>& a) {
+        int n = a.size();
+        for (int i = 0; i + 1 < n; i++)
+            if (a[i] == a[i + 1]) { a[i] *= 2; a[i + 1] = 0; }
+        int write = 0;
+        for (int read = 0; read < n; read++)
+            if (a[read] != 0) swap(a[write++], a[read]);
+        return a;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ OA problems often chain an easy simulation with a known pattern; spot the known part and reuse its template.
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {1, 2, 2, 1, 1, 0};
+CHECK((s.applyOperations(a) == vector<int>{1, 4, 2, 0, 0, 0}));
+vector<int> b = {0, 1};
+CHECK((s.applyOperations(b) == vector<int>{1, 0}));
+```
+
+=== problem: remove-duplicates-from-sorted-array
+theory_refs:
+- analyse | "sorted" means duplicates are adjacent | arr-read-write-pointer#recognise | Sortedness turns "seen before?" into "same as the last kept?".
+- pseudocode | keep = `a[read] != a[write−1]` | arr-read-write-pointer#template | The keep-rule line for deduplication.
+- edges | compare with the written array | arr-read-write-pointer#pitfalls | Why `a[write−1]` generalises to "keep at most two".
+stuck_refs:
+- 10 | cx-space-and-in-place#in-place
+- 20 | arr-read-write-pointer#idea
+- 30 | arr-read-write-pointer#template
+--- understand | Understand | mixed
+✍️ f(sorted array, in place) → k = number of distinct values; the first k slots must hold them in order.
+- n ≤ 3·10⁴, sorted non-decreasing.
+- Example: [0,0,1,1,1,2,2,3,3,4] → k = 5, front = [0,1,2,3,4].
+--- analyse | Analyse | write
+✍️ By hand: because it is sorted, a value is "new" exactly when it differs from the last value I kept.
+✍️ Hard part: deciding what to compare against — the previous element in the input, or the last kept element. (For this problem both work; for the "keep two" version only the kept one does.)
+✍️ Edges: one element → k = 1; all equal → k = 1.
+--- brainstorm | Brainstorm: brute → optimal | write
+✍️ **1. Brute.** Use a set to collect distinct values, write them back sorted. O(n log n) or O(n) time, O(n) space.
+✍️ ↳ Bottleneck: the set exists only to answer "have I seen this?", but sortedness already answers that in O(1).
+✍️ **2. Optimal.** Read/write pointer; keep a[read] if it differs from a[write−1]. O(n), O(1).
+--- algorithm | Algorithm in words | write
+✍️ 1. The first element is always kept: write = 1.
+✍️ 2. For each later element, if it differs from the last kept element a[write−1], copy it to a[write] and advance.
+✍️ 3. Return write.
+--- pseudocode | Pseudocode | write
+```
+STATE   write = 1                         (n ≥ 1 is guaranteed)
+LOOP    for read in 1..n-1
+CHECK     if a[read] != a[write-1]
+UPDATE      a[write] = a[read]; write++
+RETURN  write
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int removeDuplicates(vector<int>& a) {
+        if (a.empty()) return 0;
+        int write = 1;
+        for (int read = 1; read < (int)a.size(); read++)
+            if (a[read] != a[write - 1]) a[write++] = a[read];
+        return write;
+    }
+};
+```
+--- dry_run | Dry run | screenshot
+| read | a[read] | a[write−1] | keep? | front | write |
+|---|---|---|---|---|---|
+| start | | | | [1] | 1 |
+| 1 | 1 | 1 | no | [1] | 1 |
+| 2 | 2 | 1 | yes | [1,2] | 2 |
+| 3 | 2 | 2 | no | [1,2] | 2 |
+| 4 | 3 | 2 | yes | [1,2,3] | 3 |
+(input [1,1,2,2,3])
+--- edges | Edge cases and complexity | mixed
+✍️ O(n) time, O(1) space.
+✍️ Return the **count** `write`, not `write − 1`.
+- Empty input is excluded by constraints, but the guard costs nothing.
+--- carry | Carry forward | write
+✍️ Sorted input + "seen before?" → compare with the neighbour / last kept, no set needed.
+✍️ Compare against the **written** prefix (`a[write−k]`) to allow at most k copies.
+--- followups | Interview follow-ups | screenshot
+- *Allow each value at most twice* (LeetCode 80): keep if `write < 2 || a[read] != a[write−2]`.
+- *Unsorted input?* Then you need a hash set (O(n) space) or sorting first.
+- *Return the count of duplicates removed.* n − k.
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {0, 0, 1, 1, 1, 2, 2, 3, 3, 4};
+int k = s.removeDuplicates(a);
+CHECK(k == 5);
+CHECK((vector<int>(a.begin(), a.begin() + k) == vector<int>{0, 1, 2, 3, 4}));
+vector<int> b = {7};
+CHECK(s.removeDuplicates(b) == 1);
+vector<int> c = {2, 2, 2};
+CHECK(s.removeDuplicates(c) == 1);
+```
++++ sibling: 80 | remove-duplicates-from-sorted-array-ii | Remove Duplicates from Sorted Array II | Medium | must
+maps: Same template, but compare with a[write−2] to allow two copies.
+--- analyse | Analyse | write
+✍️ Sorted; keep each value at most twice, in place; return k.
+✍️ Trap: comparing with a[read−1] or a[read−2] (the input) fails once you start overwriting. Compare with the **written** array.
+--- brainstorm | Brainstorm | write
+✍️ Counting runs works but is fiddly. Cleanest: keep a[read] if fewer than 2 elements are written, or if a[read] differs from the element written two places back.
+--- algorithm | Algorithm in words | write
+✍️ write = 0; for each element: if write < 2 or it differs from a[write−2], write it.
+--- pseudocode | Pseudocode | write
+```
+write = 0
+for read in 0..n-1:
+    if write < 2 or a[read] != a[write-2]: a[write] = a[read]; write++
+return write
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    int removeDuplicates(vector<int>& a) {
+        int write = 0;
+        for (int read = 0; read < (int)a.size(); read++)
+            if (write < 2 || a[read] != a[write - 2]) a[write++] = a[read];
+        return write;
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ "At most k copies" in a sorted array → keep if `write < k || a[read] != a[write−k]` ([[arr-read-write-pointer#variations]]).
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {1, 1, 1, 2, 2, 3};
+int k = s.removeDuplicates(a);
+CHECK(k == 5);
+CHECK((vector<int>(a.begin(), a.begin() + k) == vector<int>{1, 1, 2, 2, 3}));
+vector<int> b = {0, 0, 1, 1, 1, 1, 2, 3, 3};
+k = s.removeDuplicates(b);
+CHECK(k == 7);
+CHECK((vector<int>(b.begin(), b.begin() + k) == vector<int>{0, 0, 1, 1, 2, 3, 3}));
+```
++++ sibling: 88 | merge-sorted-array | Merge Sorted Array | Easy | optional
+maps: Write pointer again — but from the **back**, so nothing unread is overwritten.
+--- analyse | Analyse | write
+✍️ nums1 has m elements plus n empty slots at the end; merge nums2 (n elements) into it, sorted, in place.
+--- brainstorm | Brainstorm | write
+✍️ Merging from the front overwrites unread elements of nums1. From the back, the free slots are exactly where the largest elements go. Two read pointers (i = m−1, j = n−1), one write pointer (k = m+n−1).
+--- algorithm | Algorithm in words | write
+✍️ While nums2 has elements left: place the larger of nums1[i] and nums2[j] at k, move that pointer and k left.
+--- pseudocode | Pseudocode | write
+```
+i = m-1; j = n-1; k = m+n-1
+while j >= 0:
+    if i >= 0 and a[i] > b[j]: a[k--] = a[i--]
+    else: a[k--] = b[j--]
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    void merge(vector<int>& a, int m, vector<int>& b, int n) {
+        int i = m - 1, j = n - 1, k = m + n - 1;
+        while (j >= 0) {
+            if (i >= 0 && a[i] > b[j]) a[k--] = a[i--];
+            else a[k--] = b[j--];
+        }
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ Loop until nums2 is used up; leftover nums1 elements are already in place. Merge step itself: [[sort-merge-sort#merge]].
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {1, 2, 3, 0, 0, 0}, b = {2, 5, 6};
+s.merge(a, 3, b, 3);
+CHECK((a == vector<int>{1, 2, 2, 3, 5, 6}));
+vector<int> c = {0}, d = {1};
+s.merge(c, 0, d, 1);
+CHECK((c == vector<int>{1}));
+```
++++ sibling: 1089 | duplicate-zeros | Duplicate Zeros | Easy | optional
+maps: Another in-place write from the back: count where each element will land, then write right to left.
+--- analyse | Analyse | write
+✍️ Duplicate every zero, shifting the rest right; elements pushed past the end are dropped. In place.
+--- brainstorm | Brainstorm | write
+✍️ Shifting on each zero → O(n²). Instead: count zeros to know the final length, then walk backwards writing each element (twice for zeros) only if its target index is inside the array.
+--- algorithm | Algorithm in words | write
+✍️ zeros = count; walk i from n−1 down, with target j = i + zeros (zeros before i); write a[i] at j if j < n; if a[i] is 0, decrement zeros and write another 0 at j−1 if inside.
+--- pseudocode | Pseudocode | write
+```
+z = count of zeros
+for i from n-1 down to 0:
+    j = i + z
+    if j < n: a[j] = a[i]
+    if a[i] == 0:
+        z = z - 1; if j-1 < n: a[j-1] = 0
+```
+--- solution | Reference C++ | screenshot
+```cpp
+class Solution {
+public:
+    void duplicateZeros(vector<int>& a) {
+        int n = a.size(), z = 0;
+        for (int x : a) if (x == 0) z++;
+        for (int i = n - 1; i >= 0; i--) {
+            int j = i + z;
+            if (j < n) a[j] = a[i];
+            if (a[i] == 0) {
+                z--;
+                if (j - 1 < n) a[j - 1] = 0;
+            }
+        }
+    }
+};
+```
+--- quick_theory | Quick theory | mixed
+✍️ When writes move elements to the **right**, write from the right so you never overwrite something unread.
+--- tests | Tests | hidden
+```cpp
+Solution s;
+vector<int> a = {1, 0, 2, 3, 0, 4, 5, 0};
+s.duplicateZeros(a);
+CHECK((a == vector<int>{1, 0, 0, 2, 3, 0, 0, 4}));
+vector<int> b = {1, 2, 3};
+s.duplicateZeros(b);
+CHECK((b == vector<int>{1, 2, 3}));
+vector<int> c = {0, 0, 0};
+s.duplicateZeros(c);
+CHECK((c == vector<int>{0, 0, 0}));
+```
+
+=== drill
++++ item: 1295 | find-numbers-with-even-number-of-digits | Find Numbers with Even Number of Digits | Easy
+statement: Given a list of positive integers, count how many of them are written with an even number of decimal digits.
+pattern: arr-single-pass-running-state
+pattern_name: Single pass with a counter
+approach: One pass; for each number count its digits (divide by 10, or check ranges 10–99, 1000–9999, …) and increment a counter if the count is even.
+trigger: "count how many elements satisfy …" with an independent per-element test.
+complexity: O(n · digits)
++++ item: 1672 | richest-customer-wealth | Richest Customer Wealth | Easy
+statement: A grid lists, for each customer (row), the money they hold in each bank (column). Return the largest total wealth of any single customer.
+pattern: arr-single-pass-running-state
+pattern_name: Running sum per row + best so far
+approach: For each row, sum it with a running total, then update a global maximum.
+trigger: "maximum total of …" → sum + best-so-far.
+complexity: O(R·C)
++++ item: 1287 | element-appearing-more-than-25-in-sorted-array | Element Appearing More Than 25% In Sorted Array | Easy
+statement: A sorted array has exactly one value that occurs in more than a quarter of the positions. Return it.
+pattern: arr-single-pass-running-state
+pattern_name: Streak in a sorted array
+approach: Duplicates are adjacent in sorted input, so track the length of the current run of equal values and return the value when the run exceeds n/4. (Clever version: check if a[i] == a[i + n/4].)
+trigger: "sorted" + "appears more than …" → equal values sit together, count runs.
+complexity: O(n)
++++ item: 1550 | three-consecutive-odds | Three Consecutive Odds | Easy
+statement: Return true if the array contains three odd numbers in a row.
+pattern: arr-single-pass-running-state
+pattern_name: Streak that resets
+approach: Streak counter that increments on odd and resets on even; return true when it reaches 3.
+trigger: "in a row / consecutive".
+complexity: O(n)
++++ item: 1909 | remove-one-element-to-make-the-array-strictly-increasing | Remove One Element to Make the Array Strictly Increasing | Easy
+statement: Decide whether deleting exactly one element can leave the array strictly increasing.
+pattern: arr-single-pass-running-state
+pattern_name: Single pass counting violations
+approach: Walk once counting positions where a[i] ≤ a[i−1]. More than one → false. At the single violation, check whether removing a[i−1] or a[i] fixes it by comparing with a[i−2] / a[i+1].
+trigger: "remove one element" + "strictly increasing" → scan once for the violation, decide locally.
+complexity: O(n)
+
+=== cs_core: oop-01-classes-objects
+subject: OOP
+title: Classes, objects, constructors and this
+--- concept | Concept | write
+✍️ A **class** is a blueprint: data (member variables) + behaviour (member functions). An **object** is one instance built from it, with its own copy of the data.
+✍️ A **constructor** runs when an object is created and sets up its initial state. Same name as the class, no return type. A **destructor** (`~ClassName`) runs when the object is destroyed — used to release resources (memory, files).
+✍️ `this` is a pointer to the current object inside a member function. Useful when a parameter has the same name as a member: `this->name = name;`.
+✍️ In C++, `struct` and `class` are identical except the default access: `struct` members are public by default, `class` members are private.
+--- code | C++ example | screenshot
+```cpp
+class BankAccount {
+    string owner;            // private by default
+    long long balance;
+public:
+    BankAccount(string owner, long long start) : owner(owner), balance(start) {}  // initialiser list
+    ~BankAccount() { /* release resources if any */ }
+    void deposit(long long amt) { this->balance += amt; }
+    long long getBalance() const { return balance; }   // const: does not modify the object
+};
+BankAccount a("Aryan", 100);   // object on the stack
+a.deposit(50);                 // a.getBalance() == 150
+```
+- Initialiser lists (`: owner(owner), balance(start)`) construct members directly; required for `const` members and references.
+--- interview | Interview questions | mixed
+✍️ **Q: Class vs object?** A class is the definition; an object is a concrete instance occupying memory.
+✍️ **Q: What is a default / parameterised / copy constructor?** No arguments / takes arguments / `ClassName(const ClassName& other)` that builds a copy. The compiler generates a default and copy constructor if you do not write them.
+✍️ **Q: Shallow vs deep copy?** Shallow copies pointer values (both objects share the same memory → double delete). Deep copy allocates new memory and copies the contents. Needed when a class owns a raw pointer.
+- **Q: Can a constructor be virtual?** No — the object's type is not known yet while it is being constructed. Destructors can and should be virtual in base classes (Day 4).
+- **Q: What does `const` after a member function mean?** It promises not to modify the object; it can be called on const objects.

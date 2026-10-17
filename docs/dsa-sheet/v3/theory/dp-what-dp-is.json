@@ -13,6 +13,9 @@
   "dp-state-design",
   "meta-bottleneck-method"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -45,5 +48,25 @@
    "body": "✍️ 1. **State**: what does `dp[i]` (or `dp[i][j]`) mean? One precise sentence.\n✍️ 2. **Transition**: how is `dp[i]` computed from smaller states? Usually \"max/min/sum over the choices at step i\".\n✍️ 3. **Base cases**: the smallest states, answered directly.\n✍️ 4. **Order**: compute states so that every state's dependencies are ready (smaller i first).\n✍️ 5. **Answer**: which state (or max over states) is the final answer."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "meta-bottleneck-method",
+   "from_section": "name-waste",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-question-words",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "rec-recursion-tree-and-cost",
+   "from_section": "examples",
+   "kind": "link",
+   "section": "overlap"
+  }
+ ],
+ "notes_status": "pending"
 }

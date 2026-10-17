@@ -45,7 +45,7 @@ test("the delivered content imports cleanly", () => {
   const r = importDsa({ src: SRC, today: TODAY });
   assert.deepEqual(r.errors, []);
   assert.equal(r.stats.problems, 120);
-  assert.equal(r.stats.pages, 161);
+  assert.equal(r.stats.pages, 165);
   assert.equal(r.stats.ready_days, 5);
   assert.equal(r.stats.drill, 25);
   assert.equal(Object.keys(r.outputs.get("index.json").legacy_map).length, 89);
@@ -120,10 +120,10 @@ test("6: a drill day with four items is refused", () => {
   })), /exactly 5 items/);
 });
 
-test("6: a ready day without cs_core is refused", () => {
+test("6: a ready day with neither core nor cs_core is refused", () => {
   refuses(withCopy(({ edit }) => edit("days/day-05.json", (d) => {
-    delete d.cs_core;
-  })), /needs cs_core/);
+    delete d.cs_core; delete d.core;
+  })), /needs a core block/);
 });
 
 test("7: an OA problem from outside covers_days is refused", () => {
@@ -157,7 +157,87 @@ test("a day PLAN marks ready without its file is refused", () => {
 test("used_by is recomputed from the references, not taken from the content", () => {
   const r = importDsa({ src: SRC, today: TODAY });
   const page = r.outputs.get("theory/hash-complement-lookup.json");
-  assert.ok(page.used_by.some((u) => u.kind === "problem" && u.id === "two-sum"));
-  assert.ok(page.used_by.every((u) => "kind" in u && "stage" in u));
+  const row = page.used_by.find((u) => u.kind === "ref" && u.id === "two-sum");
+  assert.ok(row, "Two Sum's reference is in used_by");
+  // v3.1 §12: each row carries where, why, when and must/optional.
+  assert.ok(row.stage && row.why && row.when && row.need);
   assert.ok(existsSync(join(SRC, "theory", "hash-complement-lookup.json")));
+});
+
+// ---------------------------------------------------------------- v3.1 §12
+
+test("v3.1: the Day 1–2 numbers from START-HERE", () => {
+  const r = importDsa({ src: SRC, today: TODAY });
+  const d1 = r.outputs.get("day/1.json"), d2 = r.outputs.get("day/2.json");
+  assert.equal(d1.reading_path.length, 7);
+  assert.equal(d1.reading_path.reduce((n, s) => n + s.minutes, 0), 21);
+  assert.equal(d2.reading_path.length, 6);
+  assert.deepEqual(d1.core.topics, ["oop-classes-objects-memory", "oop-constructors-destructors"]);
+  assert.equal(d1.core.mcqs.length, 6);
+  const ready = r.outputs.get("theory-index.json").pages.filter((p) => p.notes_status === "ready").length;
+  assert.equal(ready, 23);
+});
+
+test("v3.1: v3-format refs default to while/optional", () => {
+  const r = importDsa({ src: SRC, today: TODAY });
+  const p = r.outputs.get("problem/3sum.json");
+  assert.ok(p.theory_refs.every((x) => x.when === "while" || x.when !== undefined));
+  assert.ok(p.theory_refs.every((x) => ["before", "while", "stuck", "after"].includes(x.when) && ["must", "optional"].includes(x.need)));
+});
+
+test("v3.1: a malformed detour line is refused", () => {
+  refuses(withCopy(({ edit }) => edit("theory/arr-read-write-pointer.json", (t) => {
+    t.sections[0].body += "\n>> detour cx-space-and-in-place#aux why but no minutes";
+  })), /malformed detour/);
+});
+
+test("v3.1: a detour to a missing section is refused", () => {
+  refuses(withCopy(({ edit }) => edit("theory/arr-read-write-pointer.json", (t) => {
+    t.sections[0].body += "\n>> detour cx-space-and-in-place#nope | why | 2 min";
+  })), /has no section 'nope'/);
+});
+
+test("v3.1: a reading_path step to a missing section is refused", () => {
+  refuses(withCopy(({ edit }) => edit("days/day-01.json", (d) => {
+    d.reading_path[0].section = "nope";
+  })), /reading_path\[1\].*has no section 'nope'/);
+});
+
+test("v3.1: an invalid when / need is refused", () => {
+  refuses(withCopy(({ edit }) => edit("days/day-01.json", (d) => {
+    d.problems[0].theory_refs[0].when = "sometimes";
+  })), /when 'sometimes'/);
+  refuses(withCopy(({ edit }) => edit("days/day-01.json", (d) => {
+    d.problems[0].theory_refs[0].need = "nice";
+  })), /need 'nice'/);
+});
+
+test("v3.1: note, recall and shot must come together; recall needs 3", () => {
+  refuses(withCopy(({ edit }) => edit("theory/hash-complement-lookup.json", (t) => { t.shot = null; })), /must come together/);
+  refuses(withCopy(({ edit }) => edit("theory/hash-complement-lookup.json", (t) => { t.recall = t.recall.slice(0, 2); })), /at least 3 questions/);
+});
+
+test("v3.1: a core topic that is not a core page is refused", () => {
+  refuses(withCopy(({ edit }) => edit("days/day-01.json", (d) => {
+    d.core.topics[0] = "hash-complement-lookup";
+  })), /not a CS core page/);
+});
+
+test("v3.1: fewer than 5 MCQs, or an answer outside the options, is refused", () => {
+  refuses(withCopy(({ edit }) => edit("days/day-01.json", (d) => { d.core.mcqs = d.core.mcqs.slice(0, 4); })), /at least 5 MCQs/);
+  refuses(withCopy(({ edit }) => edit("days/day-01.json", (d) => { d.core.mcqs[0].answer = "z"; })), /answer among them/);
+});
+
+test("v3.1: Days 1–2 problems need notes; LEARN needs a 'before' ref", () => {
+  refuses(withCopy(({ edit }) => edit("days/day-01.json", (d) => { d.problems[0].note = null; })), /need a note outline/);
+  refuses(withCopy(({ edit }) => edit("days/day-01.json", (d) => {
+    d.problems[0].theory_refs.forEach((r) => { if (r.when === "before") r.when = "while"; });
+  })), /at least one 'before' reference/);
+});
+
+test("v3.1: Days 3–5 in the v3 format still import (fallbacks)", () => {
+  const r = importDsa({ src: SRC, today: TODAY });
+  const d3 = r.outputs.get("day/3.json");
+  assert.deepEqual(d3.reading_path, []);
+  assert.ok(d3.cs_core && !d3.core);
 });

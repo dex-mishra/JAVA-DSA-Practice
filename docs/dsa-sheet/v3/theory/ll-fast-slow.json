@@ -11,6 +11,9 @@
   "ll-floyd-cycle-proof",
   "ll-merge-and-split"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -43,5 +46,13 @@
    "body": "✍️ The loop condition `fast && fast->next` must check both, in that order, before `fast->next->next`.\n✍️ Comparing `slow == fast` before moving makes them \"meet\" at the start."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "meta-pattern-decision-tree",
+   "from_section": "by-input-shape",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

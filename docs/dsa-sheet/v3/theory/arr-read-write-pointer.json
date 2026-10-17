@@ -12,12 +12,35 @@
   "tp-opposite-ends",
   "tp-skip-duplicates"
  ],
+ "note": "1. Idea\n   • `read` visits every element; `write` marks where the next **kept** element goes\n   • Invariant: `a[0..write-1]` = kept elements so far, in order\n   • `write ≤ read` → never overwrite something unread\n2. Recognise\n   • \"in-place\", \"O(1) extra space\", \"remove / move / filter\", \"return k\"\n   • Relative order must be kept\n3. Template\n   • `if (keep(a[read])) a[write++] = a[read];` → return `write`\n   • keep for Move Zeroes: `a[read] != 0`\n   • keep for Remove Element: `a[read] != val`\n   • keep for sorted dedup: `write == 0 || a[read] != a[write-1]`\n4. Copy or swap?\n   • Copy when the tail doesn't matter\n   • **Swap** when removed elements must stay (Move Zeroes)\n5. Pitfalls\n   • Compare with the **written** array (`a[write-k]`) for \"at most k copies\"\n   • Return `write` (a count), not `write - 1`\n✎ In my words: ______________________________________________",
+ "recall": [
+  {
+   "q": "What is the invariant of the write pointer?",
+   "a": "a[0..write−1] holds exactly the kept elements so far, in their original order."
+  },
+  {
+   "q": "Why can writing never destroy unread data?",
+   "a": "write ≤ read always."
+  },
+  {
+   "q": "When swap instead of copy?",
+   "a": "When the removed elements must still be present at the end (e.g. zeros at the back)."
+  },
+  {
+   "q": "keep-rule for \"at most two copies\" in a sorted array?",
+   "a": "write < 2 || a[read] != a[write−2]."
+  }
+ ],
+ "shot": {
+  "title": "Template and keep rules",
+  "body": "```cpp\nint write = 0;\nfor (int read = 0; read < n; read++)\n    if (keep(a[read])) a[write++] = a[read];   // or swap(a[write++], a[read])\nreturn write;\n```\n| Problem | keep(a[read]) |\n|---|---|\n| Move Zeroes | `a[read] != 0` (swap) |\n| Remove Element | `a[read] != val` |\n| Remove Duplicates (sorted) | `write == 0 \\|\\| a[read] != a[write-1]` |\n| At most 2 copies | `write < 2 \\|\\| a[read] != a[write-2]` |"
+ },
  "sections": [
   {
    "id": "idea",
    "title": "Idea",
    "note": "write",
-   "body": "✍️ Two indices move left to right. `read` visits every element. `write` only advances when an element is **kept**.\n✍️ Invariant: `a[0..write-1]` always holds exactly the kept elements seen so far, in their original order.\n✍️ Because `write ≤ read` always, writing to `a[write]` never overwrites an element we have not read yet."
+   "body": "✍️ Two indices move left to right. `read` visits every element. `write` only advances when an element is **kept**.\n✍️ Invariant: `a[0..write-1]` always holds exactly the kept elements seen so far, in their original order.\n✍️ Because `write ≤ read` always, writing to `a[write]` never overwrites an element we have not read yet.\n>> detour cx-space-and-in-place#in-place | What \"in-place\" allows and forbids | 2 min"
   },
   {
    "id": "recognise",
@@ -64,46 +87,142 @@
  ],
  "used_by": [
   {
+   "from_page": "cx-space-and-in-place",
+   "from_section": "in-place",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "str-tokenising-and-reversal",
+   "from_section": "reverse-words",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "day": 1,
+   "block": "reading_path",
+   "step": 7,
+   "kind": "path",
+   "why": "Pattern 2 of today: compacting an array in place. Used by problems 3 and 4.",
+   "section": "idea"
+  },
+  {
+   "problem": "move-zeroes",
+   "sibling": "remove-element",
+   "day": 1,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "swap-vs-copy"
+  },
+  {
    "problem": "move-zeroes",
    "day": 1,
-   "section": "recognise",
    "stage": "understand",
-   "at": "\"in-place, keep relative order\""
+   "at": "\"in place\", keep the order of non-zeros",
+   "why": "The trigger words that point to the read/write pointer.",
+   "when": "before",
+   "need": "must",
+   "kind": "ref",
+   "section": "recognise"
   },
   {
    "problem": "move-zeroes",
    "day": 1,
-   "section": "think",
    "stage": "brainstorm",
-   "at": "Brute B shifts elements repeatedly"
+   "at": "↳ Bottleneck of B: elements are shifted again and again",
+   "why": "Why erase-and-shift is O(n²) and how moving each element once fixes it.",
+   "when": "before",
+   "need": "must",
+   "kind": "ref",
+   "section": "think"
   },
   {
    "problem": "move-zeroes",
    "day": 1,
-   "section": "swap-vs-copy",
    "stage": "pseudocode",
-   "at": "`swap(a[write], a[read])`"
+   "at": "`swap(a[write], a[read])`",
+   "why": "Why this problem needs swap (or a fill pass) instead of a plain copy.",
+   "when": "while",
+   "need": "must",
+   "kind": "ref",
+   "section": "swap-vs-copy"
+  },
+  {
+   "problem": "move-zeroes",
+   "day": 1,
+   "kind": "stuck",
+   "minutes": "20",
+   "section": "idea"
+  },
+  {
+   "problem": "move-zeroes",
+   "day": 1,
+   "kind": "stuck",
+   "minutes": "30",
+   "section": "template"
+  },
+  {
+   "problem": "move-zeroes",
+   "day": 1,
+   "kind": "stuck",
+   "minutes": "40",
+   "section": "swap-vs-copy"
+  },
+  {
+   "problem": "remove-duplicates-from-sorted-array",
+   "sibling": "remove-duplicates-from-sorted-array-ii",
+   "day": 1,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "variations"
   },
   {
    "problem": "remove-duplicates-from-sorted-array",
    "day": 1,
-   "section": "recognise",
    "stage": "analyse",
-   "at": "\"sorted\" means duplicates are adjacent"
+   "at": "\"because it is sorted, a value is new when it differs from the last kept\"",
+   "why": "Sortedness turns \"seen before?\" into a neighbour comparison.",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "recognise"
   },
   {
    "problem": "remove-duplicates-from-sorted-array",
    "day": 1,
-   "section": "template",
    "stage": "pseudocode",
-   "at": "keep = `a[read] != a[write−1]`"
+   "at": "CHECK `a[read] != a[write−1]`",
+   "why": "The keep-rule table, including this exact rule.",
+   "when": "while",
+   "need": "must",
+   "kind": "ref",
+   "section": "template"
   },
   {
    "problem": "remove-duplicates-from-sorted-array",
    "day": 1,
-   "section": "pitfalls",
    "stage": "edges",
-   "at": "compare with the written array"
+   "at": "compare with the written array",
+   "why": "Why `a[write−k]` generalises to \"keep at most k copies\" (the must-study sibling).",
+   "when": "after",
+   "need": "optional",
+   "kind": "ref",
+   "section": "pitfalls"
+  },
+  {
+   "problem": "remove-duplicates-from-sorted-array",
+   "day": 1,
+   "kind": "stuck",
+   "minutes": "20",
+   "section": "idea"
+  },
+  {
+   "problem": "remove-duplicates-from-sorted-array",
+   "day": 1,
+   "kind": "stuck",
+   "minutes": "30",
+   "section": "template"
   }
- ]
+ ],
+ "notes_status": "ready"
 }

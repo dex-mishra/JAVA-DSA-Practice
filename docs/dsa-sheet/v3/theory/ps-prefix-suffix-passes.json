@@ -10,6 +10,9 @@
  "related": [
   "arr-single-pass-running-state"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -42,5 +45,44 @@
    "body": "O(n) time, O(1) extra space besides the output."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "ps-prefix-sum-basics",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "problem": "container-with-most-water",
+   "day": 3,
+   "stage": "followups",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "problem": "container-with-most-water",
+   "sibling": "trapping-rain-water",
+   "day": 3,
+   "stage": "brainstorm",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "problem": "range-sum-query-immutable",
+   "sibling": "product-of-array-except-self",
+   "day": 4,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "idea"
+  },
+  {
+   "problem": "range-sum-query-immutable",
+   "sibling": "product-of-array-except-self",
+   "day": 4,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "why-no-division"
+  }
+ ],
+ "notes_status": "pending"
 }

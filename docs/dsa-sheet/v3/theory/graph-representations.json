@@ -12,6 +12,9 @@
   "graph-bfs",
   "graph-grid-as-graph"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "terms",
@@ -38,5 +41,6 @@
    "body": "- Edge list `[[0,1],[1,2]]` → build an adjacency list.\n- Prerequisites `[a, b]` = \"to take a you need b\" → edge **b → a** (direction matters for topological sort).\n- Grid → implicit graph, no list needed ([[graph-grid-as-graph]]).\n- `graph[i]` already given as neighbours (Is Graph Bipartite) → use directly."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

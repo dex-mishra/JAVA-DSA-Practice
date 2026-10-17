@@ -10,6 +10,33 @@
   "cx-space-and-in-place",
   "cx-amortised-analysis"
  ],
+ "note": "1. What Big-O means\n   • How running time **grows** as n grows; ignores constants and small terms\n   • Doubling n: O(n) → 2× time, O(n²) → 4×, O(log n) → +1 step\n2. Counting from code\n   • One loop over n with O(1) inside → **O(n)**\n   • Two nested loops over n → **O(n²)** (even if the inner runs i times: n(n+1)/2)\n   • Halving / doubling a variable → **O(log n)**\n   • Sequential blocks **add** (keep the biggest); nested blocks **multiply**\n   • Library calls count: `sort` O(n log n), `unordered_map` O(1) avg, `map` O(log n), `substr(i, len)` O(len)\n3. Ranking\n   • 1 < log n < √n < n < n log n < n² < n³ < 2ⁿ < n!\n4. Rules\n   • Drop constants and lower terms: 3n² + 5n → O(n²)\n   • Different inputs stay separate: two strings → O(n·m)\n5. Hidden costs\n   • Passing a vector **by value** copies it → O(n) per call\n   • `s = s + c` in a loop → O(n²); use `s += c`\n✎ In my words: ______________________________________________",
+ "recall": [
+  {
+   "q": "Nested loop where the inner loop runs i times — complexity?",
+   "a": "Still O(n²): 1 + 2 + … + n = n(n+1)/2."
+  },
+  {
+   "q": "Do sequential blocks add or multiply? Nested blocks?",
+   "a": "Sequential add (keep the biggest); nested multiply."
+  },
+  {
+   "q": "Cost of unordered_map lookup vs map lookup?",
+   "a": "O(1) average vs O(log n)."
+  },
+  {
+   "q": "Why is `s = s + c` inside a loop dangerous?",
+   "a": "It builds a new string every time → O(n²) total."
+  },
+  {
+   "q": "Two strings of lengths n and m compared fully — complexity?",
+   "a": "O(n·m), not O(n²)."
+  }
+ ],
+ "shot": {
+  "title": "Growth table",
+  "body": "| n | log n | n log n | n² | 2ⁿ |\n|---|---|---|---|---|\n| 10 | 3 | 33 | 100 | 1,024 |\n| 1,000 | 10 | 10⁴ | 10⁶ | huge |\n| 10⁵ | 17 | 1.7·10⁶ | 10¹⁰ ✗ | — |"
+ },
  "sections": [
   {
    "id": "what",
@@ -50,11 +77,24 @@
  ],
  "used_by": [
   {
+   "day": 1,
+   "block": "reading_path",
+   "step": 4,
+   "kind": "path",
+   "why": "Just enough Big-O to say \"this is O(n)\" and mean it.",
+   "section": "counting"
+  },
+  {
    "problem": "running-sum-of-1d-array",
    "day": 1,
-   "section": "counting",
    "stage": "edges",
-   "at": "Complexity line"
+   "at": "Time O(n): one loop, O(1) work inside",
+   "why": "How \"one loop with O(1) inside\" becomes O(n).",
+   "when": "while",
+   "need": "optional",
+   "kind": "ref",
+   "section": "counting"
   }
- ]
+ ],
+ "notes_status": "ready"
 }

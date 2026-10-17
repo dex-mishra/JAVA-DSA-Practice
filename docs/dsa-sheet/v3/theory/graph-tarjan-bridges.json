@@ -10,6 +10,9 @@
  "related": [
   "graph-cycle-detection"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -30,5 +33,6 @@
    "body": "✍️ Appears as \"critical connections in a network\" (LeetCode 1192). Rare in campus OAs; know the definition and the `low[v] > tin[u]` condition."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

@@ -1,9 +1,30 @@
-import json, random
-old = json.load(open('../../_superseded-v2/oa/mock-oa-01-problems.json'))
+import json, os, random
+HERE = os.path.dirname(os.path.abspath(__file__))
+old = json.load(open(os.path.join(HERE, '../../_superseded-v2/oa/mock-oa-01-problems.json')))
 q1, q2 = old['problems'][0], old['problems'][1]
 q1 = dict(q1); q2 = dict(q2)
 q1['source_day'] = 2; q1['related'] = 'majority-element'; q1['tests_pattern'] = 'boyer-moore-voting'
 q2['source_day'] = 4; q2['related'] = 'subarray-sum-equals-k'; q2['tests_pattern'] = 'prefix-sum-hashmap'
+
+# Code runners cap stdin (OnlineCompiler.io: 100 KB), so any input over
+# ~95 KB ships as a generator the grader runs inside the submission instead
+# of as text. q2 hidden[5] is 70000 zeros: same bytes, now generated.
+Q2_ZEROS = "70000 0\n" + " ".join(["0"] * 70000)
+assert q2['hidden'][5]['input'] == Q2_ZEROS
+q2['hidden'] = list(q2['hidden'])
+q2['hidden'][5] = dict({k: v for k, v in q2['hidden'][5].items() if k != 'input'}, gen=dict(
+    kind="formula", n=70000,
+    spec="first line: 70000 0. second line: 70000 zeros separated by single spaces.",
+    builder_js="function build(){const n=70000;return n+' 0\\n'+new Array(n).fill(0).join(' ');}"))
+
+# q3's performance log: a 32-bit LCG instead of Python's Mersenne Twister, so
+# the C++, Python and JS generators can reproduce it bit for bit.
+def lcg_log(n, seed=20261023):
+    x, out = seed, []
+    for _ in range(n):
+        x = (x * 1664525 + 1013904223) & 0xFFFFFFFF
+        out.append("abcde"[(x >> 24) % 5])
+    return "".join(out)
 
 def ref(s, k):
     cnt = {}; l = 0; best = 0; d = 0
@@ -37,8 +58,16 @@ hidden = [
  case("best segment at the very end of the log", 5, "abcabcabcabc" + "xyxyxyxyyyxxyyx", 2),
  case("window must shrink several times in a row", 6, "aaaaabbbbbcdefgaaaaaaaab", 2),
  case("many small segments, k = 3, n = 3000", 7, "".join(rng.choice("abcdef") for _ in range(3000)), 3),
- case("n = 2*10^5, k = 3, performance", 10, "".join(rng.choice("abcde") for _ in range(200000)), 3),
+ case("n = 2*10^5, k = 3, performance", 10, lcg_log(200000), 3),
 ]
+_big = hidden[6]
+assert _big['input'] == f"200000 3\n{lcg_log(200000)}\n"
+hidden[6] = dict(desc=_big['desc'], marks=_big['marks'], output=_big['output'], gen=dict(
+    kind="formula", n=200000,
+    spec="first line: 200000 3. second line: 200000 letters, x0 = 20261023, x = (1664525x + 1013904223) mod 2^32, "
+         "letter = \"abcde\"[(x >> 24) mod 5]; then a newline.",
+    builder_js="function build(){const n=200000;let x=20261023,s='';for(let i=0;i<n;i++){x=(Math.imul(x,1664525)+1013904223)>>>0;"
+               "s+='abcde'[(x>>>24)%5];}return n+' 3\\n'+s+'\\n';}"))
 assert sum(h['marks'] for h in hidden) == 40
 q3 = dict(
  id="mock-01-q3", ord=3, title="Signal Log", marks=40, difficulty="Medium",
@@ -64,5 +93,5 @@ mock = dict(id="mock-01", title="Mock OA 01", covers_days=[1, 2, 3, 4, 5], durat
             difficulty="campus-beginner", grading=old['grading'], problems=[q1, q2, q3])
 mock['grading']['totals'] = {"mock-01-q1": q1['marks'], "mock-01-q2": q2['marks'], "mock-01-q3": 40}
 assert q1['marks'] + q2['marks'] + 40 == 100
-json.dump(mock, open('../oa/mock-01-problems.json', 'w'))
+json.dump(mock, open(os.path.join(HERE, '../oa/mock-01-problems.json'), 'w'))
 print("ok", q1['marks'], q2['marks'], [h['output'] for h in hidden])

@@ -136,3 +136,24 @@ CREATE TABLE IF NOT EXISTS oa_attempt (
 -- History reads newest-first and the in-progress check reads ended_at.
 CREATE INDEX IF NOT EXISTS oa_attempt_recent ON oa_attempt (started_at DESC);
 CREATE INDEX IF NOT EXISTS oa_attempt_open   ON oa_attempt (ended_at);
+
+-- v3.1 (migrations/0005_dsa_v31.sql): reader progress, notes, recall, CS core.
+CREATE TABLE IF NOT EXISTS dsa_page_note (          -- "I've written this in GoodNotes"
+  page_id TEXT PRIMARY KEY, noted INTEGER NOT NULL DEFAULT 0,
+  goodnotes_ref TEXT NOT NULL DEFAULT '', noted_on TEXT, updated_at REAL NOT NULL);
+
+CREATE TABLE IF NOT EXISTS dsa_recall (             -- spaced recall: '<pageId>#r<k>' | 'mcq:<id>'
+  item_id TEXT PRIMARY KEY, source TEXT NOT NULL,
+  stage INTEGER NOT NULL DEFAULT 0, due_on TEXT, last_result INTEGER,
+  updated_at REAL NOT NULL);
+CREATE INDEX IF NOT EXISTS dsa_recall_due ON dsa_recall (due_on);
+
+CREATE TABLE IF NOT EXISTS dsa_core_day (           -- CS core progress per plan day
+  day INTEGER PRIMARY KEY, topics_done TEXT NOT NULL DEFAULT '[]',
+  mcq_score INTEGER, mcq_total INTEGER, mcq_answers TEXT NOT NULL DEFAULT '{}',
+  explain_text TEXT NOT NULL DEFAULT '', explain_feedback TEXT NOT NULL DEFAULT '',
+  done INTEGER NOT NULL DEFAULT 0, updated_at REAL NOT NULL);
+
+CREATE TABLE IF NOT EXISTS dsa_reading (            -- reading path progress
+  path_key TEXT PRIMARY KEY, step INTEGER NOT NULL DEFAULT 0, done INTEGER NOT NULL DEFAULT 0,
+  updated_at REAL NOT NULL);

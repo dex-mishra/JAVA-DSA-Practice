@@ -10,6 +10,9 @@
  "related": [
   "str-kmp-prefix-function"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -24,5 +27,6 @@
    "body": "✍️ Use a large prime modulus (e.g. 10⁹+7) with `long long`, or two different moduli to make collisions negligible."
   }
  ],
- "used_by": []
+ "used_by": [],
+ "notes_status": "pending"
 }

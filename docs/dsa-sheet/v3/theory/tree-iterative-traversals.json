@@ -11,6 +11,9 @@
  "related": [
   "cpp-recursion-stack-limits"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "inorder",
@@ -37,5 +40,13 @@
    "body": "✍️ Interviewers ask \"can you do it without recursion?\" for inorder (LeetCode 94 follow-up). Also needed when recursion depth could overflow ([[cpp-recursion-stack-limits]]).\n- BST iterator (LeetCode 173) is exactly the iterative inorder split into `next()` calls."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "cpp-recursion-stack-limits",
+   "from_section": "when-risky",
+   "kind": "link",
+   "section": ""
+  }
+ ],
+ "notes_status": "pending"
 }

@@ -10,6 +10,9 @@
  "related": [
   "mat-traversal-and-directions"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "build",
@@ -30,5 +33,28 @@
    "body": "Range Sum Query 2D (LeetCode 304), maximal square checks, counting submatrices with a property, image blur filters."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "ps-prefix-sum-basics",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "problem": "range-sum-query-immutable",
+   "day": 4,
+   "stage": "followups",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "problem": "range-sum-query-immutable",
+   "sibling": "range-sum-query-2d-immutable",
+   "day": 4,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "query"
+  }
+ ],
+ "notes_status": "pending"
 }

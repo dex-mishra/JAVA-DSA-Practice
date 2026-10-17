@@ -10,6 +10,9 @@
  "related": [
   "ps-prefix-sum-hashmap"
  ],
+ "note": null,
+ "recall": [],
+ "shot": null,
  "sections": [
   {
    "id": "idea",
@@ -30,5 +33,35 @@
    "body": "Subarrays with K different integers (LeetCode 992), binary subarrays with sum (LeetCode 930), count number of nice subarrays (LeetCode 1248)."
   }
  ],
- "used_by": []
+ "used_by": [
+  {
+   "from_page": "ps-prefix-sum-hashmap",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "from_page": "sw-variable-window",
+   "from_section": "variations",
+   "kind": "link",
+   "section": ""
+  },
+  {
+   "problem": "subarray-sum-equals-k",
+   "sibling": "binary-subarrays-with-sum",
+   "day": 4,
+   "stage": "brainstorm",
+   "kind": "link",
+   "section": "idea"
+  },
+  {
+   "problem": "max-consecutive-ones-iii",
+   "sibling": "subarray-product-less-than-k",
+   "day": 5,
+   "stage": "quick_theory",
+   "kind": "link",
+   "section": "idea"
+  }
+ ],
+ "notes_status": "pending"
 }
