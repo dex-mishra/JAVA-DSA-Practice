@@ -1,0 +1,24 @@
+# Binary trees — terms and representation
+
+> Nodes, root, leaves, depth vs height, complete/full/balanced trees, and the TreeNode struct you will use everywhere.
+
+## The node
+
+✍️ `struct TreeNode { int val; TreeNode *left, *right; };` A tree is reached through its `root`; an empty tree is `null`.
+✍️ Every subtree is itself a tree. That is why almost every tree solution is recursive: solve for the left subtree, solve for the right, combine.
+
+## Terms
+
+✍️ **Leaf**: node with no children. **Depth** of a node: edges from the root down to it (root has depth 0). **Height** of a node: edges (or nodes, by convention in LeetCode's "maximum depth") on the longest path down to a leaf.
+✍️ **Balanced** (as in LeetCode 110): for every node, the heights of its two subtrees differ by at most 1. Height of a balanced tree is O(log n).
+✍️ **Complete**: every level full except possibly the last, filled left to right (heaps are complete). **Full**: every node has 0 or 2 children. **Perfect**: all leaves at the same depth.
+
+## Sizes worth knowing
+
+- A perfect tree of height h has 2^(h+1) − 1 nodes.
+- A tree with n nodes has n − 1 edges.
+- Height ranges from log₂ n (balanced) to n − 1 (a chain) — which is why recursion depth on trees can be O(n).
+
+## LeetCode's array format
+
+✍️ `[3,9,20,null,null,15,7]` is level order with `null` for missing children. Draw the tree from it before solving — reading the array directly causes mistakes.

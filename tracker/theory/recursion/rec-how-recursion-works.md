@@ -1,0 +1,37 @@
+# How recursion works — base case, call stack and the leap of faith
+
+> A function that solves a problem by calling itself on a smaller version. Define what it returns, handle the smallest case, and trust the recursive call.
+
+## The three parts
+
+✍️ **Definition**: one sentence saying what `f(args)` returns. Everything depends on this sentence being precise.
+✍️ **Base case**: the smallest input, answered directly without recursion. Without it the recursion never stops (stack overflow).
+✍️ **Recursive case**: express the answer for this input using the answers for **smaller** inputs.
+
+## What the computer does
+
+✍️ Each call gets its own frame on the **call stack** with its own local variables. A call waits until the calls it made return, then continues where it left off.
+- Picture for `fact(3)`: fact(3) waits for fact(2), which waits for fact(1), which returns 1; then fact(2) returns 2·1, then fact(3) returns 3·2.
+- Space used = the deepest the stack ever gets ([[cx-space-and-in-place#recursion-space]]).
+
+## The leap of faith
+
+✍️ When writing the recursive case, **do not trace the recursion in your head**. Assume the call on the smaller input already returns the correct answer (by its definition), and only ask: "given that answer, how do I build mine?"
+✍️ This is mathematical induction: base case true + (smaller true ⇒ this true) ⇒ all true.
+✍️ If you cannot build your answer from the smaller answer, the definition is wrong or incomplete — change what the function returns (e.g. return a pair, or pass extra parameters).
+
+## Example
+
+```java
+// Definition: sum(a, i) returns a[i] + a[i+1] + ... + a[n-1].
+int sum(int[] a, int i) {
+    if (i == a.length) return 0;               // base: empty suffix
+    return a[i] + sum(a, i + 1);               // trust sum(a, i+1)
+}
+```
+
+## Pitfalls
+
+✍️ Base case that is never reached (e.g. `n == 0` when n can go negative). Make the base case cover every way the input can become "smallest".
+✍️ Not making the input smaller in the recursive call → infinite recursion.
+✍️ Passing large containers by value → hidden O(n) copies per call ([[cpp-pass-by-reference-and-copies]]).
