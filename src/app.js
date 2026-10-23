@@ -942,11 +942,18 @@
   var SECTIONS = [
     { id: "placement", label: "Placement" },
     { id: "dsa", label: "DSA Sheet" },
-    { id: "mba", label: "MBA" }
+    { id: "mba", label: "MBA" },
+    { id: "claude", label: "Claude" }
   ];
   // Hidden entirely until the content has been imported, rather than showing
   // an empty tab that looks broken.
   if (!DSA_PLAN) SECTIONS.splice(1, 1);
+
+  // Skraple (the outreach CRM in SKRAPLE_THE-EMAIL-MARKETING-PROJECT-main) is
+  // a separate app, so it gets a link out rather than a section. Its campaigns
+  // page is where the intern application mails are. Local dev URL: start it
+  // with `npm run dev` in that folder first.
+  var SKRAPLE_URL = "http://localhost:3888/campaigns";
 
   var TABS = [{ id: "overview", label: "Overview", domain: "placement", section: "placement" }];
   PL.tracks.forEach(function (t) {
@@ -962,6 +969,7 @@
   TABS.push({ id: "dsa-browse", label: "Browse", domain: "dsa", section: "dsa" });
   TABS.push({ id: "dsa-oa", label: "OAs", domain: "dsa", section: "dsa" });
   TABS.push({ id: "mba", label: "MBA Windows", domain: "mba", section: "mba" });
+  TABS.push({ id: "claude", label: "Claude", domain: "placement", section: "claude" });
 
   var SECTION = "placement";
   var ACTIVE = "overview";
@@ -976,9 +984,11 @@
     document.getElementById("sections").innerHTML = SECTIONS.map(function (s) {
       return '<button class="seg" role="tab" data-section="' + s.id +
         '" aria-selected="' + (SECTION === s.id) + '">' + esc(s.label) + "</button>";
-    }).join("");
+    }).join("") +
+      '<a class="seg seg-ext" href="' + SKRAPLE_URL + '" target="_blank" rel="noopener"' +
+      ' title="Open Skraple: applied intern mails">Skraple &#8599;</a>';
 
-    document.querySelectorAll(".seg").forEach(function (b) {
+    document.querySelectorAll(".seg[data-section]").forEach(function (b) {
       b.onclick = function () {
         SECTION = b.dataset.section;
         ACTIVE = sectionTabs()[0].id;
@@ -1455,6 +1465,47 @@
       "</div></section>";
   }
 
+  /* How to let Claude work this tracker through MCP. The dsa-planner server
+     (mcp/server.py) is a client of this page's own /api, so it only works
+     when the page is served by its Worker -- which is what the status line
+     reports. */
+  function renderClaude() {
+    var online = SYNC.on;
+    var tools = [
+      ["Overview", "get_overview"],
+      ["DSA plan", "list_dsa_problems, get_dsa_problem, update_dsa_problem"],
+      ["Placement topics", "list_topics, set_topics_done"],
+      ["MBA windows", "list_mba_items, set_mba_item_done, add_mba_item, add_mba_tags, remove_mba_tags, delete_mba_item, restore_mba_item"],
+      ["Goals", "list_goals, create_goal, update_goal"],
+      ["Opportunities", "list_opportunities, add_opportunity"]
+    ];
+    var asks = [
+      "What's on today's DSA list, and what have I not solved yet?",
+      "Mark Two Sum solved, 25 minutes, confidence 4.",
+      "Walk me through the 3Sum write-up step by step.",
+      "Which MBA deadlines are in the next three weeks?"
+    ];
+    return '<div class="callout" style="border-left-color:' + (online ? "var(--ok, #1a7f37)" : "var(--crit)") + '">' +
+        "<h3>" + (online ? "Planner API online" : "Planner API offline") + "</h3>" +
+        "<p>" + (online
+          ? "Claude can read and update this tracker through the <code>dsa-planner</code> MCP server."
+          : "This page is running without its server, so Claude has nothing to talk to. Start everything with <b>Start Local.cmd</b>.") +
+        "</p></div>" +
+      '<div class="card claude-card"><h3>Set up once</h3><ol class="claude-steps">' +
+        "<li>Double-click <b>Start Local.cmd</b> in the project folder (starts this tracker, its API and Skraple).</li>" +
+        "<li>Double-click <b>Connect Claude.cmd</b>. It registers <code>dsa-planner</code> and <code>skraple</code> with Claude Code.</li>" +
+        "<li>Open a new Claude Code session. Both servers show up under <code>/mcp</code>.</li>" +
+        "</ol><p class=\"claude-manual\">By hand, from the project folder:</p>" +
+        '<pre class="claude-cmd">claude mcp add --scope user dsa-planner --env CONSOLE_URL=http://localhost:8000 -- mcp\\.venv\\Scripts\\python.exe mcp\\server.py</pre>' +
+        "<p class=\"claude-manual\">Use absolute paths in place of the relative ones; Claude does not resolve them against the folder.</p></div>" +
+      '<div class="card claude-card"><h3>What Claude can do here</h3><ul class="claude-tools">' +
+        tools.map(function (t) { return "<li><b>" + esc(t[0]) + "</b> <code>" + esc(t[1]) + "</code></li>"; }).join("") +
+        "</ul></div>" +
+      '<div class="card claude-card"><h3>Try asking</h3><ul class="claude-asks">' +
+        asks.map(function (a) { return "<li>" + esc(a) + "</li>"; }).join("") +
+        "</ul></div>";
+  }
+
   function renderCareer() {
     if (!OPPS.length) {
       return '<div class="empty">Nothing here yet.<br><br>' +
@@ -1533,6 +1584,7 @@
     else if (tab.id === "dsa-theory") panel.innerHTML = renderDsaTheory();
     else if (tab.id === "dsa-read") panel.innerHTML = renderDsaRead();
     else if (tab.id === "dsa-oa") panel.innerHTML = renderDsaOa();
+    else if (tab.id === "claude") panel.innerHTML = renderClaude();
     else panel.innerHTML = renderTrack(tab.track);
 
     renderHeader();
@@ -2129,7 +2181,7 @@
 
   function mdCode(code, lang) {
     var id = "dsacode" + (++dsaCodeSeq);
-    var body = !lang || /^(cpp|c\+\+|c)$/i.test(lang) ? highlightCpp(code) : esc(code);
+    var body = !lang || /^(java|cpp|c\+\+|c)$/i.test(lang) ? highlightCpp(code) : esc(code);
     return '<div class="dsa-code"><button class="dsa-copy" data-copy="' + id +
       '" type="button">copy</button><pre id="' + id + '"><code>' + body + "</code></pre></div>";
   }
@@ -2314,7 +2366,7 @@
     return out;
   }
 
-  var DSA_ACRONYM = { bst: "BST", dp: "DP", stl: "STL", oa: "OA", cpp: "C++", ds: "DS" };
+  var DSA_ACRONYM = { bst: "BST", dp: "DP", stl: "STL", oa: "OA", cpp: "Java", ds: "DS" };
 
   function titleCase(s) {
     return String(s || "").split("-").map(function (w) {
@@ -2712,7 +2764,7 @@
       "<h4>Inside a problem: the 10 steps</h4>" +
       "<p>Each problem is broken into the steps you would go through in an interview: <i>Understand</i> (what is " +
       "asked), <i>Analyse</i> (what the input size allows), <i>Brainstorm</i> (slow idea first, then why it is " +
-      "slow and how to fix it), <i>Algorithm in words</i>, <i>Pseudocode</i>, <i>Reference C++</i>, a <i>Dry run</i> " +
+      "slow and how to fix it), <i>Algorithm in words</i>, <i>Pseudocode</i>, <i>Reference Java</i>, a <i>Dry run</i> " +
       "on an example, <i>Edge cases</i>, <i>Carry forward</i> (the lesson to remember) and <i>Interview follow-ups</i>. " +
       "Green links under a step open the exact theory section it relies on.</p>" +
 
@@ -4245,7 +4297,7 @@
         '<button class="btn tiny" type="button" data-dsa-revealstep="' + esc(step.id) + '">Reveal ' + esc(step.label) + "</button></div>";
     }
     if (step.id === "code") {
-      var tabs = [["solution", "Reference C++"], ["dry_run", "Dry run"], ["edges", "Edge cases"]];
+      var tabs = [["solution", "Reference Java"], ["dry_run", "Dry run"], ["edges", "Edge cases"]];
       return '<div class="dsa-codetabs">' + tabs.map(function (t) {
         return '<button type="button" class="dsa-mode' + (DSAV.codeTab === t[0] ? " on" : "") + '" data-dsa-codetab="' + t[0] + '">' + t[1] + "</button>";
       }).join("") + "</div>" + dsaStageBody(p, doc, DSAV.codeTab);

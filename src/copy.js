@@ -18,7 +18,7 @@ var COPY = {
   "step.analyse": "On paper: what goes in, what comes out, what size is n?",
   "step.brainstorm": "Write the slow solution first. Then name what's wasted.",
   "step.algorithm": "3–7 plain sentences. If you can't, the idea isn't ready.",
-  "step.pseudocode": "Five slots: state, loop, check, update, return. No C++ yet.",
+  "step.pseudocode": "Five slots: state, loop, check, update, return. No Java yet.",
   "step.code": "Code it on LeetCode from a blank file. Dry-run if it fails.",
   "step.notes": "Copy the outline into GoodNotes. Fill 'In my words' yourself.",
   "step.done": "Mark it, rate it honestly, paste your pseudocode.",

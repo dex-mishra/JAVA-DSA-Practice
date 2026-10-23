@@ -21,7 +21,9 @@ answered as a mail-agent request are no longer needed either.
 
 from __future__ import annotations
 
+import json
 import os
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -31,6 +33,11 @@ CONSOLE_URL = os.environ.get("CONSOLE_URL", "http://localhost:8080").rstrip("/")
 CONSOLE_PASSWORD = os.environ.get("CONSOLE_PASSWORD", "")
 TIMEOUT = float(os.environ.get("CONSOLE_TIMEOUT", "60"))
 
+# The DSA problem index is baked into the page rather than served on its own,
+# so it is read from the repo this server ships in.
+DSA_INDEX = Path(__file__).resolve().parent.parent / "data" / "dsa" / "index.json"
+DSA_STATUSES = {"todo", "solved", "revisit", "skimmed"}
+
 mcp = FastMCP(
     "launch-console",
     instructions=(
@@ -38,7 +45,8 @@ mcp = FastMCP(
         "list_topics, set_topics_done, list_mba_items, set_mba_item_done, "
         "add_mba_item, add_mba_tags, remove_mba_tags, delete_mba_item, "
         "restore_mba_item, list_goals, create_goal, update_goal, "
-        "list_opportunities, add_opportunity."
+        "list_opportunities, add_opportunity, list_dsa_problems, "
+        "get_dsa_problem, update_dsa_problem."
     ),
 )
 
@@ -263,6 +271,110 @@ def add_opportunity(
             "stipend": stipend, "summary": summary,
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# DSA plan
+# ---------------------------------------------------------------------------
+
+
+def _dsa_index() -> list[dict]:
+    try:
+        return json.loads(DSA_INDEX.read_text(encoding="utf-8"))["problems"]
+    except (OSError, ValueError, KeyError):
+        return []
+
+
+@mcp.tool()
+def list_dsa_problems(day: int = 0, status: str = "all", limit: int = 50) -> dict:
+    """DSA plan problems with your progress on each.
+
+    day:    plan day number, or 0 for every day
+    status: all | todo | solved | revisit | skimmed
+    limit:  max returned (the total before truncation is always reported)
+
+    Each row carries the LeetCode link, difficulty, pattern and your status,
+    minutes spent and next re-solve date."""
+    if status != "all" and status not in DSA_STATUSES:
+        return {"error": "status must be all, todo, solved, revisit or skimmed"}
+    problems = _dsa_index()
+    if not problems:
+        return {"error": f"could not read the DSA index at {DSA_INDEX}"}
+    progress = _call("GET", "/api/dsa/progress")
+    if isinstance(progress, dict) and "error" in progress:
+        return progress
+    rows = progress.get("problems", {})
+    out = []
+    for p in problems:
+        if day and p.get("day") != day:
+            continue
+        row = rows.get(p["id"], {})
+        st = row.get("status", "todo")
+        if status != "all" and st != status:
+            continue
+        out.append({
+            "id": p["id"], "day": p.get("day"), "title": p.get("title"),
+            "difficulty": p.get("difficulty"), "pattern": p.get("pattern"),
+            "url": p.get("url"), "status": st,
+            "minutes_spent": row.get("minutes_spent"),
+            "next_resolve_on": row.get("next_resolve_on"),
+        })
+    return {"total": len(out), "today": progress.get("today"), "problems": out[:limit]}
+
+
+@mcp.tool()
+def get_dsa_problem(problem_id: str) -> dict:
+    """One plan problem in full: every solving step (understand, analyse,
+    brainstorm, algorithm, pseudocode, reference Java solution, dry run, edge
+    cases, follow-ups), its sibling problems, and your saved progress."""
+    try:
+        with httpx.Client(timeout=TIMEOUT) as client:
+            resp = client.get(f"{CONSOLE_URL}/data/dsa/problem/{problem_id}.json")
+    except httpx.RequestError as exc:
+        return {"error": f"Could not reach the console at {CONSOLE_URL}: {exc}"}
+    if resp.status_code != 200 or "json" not in resp.headers.get("content-type", ""):
+        return {"error": f"no written-up problem with id {problem_id!r} (only days with notes have one)"}
+    doc = resp.json()
+    progress = _call("GET", "/api/dsa/progress")
+    if isinstance(progress, dict) and "problems" in progress:
+        doc["progress"] = progress["problems"].get(problem_id, {"status": "todo"})
+    return doc
+
+
+@mcp.tool()
+def update_dsa_problem(
+    problem_id: str,
+    status: str = "",
+    minutes_spent: int = -1,
+    notes: str = "",
+    my_approach: str = "",
+    confidence: int = 0,
+) -> dict:
+    """Record progress on a plan problem, by id from list_dsa_problems.
+
+    status:        todo | solved | revisit | skimmed (solved and revisit
+                   both move the mastery rating)
+    minutes_spent: whole minutes, or -1 to leave unchanged
+    notes, my_approach: replace the saved text when non-empty
+    confidence:    1-5, or 0 to leave unchanged
+
+    Only the fields you pass are changed."""
+    body: dict[str, Any] = {}
+    if status:
+        if status not in DSA_STATUSES:
+            return {"error": "status must be todo, solved, revisit or skimmed"}
+        body["status"] = status
+    if minutes_spent >= 0:
+        body["minutes_spent"] = minutes_spent
+    if notes:
+        body["notes"] = notes
+    if my_approach:
+        body["my_approach"] = my_approach
+    if confidence:
+        body["confidence"] = confidence
+    if not body:
+        return {"error": "nothing to change"}
+    return _call("PATCH", f"/api/dsa/progress/{problem_id}", json=body)
 
 
 if __name__ == "__main__":

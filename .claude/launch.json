@@ -20,6 +20,54 @@
         "8787"
       ],
       "port": 8787
+    },
+    {
+      "name": "static",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "tools/static-serve.mjs"
+      ],
+      "port": 8000
+    },
+    {
+      "name": "skraple-api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "SKRAPLE_THE-EMAIL-MARKETING-PROJECT-main/server",
+        "run",
+        "start"
+      ],
+      "port": 5010,
+      "autoPort": false
+    },
+    {
+      "name": "skraple-client",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd SKRAPLE_THE-EMAIL-MARKETING-PROJECT-main/client && npx vite --port 3888 --strictPort"
+      ],
+      "port": 3888,
+      "autoPort": false
+    },
+    {
+      "name": "redis",
+      "runtimeExecutable": "wsl",
+      "runtimeArgs": [
+        "-d",
+        "Ubuntu",
+        "--",
+        "redis-server",
+        "--port",
+        "6379",
+        "--save",
+        "",
+        "--appendonly",
+        "no"
+      ],
+      "port": 6379,
+      "autoPort": false
     }
   ]
 }
